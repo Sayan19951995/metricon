@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, Package, CheckCircle, AlertTriangle, XCircle, Truck, CircleCheck, CircleX, CircleAlert, Star, MessageCircle, ThumbsUp, ThumbsDown } from 'lucide-react';
@@ -459,7 +459,36 @@ const mockAnalyticsData = {
 
 type TabType = 'finances' | 'sales' | 'products' | 'warehouse' | 'advertising' | 'reviews';
 
+// Компонент-обёртка для Suspense
 export default function AnalyticsPage() {
+  return (
+    <Suspense fallback={<AnalyticsPageSkeleton />}>
+      <AnalyticsPageContent />
+    </Suspense>
+  );
+}
+
+// Скелетон загрузки
+function AnalyticsPageSkeleton() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pt-16 lg:pt-0 lg:pl-64">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-48 mb-4"></div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {[1, 2, 3, 4].map(i => (
+              <div key={i} className="bg-white rounded-xl p-4 h-24"></div>
+            ))}
+          </div>
+          <div className="bg-white rounded-xl p-6 h-80"></div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Основной контент страницы
+function AnalyticsPageContent() {
   const searchParams = useSearchParams();
   const tabFromUrl = searchParams.get('tab') as TabType | null;
   const validTabs: TabType[] = ['finances', 'sales', 'products', 'warehouse', 'advertising', 'reviews'];
