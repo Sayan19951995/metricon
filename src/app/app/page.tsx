@@ -9,38 +9,43 @@ import {
   TrendingUp,
   Package,
   ShoppingCart,
-  AlertTriangle,
-  Megaphone,
   Truck,
   ChevronRight,
   ArrowUpRight,
   ArrowDownRight,
   Warehouse,
-  Calendar,
-  BarChart3
+  BarChart3,
+  HelpCircle,
+  Star,
+  Trophy
 } from 'lucide-react';
 
 export default function DashboardPage() {
   const router = useRouter();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showGrowthTooltip, setShowGrowthTooltip] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
+  const growthTooltipRef = useRef<HTMLDivElement>(null);
 
-  // Закрытие окна уведомлений при клике вне его области
+  // Закрытие окна уведомлений и тултипа при клике вне их области
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
         setShowNotifications(false);
       }
+      if (growthTooltipRef.current && !growthTooltipRef.current.contains(event.target as Node)) {
+        setShowGrowthTooltip(false);
+      }
     };
 
-    if (showNotifications) {
+    if (showNotifications || showGrowthTooltip) {
       document.addEventListener('mousedown', handleClickOutside);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showNotifications]);
+  }, [showNotifications, showGrowthTooltip]);
 
   // Mock данные для дашборда
   const dashboardData = {
@@ -51,7 +56,9 @@ export default function DashboardPage() {
       avgCheck: 67295,
       growth: 12.5,
       profit: 245000,
-      profitMargin: 15.8
+      profitMargin: 15.8,
+      // Данные за неделю (Пн-Вс)
+      weekData: [980000, 1250000, 1120000, 1450000, 1680000, 1890000, 1547800]
     },
     // Стоимость склада
     warehouse: {
@@ -65,7 +72,9 @@ export default function DashboardPage() {
       new: 7,
       processing: 8,
       shipping: 3,
-      revenue: 1285000
+      revenue: 1285000,
+      // Данные за неделю (Пн-Вс)
+      weekData: [12, 15, 14, 19, 22, 25, 18]
     },
     // Оборот за месяц
     monthTurnover: {
@@ -102,18 +111,29 @@ export default function DashboardPage() {
         { orderId: 'ORD-2025-004', supplier: 'Apple Inc.', amount: 16140000, expectedDate: '2025-10-28' },
         { orderId: 'ORD-2025-003', supplier: 'Apple Inc.', amount: 3540000, expectedDate: '2025-11-08' }
       ]
-    }
-  };
-
-  // Форматирование суммы
-  const formatMoney = (amount: number) => {
-    if (amount >= 1000000) {
-      return `${(amount / 1000000).toFixed(1)}M ₸`;
-    }
-    if (amount >= 1000) {
-      return `${(amount / 1000).toFixed(0)}K ₸`;
-    }
-    return `${amount.toLocaleString()} ₸`;
+    },
+    // Ожидаем платежа (заказы от клиентов)
+    awaitingPayment: {
+      totalAmount: 4978800,
+      ordersCount: 12,
+      notSent: 2150000,        // Не отправлено
+      notSentCount: 5,         // Кол-во не отправленных
+      inDelivery: 2828800,     // Передано на доставку
+      inDeliveryCount: 7       // Кол-во в доставке
+    },
+    // Отзывы за неделю
+    reviews: {
+      total: 47,
+      positive: 38,   // 5 звёзд
+      good: 6,        // 4 звезды
+      negative: 3     // 1-3 звезды
+    },
+    // Топ товаров за неделю (топ 3)
+    topProducts: [
+      { name: 'iPhone 14 Pro 256GB', sold: 45, revenue: 44955000 },
+      { name: 'AirPods Pro 2', sold: 38, revenue: 3420000 },
+      { name: 'MacBook Air M2', sold: 12, revenue: 17988000 }
+    ]
   };
 
   const containerVariants = {
@@ -155,7 +175,7 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2 }}
-                className="absolute right-0 top-12 w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50"
+                className="fixed sm:absolute right-2 sm:right-0 left-2 sm:left-auto top-16 sm:top-12 w-auto sm:w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50"
               >
                 <div className="p-4 border-b border-gray-200 flex items-center justify-between">
                   <h3 className="font-semibold text-lg">Уведомления</h3>
@@ -214,227 +234,241 @@ export default function DashboardPage() {
 
       {/* Main Grid */}
       <motion.div
-        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6"
+        className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
       >
-        {/* Продажи за вчера */}
+        {/* Продажи сегодня - объединённый блок */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
           onClick={() => router.push('/app/analytics')}
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-              <TrendingUp className="w-6 h-6 text-emerald-600" />
-            </div>
-            <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
-              dashboardData.yesterdaySales.growth >= 0
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'bg-red-100 text-red-700'
-            }`}>
-              {dashboardData.yesterdaySales.growth >= 0 ? (
-                <ArrowUpRight className="w-3 h-3" />
-              ) : (
-                <ArrowDownRight className="w-3 h-3" />
-              )}
-              {Math.abs(dashboardData.yesterdaySales.growth)}%
-            </div>
-          </div>
-          <h3 className="text-gray-500 text-sm mb-1">Продажи за вчера</h3>
-          <div className="text-2xl font-bold text-gray-900 mb-3">
-            {formatMoney(dashboardData.yesterdaySales.revenue)}
-          </div>
-          <div className="flex items-center justify-between text-sm">
-            <span className="text-gray-500">{dashboardData.yesterdaySales.orders} заказов</span>
-            <span className="text-emerald-600 font-medium">
-              Прибыль: {formatMoney(dashboardData.yesterdaySales.profit)}
-            </span>
-          </div>
-        </motion.div>
-
-        {/* Стоимость склада */}
-        <motion.div
-          variants={itemVariants}
-          className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-          onClick={() => router.push('/app/warehouse')}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
-              <Warehouse className="w-6 h-6 text-blue-600" />
-            </div>
-            <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
-              {dashboardData.warehouse.totalItems} шт
-            </div>
-          </div>
-          <h3 className="text-gray-500 text-sm mb-1">Стоимость склада</h3>
-          <div className="text-2xl font-bold text-gray-900 mb-3">
-            {formatMoney(dashboardData.warehouse.totalValue)}
-          </div>
-          <div className="text-sm text-gray-500">
-            Средняя цена: {formatMoney(dashboardData.warehouse.avgItemValue)}
-          </div>
-        </motion.div>
-
-        {/* Заказы на сегодня */}
-        <motion.div
-          variants={itemVariants}
-          className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-          onClick={() => router.push('/app/orders')}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center">
-              <ShoppingCart className="w-6 h-6 text-purple-600" />
-            </div>
-            <div className="flex items-center gap-1">
-              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></span>
-              <span className="text-xs text-gray-500">{dashboardData.todayOrders.new} новых</span>
-            </div>
-          </div>
-          <h3 className="text-gray-500 text-sm mb-1">Заказов на сегодня</h3>
-          <div className="text-2xl font-bold text-gray-900 mb-3">
-            {dashboardData.todayOrders.total}
-          </div>
-          <div className="flex items-center gap-4 text-xs">
-            <span className="text-amber-600">{dashboardData.todayOrders.processing} в обработке</span>
-            <span className="text-blue-600">{dashboardData.todayOrders.shipping} доставка</span>
-          </div>
-        </motion.div>
-
-        {/* Оборот за месяц */}
-        <motion.div
-          variants={itemVariants}
-          className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer text-white"
-          onClick={() => router.push('/app/analytics')}
-        >
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center">
-              <BarChart3 className="w-6 h-6 text-white" />
-            </div>
-            <div className="flex items-center gap-1 bg-white/20 px-2 py-1 rounded-lg text-xs font-medium">
-              <ArrowUpRight className="w-3 h-3" />
-              {dashboardData.monthTurnover.growth}%
-            </div>
-          </div>
-          <h3 className="text-white/80 text-sm mb-1">Оборот за {new Date().toLocaleString('ru-RU', { month: 'long' })}</h3>
-          <div className="text-2xl font-bold mb-3">
-            {formatMoney(dashboardData.monthTurnover.revenue)}
-          </div>
-          <div className="flex items-center justify-between text-sm text-white/80">
-            <span>{dashboardData.monthTurnover.orders} заказов</span>
-            <span>Прибыль: {formatMoney(dashboardData.monthTurnover.profit)}</span>
-          </div>
-        </motion.div>
-
-        {/* Критический остаток склада */}
-        <motion.div
-          variants={itemVariants}
-          className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm sm:col-span-2 lg:col-span-2"
-        >
+          {/* Заголовок с суммой и количеством */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
-                <AlertTriangle className="w-6 h-6 text-red-600" />
+              <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                <TrendingUp className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
-                <h3 className="font-semibold text-gray-900">Критический остаток</h3>
-                <p className="text-sm text-gray-500">{dashboardData.criticalStock.count} товаров требуют пополнения</p>
+                <h3 className="text-gray-500 text-xs">Продажи сегодня</h3>
+                <div className="text-xl font-bold text-gray-900">
+                  {dashboardData.yesterdaySales.revenue.toLocaleString('ru-RU')} ₸
+                </div>
               </div>
             </div>
-            <button
-              onClick={() => router.push('/app/warehouse')}
-              className="text-sm text-red-600 hover:text-red-700 font-medium flex items-center gap-1 cursor-pointer"
-            >
-              Все товары
-              <ChevronRight className="w-4 h-4" />
-            </button>
+            <div className="text-right">
+              <div className="flex items-center gap-1.5">
+                <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium ${
+                  dashboardData.yesterdaySales.growth >= 0
+                    ? 'bg-emerald-100 text-emerald-700'
+                    : 'bg-red-100 text-red-700'
+                }`}>
+                  {dashboardData.yesterdaySales.growth >= 0 ? (
+                    <ArrowUpRight className="w-3 h-3" />
+                  ) : (
+                    <ArrowDownRight className="w-3 h-3" />
+                  )}
+                  {Math.abs(dashboardData.yesterdaySales.growth)}%
+                </div>
+                <div className="relative" ref={growthTooltipRef}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowGrowthTooltip(!showGrowthTooltip);
+                    }}
+                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" />
+                  </button>
+                  {showGrowthTooltip && (
+                    <div className="absolute right-0 top-6 z-50 w-52 p-2.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
+                      <p>Изменение продаж по сравнению с тем же днём прошлой недели</p>
+                      <div className="absolute -top-1.5 right-2 w-3 h-3 bg-gray-900 rotate-45"></div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-1 mt-1">
+                <ShoppingCart className="w-3.5 h-3.5 text-blue-500" />
+                <span className="text-sm font-semibold text-gray-700">{dashboardData.todayOrders.total}</span>
+                <span className="text-xs text-gray-400">заказов</span>
+              </div>
+            </div>
           </div>
-          <div className="space-y-3">
-            {dashboardData.criticalStock.items.map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between p-3 bg-red-50 rounded-xl">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                    <Package className="w-4 h-4 text-red-600" />
+
+          {/* Двойной график - продажи и заказы */}
+          <div className="text-[10px] text-gray-400 mb-2 flex items-center gap-4">
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-emerald-400 rounded-sm"></span>
+              Продажи (тыс. ₸)
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-blue-400 rounded-sm"></span>
+              Заказы
+            </span>
+          </div>
+          <div className="flex items-end gap-1.5">
+            {dashboardData.yesterdaySales.weekData.map((salesValue, idx) => {
+              const ordersValue = dashboardData.todayOrders.weekData[idx];
+              const maxSales = Math.max(...dashboardData.yesterdaySales.weekData);
+              const maxOrders = Math.max(...dashboardData.todayOrders.weekData);
+              const salesHeight = Math.round((salesValue / maxSales) * 100);
+              const ordersHeight = Math.round((ordersValue / maxOrders) * 100);
+              const isToday = idx === dashboardData.yesterdaySales.weekData.length - 1;
+              const date = new Date();
+              date.setDate(date.getDate() - (6 - idx));
+              const dayNum = date.getDate();
+              return (
+                <div key={idx} className="flex-1 flex flex-col items-center">
+                  {/* Значения */}
+                  <div className="flex gap-0.5 mb-1">
+                    <span className={`text-[10px] text-emerald-600 ${isToday ? 'font-semibold' : ''}`}>
+                      {Math.round(salesValue / 1000)}
+                    </span>
+                    <span className="text-[10px] text-gray-300">/</span>
+                    <span className={`text-[10px] text-blue-600 ${isToday ? 'font-semibold' : ''}`}>
+                      {ordersValue}
+                    </span>
                   </div>
-                  <span className="text-sm font-medium text-gray-900">{item.name}</span>
+                  {/* Двойные столбики - выровнены по низу */}
+                  <div className="flex gap-0.5 w-full justify-center items-end h-[40px]">
+                    <div
+                      className="w-[45%] rounded-sm bg-emerald-400"
+                      style={{ height: `${Math.max(salesHeight * 0.4, 4)}px` }}
+                    />
+                    <div
+                      className="w-[45%] rounded-sm bg-blue-400"
+                      style={{ height: `${Math.max(ordersHeight * 0.4, 4)}px` }}
+                    />
+                  </div>
+                  {/* Дата */}
+                  <span className={`text-xs mt-1 ${isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
+                    {dayNum}
+                  </span>
                 </div>
-                <div className="flex items-center gap-4">
-                  <span className="text-sm text-red-600 font-semibold">{item.stock} шт</span>
-                  <span className="text-xs text-gray-400">мин: {item.minStock}</span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </motion.div>
 
-        {/* Рентабельность рекламы */}
+        {/* Ожидаем платежа */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-          onClick={() => router.push('/app/analytics')}
+          className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          onClick={() => router.push('/app/orders')}
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
-              <Megaphone className="w-6 h-6 text-amber-600" />
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+              <Truck className="w-5 h-5 text-indigo-600" />
             </div>
-            <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-medium ${
-              dashboardData.adsROI.roi >= 100
-                ? 'bg-emerald-100 text-emerald-700'
-                : 'bg-red-100 text-red-700'
-            }`}>
-              ROI {dashboardData.adsROI.roi}%
+            <div className="flex-1">
+              <h3 className="text-gray-500 text-xs">Ожидаем платежа</h3>
+              <div className="text-xl font-bold text-gray-900">
+                {dashboardData.awaitingPayment.totalAmount.toLocaleString('ru-RU')} ₸
+              </div>
+            </div>
+            <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
+              {dashboardData.awaitingPayment.ordersCount} заказов
             </div>
           </div>
-          <h3 className="text-gray-500 text-sm mb-1">Рентабельность рекламы</h3>
-          <div className="text-2xl font-bold text-gray-900 mb-3">
-            {formatMoney(dashboardData.adsROI.revenue)}
-          </div>
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">Расходы</span>
-              <span className="text-red-600 font-medium">{formatMoney(dashboardData.adsROI.spend)}</span>
+          {/* Список статусов */}
+          <div className="space-y-1.5 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500">Не отправлено</span>
+              <span className="font-medium text-gray-700">{dashboardData.awaitingPayment.notSentCount} шт · {dashboardData.awaitingPayment.notSent.toLocaleString('ru-RU')} ₸</span>
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">CPO</span>
-              <span className="text-gray-700 font-medium">{formatMoney(dashboardData.adsROI.cpo)}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm">
-              <span className="text-gray-500">Заказы</span>
-              <span className="text-gray-700 font-medium">{dashboardData.adsROI.orders}</span>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500">Передано на доставку</span>
+              <span className="font-medium text-gray-700">{dashboardData.awaitingPayment.inDeliveryCount} шт · {dashboardData.awaitingPayment.inDelivery.toLocaleString('ru-RU')} ₸</span>
             </div>
           </div>
         </motion.div>
 
-        {/* Ожидающие платежи */}
+        {/* Отзывы за неделю */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-2xl p-6 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-          onClick={() => router.push('/app/warehouse/history')}
+          className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          onClick={() => router.push('/app/analytics?tab=reviews')}
         >
-          <div className="flex items-center justify-between mb-4">
-            <div className="w-12 h-12 bg-indigo-100 rounded-xl flex items-center justify-center">
-              <Truck className="w-6 h-6 text-indigo-600" />
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+              <Star className="w-5 h-5 text-amber-500" />
             </div>
-            <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-lg flex items-center gap-1">
-              <Calendar className="w-3 h-3" />
-              В пути
+            <div className="flex-1">
+              <h3 className="text-gray-500 text-xs">Отзывы за неделю</h3>
+              <div className="text-xl font-bold text-gray-900">
+                {dashboardData.reviews.total}
+              </div>
             </div>
           </div>
-          <h3 className="text-gray-500 text-sm mb-1">Ожидающие платежи</h3>
-          <div className="text-2xl font-bold text-gray-900 mb-3">
-            {formatMoney(dashboardData.pendingPayments.total)}
+          {/* Распределение отзывов */}
+          <div className="space-y-1.5 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                <span className="text-gray-500">Положительные</span>
+              </span>
+              <span className="font-medium text-emerald-600">{dashboardData.reviews.positive}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                <span className="text-gray-500">Хорошие</span>
+              </span>
+              <span className="font-medium text-amber-600">{dashboardData.reviews.good}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                <span className="text-gray-500">Отрицательные</span>
+              </span>
+              <span className="font-medium text-red-600">{dashboardData.reviews.negative}</span>
+            </div>
           </div>
-          <div className="space-y-2">
-            {dashboardData.pendingPayments.items.slice(0, 2).map((item, idx) => (
-              <div key={idx} className="flex items-center justify-between text-sm">
-                <span className="text-gray-500 truncate max-w-[120px]">{item.supplier}</span>
-                <span className="text-indigo-600 font-medium">{formatMoney(item.amount)}</span>
+        </motion.div>
+
+        {/* Топ товаров за неделю */}
+        <motion.div
+          variants={itemVariants}
+          className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+          onClick={() => router.push('/app/products')}
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+              <Trophy className="w-5 h-5 text-purple-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-gray-500 text-xs">Топ товаров</h3>
+              <div className="text-xl font-bold text-gray-900">
+                за неделю
+              </div>
+            </div>
+          </div>
+          {/* Список топ товаров */}
+          <div className="space-y-1.5 text-xs">
+            {dashboardData.topProducts.map((product, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-2"
+              >
+                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                  index === 0 ? 'bg-amber-100 text-amber-700' :
+                  index === 1 ? 'bg-gray-200 text-gray-600' :
+                  'bg-orange-100 text-orange-700'
+                }`}>
+                  {index + 1}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <span className="text-gray-700 truncate block">{product.name}</span>
+                </div>
+                <div className="text-right flex-shrink-0">
+                  <span className="font-medium text-gray-900">{product.sold} шт</span>
+                  <span className="text-gray-400 ml-1">· {(product.revenue / 1000000).toFixed(1)}M ₸</span>
+                </div>
               </div>
             ))}
-            <div className="pt-2 border-t border-gray-100 text-xs text-gray-400">
-              {dashboardData.pendingPayments.ordersCount} заказов в пути
-            </div>
           </div>
         </motion.div>
       </motion.div>

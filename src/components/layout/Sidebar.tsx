@@ -161,9 +161,20 @@ export default function Sidebar() {
 
         {/* Мой план */}
         <div className="pt-2 px-3">
-          <button className="w-full px-5 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer">
-            Мой план
-          </button>
+          <Link
+            href="/app/subscription"
+            className="block w-full px-4 py-3 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors"
+          >
+            <div className="flex items-center justify-between">
+              <span>Мой план</span>
+              <svg className="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </div>
+            <div className="text-xs text-white/70 mt-1">
+              Активен до 15.02.2025
+            </div>
+          </Link>
         </div>
       </nav>
 

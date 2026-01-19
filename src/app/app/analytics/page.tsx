@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useRef, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, Package, CheckCircle, AlertTriangle, XCircle, Truck, CircleCheck, CircleX, CircleAlert, Star, MessageCircle, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { format } from 'date-fns';
@@ -43,6 +44,25 @@ const mockAnalyticsData = {
     organic: 28,    // Органика
     ads: 14,        // Реклама
     offline: 3      // Оффлайн
+  },
+  // Заказы ожидающие поступления (в пути до клиента)
+  pendingOrders: {
+    count: 12,           // Количество заказов в пути
+    totalAmount: 186500, // Сумма ожидаемых поступлений
+    orders: [
+      { id: 'ORD-2026-001', product: 'iPhone 14 Pro 256GB', amount: 449900, date: '2026-01-17', customer: 'Астана' },
+      { id: 'ORD-2026-002', product: 'Samsung Galaxy S23 Ultra', amount: 389900, date: '2026-01-17', customer: 'Алматы' },
+      { id: 'ORD-2026-003', product: 'AirPods Pro 2', amount: 89900, date: '2026-01-18', customer: 'Караганда' },
+      { id: 'ORD-2026-004', product: 'MacBook Pro 14"', amount: 849900, date: '2026-01-18', customer: 'Шымкент' },
+      { id: 'ORD-2026-005', product: 'Apple Watch Ultra', amount: 379900, date: '2026-01-18', customer: 'Алматы' },
+      { id: 'ORD-2026-006', product: 'iPad Air 5th Gen', amount: 289900, date: '2026-01-19', customer: 'Астана' },
+      { id: 'ORD-2026-007', product: 'Sony WH-1000XM5', amount: 149900, date: '2026-01-19', customer: 'Актобе' },
+      { id: 'ORD-2026-008', product: 'iPhone 14 Pro 256GB', amount: 449900, date: '2026-01-19', customer: 'Алматы' },
+      { id: 'ORD-2026-009', product: 'Samsung Galaxy Tab S9', amount: 329900, date: '2026-01-19', customer: 'Павлодар' },
+      { id: 'ORD-2026-010', product: 'AirPods Pro 2', amount: 89900, date: '2026-01-19', customer: 'Алматы' },
+      { id: 'ORD-2026-011', product: 'Google Pixel 8 Pro', amount: 349900, date: '2026-01-19', customer: 'Астана' },
+      { id: 'ORD-2026-012', product: 'Nintendo Switch OLED', amount: 159900, date: '2026-01-19', customer: 'Караганда' },
+    ]
   },
 
   dailyData: [
@@ -440,7 +460,11 @@ const mockAnalyticsData = {
 type TabType = 'finances' | 'sales' | 'products' | 'warehouse' | 'advertising' | 'reviews';
 
 export default function AnalyticsPage() {
-  const [activeTab, setActiveTab] = useState<TabType>('finances');
+  const searchParams = useSearchParams();
+  const tabFromUrl = searchParams.get('tab') as TabType | null;
+  const validTabs: TabType[] = ['finances', 'sales', 'products', 'warehouse', 'advertising', 'reviews'];
+  const initialTab = tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : 'finances';
+  const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
   // Инициализация с периодом "Неделя" по умолчанию
   const getDefaultDateRange = () => {
@@ -461,9 +485,6 @@ export default function AnalyticsPage() {
   const calendarRef = useRef<HTMLDivElement>(null);
 
   // Toggle состояния для линий графика
-  const [showRevenue, setShowRevenue] = useState(true);
-  const [showExpenses, setShowExpenses] = useState(true);
-  const [showProfit, setShowProfit] = useState(true);
   const [showPreviousPeriod, setShowPreviousPeriod] = useState(false);
 
   // Модальное окно для детализации по городам (межгород)
@@ -487,11 +508,22 @@ export default function AnalyticsPage() {
   const [showMyDeliveryPopup, setShowMyDeliveryPopup] = useState(false);
   const [showExpressPopup, setShowExpressPopup] = useState(false);
   const [showPickupPopup, setShowPickupPopup] = useState(false);
+
+  // Выбранный склад для вкладки warehouse
+  const [selectedWarehouse, setSelectedWarehouse] = useState<string>('all');
   const [showOfflineDeliveryPopup, setShowOfflineDeliveryPopup] = useState(false);
   const [selectedCityPopup, setSelectedCityPopup] = useState<string | null>(null);
 
   // Выпадающий список городов в межгороде
   const [showCitiesDropdown, setShowCitiesDropdown] = useState(false);
+
+  // Попап детализации по товару
+  const [showProductPopup, setShowProductPopup] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  const [productPopupPeriod, setProductPopupPeriod] = useState<'week' | 'month' | '3months'>('week');
+
+  // Попап заказов в пути (ожидают поступления)
+  const [showPendingOrdersPopup, setShowPendingOrdersPopup] = useState(false);
 
 
   // Закрытие календаря по клику вне его
@@ -1009,26 +1041,11 @@ export default function AnalyticsPage() {
               className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8"
             >
               <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-sky-50 rounded-xl flex items-center justify-center">
-                      <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600" />
-                    </div>
-                    <span className="text-xs sm:text-sm text-gray-600">Поступления</span>
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-sky-50 rounded-xl flex items-center justify-center">
+                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600" />
                   </div>
-                  {/* iOS Toggle */}
-                  <button
-                    onClick={() => setShowRevenue(!showRevenue)}
-                    className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 items-center rounded-full transition-colors cursor-pointer ${
-                      showRevenue ? 'bg-sky-400' : 'bg-gray-300'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform ${
-                        showRevenue ? 'translate-x-4 sm:translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
+                  <span className="text-xs sm:text-sm text-gray-600">Поступления</span>
                 </div>
                 <div className="text-xl sm:text-2xl font-bold text-sky-600">{(data.totalRevenue / 1000).toFixed(0)}K ₸</div>
                 <div className="text-xs text-gray-500 mt-1">
@@ -1037,26 +1054,11 @@ export default function AnalyticsPage() {
               </motion.div>
 
               <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-rose-50 rounded-xl flex items-center justify-center">
-                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400 rotate-180" />
-                    </div>
-                    <span className="text-xs sm:text-sm text-gray-600">Расходы</span>
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-rose-50 rounded-xl flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400 rotate-180" />
                   </div>
-                  {/* iOS Toggle */}
-                  <button
-                    onClick={() => setShowExpenses(!showExpenses)}
-                    className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 items-center rounded-full transition-colors cursor-pointer ${
-                      showExpenses ? 'bg-rose-400' : 'bg-gray-300'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform ${
-                        showExpenses ? 'translate-x-4 sm:translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
+                  <span className="text-xs sm:text-sm text-gray-600">Расходы</span>
                 </div>
                 <div className="text-xl sm:text-2xl font-bold text-rose-400">
                   {((data.totalCost + data.totalAdvertising + data.totalTax + data.totalCommissions + data.totalDelivery) / 1000).toFixed(0)}K ₸
@@ -1109,26 +1111,11 @@ export default function AnalyticsPage() {
               </motion.div>
 
               <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-teal-50 rounded-xl flex items-center justify-center">
-                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-teal-500" />
-                    </div>
-                    <span className="text-xs sm:text-sm text-gray-600">Прибыль</span>
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-teal-50 rounded-xl flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-teal-500" />
                   </div>
-                  {/* iOS Toggle */}
-                  <button
-                    onClick={() => setShowProfit(!showProfit)}
-                    className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 items-center rounded-full transition-colors cursor-pointer ${
-                      showProfit ? 'bg-teal-400' : 'bg-gray-300'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform ${
-                        showProfit ? 'translate-x-4 sm:translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
+                  <span className="text-xs sm:text-sm text-gray-600">Прибыль</span>
                 </div>
                 <div className="text-xl sm:text-2xl font-bold text-teal-500">{(data.totalProfit / 1000).toFixed(0)}K ₸</div>
                 <div className="flex items-center justify-between mt-1">
@@ -1145,7 +1132,46 @@ export default function AnalyticsPage() {
           animate="visible"
           className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 sm:mb-8"
         >
-          {/* Money Flow Chart */}
+          {/* Revenue Structure Chart - Stacked Bar */}
+          <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <h3 className="text-base sm:text-xl font-semibold text-gray-900">Структура выручки</h3>
+                <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
+              </div>
+            </div>
+
+            <ResponsiveContainer width="100%" height={280} className="sm:!h-[400px]">
+              <BarChart data={combinedChartData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                <XAxis dataKey="date" stroke="#6b7280" tick={{ fontSize: 12 }} />
+                <YAxis stroke="#6b7280" tick={{ fontSize: 12 }} tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    backdropFilter: 'blur(10px)',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '12px',
+                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
+                  }}
+                  formatter={(value: number, name: string) => [`${value.toLocaleString('ru-RU')} ₸`, name]}
+                  labelFormatter={(label) => `Дата: ${label}`}
+                />
+                <Legend
+                  wrapperStyle={{ paddingTop: '20px' }}
+                  iconType="circle"
+                />
+                <Bar dataKey="cost" stackId="expenses" name="Закупочная стоимость" fill="#f5a3b0" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="commissions" stackId="expenses" name="Комиссия Kaspi" fill="#e88a7d" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="tax" stackId="expenses" name="Налоги" fill="#93c5fd" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="advertising" stackId="expenses" name="Реклама" fill="#a3e635" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="delivery" stackId="expenses" name="Стоимость доставки" fill="#d8b4fe" radius={[0, 0, 0, 0]} />
+                <Bar dataKey="profit" stackId="expenses" name="Прибыль" fill="#6ee7b7" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </motion.div>
+
+          {/* Money Flow Chart - Line */}
           <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
               <div className="flex items-center gap-2 sm:gap-3">
@@ -1186,38 +1212,32 @@ export default function AnalyticsPage() {
                 />
                 <Legend />
                 {/* Current Period Lines */}
-                {showRevenue && (
-                  <Line
-                    type="monotone"
-                    dataKey="revenue"
-                    name="Поступления (₸)"
-                    stroke="#0ea5e9"
-                    strokeWidth={3}
-                    dot={{ fill: '#0ea5e9', r: 4 }}
-                  />
-                )}
-                {showExpenses && (
-                  <Line
-                    type="monotone"
-                    dataKey="totalExpenses"
-                    name="Расходы (₸)"
-                    stroke="#fb7185"
-                    strokeWidth={3}
-                    dot={{ fill: '#fb7185', r: 4 }}
-                  />
-                )}
-                {showProfit && (
-                  <Line
-                    type="monotone"
-                    dataKey="profit"
-                    name="Прибыль (₸)"
-                    stroke="#2dd4bf"
-                    strokeWidth={3}
-                    dot={{ fill: '#2dd4bf', r: 4 }}
-                  />
-                )}
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  name="Поступления (₸)"
+                  stroke="#0ea5e9"
+                  strokeWidth={3}
+                  dot={{ fill: '#0ea5e9', r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="totalExpenses"
+                  name="Расходы (₸)"
+                  stroke="#fb7185"
+                  strokeWidth={3}
+                  dot={{ fill: '#fb7185', r: 4 }}
+                />
+                <Line
+                  type="monotone"
+                  dataKey="profit"
+                  name="Прибыль (₸)"
+                  stroke="#2dd4bf"
+                  strokeWidth={3}
+                  dot={{ fill: '#2dd4bf', r: 4 }}
+                />
                 {/* Previous Period Lines (Dashed) */}
-                {showPreviousPeriod && showRevenue && (
+                {showPreviousPeriod && (
                   <Line
                     type="monotone"
                     dataKey="prevRevenue"
@@ -1229,7 +1249,7 @@ export default function AnalyticsPage() {
                     opacity={0.5}
                   />
                 )}
-                {showPreviousPeriod && showExpenses && (
+                {showPreviousPeriod && (
                   <Line
                     type="monotone"
                     dataKey="prevExpenses"
@@ -1241,7 +1261,7 @@ export default function AnalyticsPage() {
                     opacity={0.5}
                   />
                 )}
-                {showPreviousPeriod && showProfit && (
+                {showPreviousPeriod && (
                   <Line
                     type="monotone"
                     dataKey="prevProfit"
@@ -1339,44 +1359,61 @@ export default function AnalyticsPage() {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8"
+              className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8"
             >
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
+              <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-lg sm:rounded-xl flex items-center justify-center">
                     <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                   </div>
-                  <span className="text-xs sm:text-sm text-gray-600">Всего заказов</span>
+                  <span className="text-xs sm:text-sm text-gray-600">Заказов</span>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-gray-900">{data.totalOrders}</div>
-                <div className="text-xs mt-1">
+                <div className="text-lg sm:text-2xl font-bold text-gray-900">{data.totalOrders}</div>
+                <div className="text-[10px] sm:text-xs mt-1">
                   <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
                 </div>
               </motion.div>
 
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
+              <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-lg sm:rounded-xl flex items-center justify-center">
                     <Calculator className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                   </div>
-                  <span className="text-xs sm:text-sm text-gray-600">Средний чек</span>
+                  <span className="text-xs sm:text-sm text-gray-600">Ср. чек</span>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-gray-900">{(data.avgOrderValue / 1000).toFixed(0)}K ₸</div>
-                <div className="text-xs mt-1">
+                <div className="text-lg sm:text-2xl font-bold text-gray-900">{(data.avgOrderValue / 1000).toFixed(0)}K ₸</div>
+                <div className="text-[10px] sm:text-xs mt-1">
                   <span className="bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
                 </div>
               </motion.div>
 
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
+              <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center">
                     <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   </div>
                   <span className="text-xs sm:text-sm text-gray-600">Конверсия</span>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-blue-600">58%</div>
-                <div className="text-xs mt-1">
+                <div className="text-lg sm:text-2xl font-bold text-blue-600">58%</div>
+                <div className="text-[10px] sm:text-xs mt-1">
                   <span className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
+                </div>
+              </motion.div>
+
+              <motion.div
+                variants={itemVariants}
+                className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm border border-amber-200 cursor-pointer hover:shadow-md transition-shadow"
+                onClick={() => setShowPendingOrdersPopup(true)}
+              >
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
+                  </div>
+                  <span className="text-xs sm:text-sm text-amber-700">В пути</span>
+                </div>
+                <div className="text-lg sm:text-2xl font-bold text-amber-700">{data.pendingOrders?.count || 0}</div>
+                <div className="text-[10px] sm:text-xs mt-1 text-amber-600">
+                  {((data.pendingOrders?.totalAmount || 0) / 1000000).toFixed(1)}M ₸ ожидает
                 </div>
               </motion.div>
             </motion.div>
@@ -1638,35 +1675,81 @@ export default function AnalyticsPage() {
             animate="visible"
           >
             {/* Period Info */}
-            <div className="mb-6 flex items-center gap-2 text-sm text-gray-400">
-              <Calendar className="w-4 h-4" />
+            <div className="mb-4 sm:mb-6 flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>Период: <span className="text-gray-500">{formatShortPeriod()}</span></span>
               <span className="text-gray-300">|</span>
               <span>{data.topProducts.reduce((s, p) => s + p.sales, 0)} шт продано</span>
             </div>
 
             {/* Products Table */}
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-200">
-                <div className="flex items-center gap-3 mb-1">
-                  <h3 className="text-2xl font-semibold text-gray-900">Аналитика по товарам</h3>
-                  <span className="bg-emerald-100 text-emerald-700 px-2.5 py-1 rounded-lg text-sm font-medium">{formatShortPeriod()}</span>
+            <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
+              <div className="p-3 sm:p-6 border-b border-gray-200">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mb-1">
+                  <h3 className="text-lg sm:text-2xl font-semibold text-gray-900">Аналитика по товарам</h3>
+                  <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium w-fit">{formatShortPeriod()}</span>
                 </div>
-                <p className="text-sm text-gray-500">Подробная информация о продажах каждого товара</p>
+                <p className="text-xs sm:text-sm text-gray-500">Подробная информация о продажах каждого товара</p>
               </div>
 
-              <div className="overflow-x-auto">
+              {/* Mobile Cards */}
+              <div className="sm:hidden divide-y divide-gray-100">
+                {data.topProducts.map((product, index) => {
+                  const profitMargin = ((product.profit / product.revenue) * 100).toFixed(1);
+                  return (
+                    <div
+                      key={product.id}
+                      className="p-3 hover:bg-gray-50 transition-colors cursor-pointer"
+                      onClick={() => {
+                        setSelectedProduct(product);
+                        setShowProductPopup(true);
+                      }}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        {/* Rank Badge */}
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0 ${
+                          index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
+                          index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500' :
+                          index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600' :
+                          'bg-emerald-500'
+                        }`}>
+                          {index < 3 ? (index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉') : index + 1}
+                        </div>
+
+                        {/* Product Image */}
+                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-base flex-shrink-0">
+                          {product.image}
+                        </div>
+
+                        {/* Product Info */}
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 text-sm truncate">{product.name}</div>
+                          <div className="text-[10px] text-gray-500 font-mono">{product.sku}</div>
+                        </div>
+
+                        {/* Sales */}
+                        <div className="text-right flex-shrink-0">
+                          <div className="text-sm font-semibold text-gray-900">{product.sales} шт</div>
+                          <div className="text-[10px] text-emerald-600 font-medium">{(product.revenue / 1000).toFixed(0)}к ₸</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Desktop Table */}
+              <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Товар</th>
-                      <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Продано</th>
-                      <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Выручка</th>
-                      <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Расход</th>
-                      <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Прибыль</th>
-                      <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Маржа</th>
-                      <th className="px-6 py-4 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Действия</th>
+                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
+                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Товар</th>
+                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Продано</th>
+                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Выручка</th>
+                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Расход</th>
+                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Прибыль</th>
+                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Маржа</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
@@ -1674,9 +1757,16 @@ export default function AnalyticsPage() {
                       const profitMargin = ((product.profit / product.revenue) * 100).toFixed(1);
 
                       return (
-                        <tr key={product.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-sm ${
+                        <tr
+                          key={product.id}
+                          className="hover:bg-gray-50 transition-colors cursor-pointer"
+                          onClick={() => {
+                            setSelectedProduct(product);
+                            setShowProductPopup(true);
+                          }}
+                        >
+                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap">
+                            <div className={`w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center font-bold text-white text-xs lg:text-sm ${
                               index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
                               index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500' :
                               index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600' :
@@ -1685,36 +1775,31 @@ export default function AnalyticsPage() {
                               {index < 3 ? (index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉') : index + 1}
                             </div>
                           </td>
-                          <td className="px-6 py-4">
-                            <div className="flex items-center gap-3">
-                              <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-xl">
+                          <td className="px-4 lg:px-6 py-3">
+                            <div className="flex items-center gap-2 lg:gap-3">
+                              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gray-100 rounded-lg flex items-center justify-center text-lg lg:text-xl flex-shrink-0">
                                 {product.image}
                               </div>
-                              <div>
-                                <div className="font-medium text-gray-900">{product.name}</div>
-                                <div className="text-sm text-gray-500">{product.sku}</div>
+                              <div className="min-w-0">
+                                <div className="font-medium text-gray-900 text-sm truncate max-w-[120px] lg:max-w-none">{product.name}</div>
+                                <div className="text-xs text-gray-500">{product.sku}</div>
                               </div>
                             </div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-right">
                             <div className="text-sm font-medium text-gray-900">{product.sales} шт</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-right hidden lg:table-cell">
                             <div className="text-sm font-medium text-blue-600">{product.revenue.toLocaleString('ru-RU')} ₸</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-right hidden lg:table-cell">
                             <div className="text-sm font-medium text-red-600">{product.cost.toLocaleString('ru-RU')} ₸</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-right">
                             <div className="text-sm font-bold text-emerald-600">{product.profit.toLocaleString('ru-RU')} ₸</div>
                           </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-right hidden lg:table-cell">
                             <div className="text-sm font-medium text-gray-900">{profitMargin}%</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-center">
-                            <button className="text-emerald-600 hover:text-emerald-700 font-medium text-sm cursor-pointer">
-                              Подробнее →
-                            </button>
                           </td>
                         </tr>
                       );
@@ -1727,252 +1812,290 @@ export default function AnalyticsPage() {
         )}
 
         {/* Warehouse Tab - Движение склада */}
-        {activeTab === 'warehouse' && (
+        {activeTab === 'warehouse' && (() => {
+          // Данные товаров с привязкой к складам
+          const warehouseProducts = [
+            { id: 1, name: 'iPhone 14 Pro 256GB', sku: 'APL-IP14P-256', image: '📱', stock: 45, minStock: 10, costPerUnit: 352500, salePrice: 449900, profit: 52410, inTransit: false, warehouse: 'almaty_main' },
+            { id: 2, name: 'Samsung Galaxy S23 Ultra', sku: 'SAM-S23U-256', image: '📱', stock: 12, minStock: 10, costPerUnit: 297300, salePrice: 389900, profit: 53610, inTransit: false, warehouse: 'almaty_main' },
+            { id: 3, name: 'AirPods Pro 2', sku: 'APL-APP2', image: '🎧', stock: 8, minStock: 15, costPerUnit: 58800, salePrice: 89900, profit: 22110, inTransit: true, inTransitQty: 20, warehouse: 'almaty_taugul' },
+            { id: 4, name: 'MacBook Pro 14" M2', sku: 'APL-MBP14-M2', image: '💻', stock: 3, minStock: 5, costPerUnit: 688000, salePrice: 849900, profit: 76910, inTransit: true, inTransitQty: 10, warehouse: 'almaty_taugul' },
+            { id: 5, name: 'iPad Air 5th Gen', sku: 'APL-IPA5', image: '📲', stock: 0, minStock: 8, costPerUnit: 213000, salePrice: 289900, profit: 47910, inTransit: true, inTransitQty: 15, warehouse: 'osipenko' },
+            { id: 6, name: 'Apple Watch Ultra', sku: 'APL-AWU', image: '⌚', stock: 28, minStock: 10, costPerUnit: 286200, salePrice: 379900, profit: 55710, inTransit: false, warehouse: 'almaty_main' },
+            { id: 7, name: 'Sony WH-1000XM5', sku: 'SNY-WH1000', image: '🎧', stock: 15, minStock: 10, costPerUnit: 96500, salePrice: 149900, profit: 38410, inTransit: false, warehouse: 'osipenko' },
+            { id: 8, name: 'Samsung Galaxy Tab S9', sku: 'SAM-GTS9', image: '📲', stock: 52, minStock: 15, costPerUnit: 237800, salePrice: 329900, profit: 59110, inTransit: false, warehouse: 'almaty_main' },
+            { id: 9, name: 'Google Pixel 8 Pro', sku: 'GGL-PX8P', image: '📱', stock: 6, minStock: 10, costPerUnit: 257200, salePrice: 349900, profit: 57710, inTransit: false, warehouse: 'astana' },
+            { id: 10, name: 'Nintendo Switch OLED', sku: 'NTD-SWOLED', image: '🎮', stock: 19, minStock: 10, costPerUnit: 112500, salePrice: 159900, profit: 31410, inTransit: false, warehouse: 'osipenko' },
+            { id: 11, name: 'DJI Mini 3 Pro', sku: 'DJI-M3P', image: '🚁', stock: 4, minStock: 5, costPerUnit: 278500, salePrice: 379900, profit: 63410, inTransit: false, warehouse: 'astana' },
+            { id: 12, name: 'Bose QuietComfort 45', sku: 'BOS-QC45', image: '🎧', stock: 0, minStock: 8, costPerUnit: 83400, salePrice: 129900, profit: 33510, inTransit: false, warehouse: 'almaty_taugul' },
+          ];
+
+          // Фильтруем товары по выбранному складу
+          const filteredProducts = selectedWarehouse === 'all'
+            ? warehouseProducts
+            : warehouseProducts.filter(p => p.warehouse === selectedWarehouse);
+
+          // Статистика по выбранному складу
+          const warehouseStats = {
+            total: filteredProducts.length,
+            totalUnits: filteredProducts.reduce((sum, p) => sum + p.stock, 0),
+            totalValue: filteredProducts.reduce((sum, p) => sum + (p.stock * p.costPerUnit), 0),
+            inStock: filteredProducts.filter(p => p.stock >= p.minStock).length,
+            inTransit: filteredProducts.filter(p => p.inTransit).length,
+            inTransitUnits: filteredProducts.filter(p => p.inTransit).reduce((sum, p) => sum + (p.inTransitQty || 0), 0),
+            lowStock: filteredProducts.filter(p => p.stock > 0 && p.stock < p.minStock).length,
+            outOfStock: filteredProducts.filter(p => p.stock === 0).length,
+          };
+
+          return (
           <motion.div
             variants={containerVariants}
             initial="hidden"
             animate="visible"
           >
-            {/* Period Info */}
-            <div className="mb-6 flex items-center gap-2 text-sm text-gray-400">
-              <Calendar className="w-4 h-4" />
-              <span>Период: <span className="text-gray-500">{formatShortPeriod()}</span></span>
-              <span className="text-gray-300">|</span>
-              <span>+156 / -{data.topProducts.reduce((s, p) => s + p.sales, 0)} шт</span>
+            {/* Warehouse Tabs */}
+            <div className="mb-4 sm:mb-6">
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'all', label: 'Все склады' },
+                  { id: 'almaty_main', label: 'Основной Алматы' },
+                  { id: 'almaty_taugul', label: 'Алматы Таугуль 13' },
+                  { id: 'osipenko', label: 'Осипенко 35А' },
+                  { id: 'astana', label: 'Астана' },
+                ].map((warehouse) => (
+                  <button
+                    key={warehouse.id}
+                    onClick={() => setSelectedWarehouse(warehouse.id)}
+                    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
+                      selectedWarehouse === warehouse.id
+                        ? 'bg-gray-900 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
+                    }`}
+                  >
+                    {warehouse.label}
+                  </button>
+                ))}
+              </div>
             </div>
 
-            {/* Warehouse Summary Cards */}
-            <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-blue-600" />
+            {/* Period Info */}
+            <div className="mb-4 sm:mb-6 flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <span>Период: <span className="text-gray-500">{formatShortPeriod()}</span></span>
+              <span className="text-gray-300">|</span>
+              <span>{warehouseStats.totalUnits} единиц{selectedWarehouse === 'all' ? ' на всех складах' : ''}</span>
+            </div>
+
+            {/* Warehouse Stats Cards */}
+            <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 mb-6">
+              <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <Package className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   </div>
-                  <span className="text-gray-600 text-sm">Стоимость склада</span>
+                  <span className="text-gray-600 text-xs sm:text-sm">Всего</span>
                 </div>
-                <div className="text-2xl font-bold text-gray-900">2.8M ₸</div>
-                <div className="text-xs text-gray-500 mt-1">текущая оценка</div>
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">{warehouseStats.total}</div>
+                <div className="text-[10px] sm:text-xs text-gray-500 mt-1">{warehouseStats.totalUnits} ед. на {(warehouseStats.totalValue / 1000000).toFixed(1)}M ₸</div>
               </div>
 
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-emerald-600" />
+              <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                   </div>
-                  <span className="text-gray-600 text-sm">Поступило за период</span>
+                  <span className="text-gray-600 text-xs sm:text-sm">В наличии</span>
                 </div>
-                <div className="text-2xl font-bold text-emerald-600">847K ₸</div>
-                <div className="text-xs mt-1">
-                  <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
-                </div>
+                <div className="text-xl sm:text-2xl font-bold text-emerald-600">{warehouseStats.inStock}</div>
+                <div className="text-[10px] sm:text-xs text-gray-500 mt-1">позиций</div>
               </div>
 
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-                    <Package className="w-5 h-5 text-amber-600" />
+              <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                   </div>
-                  <span className="text-gray-600 text-sm">Приемок за период</span>
+                  <span className="text-gray-600 text-xs sm:text-sm">В пути</span>
                 </div>
-                <div className="text-2xl font-bold text-amber-600">12</div>
-                <div className="text-xs mt-1">
-                  <span className="bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
-                </div>
+                <div className="text-xl sm:text-2xl font-bold text-purple-600">{warehouseStats.inTransit}</div>
+                <div className="text-[10px] sm:text-xs text-gray-500 mt-1">{warehouseStats.inTransitUnits} единиц</div>
               </div>
 
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <Calculator className="w-5 h-5 text-purple-600" />
+              <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
                   </div>
-                  <span className="text-gray-600 text-sm">Рентабельность</span>
+                  <span className="text-gray-600 text-xs sm:text-sm">Мало</span>
                 </div>
-                <div className="text-2xl font-bold text-purple-600">34.2%</div>
-                <div className="text-xs text-gray-500 mt-1">оборачиваемость</div>
+                <div className="text-xl sm:text-2xl font-bold text-amber-600">{warehouseStats.lowStock}</div>
+                <div className="text-[10px] sm:text-xs text-gray-500 mt-1">позиций</div>
+              </div>
+
+              <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+                  </div>
+                  <span className="text-gray-600 text-xs sm:text-sm">Нет</span>
+                </div>
+                <div className="text-xl sm:text-2xl font-bold text-red-600">{warehouseStats.outOfStock}</div>
+                <div className="text-[10px] sm:text-xs text-gray-500 mt-1">позиций</div>
               </div>
             </motion.div>
 
-            {/* Движение товаров за период */}
-            <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              {/* Поступления */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                <div className="p-5 border-b border-gray-200 bg-emerald-50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-semibold text-gray-900">Поступления</h3>
-                        <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-medium">{formatShortPeriod()}</span>
-                      </div>
-                      <p className="text-sm text-gray-500 mt-0.5">Приход товаров за период</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-emerald-600">+156 шт</div>
-                      <div className="text-sm text-gray-500">847,000 ₸</div>
-                    </div>
-                  </div>
+            {/* Products Table */}
+            <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
+              <div className="p-3 sm:p-6 border-b border-gray-200">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mb-1">
+                  <h3 className="text-lg sm:text-2xl font-semibold text-gray-900">Аналитика склада</h3>
+                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium w-fit">{formatShortPeriod()}</span>
                 </div>
-                <div className="p-4 space-y-3 max-h-80 overflow-y-auto">
-                  {[
-                    { name: 'iPhone 14 Pro 256GB', qty: 25, cost: 187500, date: '15.11' },
-                    { name: 'Samsung Galaxy S23 Ultra', qty: 18, cost: 162000, date: '14.11' },
-                    { name: 'AirPods Pro 2', qty: 40, cost: 120000, date: '12.11' },
-                    { name: 'MacBook Pro 14" M2', qty: 8, cost: 136000, date: '10.11' },
-                    { name: 'iPad Air 5th Gen', qty: 15, cost: 105000, date: '08.11' },
-                    { name: 'Apple Watch Ultra', qty: 20, cost: 80000, date: '05.11' },
-                    { name: 'Sony WH-1000XM5', qty: 30, cost: 56500, date: '03.11' },
-                  ].map((item, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 text-sm">{item.name}</div>
-                        <div className="text-xs text-gray-500">{item.date}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-semibold text-emerald-600">+{item.qty} шт</div>
-                        <div className="text-xs text-gray-500">{item.cost.toLocaleString('ru-RU')} ₸</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <p className="text-xs sm:text-sm text-gray-500">Детальная информация по остаткам и прибыльности</p>
               </div>
 
-              {/* Списания/Продажи */}
-              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                <div className="p-5 border-b border-gray-200 bg-red-50">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-semibold text-gray-900">Списания</h3>
-                        <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-medium">{formatShortPeriod()}</span>
+              {/* Mobile Cards */}
+              <div className="sm:hidden divide-y divide-gray-100">
+                {filteredProducts.map((product) => {
+                  const roi = (product.profit / product.costPerUnit) * 100;
+                  const status = product.stock === 0 ? 'out' : product.stock < product.minStock ? 'low' : 'in_stock';
+                  return (
+                    <div key={product.id} className="p-3 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-start gap-2.5">
+                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-base flex-shrink-0">
+                          {product.image}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 text-sm truncate">{product.name}</div>
+                          <div className="text-[10px] text-gray-500 font-mono">{product.sku}</div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <div className="text-sm font-semibold text-gray-900">{product.stock} шт</div>
+                          <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${
+                            status === 'out' ? 'bg-red-100 text-red-700' :
+                            status === 'low' ? 'bg-amber-100 text-amber-700' :
+                            'bg-emerald-100 text-emerald-700'
+                          }`}>
+                            {status === 'out' ? 'Нет' : status === 'low' ? 'Мало' : 'Есть'}
+                          </span>
+                        </div>
                       </div>
-                      <p className="text-sm text-gray-500 mt-0.5">Расход товаров за период</p>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-red-600">-{data.topProducts.reduce((s, p) => s + p.sales, 0)} шт</div>
-                      <div className="text-sm text-gray-500">{data.totalCost.toLocaleString('ru-RU')} ₸</div>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-4 space-y-3 max-h-80 overflow-y-auto">
-                  {data.topProducts.slice(0, 7).map((product, i) => (
-                    <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900 text-sm">{product.name}</div>
-                        <div className="text-xs text-gray-500">Продажи</div>
+                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
+                        <div className="text-xs">
+                          <span className="text-gray-500">Себест: </span>
+                          <span className="font-medium text-gray-900">{(product.costPerUnit / 1000).toFixed(0)}к ₸</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className="text-gray-500">Прибыль: </span>
+                          <span className="font-medium text-emerald-600">{(product.profit / 1000).toFixed(0)}к ₸</span>
+                        </div>
+                        <div className="text-xs">
+                          <span className={`font-medium ${roi >= 15 ? 'text-emerald-600' : roi >= 10 ? 'text-blue-600' : 'text-amber-600'}`}>
+                            ROI {roi.toFixed(0)}%
+                          </span>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-sm font-semibold text-red-600">-{product.sales} шт</div>
-                        <div className="text-xs text-gray-500">{product.cost.toLocaleString('ru-RU')} ₸</div>
-                      </div>
+                      {product.inTransit && (
+                        <div className="mt-1.5 flex items-center gap-1 text-xs text-purple-600">
+                          <Truck className="w-3 h-3" />
+                          <span>В пути: {product.inTransitQty} шт</span>
+                        </div>
+                      )}
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-            </motion.div>
 
-            {/* История приемок */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-200">
-                <h3 className="text-xl font-semibold text-gray-900">История приемок</h3>
-                <p className="text-sm text-gray-500 mt-1">Все поступления товаров за выбранный период</p>
-              </div>
-
-              <div className="overflow-x-auto">
+              {/* Desktop Table */}
+              <div className="hidden sm:block overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b border-gray-200">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Приемка</th>
-                      <th className="px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ textAlign: 'center' }}>Позиций</th>
-                      <th className="px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ textAlign: 'center' }}>Количество</th>
-                      <th className="px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ textAlign: 'right' }}>Себестоимость</th>
-                      <th className="px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ textAlign: 'center' }}>Статус</th>
+                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Товар</th>
+                      <th className="px-4 lg:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Остаток</th>
+                      <th className="px-4 lg:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">В пути</th>
+                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Себестоимость</th>
+                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Цена продажи</th>
+                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Прибыль</th>
+                      <th className="px-4 lg:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ROI</th>
+                      <th className="px-4 lg:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
                     </tr>
                   </thead>
                   <tbody className="bg-white divide-y divide-gray-200">
-                    {[
-                      { id: 'ПР-001247', date: '15.11.2025', items: 3, qty: 45, cost: 487500, status: 'completed' },
-                      { id: 'ПР-001246', date: '14.11.2025', items: 2, qty: 28, cost: 252000, status: 'completed' },
-                      { id: 'ПР-001245', date: '12.11.2025', items: 1, qty: 40, cost: 120000, status: 'completed' },
-                      { id: 'ПР-001244', date: '10.11.2025', items: 4, qty: 35, cost: 315000, status: 'completed' },
-                      { id: 'ПР-001243', date: '08.11.2025', items: 2, qty: 22, cost: 154000, status: 'completed' },
-                      { id: 'ПР-001242', date: '05.11.2025', items: 3, qty: 50, cost: 175000, status: 'completed' },
-                      { id: 'ПР-001241', date: '03.11.2025', items: 2, qty: 30, cost: 84000, status: 'completed' },
-                      { id: 'ПР-001240', date: '01.11.2025', items: 5, qty: 65, cost: 422500, status: 'completed' },
-                    ].map((receipt, index) => (
-                      <tr key={index} className="hover:bg-gray-50 transition-colors cursor-pointer">
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">{receipt.date}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap">
-                          <div className="font-medium text-gray-900">{receipt.id}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap" style={{ textAlign: 'center' }}>
-                          <div className="text-sm text-gray-600">{receipt.items}</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap" style={{ textAlign: 'center' }}>
-                          <div className="text-sm font-medium text-emerald-600">+{receipt.qty} шт</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap" style={{ textAlign: 'right' }}>
-                          <div className="text-sm font-medium text-gray-900">{receipt.cost.toLocaleString('ru-RU')} ₸</div>
-                        </td>
-                        <td className="px-6 py-4 whitespace-nowrap" style={{ textAlign: 'center' }}>
-                          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                            <CheckCircle className="w-3.5 h-3.5" /> Проведено
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
+                    {filteredProducts.map((product) => {
+                      const roi = (product.profit / product.costPerUnit) * 100;
+                      const status = product.stock === 0 ? 'out' : product.stock < product.minStock ? 'low' : 'in_stock';
+                      return (
+                        <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                          <td className="px-4 lg:px-6 py-3">
+                            <div className="flex items-center gap-2 lg:gap-3">
+                              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gray-100 rounded-lg flex items-center justify-center text-lg lg:text-xl flex-shrink-0">
+                                {product.image}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-medium text-gray-900 text-sm truncate max-w-[120px] lg:max-w-none">{product.name}</div>
+                                <div className="text-xs text-gray-500">{product.sku}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-center">
+                            <div className="text-sm font-medium text-gray-900">{product.stock} шт</div>
+                          </td>
+                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-center hidden lg:table-cell">
+                            {product.inTransit ? (
+                              <div className="flex items-center justify-center gap-1 text-sm text-purple-600">
+                                <Truck className="w-3.5 h-3.5" />
+                                {product.inTransitQty} шт
+                              </div>
+                            ) : (
+                              <span className="text-gray-400">—</span>
+                            )}
+                          </td>
+                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-right">
+                            <div className="text-sm font-medium text-gray-900">{product.costPerUnit.toLocaleString('ru-RU')} ₸</div>
+                          </td>
+                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-right hidden lg:table-cell">
+                            <div className="text-sm font-medium text-blue-600">{product.salePrice.toLocaleString('ru-RU')} ₸</div>
+                          </td>
+                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-right">
+                            <div className="text-sm font-bold text-emerald-600">{product.profit.toLocaleString('ru-RU')} ₸</div>
+                          </td>
+                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-center">
+                            <span className={`text-sm font-medium ${roi >= 15 ? 'text-emerald-600' : roi >= 10 ? 'text-blue-600' : 'text-amber-600'}`}>
+                              {roi.toFixed(1)}%
+                            </span>
+                          </td>
+                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-center">
+                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
+                              status === 'out' ? 'bg-red-100 text-red-700' :
+                              status === 'low' ? 'bg-amber-100 text-amber-700' :
+                              'bg-emerald-100 text-emerald-700'
+                            }`}>
+                              {status === 'out' && <><XCircle className="w-3 h-3" /> Нет</>}
+                              {status === 'low' && <><AlertTriangle className="w-3 h-3" /> Мало</>}
+                              {status === 'in_stock' && <><CheckCircle className="w-3 h-3" /> Есть</>}
+                            </span>
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
 
-              {/* Итого */}
-              <div className="p-6 border-t border-gray-200 bg-gray-50">
-                <div className="grid grid-cols-3 gap-6">
-                  <div>
-                    <div className="text-sm text-gray-500">Всего приемок</div>
-                    <div className="text-xl font-bold text-gray-900">12</div>
+              {/* Footer */}
+              <div className="p-3 sm:p-4 border-t border-gray-200 bg-gray-50">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-sm">
+                  <span className="text-gray-500">Показано {filteredProducts.length} товаров</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-gray-500">Общая стоимость остатков:</span>
+                    <span className="font-bold text-gray-900">{warehouseStats.totalValue.toLocaleString('ru-RU')} ₸</span>
                   </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Всего единиц</div>
-                    <div className="text-xl font-bold text-emerald-600">+315 шт</div>
-                  </div>
-                  <div>
-                    <div className="text-sm text-gray-500">Общая себестоимость</div>
-                    <div className="text-xl font-bold text-gray-900">2,010,000 ₸</div>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* Рентабельность склада */}
-            <motion.div variants={itemVariants} className="mt-6 bg-white rounded-2xl shadow-sm p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Анализ рентабельности склада</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <div className="text-sm text-gray-500 mb-1">Средняя оборачиваемость</div>
-                  <div className="text-2xl font-bold text-gray-900">18 дней</div>
-                  <div className="text-xs text-emerald-600 mt-1">-3 дня vs прошлый период</div>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <div className="text-sm text-gray-500 mb-1">ROI склада</div>
-                  <div className="text-2xl font-bold text-emerald-600">34.2%</div>
-                  <div className="text-xs text-emerald-600 mt-1">+5.1% vs прошлый период</div>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <div className="text-sm text-gray-500 mb-1">Замороженные средства</div>
-                  <div className="text-2xl font-bold text-amber-600">245K ₸</div>
-                  <div className="text-xs text-gray-500 mt-1">товары без движения 30+ дней</div>
-                </div>
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <div className="text-sm text-gray-500 mb-1">Потенциальная прибыль</div>
-                  <div className="text-2xl font-bold text-purple-600">956K ₸</div>
-                  <div className="text-xs text-gray-500 mt-1">при текущих остатках</div>
                 </div>
               </div>
             </motion.div>
           </motion.div>
-        )}
+          );
+        })()}
 
         {/* Advertising Tab - Реклама */}
         {activeTab === 'advertising' && (
@@ -3612,6 +3735,278 @@ export default function AnalyticsPage() {
                 </div>
                 <div className="bg-gray-50 p-4 flex justify-end">
                   <button onClick={() => setSelectedCityPopup(null)} className="px-6 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-medium">Закрыть</button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Product Detail Popup */}
+        <AnimatePresence>
+          {showProductPopup && selectedProduct && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowProductPopup(false)}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl z-50 overflow-hidden max-h-[90vh] overflow-y-auto"
+              >
+                {/* Header */}
+                <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 p-4 sm:p-6 text-white">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
+                        {selectedProduct.image}
+                      </div>
+                      <div className="min-w-0">
+                        <h2 className="text-lg font-bold truncate">{selectedProduct.name}</h2>
+                        <p className="text-emerald-100 text-sm font-mono">{selectedProduct.sku}</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowProductPopup(false)}
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors flex-shrink-0"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Period Selector */}
+                <div className="p-4 border-b border-gray-200 bg-gray-50">
+                  <div className="flex gap-2">
+                    {[
+                      { key: 'week', label: 'Неделя' },
+                      { key: 'month', label: 'Месяц' },
+                      { key: '3months', label: '3 месяца' }
+                    ].map((period) => (
+                      <button
+                        key={period.key}
+                        onClick={() => setProductPopupPeriod(period.key as 'week' | 'month' | '3months')}
+                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
+                          productPopupPeriod === period.key
+                            ? 'bg-emerald-500 text-white'
+                            : 'bg-white text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        {period.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-4 sm:p-6 space-y-4">
+                  {/* Продажи */}
+                  {(() => {
+                    const multiplier = productPopupPeriod === 'week' ? 1 : productPopupPeriod === 'month' ? 4 : 12;
+                    const sales = selectedProduct.sales * multiplier;
+                    const revenue = selectedProduct.revenue * multiplier;
+                    const cost = selectedProduct.cost * multiplier;
+                    const profit = selectedProduct.profit * multiplier;
+
+                    // Расчёт детальных расходов
+                    const taxRate = 0.03; // 3% налоги
+                    const kaspiCommission = 0.08; // 8% комиссия Kaspi
+                    const deliveryCost = 1500 * sales; // 1500 ₸ за доставку
+                    const advertisingCost = Math.round(revenue * 0.05); // 5% реклама
+
+                    const taxes = Math.round(revenue * taxRate);
+                    const commission = Math.round(revenue * kaspiCommission);
+                    const productCost = cost - deliveryCost - advertisingCost; // Себестоимость
+                    const netProfit = revenue - productCost - taxes - commission - deliveryCost - advertisingCost;
+
+                    return (
+                      <>
+                        {/* Основные метрики */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-blue-50 rounded-xl p-3">
+                            <div className="text-blue-600 text-xs mb-1">Продано</div>
+                            <div className="text-xl font-bold text-blue-700">{sales} шт</div>
+                          </div>
+                          <div className="bg-sky-50 rounded-xl p-3">
+                            <div className="text-sky-600 text-xs mb-1">Выручка</div>
+                            <div className="text-xl font-bold text-sky-700">{revenue.toLocaleString('ru-RU')} ₸</div>
+                          </div>
+                        </div>
+
+                        {/* Детализация расходов */}
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <h3 className="font-semibold text-gray-900 mb-3">Расходы</h3>
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center py-1.5 border-b border-gray-200">
+                              <span className="text-gray-600 text-sm">Себестоимость товара</span>
+                              <span className="font-medium text-gray-900">{productCost.toLocaleString('ru-RU')} ₸</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 border-b border-gray-200">
+                              <span className="text-gray-600 text-sm">Налоги (3%)</span>
+                              <span className="font-medium text-red-600">−{taxes.toLocaleString('ru-RU')} ₸</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 border-b border-gray-200">
+                              <span className="text-gray-600 text-sm">Комиссия Kaspi (8%)</span>
+                              <span className="font-medium text-red-600">−{commission.toLocaleString('ru-RU')} ₸</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 border-b border-gray-200">
+                              <span className="text-gray-600 text-sm">Доставка</span>
+                              <span className="font-medium text-red-600">−{deliveryCost.toLocaleString('ru-RU')} ₸</span>
+                            </div>
+                            <div className="flex justify-between items-center py-1.5 border-b border-gray-200">
+                              <span className="text-gray-600 text-sm">Реклама</span>
+                              <span className="font-medium text-red-600">−{advertisingCost.toLocaleString('ru-RU')} ₸</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Итого */}
+                        <div className="bg-emerald-50 rounded-xl p-4">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <div className="text-emerald-700 text-sm">Чистая прибыль</div>
+                              <div className="text-xs text-emerald-600/70">
+                                Маржа: {((netProfit / revenue) * 100).toFixed(1)}%
+                              </div>
+                            </div>
+                            <div className="text-2xl font-bold text-emerald-700">
+                              {netProfit.toLocaleString('ru-RU')} ₸
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Сравнение с предыдущим периодом */}
+                        <div className="bg-white border border-gray-200 rounded-xl p-4">
+                          <h3 className="font-semibold text-gray-900 mb-3 text-sm">Сравнение с прошлым периодом</h3>
+                          <div className="grid grid-cols-3 gap-3 text-center">
+                            <div>
+                              <div className="text-emerald-600 font-semibold">+12%</div>
+                              <div className="text-xs text-gray-500">Продажи</div>
+                            </div>
+                            <div>
+                              <div className="text-emerald-600 font-semibold">+8%</div>
+                              <div className="text-xs text-gray-500">Выручка</div>
+                            </div>
+                            <div>
+                              <div className="text-emerald-600 font-semibold">+15%</div>
+                              <div className="text-xs text-gray-500">Прибыль</div>
+                            </div>
+                          </div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+
+                {/* Footer */}
+                <div className="bg-gray-50 p-4 flex justify-end">
+                  <button
+                    onClick={() => setShowProductPopup(false)}
+                    className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-colors"
+                  >
+                    Закрыть
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Pending Orders Popup (В пути до клиента) */}
+        <AnimatePresence>
+          {showPendingOrdersPopup && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowPendingOrdersPopup(false)}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-lg bg-white rounded-2xl shadow-2xl z-50 overflow-hidden max-h-[90vh] overflow-y-auto"
+              >
+                {/* Header */}
+                <div className="bg-gradient-to-r from-amber-500 to-orange-500 p-4 sm:p-6 text-white">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                        <Truck className="w-5 h-5 sm:w-6 sm:h-6" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg sm:text-xl font-bold">Ожидают поступления</h2>
+                        <p className="text-amber-100 text-xs sm:text-sm">Заказы в пути до клиента</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowPendingOrdersPopup(false)}
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Summary */}
+                <div className="p-4 sm:p-6 bg-amber-50 border-b border-amber-200">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl sm:text-3xl font-bold text-amber-700">{data.pendingOrders?.count || 0}</div>
+                      <div className="text-xs sm:text-sm text-amber-600">Заказов в пути</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl sm:text-3xl font-bold text-amber-700">
+                        {((data.pendingOrders?.totalAmount || 0) / 1000000).toFixed(1)}M ₸
+                      </div>
+                      <div className="text-xs sm:text-sm text-amber-600">Ожидаемая сумма</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 p-2 bg-amber-100 rounded-lg text-xs sm:text-sm text-amber-700 text-center">
+                    Деньги поступят после получения клиентом
+                  </div>
+                </div>
+
+                {/* Orders List */}
+                <div className="p-4 sm:p-6">
+                  <h3 className="font-semibold text-gray-900 mb-3 text-sm">Список заказов</h3>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {(data.pendingOrders?.orders || []).map((order: any) => (
+                      <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                        <div className="flex-1 min-w-0 pr-3">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-900 text-sm">{order.id}</span>
+                            <span className="text-xs text-amber-600 bg-amber-100 px-1.5 py-0.5 rounded">{order.customer}</span>
+                          </div>
+                          <div className="text-xs text-gray-500 truncate">{order.product}</div>
+                        </div>
+                        <div className="text-right flex-shrink-0">
+                          <div className="font-semibold text-gray-900 text-sm">{(order.amount / 1000).toFixed(0)}K ₸</div>
+                          <div className="text-[10px] text-gray-400">{order.date}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="bg-gray-50 p-4 flex justify-end">
+                  <button
+                    onClick={() => setShowPendingOrdersPopup(false)}
+                    className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-colors"
+                  >
+                    Закрыть
+                  </button>
                 </div>
               </motion.div>
             </>

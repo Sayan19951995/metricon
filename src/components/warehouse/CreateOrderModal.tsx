@@ -208,17 +208,17 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
   const canCreate = supplier && orderDate && expectedDate && items.length > 0;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
       {/* Backdrop */}
       <div className="absolute inset-0 bg-black/50" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden flex flex-col">
+      <div className="relative bg-white rounded-t-2xl sm:rounded-2xl shadow-2xl w-full sm:max-w-3xl max-h-[90vh] overflow-hidden flex flex-col sm:mx-4">
         {/* Header */}
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+        <div className="p-4 sm:p-6 border-b border-gray-200 flex items-center justify-between">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Новый заказ на пополнение</h2>
-            <p className="text-sm text-gray-500 mt-1">Создайте заказ поставщику</p>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900">Новый заказ на пополнение</h2>
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">Создайте заказ поставщику</p>
           </div>
           <button
             onClick={onClose}
@@ -229,11 +229,12 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {/* Order Info */}
-          <div className="grid grid-cols-3 gap-4 mb-6">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Поставщик *</label>
+          <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 mb-4 sm:mb-6">
+            {/* Поставщик - полная ширина на мобильных */}
+            <div className="sm:col-span-1">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Поставщик *</label>
               {showAddSupplier ? (
                 <div className="flex gap-2">
                   <input
@@ -241,7 +242,7 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
                     value={newSupplierName}
                     onChange={(e) => setNewSupplierName(e.target.value)}
                     placeholder="Название поставщика"
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                     autoFocus
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') addSupplier();
@@ -267,16 +268,16 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
                   <select
                     value={supplier}
                     onChange={(e) => setSupplier(e.target.value)}
-                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                    className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
                   >
-                    <option value="">Выберите поставщика</option>
+                    <option value="">Выберите</option>
                     {suppliers.map(s => (
                       <option key={s} value={s}>{s}</option>
                     ))}
                   </select>
                   <button
                     onClick={() => setShowAddSupplier(true)}
-                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer"
+                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-lg transition-colors cursor-pointer flex-shrink-0"
                     title="Добавить поставщика"
                   >
                     <Plus className="w-4 h-4" />
@@ -284,43 +285,46 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
                 </div>
               )}
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Дата заказа *</label>
-              <input
-                type="date"
-                value={orderDate}
-                onChange={(e) => setOrderDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Ожид. дата прибытия *</label>
-              <input
-                type="date"
-                value={expectedDate}
-                onChange={(e) => setExpectedDate(e.target.value)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
-              />
+            {/* Даты в одну строку на мобильных */}
+            <div className="grid grid-cols-2 gap-2 sm:contents">
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Дата заказа *</label>
+                <input
+                  type="date"
+                  value={orderDate}
+                  onChange={(e) => setOrderDate(e.target.value)}
+                  className="w-full px-2 sm:px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Ожид. дата *</label>
+                <input
+                  type="date"
+                  value={expectedDate}
+                  onChange={(e) => setExpectedDate(e.target.value)}
+                  className="w-full px-2 sm:px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                />
+              </div>
             </div>
           </div>
 
           {/* Items Section */}
-          <div className="mb-6">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold text-gray-900">Товары в заказе</h3>
+          <div className="mb-4 sm:mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3">
+              <h3 className="text-xs sm:text-sm font-semibold text-gray-900">Товары в заказе</h3>
               <div className="flex gap-2">
                 <button
                   onClick={() => { setShowAddExisting(true); setShowAddDraft(false); }}
-                  className="px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                  className="flex-1 sm:flex-none px-3 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   Из Kaspi
                 </button>
                 <button
                   onClick={() => { setShowAddDraft(true); setShowAddExisting(false); }}
-                  className="px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 cursor-pointer"
+                  className="flex-1 sm:flex-none px-3 py-1.5 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded-lg text-xs sm:text-sm font-medium transition-colors flex items-center justify-center gap-1 cursor-pointer"
                 >
-                  <Plus className="w-4 h-4" />
+                  <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                   Новый товар
                 </button>
               </div>
@@ -369,11 +373,11 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
 
             {/* Add Draft Product */}
             {showAddDraft && (
-              <div className="mb-4 p-4 bg-amber-50 rounded-xl border border-amber-200">
-                <div className="flex items-center justify-between mb-3">
+              <div className="mb-4 p-3 sm:p-4 bg-amber-50 rounded-xl border border-amber-200">
+                <div className="flex items-center justify-between mb-2 sm:mb-3">
                   <div className="flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 text-amber-600" />
-                    <span className="text-sm font-medium text-amber-700">Новый товар (черновик)</span>
+                    <span className="text-xs sm:text-sm font-medium text-amber-700">Новый товар (черновик)</span>
                   </div>
                   <button
                     onClick={() => setShowAddDraft(false)}
@@ -382,10 +386,10 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
                     <X className="w-4 h-4" />
                   </button>
                 </div>
-                <p className="text-xs text-amber-600 mb-3">
+                <p className="text-[10px] sm:text-xs text-amber-600 mb-2 sm:mb-3">
                   Этот товар ещё не существует в Kaspi. После получения вы сможете привязать его к карточке Kaspi.
                 </p>
-                <div className="grid grid-cols-2 gap-3 mb-3">
+                <div className="space-y-2 sm:space-y-0 sm:grid sm:grid-cols-2 sm:gap-3 mb-2 sm:mb-3">
                   <div>
                     <label className="block text-xs font-medium text-gray-700 mb-1">Название *</label>
                     <input
@@ -407,32 +411,32 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
                     />
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-3 gap-2 sm:gap-3">
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Количество *</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Кол-во *</label>
                     <input
                       type="number"
                       value={draftQuantity}
                       onChange={(e) => setDraftQuantity(parseInt(e.target.value) || 1)}
                       min={1}
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="w-full px-2 sm:px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Цена закупки *</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Цена *</label>
                     <input
                       type="number"
                       value={draftPrice || ''}
                       onChange={(e) => setDraftPrice(parseInt(e.target.value) || 0)}
                       placeholder="0"
-                      className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
+                      className="w-full px-2 sm:px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
                   </div>
                   <div className="flex items-end">
                     <button
                       onClick={addDraftProduct}
                       disabled={!draftName || draftQuantity <= 0 || draftPrice <= 0}
-                      className="w-full px-3 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg text-sm font-medium transition-colors cursor-pointer"
+                      className="w-full px-2 sm:px-3 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg text-xs sm:text-sm font-medium transition-colors cursor-pointer"
                     >
                       Добавить
                     </button>
@@ -447,9 +451,55 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
                 {items.map(item => (
                   <div
                     key={item.id}
-                    className={`p-3 rounded-xl border ${item.type === 'draft' ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-200'}`}
+                    className={`p-2.5 sm:p-3 rounded-xl border ${item.type === 'draft' ? 'bg-amber-50 border-amber-200' : 'bg-white border-gray-200'}`}
                   >
-                    <div className="flex items-center gap-3">
+                    {/* Mobile Layout */}
+                    <div className="sm:hidden">
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-medium text-gray-900 text-xs">{item.name}</span>
+                            {item.type === 'draft' && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-700">
+                                Черновик
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[10px] text-gray-500 truncate">
+                            {item.sku || item.draftDescription || 'Без описания'}
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => removeItem(item.id)}
+                          className="p-1 hover:bg-red-100 text-gray-400 hover:text-red-500 rounded transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
+                            min={1}
+                            className="w-12 px-1.5 py-1 text-xs text-center border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          <span className="text-[10px] text-gray-500">x</span>
+                          <input
+                            type="number"
+                            value={item.pricePerUnit}
+                            onChange={(e) => updatePrice(item.id, parseInt(e.target.value) || 0)}
+                            className="w-20 px-1.5 py-1 text-xs text-right border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                          />
+                          <span className="text-[10px] text-gray-500">₸</span>
+                        </div>
+                        <span className="font-semibold text-gray-900 text-xs">{item.total.toLocaleString('ru-RU')} ₸</span>
+                      </div>
+                    </div>
+
+                    {/* Desktop Layout */}
+                    <div className="hidden sm:flex items-center gap-3">
                       {/* Название товара */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
@@ -503,17 +553,17 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
                 ))}
               </div>
             ) : (
-              <div className="p-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-center">
-                <Package className="w-10 h-10 text-gray-300 mx-auto mb-3" />
-                <p className="text-sm text-gray-500">Добавьте товары в заказ</p>
-                <p className="text-xs text-gray-400 mt-1">Выберите товары из Kaspi или добавьте новые</p>
+              <div className="p-6 sm:p-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-center">
+                <Package className="w-8 h-8 sm:w-10 sm:h-10 text-gray-300 mx-auto mb-2 sm:mb-3" />
+                <p className="text-xs sm:text-sm text-gray-500">Добавьте товары в заказ</p>
+                <p className="text-[10px] sm:text-xs text-gray-400 mt-1">Выберите товары из Kaspi или добавьте новые</p>
               </div>
             )}
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Комментарий</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Комментарий</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
@@ -525,37 +575,38 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
         </div>
 
         {/* Footer */}
-        <div className="p-6 border-t border-gray-200 bg-gray-50">
+        <div className="p-4 sm:p-6 border-t border-gray-200 bg-gray-50">
           {/* Summary */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-gray-600">
+          <div className="flex items-center justify-between mb-3 sm:mb-4">
+            <div className="flex items-center gap-2 sm:gap-4">
+              <div className="text-xs sm:text-sm text-gray-600">
                 Товаров: <span className="font-semibold text-gray-900">{totalItems} шт</span>
               </div>
               {hasDrafts && (
-                <div className="flex items-center gap-1 text-sm text-amber-600">
-                  <AlertCircle className="w-4 h-4" />
-                  Есть черновики
+                <div className="flex items-center gap-1 text-xs sm:text-sm text-amber-600">
+                  <AlertCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Есть черновики</span>
+                  <span className="sm:hidden">Черновики</span>
                 </div>
               )}
             </div>
-            <div className="text-lg font-bold text-gray-900">
+            <div className="text-base sm:text-lg font-bold text-gray-900">
               {totalAmount.toLocaleString('ru-RU')} ₸
             </div>
           </div>
 
           {/* Buttons */}
-          <div className="flex gap-3">
+          <div className="flex gap-2 sm:gap-3">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-medium transition-colors cursor-pointer"
+              className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl text-sm sm:text-base font-medium transition-colors cursor-pointer"
             >
               Отмена
             </button>
             <button
               onClick={handleCreateOrder}
               disabled={!canCreate}
-              className="flex-1 px-4 py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors cursor-pointer"
+              className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-xl text-sm sm:text-base font-medium transition-colors cursor-pointer"
             >
               Создать заказ
             </button>
