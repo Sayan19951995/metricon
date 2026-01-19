@@ -1154,7 +1154,7 @@ export default function AnalyticsPage() {
                     borderRadius: '12px',
                     boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
                   }}
-                  formatter={(value: number, name: string) => [`${value.toLocaleString('ru-RU')} ₸`, name]}
+                  formatter={(value) => value !== undefined ? [`${value.toLocaleString('ru-RU')} ₸`] : ['']}
                   labelFormatter={(label) => `Дата: ${label}`}
                 />
                 <Legend
