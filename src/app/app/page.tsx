@@ -132,12 +132,12 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Дэшборд</h1>
-          <p className="text-gray-500 mt-1">Обзор ключевых показателей магазина</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Дэшборд</h1>
+          <p className="text-gray-500 mt-1 text-sm sm:text-base">Обзор ключевых показателей магазина</p>
         </div>
 
         <div className="flex items-center gap-4 relative">
@@ -214,7 +214,7 @@ export default function DashboardPage() {
 
       {/* Main Grid */}
       <motion.div
-        className="grid grid-cols-4 gap-6"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -330,7 +330,7 @@ export default function DashboardPage() {
         {/* Критический остаток склада */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-2xl p-6 shadow-sm col-span-2"
+          className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm sm:col-span-2 lg:col-span-2"
         >
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
@@ -441,65 +441,65 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <motion.div
-        className="mt-8 grid grid-cols-4 gap-4"
+        className="mt-6 lg:mt-8 grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
       >
         <button
           onClick={() => router.push('/app/orders')}
-          className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
         >
-          <div className="w-10 h-10 bg-blue-100 group-hover:bg-blue-200 rounded-lg flex items-center justify-center transition-colors">
-            <ShoppingCart className="w-5 h-5 text-blue-600" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 group-hover:bg-blue-200 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+            <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
           </div>
-          <div className="text-left">
-            <span className="text-sm font-medium text-gray-900 block">Заказы</span>
-            <span className="text-xs text-gray-500">Управление заказами</span>
+          <div className="text-left flex-1 min-w-0">
+            <span className="text-sm font-medium text-gray-900 block truncate">Заказы</span>
+            <span className="text-xs text-gray-500 hidden sm:block">Управление заказами</span>
           </div>
-          <ChevronRight className="w-5 h-5 text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" />
+          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
         </button>
 
         <button
           onClick={() => router.push('/app/products')}
-          className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
         >
-          <div className="w-10 h-10 bg-emerald-100 group-hover:bg-emerald-200 rounded-lg flex items-center justify-center transition-colors">
-            <Package className="w-5 h-5 text-emerald-600" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-emerald-100 group-hover:bg-emerald-200 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+            <Package className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
           </div>
-          <div className="text-left">
-            <span className="text-sm font-medium text-gray-900 block">Товары</span>
-            <span className="text-xs text-gray-500">Каталог товаров</span>
+          <div className="text-left flex-1 min-w-0">
+            <span className="text-sm font-medium text-gray-900 block truncate">Товары</span>
+            <span className="text-xs text-gray-500 hidden sm:block">Каталог товаров</span>
           </div>
-          <ChevronRight className="w-5 h-5 text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" />
+          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
         </button>
 
         <button
           onClick={() => router.push('/app/analytics')}
-          className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
         >
-          <div className="w-10 h-10 bg-purple-100 group-hover:bg-purple-200 rounded-lg flex items-center justify-center transition-colors">
-            <BarChart3 className="w-5 h-5 text-purple-600" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-purple-100 group-hover:bg-purple-200 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+            <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
           </div>
-          <div className="text-left">
-            <span className="text-sm font-medium text-gray-900 block">Аналитика</span>
-            <span className="text-xs text-gray-500">Отчёты и статистика</span>
+          <div className="text-left flex-1 min-w-0">
+            <span className="text-sm font-medium text-gray-900 block truncate">Аналитика</span>
+            <span className="text-xs text-gray-500 hidden sm:block">Отчёты и статистика</span>
           </div>
-          <ChevronRight className="w-5 h-5 text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" />
+          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
         </button>
 
         <button
           onClick={() => router.push('/app/warehouse')}
-          className="flex items-center gap-3 p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
         >
-          <div className="w-10 h-10 bg-amber-100 group-hover:bg-amber-200 rounded-lg flex items-center justify-center transition-colors">
-            <Warehouse className="w-5 h-5 text-amber-600" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-amber-100 group-hover:bg-amber-200 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+            <Warehouse className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
           </div>
-          <div className="text-left">
-            <span className="text-sm font-medium text-gray-900 block">Склад</span>
-            <span className="text-xs text-gray-500">Управление запасами</span>
+          <div className="text-left flex-1 min-w-0">
+            <span className="text-sm font-medium text-gray-900 block truncate">Склад</span>
+            <span className="text-xs text-gray-500 hidden sm:block">Управление запасами</span>
           </div>
-          <ChevronRight className="w-5 h-5 text-gray-400 ml-auto group-hover:translate-x-1 transition-transform" />
+          <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
         </button>
       </motion.div>
     </div>

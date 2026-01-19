@@ -2,7 +2,9 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
+import { Menu, X } from 'lucide-react';
 
 // Тип для пунктов меню
 interface NavItem {
@@ -89,17 +91,34 @@ const navigation: NavItem[] = [
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  // Закрыть меню при изменении маршрута
+  useEffect(() => {
+    setMobileMenuOpen(false);
+  }, [pathname]);
+
+  // Закрыть меню при клике вне его
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setMobileMenuOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Проверка активности пункта меню
   const isActive = (item: NavItem) => {
     return pathname === item.href || (item.href !== '/app' && pathname?.startsWith(item.href));
   };
 
-  return (
-    <div className="fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-gray-800 to-gray-900 flex flex-col shadow-xl z-40">
+  const SidebarContent = () => (
+    <>
       {/* Логотип и профиль */}
-      <div className="p-6">
-        <div className="flex items-center gap-3 mb-8">
+      <div className="p-4 lg:p-6">
+        <div className="flex items-center gap-3 mb-6 lg:mb-8">
           <div className="w-10 h-10 bg-white/10 backdrop-blur rounded-xl flex items-center justify-center">
             <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
@@ -112,8 +131,8 @@ export default function Sidebar() {
 
         {/* Профиль пользователя */}
         <Link href="/app/profile" className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center overflow-hidden">
-            <span className="text-white font-semibold text-lg">👤</span>
+          <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center overflow-hidden">
+            <span className="text-white font-semibold text-base lg:text-lg">S</span>
           </div>
           <div className="flex-1 min-w-0">
             <div className="text-white font-medium text-sm truncate">Саян</div>
@@ -150,6 +169,51 @@ export default function Sidebar() {
 
       {/* Футер */}
       <div className="p-4"></div>
-    </div>
+    </>
+  );
+
+  return (
+    <>
+      {/* Mobile Header */}
+      <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-gradient-to-r from-gray-800 to-gray-900 flex items-center justify-between px-4 z-50 shadow-lg">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 bg-white/10 backdrop-blur rounded-lg flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+            </svg>
+          </div>
+          <span className="text-white font-bold tracking-wider">METRICON</span>
+        </div>
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+        >
+          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+        </button>
+      </div>
+
+      {/* Mobile Overlay */}
+      {mobileMenuOpen && (
+        <div
+          className="lg:hidden fixed inset-0 bg-black/50 z-40"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      {/* Mobile Sidebar */}
+      <div
+        className={cn(
+          'lg:hidden fixed top-16 left-0 bottom-0 w-72 bg-gradient-to-b from-gray-800 to-gray-900 flex flex-col shadow-xl z-50 transform transition-transform duration-300 ease-in-out',
+          mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+        )}
+      >
+        <SidebarContent />
+      </div>
+
+      {/* Desktop Sidebar */}
+      <div className="hidden lg:flex fixed left-0 top-0 h-screen w-64 bg-gradient-to-b from-gray-800 to-gray-900 flex-col shadow-xl z-40">
+        <SidebarContent />
+      </div>
+    </>
   );
 }

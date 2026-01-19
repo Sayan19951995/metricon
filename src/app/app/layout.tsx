@@ -14,8 +14,8 @@ export default function DashboardLayout({
         {/* Sidebar - Фиксированный слева */}
         <Sidebar />
 
-        {/* Main Content - с отступом слева */}
-        <main className="ml-64 min-h-screen">
+        {/* Main Content - с отступом слева на десктопе, сверху на мобильных */}
+        <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0">
           {children}
         </main>
       </div>

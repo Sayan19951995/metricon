@@ -187,15 +187,15 @@ export default function OrdersPage() {
   };
 
   return (
-    <div className="p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold mb-2">Заказы</h1>
+      <div className="mb-6 lg:mb-8">
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Заказы</h1>
         <p className="text-gray-500 text-sm">Управление заказами и доставкой</p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6 lg:mb-8">
         <div
           onClick={() => setFilterStatus('all')}
           className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
@@ -263,8 +263,8 @@ export default function OrdersPage() {
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
-        <div className="flex items-center gap-4">
+      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm mb-4 sm:mb-6">
+        <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1">
             <div className="relative">
@@ -282,52 +282,85 @@ export default function OrdersPage() {
             </div>
           </div>
 
-          {/* Status Filter */}
-          <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+            {/* Status Filter */}
+            <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+              <button
+                onClick={() => setFilterStatus('all')}
+                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                  filterStatus === 'all'
+                    ? 'bg-gray-900 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Все
+              </button>
+              <button
+                onClick={() => setFilterStatus('pending')}
+                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                  filterStatus === 'pending'
+                    ? 'bg-yellow-500 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                Ожидают
+              </button>
+              <button
+                onClick={() => setFilterStatus('processing')}
+                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                  filterStatus === 'processing'
+                    ? 'bg-blue-500 text-white'
+                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
+              >
+                В обработке
+              </button>
+            </div>
+
+            {/* Add Button */}
             <button
-              onClick={() => setFilterStatus('all')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                filterStatus === 'all'
-                  ? 'bg-gray-900 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              onClick={() => router.push('/app/orders/add')}
+              className="px-4 sm:px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer whitespace-nowrap"
             >
-              Все
-            </button>
-            <button
-              onClick={() => setFilterStatus('pending')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                filterStatus === 'pending'
-                  ? 'bg-yellow-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              Ожидают
-            </button>
-            <button
-              onClick={() => setFilterStatus('processing')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                filterStatus === 'processing'
-                  ? 'bg-blue-500 text-white'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
-            >
-              В обработке
+              + Добавить
             </button>
           </div>
-
-          {/* Add Button */}
-          <button
-            onClick={() => router.push('/app/orders/add')}
-            className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
-          >
-            + Добавить заказ
-          </button>
         </div>
       </div>
 
-      {/* Orders Table */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+      {/* Orders - Mobile Cards */}
+      <div className="lg:hidden space-y-3">
+        {filteredOrders.map((order, index) => (
+          <motion.div
+            key={order.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+            className="bg-white rounded-xl p-4 shadow-sm"
+            onClick={() => setSelectedOrder(order)}
+          >
+            <div className="flex items-start justify-between mb-3">
+              <div>
+                <p className="font-semibold text-sm">{order.code}</p>
+                <p className="text-xs text-gray-500">{order.customer}</p>
+              </div>
+              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
+                {getStatusText(order.status)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center gap-3 text-gray-500">
+                <span>{order.date}</span>
+                <span>{order.items} шт.</span>
+              </div>
+              <span className="font-semibold">{order.total.toLocaleString()} ₸</span>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Orders Table - Desktop */}
+      <div className="hidden lg:block bg-white rounded-2xl shadow-sm overflow-hidden">
         <table className="w-full">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>

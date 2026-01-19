@@ -346,36 +346,36 @@ export default function HomePage() {
               </div>
               <div className="p-6 bg-gray-50">
                 {/* Mini Dashboard */}
-                <div className="grid grid-cols-4 gap-4 mb-4">
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-4">
+                  <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
                     <div className="text-xs text-gray-500 mb-1">Продажи сегодня</div>
-                    <div className="text-xl font-bold text-gray-900">₸1.2M</div>
+                    <div className="text-lg sm:text-xl font-bold text-gray-900">₸1.2M</div>
                     <div className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
                       <TrendingUp className="w-3 h-3" />+12%
                     </div>
                   </div>
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
                     <div className="text-xs text-gray-500 mb-1">Заказов</div>
-                    <div className="text-xl font-bold text-gray-900">47</div>
+                    <div className="text-lg sm:text-xl font-bold text-gray-900">47</div>
                     <div className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
                       <TrendingUp className="w-3 h-3" />+8%
                     </div>
                   </div>
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
                     <div className="text-xs text-gray-500 mb-1">Прибыль</div>
-                    <div className="text-xl font-bold text-emerald-600">₸186K</div>
+                    <div className="text-lg sm:text-xl font-bold text-emerald-600">₸186K</div>
                     <div className="text-xs text-gray-500 mt-1">15.5% маржа</div>
                   </div>
-                  <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                  <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
                     <div className="text-xs text-gray-500 mb-1">ROI рекламы</div>
-                    <div className="text-xl font-bold text-gray-900">412%</div>
+                    <div className="text-lg sm:text-xl font-bold text-gray-900">412%</div>
                     <div className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
                       <Sparkles className="w-3 h-3" />Отлично
                     </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="col-span-2 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="sm:col-span-2 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
                     <div className="flex items-center justify-between mb-4">
                       <div className="text-sm font-medium text-gray-700">Динамика продаж</div>
                       <div className="text-xs text-gray-400">Последние 14 дней</div>

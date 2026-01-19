@@ -354,38 +354,38 @@ export default function WarehousePage() {
   };
 
   return (
-    <div className="p-6">
+    <div className="p-4 sm:p-6">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Склад</h1>
           <p className="text-sm text-gray-500 mt-1">Управление остатками товаров</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
           <button
             onClick={() => setShowWarehouseModal(true)}
-            className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium text-sm flex items-center gap-2 cursor-pointer"
+            className="px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium text-sm flex items-center gap-2 cursor-pointer"
           >
             <Settings className="w-4 h-4" />
-            Управление складами
+            <span className="hidden sm:inline">Управление</span>
           </button>
           <a
             href="/app/warehouse/history"
-            className="px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium text-sm"
+            className="px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium text-sm"
           >
-            История движения
+            История
           </a>
           <button
             onClick={() => setShowCreateOrderModal(true)}
-            className="px-4 py-2.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors font-medium text-sm cursor-pointer"
+            className="px-3 sm:px-4 py-2 sm:py-2.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors font-medium text-sm cursor-pointer flex-1 sm:flex-none"
           >
-            + Создать заказ
+            + Заказ
           </button>
         </div>
       </div>
 
       {/* Warehouse Selector Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
         {/* Все склады */}
         <div
           className={`bg-white rounded-2xl p-4 shadow-sm cursor-pointer transition-all border-2 ${
