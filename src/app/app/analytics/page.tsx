@@ -851,91 +851,93 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
+          className="mb-6 lg:mb-8"
         >
-          <div className="mb-6">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Аналитика</h1>
-            <p className="text-gray-500 text-sm">Детальная статистика по вашим заказам</p>
+          <div className="mb-4 lg:mb-6">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">Аналитика</h1>
+            <p className="text-gray-500 text-xs sm:text-sm">Детальная статистика по вашим заказам</p>
           </div>
 
-          {/* Tabs */}
-          <div className="flex items-center justify-between">
-            <div className="flex gap-2">
-              <button
-                onClick={() => setActiveTab('finances')}
-                className={`px-6 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                  activeTab === 'finances'
-                    ? 'bg-emerald-500 text-white shadow-sm'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Финансы
-              </button>
-              <button
-                onClick={() => setActiveTab('sales')}
-                className={`px-6 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                  activeTab === 'sales'
-                    ? 'bg-emerald-500 text-white shadow-sm'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Заказы
-              </button>
-              <button
-                onClick={() => setActiveTab('products')}
-                className={`px-6 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                  activeTab === 'products'
-                    ? 'bg-emerald-500 text-white shadow-sm'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Товары
-              </button>
-              <button
-                onClick={() => setActiveTab('warehouse')}
-                className={`px-6 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                  activeTab === 'warehouse'
-                    ? 'bg-emerald-500 text-white shadow-sm'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Склад
-              </button>
-              <button
-                onClick={() => setActiveTab('advertising')}
-                className={`px-6 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                  activeTab === 'advertising'
-                    ? 'bg-emerald-500 text-white shadow-sm'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Реклама
-              </button>
-              <button
-                onClick={() => setActiveTab('reviews')}
-                className={`px-6 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-                  activeTab === 'reviews'
-                    ? 'bg-emerald-500 text-white shadow-sm'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-              >
-                Отзывы
-              </button>
+          {/* Tabs - horizontal scroll on mobile */}
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0 pb-2 sm:pb-0">
+              <div className="flex gap-2 min-w-max">
+                <button
+                  onClick={() => setActiveTab('finances')}
+                  className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'finances'
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Финансы
+                </button>
+                <button
+                  onClick={() => setActiveTab('sales')}
+                  className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'sales'
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Заказы
+                </button>
+                <button
+                  onClick={() => setActiveTab('products')}
+                  className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'products'
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Товары
+                </button>
+                <button
+                  onClick={() => setActiveTab('warehouse')}
+                  className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'warehouse'
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Склад
+                </button>
+                <button
+                  onClick={() => setActiveTab('advertising')}
+                  className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'advertising'
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Реклама
+                </button>
+                <button
+                  onClick={() => setActiveTab('reviews')}
+                  className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'reviews'
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  Отзывы
+                </button>
+              </div>
             </div>
 
             {/* Date Range Selector - скрыт для вкладки Отзывы */}
             {activeTab !== 'reviews' && (
-            <div className="bg-white p-4 rounded-xl shadow-sm relative" ref={calendarRef}>
-              <div className="mb-3">
+            <div className="bg-white p-3 sm:p-4 rounded-xl shadow-sm relative w-full lg:w-auto" ref={calendarRef}>
+              <div className="mb-2 sm:mb-3">
                 <button
                   onClick={() => setShowCalendar(!showCalendar)}
-                  className="w-full flex items-center gap-2 px-4 py-2 border border-gray-200 rounded-lg text-sm hover:border-emerald-500 transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-4 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm hover:border-emerald-500 transition-colors cursor-pointer"
                 >
                   <Calendar className="w-4 h-4 text-gray-500" />
                   <span className={startDate && endDate ? 'text-gray-900 font-medium' : 'text-gray-500'}>
@@ -945,28 +947,28 @@ export default function AnalyticsPage() {
               </div>
 
               {/* Quick Date Filters */}
-              <div className="flex gap-2">
+              <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1">
                 <button
                   onClick={() => handleQuickFilter('yesterday')}
-                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                  className="px-2.5 sm:px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   Вчера
                 </button>
                 <button
                   onClick={() => handleQuickFilter('week')}
-                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                  className="px-2.5 sm:px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   Неделя
                 </button>
                 <button
                   onClick={() => handleQuickFilter('month')}
-                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                  className="px-2.5 sm:px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   Месяц
                 </button>
                 <button
                   onClick={() => handleQuickFilter('year')}
-                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                  className="px-2.5 sm:px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   Год
                 </button>
@@ -992,8 +994,8 @@ export default function AnalyticsPage() {
         {activeTab === 'finances' && (
           <>
             {/* Period Info */}
-            <div className="mb-6 flex items-center gap-2 text-sm text-gray-400">
-              <Calendar className="w-4 h-4" />
+            <div className="mb-4 sm:mb-6 flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>Период: <span className="text-gray-500">{formatShortPeriod()}</span></span>
               <span className="text-gray-300">|</span>
               <span>{startDate && endDate ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 0} дн.</span>
@@ -1004,59 +1006,59 @@ export default function AnalyticsPage() {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8"
             >
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 shadow-sm">
+              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-sky-50 rounded-xl flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 text-sky-600" />
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-sky-50 rounded-xl flex items-center justify-center">
+                      <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600" />
                     </div>
-                    <span className="text-sm text-gray-600">Поступления</span>
+                    <span className="text-xs sm:text-sm text-gray-600">Поступления</span>
                   </div>
                   {/* iOS Toggle */}
                   <button
                     onClick={() => setShowRevenue(!showRevenue)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                    className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 items-center rounded-full transition-colors cursor-pointer ${
                       showRevenue ? 'bg-sky-400' : 'bg-gray-300'
                     }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        showRevenue ? 'translate-x-6' : 'translate-x-1'
+                      className={`inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform ${
+                        showRevenue ? 'translate-x-4 sm:translate-x-6' : 'translate-x-1'
                       }`}
                     />
                   </button>
                 </div>
-                <div className="text-2xl font-bold text-sky-600">{(data.totalRevenue / 1000).toFixed(0)}K ₸</div>
+                <div className="text-xl sm:text-2xl font-bold text-sky-600">{(data.totalRevenue / 1000).toFixed(0)}K ₸</div>
                 <div className="text-xs text-gray-500 mt-1">
                   <span className="bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
                 </div>
               </motion.div>
 
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 shadow-sm">
+              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-rose-50 rounded-xl flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-rose-400 rotate-180" />
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-rose-50 rounded-xl flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400 rotate-180" />
                     </div>
-                    <span className="text-sm text-gray-600">Расходы</span>
+                    <span className="text-xs sm:text-sm text-gray-600">Расходы</span>
                   </div>
                   {/* iOS Toggle */}
                   <button
                     onClick={() => setShowExpenses(!showExpenses)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                    className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 items-center rounded-full transition-colors cursor-pointer ${
                       showExpenses ? 'bg-rose-400' : 'bg-gray-300'
                     }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        showExpenses ? 'translate-x-6' : 'translate-x-1'
+                      className={`inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform ${
+                        showExpenses ? 'translate-x-4 sm:translate-x-6' : 'translate-x-1'
                       }`}
                     />
                   </button>
                 </div>
-                <div className="text-2xl font-bold text-rose-400">
+                <div className="text-xl sm:text-2xl font-bold text-rose-400">
                   {((data.totalCost + data.totalAdvertising + data.totalTax + data.totalCommissions + data.totalDelivery) / 1000).toFixed(0)}K ₸
                 </div>
                 <div className="flex items-center justify-between mt-1">
@@ -1066,7 +1068,7 @@ export default function AnalyticsPage() {
                     className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
                   >
                     <span>Детали</span>
-                    <ChevronDown className={`w-4 h-4 transition-transform ${showExpenseDetails ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform ${showExpenseDetails ? 'rotate-180' : ''}`} />
                   </button>
                 </div>
 
@@ -1106,29 +1108,29 @@ export default function AnalyticsPage() {
                 </AnimatePresence>
               </motion.div>
 
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 shadow-sm">
+              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-teal-500" />
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-teal-50 rounded-xl flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-teal-500" />
                     </div>
-                    <span className="text-sm text-gray-600">Прибыль</span>
+                    <span className="text-xs sm:text-sm text-gray-600">Прибыль</span>
                   </div>
                   {/* iOS Toggle */}
                   <button
                     onClick={() => setShowProfit(!showProfit)}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                    className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 items-center rounded-full transition-colors cursor-pointer ${
                       showProfit ? 'bg-teal-400' : 'bg-gray-300'
                     }`}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        showProfit ? 'translate-x-6' : 'translate-x-1'
+                      className={`inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform ${
+                        showProfit ? 'translate-x-4 sm:translate-x-6' : 'translate-x-1'
                       }`}
                     />
                   </button>
                 </div>
-                <div className="text-2xl font-bold text-teal-500">{(data.totalProfit / 1000).toFixed(0)}K ₸</div>
+                <div className="text-xl sm:text-2xl font-bold text-teal-500">{(data.totalProfit / 1000).toFixed(0)}K ₸</div>
                 <div className="flex items-center justify-between mt-1">
                   <span className="bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded font-medium text-xs">{formatShortPeriod()}</span>
                   <span className="text-xs text-gray-500">{profitMargin}%</span>
@@ -1141,35 +1143,35 @@ export default function AnalyticsPage() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 gap-6 mb-8"
+          className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 sm:mb-8"
         >
           {/* Money Flow Chart */}
-          <motion.div variants={itemVariants} className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center justify-between mb-6">
-              <div className="flex items-center gap-3">
-                <h3 className="text-xl font-semibold text-gray-900">Движение денег</h3>
+          <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
+              <div className="flex items-center gap-2 sm:gap-3">
+                <h3 className="text-base sm:text-xl font-semibold text-gray-900">Движение денег</h3>
                 <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
               </div>
 
               {/* Previous Period Toggle */}
               <div className="flex items-center gap-2">
-                <span className="text-sm text-gray-600">Прошлый период</span>
+                <span className="text-xs sm:text-sm text-gray-600">Прошлый период</span>
                 <button
                   onClick={() => setShowPreviousPeriod(!showPreviousPeriod)}
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors cursor-pointer ${
+                  className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 items-center rounded-full transition-colors cursor-pointer ${
                     showPreviousPeriod ? 'bg-gray-500' : 'bg-gray-300'
                   }`}
                 >
                   <span
-                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                      showPreviousPeriod ? 'translate-x-6' : 'translate-x-1'
+                    className={`inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform ${
+                      showPreviousPeriod ? 'translate-x-4 sm:translate-x-6' : 'translate-x-1'
                     }`}
                   />
                 </button>
               </div>
             </div>
 
-            <ResponsiveContainer width="100%" height={400}>
+            <ResponsiveContainer width="100%" height={280} className="sm:!h-[400px]">
               <LineChart data={combinedChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis dataKey="date" stroke="#6b7280" />
@@ -1256,19 +1258,19 @@ export default function AnalyticsPage() {
           </motion.div>
 
           {/* Детализация данных графика */}
-          <motion.div variants={itemVariants} className="bg-white rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <h3 className="text-lg font-semibold text-gray-900">Детализация по дням</h3>
+          <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
+            <div className="flex items-center gap-2 sm:gap-3 mb-4">
+              <h3 className="text-sm sm:text-lg font-semibold text-gray-900">Детализация по дням</h3>
               <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm table-fixed">
+            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
+              <table className="w-full text-xs sm:text-sm min-w-[400px]">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="py-3 px-4 font-medium text-gray-500" style={{ width: '25%', textAlign: 'left' }}>Дата</th>
-                    <th className="py-3 px-4 font-medium text-sky-600" style={{ width: '25%', textAlign: 'right' }}>Поступления</th>
-                    <th className="py-3 px-4 font-medium text-rose-400" style={{ width: '25%', textAlign: 'right' }}>Расходы</th>
-                    <th className="py-3 px-4 font-medium text-teal-500" style={{ width: '25%', textAlign: 'right' }}>Прибыль</th>
+                    <th className="py-2 sm:py-3 px-2 sm:px-4 font-medium text-gray-500 text-left">Дата</th>
+                    <th className="py-2 sm:py-3 px-2 sm:px-4 font-medium text-sky-600 text-right">Поступления</th>
+                    <th className="py-2 sm:py-3 px-2 sm:px-4 font-medium text-rose-400 text-right">Расходы</th>
+                    <th className="py-2 sm:py-3 px-2 sm:px-4 font-medium text-teal-500 text-right">Прибыль</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1283,14 +1285,14 @@ export default function AnalyticsPage() {
                           setShowTableDayPopup(true);
                         }}
                       >
-                        <td className="py-3 px-4 text-gray-900" style={{ textAlign: 'left' }}>{day.date} ({day.day})</td>
-                        <td className="py-3 px-4 text-sky-600 font-medium" style={{ textAlign: 'right' }}>
+                        <td className="py-2 sm:py-3 px-2 sm:px-4 text-gray-900 text-left whitespace-nowrap">{day.date} ({day.day})</td>
+                        <td className="py-2 sm:py-3 px-2 sm:px-4 text-sky-600 font-medium text-right whitespace-nowrap">
                           {day.revenue.toLocaleString('ru-RU')} ₸
                         </td>
-                        <td className="py-3 px-4 text-rose-400 font-medium" style={{ textAlign: 'right' }}>
+                        <td className="py-2 sm:py-3 px-2 sm:px-4 text-rose-400 font-medium text-right whitespace-nowrap">
                           {dayExpenses.toLocaleString('ru-RU')} ₸
                         </td>
-                        <td className="py-3 px-4 text-teal-500 font-medium" style={{ textAlign: 'right' }}>
+                        <td className="py-2 sm:py-3 px-2 sm:px-4 text-teal-500 font-medium text-right whitespace-nowrap">
                           {day.profit.toLocaleString('ru-RU')} ₸
                         </td>
                       </tr>
@@ -1302,14 +1304,14 @@ export default function AnalyticsPage() {
                     className="bg-gray-50 font-semibold hover:bg-gray-100 cursor-pointer transition-colors"
                     onClick={() => setShowTotalPopup(true)}
                   >
-                    <td className="py-3 px-4 text-gray-900" style={{ textAlign: 'left' }}>Итого</td>
-                    <td className="py-3 px-4 text-sky-600" style={{ textAlign: 'right' }}>
+                    <td className="py-2 sm:py-3 px-2 sm:px-4 text-gray-900 text-left">Итого</td>
+                    <td className="py-2 sm:py-3 px-2 sm:px-4 text-sky-600 text-right whitespace-nowrap">
                       {data.totalRevenue.toLocaleString('ru-RU')} ₸
                     </td>
-                    <td className="py-3 px-4 text-rose-400" style={{ textAlign: 'right' }}>
+                    <td className="py-2 sm:py-3 px-2 sm:px-4 text-rose-400 text-right whitespace-nowrap">
                       {(data.totalCost + data.totalAdvertising + data.totalCommissions + data.totalTax + data.totalDelivery).toLocaleString('ru-RU')} ₸
                     </td>
-                    <td className="py-3 px-4 text-teal-500" style={{ textAlign: 'right' }}>
+                    <td className="py-2 sm:py-3 px-2 sm:px-4 text-teal-500 text-right whitespace-nowrap">
                       {data.totalProfit.toLocaleString('ru-RU')} ₸
                     </td>
                   </tr>
@@ -1325,8 +1327,8 @@ export default function AnalyticsPage() {
         {activeTab === 'sales' && (
           <>
             {/* Period Info */}
-            <div className="mb-6 flex items-center gap-2 text-sm text-gray-400">
-              <Calendar className="w-4 h-4" />
+            <div className="mb-4 sm:mb-6 flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>Период: <span className="text-gray-500">{formatShortPeriod()}</span></span>
               <span className="text-gray-300">|</span>
               <span>{data.totalOrders} заказов</span>
@@ -1337,42 +1339,42 @@ export default function AnalyticsPage() {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8"
+              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8"
             >
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-                    <ShoppingBag className="w-5 h-5 text-emerald-600" />
+              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                    <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                   </div>
-                  <span className="text-sm text-gray-600">Всего заказов</span>
+                  <span className="text-xs sm:text-sm text-gray-600">Всего заказов</span>
                 </div>
-                <div className="text-2xl font-bold text-gray-900">{data.totalOrders}</div>
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">{data.totalOrders}</div>
                 <div className="text-xs mt-1">
                   <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
                 </div>
               </motion.div>
 
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <Calculator className="w-5 h-5 text-purple-600" />
+              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+                    <Calculator className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                   </div>
-                  <span className="text-sm text-gray-600">Средний чек</span>
+                  <span className="text-xs sm:text-sm text-gray-600">Средний чек</span>
                 </div>
-                <div className="text-2xl font-bold text-gray-900">{(data.avgOrderValue / 1000).toFixed(0)}K ₸</div>
+                <div className="text-xl sm:text-2xl font-bold text-gray-900">{(data.avgOrderValue / 1000).toFixed(0)}K ₸</div>
                 <div className="text-xs mt-1">
                   <span className="bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
                 </div>
               </motion.div>
 
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-blue-600" />
+              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
+                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-xl flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   </div>
-                  <span className="text-sm text-gray-600">Конверсия</span>
+                  <span className="text-xs sm:text-sm text-gray-600">Конверсия</span>
                 </div>
-                <div className="text-2xl font-bold text-blue-600">58%</div>
+                <div className="text-xl sm:text-2xl font-bold text-blue-600">58%</div>
                 <div className="text-xs mt-1">
                   <span className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
                 </div>
@@ -1384,14 +1386,14 @@ export default function AnalyticsPage() {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="mb-8"
+              className="mb-6 sm:mb-8"
             >
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-6">
-                  <h3 className="text-xl font-semibold text-gray-900">Количество заказов</h3>
+              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
+                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
+                  <h3 className="text-base sm:text-xl font-semibold text-gray-900">Количество заказов</h3>
                   <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
                 </div>
-                <ResponsiveContainer width="100%" height={300}>
+                <ResponsiveContainer width="100%" height={240} className="sm:!h-[300px]">
                   <BarChart data={data.dailyData}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                     <XAxis dataKey="date" stroke="#6b7280" />
@@ -1423,15 +1425,15 @@ export default function AnalyticsPage() {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+              className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"
             >
               {/* Sales Sources Distribution */}
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <h3 className="text-xl font-semibold text-gray-900">Источники продаж</h3>
+              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
+                <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                  <h3 className="text-base sm:text-xl font-semibold text-gray-900">Источники продаж</h3>
                   <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
                 </div>
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height={180} className="sm:!h-[200px]">
                   <PieChart>
                     <Pie
                       data={salesSourcesData}
@@ -1504,12 +1506,12 @@ export default function AnalyticsPage() {
               </motion.div>
 
               {/* Delivery Mode */}
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-6 shadow-sm">
-                <div className="flex items-center gap-3 mb-4">
-                  <h3 className="text-xl font-semibold text-gray-900">Способы доставки</h3>
+              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
+                <div className="flex items-center gap-2 sm:gap-3 mb-4">
+                  <h3 className="text-base sm:text-xl font-semibold text-gray-900">Способы доставки</h3>
                   <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
                 </div>
-                <ResponsiveContainer width="100%" height={200}>
+                <ResponsiveContainer width="100%" height={180} className="sm:!h-[200px]">
                   <PieChart>
                     <Pie
                       data={deliveryData}
