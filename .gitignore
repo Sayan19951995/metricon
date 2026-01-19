@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/lib/generated/prisma
+
+# Kaspi automation
+/sessions/*.json
+kaspi-*.png
+*.session.json
+
+# Temp files
+tmpclaude-*
+nul

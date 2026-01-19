@@ -1,0 +1,6430 @@
+PS C:\Users\roboh> cd myproject
+PS C:\Users\roboh\myproject> npm run dev
+
+> myproject@0.1.0 dev
+> next dev
+
+▲ Next.js 16.1.1 (Turbopack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.1.201:3000
+- Environments: .env
+
+✓ Starting...
+✓ Ready in 1005ms
+ GET /dashboard 200 in 638ms (compile: 386ms, render: 252ms)
+ GET /dashboard/orders/769797728 200 in 1591ms (compile: 1441ms, render: 149ms)
+Fetching orders from Kaspi...
+=== Kaspi API Order Structure ===
+Full first order: {
+  "id": "NzY3MDY2NTE4",
+  "type": "orders",
+  "attributes": {
+    "code": "767066518",
+    "creationDate": 1766748310862,
+    "totalPrice": 119700,
+    "deliveryCostForSeller": 4031,
+    "isKaspiDelivery": true,
+    "preOrder": false,
+    "approvedByBankDate": 1766748318185,
+    "signatureRequired": false,
+    "status": "COMPLETED",
+    "pickupPointId": "4929016_PP1",
+    "state": "ARCHIVE",
+    "deliveryCost": 0,
+    "customer": {
+      "id": "NzA3ODQ4NzQyMg",
+      "name": "Рустем",
+      "cellPhone": "7078487422",
+      "firstName": "Рустем",
+      "lastName": "Н"
+    },
+    "deliveryAddress": {
+      "streetName": "улица Кажымукана",
+      "streetNumber": "152",
+      "town": "Косшы",
+      "district": null,
+      "building": null,
+      "apartment": null,
+      "formattedAddress": "Косшы, улица Кажымукана, 152",
+      "latitude": 50.9476616734907,
+      "longitude": 71.36075575584096
+    },
+    "originAddress": {
+      "id": "NDkyOTAxNl9QUDE",
+      "displayName": "PP1",
+      "address": {
+        "streetName": " улица Полины Осипенко",
+        "streetNumber": " 35А",
+        "town": "г. Алматы",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "г. Алматы,  улица Полины Осипенко,  35А",
+        "latitude": 43.343772888183594,
+        "longitude": 76.9404067993164
+      },
+      "city": {
+        "id": "NzUwMDAwMDAw",
+        "code": "750000000",
+        "name": "Алматы",
+        "active": true
+      }
+    },
+    "kaspiDelivery": {
+      "waybill": "https://kaspi.kz/shop/api/waybill/X3Jacl9aQUZNaEEtVVpydUlyM2o5dy4ucm03RFhYNTNvNElJWTBSWHFhWTJ0dy4u",
+      "courierTransmissionDate": 1766833754000,
+      "courierTransmissionPlanningDate": 1766833754000,
+      "waybillNumber": "334426721",
+      "express": false,
+      "returnedToWarehouse": false,
+      "firstMileCourier": null
+    },
+    "assembled": true,
+    "creditTerm": 24,
+    "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+    "paymentMode": "PAY_WITH_CREDIT"
+  },
+  "relationships": {
+    "entries": {
+      "data": [
+        {
+          "id": "NzY3MDY2NTE4IyMw",
+          "type": "orderentries"
+        }
+      ],
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orders/NzY3MDY2NTE4/relationships/entries",
+        "related": "https://kaspi.kz/shop/api/v2/orders/NzY3MDY2NTE4/entries"
+      }
+    },
+    "user": {
+      "data": {
+        "id": "NzA3ODQ4NzQyMg",
+        "type": "customers"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orders/NzY3MDY2NTE4/relationships/user",
+        "related": "https://kaspi.kz/shop/api/v2/orders/NzY3MDY2NTE4/user"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orders/NzY3MDY2NTE4"
+  }
+}
+Available attributes: [
+  'code',               'creationDate',
+  'totalPrice',         'deliveryCostForSeller',
+  'isKaspiDelivery',    'preOrder',
+  'approvedByBankDate', 'signatureRequired',
+  'status',             'pickupPointId',
+  'state',              'deliveryCost',
+  'customer',           'deliveryAddress',
+  'originAddress',      'kaspiDelivery',
+  'assembled',          'creditTerm',
+  'deliveryMode',       'paymentMode'
+]
+=================================
+Fetched 100 orders
+Loading entries for order 767066518...
+Loading entries for order 767927373...
+Loading entries for order 766051259...
+Loading entries for order 770145541...
+Loading entries for order 770398071...
+Loading entries for order 771013673...
+Loading entries for order 764898671...
+Loading entries for order 769304934...
+Loading entries for order 766658677...
+Loading entries for order 768999739...
+Loading entries for order 767640345...
+Loading entries for order 770209106...
+Loading entries for order 770217960...
+Loading entries for order 770263325...
+Loading entries for order 769797728...
+Loading entries for order 765924553...
+Loading entries for order 771308619...
+Loading entries for order 771398446...
+Loading entries for order 771523920...
+Loading entries for order 768186353...
+Loading entries for order 768302006...
+Loading entries for order 766909726...
+Loading entries for order 771721268...
+Loading entries for order 772031105...
+Loading entries for order 769309536...
+Loading entries for order 769035838...
+Loading entries for order 768026513...
+Loading entries for order 772251223...
+Loading entries for order 771771111...
+Loading entries for order 768237232...
+Loading entries for order 768259222...
+Loading entries for order 769608687...
+Loading entries for order 773147201...
+Loading entries for order 769380183...
+Loading entries for order 773481259...
+Loading entries for order 770483797...
+Loading entries for order 770622416...
+Loading entries for order 770300644...
+Loading entries for order 772605431...
+Loading entries for order 772237122...
+Loading entries for order 773961562...
+Loading entries for order 774287278...
+Loading entries for order 772227671...
+Loading entries for order 774360625...
+Loading entries for order 772805942...
+Loading entries for order 770905862...
+Loading entries for order 775511439...
+Loading entries for order 774286849...
+Loading entries for order 772648268...
+Loading entries for order 770384831...
+Loading entries for order 769391158...
+Loading entries for order 770397641...
+Loading entries for order 774687055...
+Loading entries for order 771961180...
+Loading entries for order 771998671...
+Loading entries for order 768955833...
+Loading entries for order 771989437...
+Loading entries for order 775996870...
+Loading entries for order 772777061...
+Loading entries for order 773957553...
+Loading entries for order 773904554...
+Loading entries for order 772843960...
+Loading entries for order 778391312...
+Loading entries for order 777426579...
+Loading entries for order 773443008...
+Loading entries for order 777952764...
+Loading entries for order 778099647...
+Loading entries for order 778802114...
+Loading entries for order 779514818...
+Loading entries for order 778594802...
+Loading entries for order 774923742...
+Loading entries for order 779109095...
+Loading entries for order 776935260...
+Loading entries for order 777196449...
+Loading entries for order 777779945...
+Loading entries for order 774494934...
+Loading entries for order 779960295...
+Loading entries for order 775355524...
+Loading entries for order 779836053...
+Loading entries for order 771833109...
+Loading entries for order 780250115...
+Loading entries for order 778398803...
+Loading entries for order 780822717...
+Loading entries for order 779575413...
+Loading entries for order 780857901...
+Loading entries for order 777061017...
+Loading entries for order 781008089...
+Loading entries for order 774932937...
+Loading entries for order 781208612...
+Loading entries for order 777068711...
+Loading entries for order 779526107...
+Loading entries for order 781730958...
+Loading entries for order 780637520...
+Loading entries for order 781778755...
+Loading entries for order 781737808...
+Loading entries for order 781893535...
+Loading entries for order 778927689...
+Loading entries for order 782028492...
+Loading entries for order 779916062...
+Loading entries for order 774588181...
+=== Entries for order NzY3MDY2NTE4 ===
+First entry: {
+  "id": "NzY3MDY2NTE4IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 119700,
+    "totalPrice": 119700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Luxkerwhite",
+      "name": "Luxstone Luma растущий комплект, 85x60x120 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTEzODk0OTU2",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY3MDY2NTE4IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY3MDY2NTE4IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY3MDY2NTE4IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY3MDY2NTE4IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY3MDY2NTE4IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 767066518
+=== Entries for order NzY2MDUxMjU5 ===
+First entry: {
+  "id": "NzY2MDUxMjU5IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 1000,
+    "basePrice": 249700,
+    "totalPrice": 249700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "157063584",
+      "name": "Цифровое пианино Luxstone Lapiano"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM0Nzc4OTY4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY2MDUxMjU5IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY2MDUxMjU5IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY2MDUxMjU5IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY2MDUxMjU5IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY2MDUxMjU5IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 766051259
+=== Entries for order NzY3OTI3Mzcz ===
+First entry: {
+  "id": "NzY3OTI3MzczIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY3OTI3MzczIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY3OTI3MzczIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY3OTI3MzczIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY3OTI3MzczIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY3OTI3MzczIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 767927373
+=== Entries for order NzcwMzk4MDcx ===
+First entry: {
+  "id": "NzcwMzk4MDcxIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzk4MDcxIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzk4MDcxIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzk4MDcxIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzk4MDcxIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzk4MDcxIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 770398071
+=== Entries for order NzcxMDEzNjcz ===
+First entry: {
+  "id": "NzcxMDEzNjczIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 995,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 159000,
+    "totalPrice": 159000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi 1000",
+      "name": "Проектор Luxstone Lumi 1000"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4NDg1MDQx",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxMDEzNjczIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxMDEzNjczIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxMDEzNjczIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxMDEzNjczIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxMDEzNjczIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 771013673
+=== Entries for order NzY5MzA0OTM0 ===
+First entry: {
+  "id": "NzY5MzA0OTM0IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzA0OTM0IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzA0OTM0IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzA0OTM0IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzA0OTM0IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzA0OTM0IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 769304934
+=== Entries for order NzY2NjU4Njc3 ===
+First entry: {
+  "id": "NzY2NjU4Njc3IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 159000,
+    "totalPrice": 159000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi 1000",
+      "name": "Проектор Luxstone Lumi 1000"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4NDg1MDQx",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY2NjU4Njc3IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY2NjU4Njc3IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY2NjU4Njc3IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY2NjU4Njc3IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY2NjU4Njc3IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 766658677
+=== Entries for order NzcwMjA5MTA2 ===
+First entry: {
+  "id": "NzcwMjA5MTA2IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 79000,
+    "totalPrice": 79000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Parta stul",
+      "name": "Luxstone 104163223 растущий комплект, 79x53x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MTYzMjIz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMjA5MTA2IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMjA5MTA2IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMjA5MTA2IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMjA5MTA2IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMjA5MTA2IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 770209106
+=== Entries for order NzY4OTk5NzM5 ===
+First entry: {
+  "id": "NzY4OTk5NzM5IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 159000,
+    "totalPrice": 159000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi 1000",
+      "name": "Проектор Luxstone Lumi 1000"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4NDg1MDQx",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4OTk5NzM5IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY4OTk5NzM5IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4OTk5NzM5IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY4OTk5NzM5IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4OTk5NzM5IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 768999739
+=== Entries for order NzY5Nzk3NzI4 ===
+First entry: {
+  "id": "NzY5Nzk3NzI4IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9300,
+    "basePrice": 38200,
+    "totalPrice": 38200,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxstonebel",
+      "name": "Растущий стульчик Luxstone luni, МДФ, металл, 47x52x84 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA1MDgxOTI3",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5Nzk3NzI4IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY5Nzk3NzI4IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5Nzk3NzI4IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY5Nzk3NzI4IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5Nzk3NzI4IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 769797728
+=== Entries for order NzcxMzA4NjE5 ===
+First entry: {
+  "id": "NzcxMzA4NjE5IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 159000,
+    "totalPrice": 159000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi 1000",
+      "name": "Проектор Luxstone Lumi 1000"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4NDg1MDQx",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxMzA4NjE5IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxMzA4NjE5IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxMzA4NjE5IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxMzA4NjE5IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxMzA4NjE5IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 771308619
+=== Entries for order NzcwMjE3OTYw ===
+First entry: {
+  "id": "NzcwMjE3OTYwIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 48000,
+    "totalPrice": 48000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Myata",
+      "name": "Растущий стульчик Luxstone Luxpod, МДФ, металл, текстиль, 46x50x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA4MDIzMDA0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMjE3OTYwIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMjE3OTYwIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMjE3OTYwIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMjE3OTYwIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMjE3OTYwIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 770217960
+=== Entries for order NzcxMzk4NDQ2 ===
+First entry: {
+  "id": "NzcxMzk4NDQ2IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 995,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 57800,
+    "totalPrice": 57800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi Pro",
+      "name": "Проектор для дома"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4OTY4ODA0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxMzk4NDQ2IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxMzk4NDQ2IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxMzk4NDQ2IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxMzk4NDQ2IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxMzk4NDQ2IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 771398446
+=== Entries for order NzY1OTI0NTUz ===
+First entry: {
+  "id": "NzY1OTI0NTUzIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY1OTI0NTUzIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY1OTI0NTUzIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY1OTI0NTUzIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY1OTI0NTUzIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY1OTI0NTUzIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 765924553
+=== Entries for order NzcwMjYzMzI1 ===
+First entry: {
+  "id": "NzcwMjYzMzI1IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 79000,
+    "totalPrice": 79000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Parta stul",
+      "name": "Luxstone 104163223 растущий комплект, 79x53x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MTYzMjIz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMjYzMzI1IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMjYzMzI1IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMjYzMzI1IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMjYzMzI1IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMjYzMzI1IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 770263325
+=== Entries for order NzcxNTIzOTIw ===
+First entry: {
+  "id": "NzcxNTIzOTIwIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxNTIzOTIwIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxNTIzOTIwIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxNTIzOTIwIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxNTIzOTIwIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxNTIzOTIwIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 771523920
+=== Entries for order NzY2OTA5NzI2 ===
+First entry: {
+  "id": "NzY2OTA5NzI2IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 1000,
+    "basePrice": 249700,
+    "totalPrice": 249700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "157063584",
+      "name": "Цифровое пианино Luxstone Lapiano"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM0Nzc4OTY4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY2OTA5NzI2IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY2OTA5NzI2IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY2OTA5NzI2IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY2OTA5NzI2IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY2OTA5NzI2IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 766909726
+=== Entries for order NzcyMjUxMjIz ===
+First entry: {
+  "id": "NzcyMjUxMjIzIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMjUxMjIzIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMjUxMjIzIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMjUxMjIzIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMjUxMjIzIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMjUxMjIzIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 772251223
+=== Entries for order NzY4MzAyMDA2 ===
+First entry: {
+  "id": "NzY4MzAyMDA2IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 1000,
+    "basePrice": 249700,
+    "totalPrice": 249700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "157063584",
+      "name": "Цифровое пианино Luxstone Lapiano"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM0Nzc4OTY4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MzAyMDA2IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MzAyMDA2IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MzAyMDA2IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MzAyMDA2IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MzAyMDA2IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 768302006
+=== Entries for order NzY5MDM1ODM4 ===
+First entry: {
+  "id": "NzY5MDM1ODM4IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 38000,
+    "totalPrice": 38000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxivorychair",
+      "name": "Luxstone Luxivorychair, МДФ, 47x52x84, бежевый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTEzOTM1NTM0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MDM1ODM4IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MDM1ODM4IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MDM1ODM4IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MDM1ODM4IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MDM1ODM4IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 769035838
+=== Entries for order NzY4MjU5MjIy ===
+First entry: {
+  "id": "NzY4MjU5MjIyIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 79000,
+    "totalPrice": 79000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Parta stul",
+      "name": "Luxstone 104163223 растущий комплект, 79x53x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MTYzMjIz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MjU5MjIyIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MjU5MjIyIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MjU5MjIyIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MjU5MjIyIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MjU5MjIyIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 768259222
+=== Entries for order NzcyMDMxMTA1 ===
+First entry: {
+  "id": "NzcyMDMxMTA1IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 249700,
+    "totalPrice": 249700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "157063584",
+      "name": "Цифровое пианино Luxstone Lapiano"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM0Nzc4OTY4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMDMxMTA1IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMDMxMTA1IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMDMxMTA1IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMDMxMTA1IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMDMxMTA1IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 772031105
+=== Entries for order NzY4MDI2NTEz ===
+First entry: {
+  "id": "NzY4MDI2NTEzIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 38000,
+    "totalPrice": 38000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxivorychair",
+      "name": "Luxstone Luxivorychair, МДФ, 47x52x84, бежевый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTEzOTM1NTM0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MDI2NTEzIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MDI2NTEzIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MDI2NTEzIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MDI2NTEzIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MDI2NTEzIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 768026513
+=== Entries for order NzcxNzIxMjY4 ===
+First entry: {
+  "id": "NzcxNzIxMjY4IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 995,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 57800,
+    "totalPrice": 57800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi Pro",
+      "name": "Проектор для дома"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4OTY4ODA0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxNzIxMjY4IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxNzIxMjY4IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxNzIxMjY4IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxNzIxMjY4IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxNzIxMjY4IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 771721268
+=== Entries for order NzY4MTg2MzUz ===
+First entry: {
+  "id": "NzY4MTg2MzUzIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 48000,
+    "totalPrice": 48000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Myata",
+      "name": "Растущий стульчик Luxstone Luxpod, МДФ, металл, текстиль, 46x50x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA4MDIzMDA0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MTg2MzUzIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MTg2MzUzIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MTg2MzUzIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MTg2MzUzIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MTg2MzUzIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 768186353
+=== Entries for order NzcwNjIyNDE2 ===
+First entry: {
+  "id": "NzcwNjIyNDE2IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 64500,
+    "totalPrice": 64500,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "graykid",
+      "name": "Растущий стул со столиком"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4MzcxMzU4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwNjIyNDE2IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwNjIyNDE2IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwNjIyNDE2IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwNjIyNDE2IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwNjIyNDE2IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 770622416
+=== Entries for order NzY4MjM3MjMy ===
+First entry: {
+  "id": "NzY4MjM3MjMyIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 159000,
+    "totalPrice": 159000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi 1000",
+      "name": "Проектор Luxstone Lumi 1000"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4NDg1MDQx",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MjM3MjMyIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MjM3MjMyIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MjM3MjMyIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MjM3MjMyIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4MjM3MjMyIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 768237232
+=== Entries for order NzczMTQ3MjAx ===
+First entry: {
+  "id": "NzczMTQ3MjAxIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 995,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczMTQ3MjAxIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzczMTQ3MjAxIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczMTQ3MjAxIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzczMTQ3MjAxIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczMTQ3MjAxIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 773147201
+=== Entries for order NzcyNjA1NDMx ===
+First entry: {
+  "id": "NzcyNjA1NDMxIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyNjA1NDMxIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyNjA1NDMxIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyNjA1NDMxIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyNjA1NDMxIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyNjA1NDMxIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 772605431
+=== Entries for order Nzc0Mjg3Mjc4 ===
+First entry: {
+  "id": "Nzc0Mjg3Mjc4IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9300,
+    "basePrice": 38200,
+    "totalPrice": 38200,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxstonebel",
+      "name": "Растущий стульчик Luxstone luni, МДФ, металл, 47x52x84 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA1MDgxOTI3",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0Mjg3Mjc4IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0Mjg3Mjc4IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0Mjg3Mjc4IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0Mjg3Mjc4IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0Mjg3Mjc4IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 774287278
+=== Entries for order NzcwOTA1ODYy ===
+First entry: {
+  "id": "NzcwOTA1ODYyIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 57800,
+    "totalPrice": 57800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi Pro",
+      "name": "Проектор для дома"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4OTY4ODA0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwOTA1ODYyIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwOTA1ODYyIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwOTA1ODYyIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwOTA1ODYyIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwOTA1ODYyIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 770905862
+=== Entries for order NzczNDgxMjU5 ===
+First entry: {
+  "id": "NzczNDgxMjU5IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczNDgxMjU5IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzczNDgxMjU5IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczNDgxMjU5IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzczNDgxMjU5IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczNDgxMjU5IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 773481259
+=== Entries for order NzcxNzcxMTEx ===
+First entry: {
+  "id": "NzcxNzcxMTExIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 79000,
+    "totalPrice": 79000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Parta stul",
+      "name": "Luxstone 104163223 растущий комплект, 79x53x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MTYzMjIz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxNzcxMTExIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxNzcxMTExIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxNzcxMTExIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxNzcxMTExIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxNzcxMTExIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 771771111
+=== Entries for order NzcwMzAwNjQ0 ===
+First entry: {
+  "id": "NzcwMzAwNjQ0IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 38200,
+    "totalPrice": 38200,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxstone stul",
+      "name": "Растущий стульчик Luxstone lxe, МДФ, 46x50x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MDYwMTI3",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzAwNjQ0IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzAwNjQ0IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzAwNjQ0IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzAwNjQ0IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzAwNjQ0IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 770300644
+=== Entries for order NzY5MzgwMTgz ===
+First entry: {
+  "id": "NzY5MzgwMTgzIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 79000,
+    "totalPrice": 79000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Parta stul",
+      "name": "Luxstone 104163223 растущий комплект, 79x53x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MTYzMjIz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzgwMTgzIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzgwMTgzIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzgwMTgzIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzgwMTgzIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzgwMTgzIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 769380183
+=== Entries for order NzcyMjM3MTIy ===
+First entry: {
+  "id": "NzcyMjM3MTIyIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMjM3MTIyIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMjM3MTIyIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMjM3MTIyIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMjM3MTIyIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMjM3MTIyIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 772237122
+=== Entries for order Nzc0MzYwNjI1 ===
+First entry: {
+  "id": "Nzc0MzYwNjI1IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 995,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0MzYwNjI1IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0MzYwNjI1IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0MzYwNjI1IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0MzYwNjI1IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0MzYwNjI1IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 774360625
+=== Entries for order NzcyODA1OTQy ===
+First entry: {
+  "id": "NzcyODA1OTQyIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 119700,
+    "totalPrice": 119700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Luxkerwhite",
+      "name": "Luxstone Luma растущий комплект, 85x60x120 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTEzODk0OTU2",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyODA1OTQyIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyODA1OTQyIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyODA1OTQyIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyODA1OTQyIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyODA1OTQyIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 772805942
+=== Entries for order Nzc0Mjg2ODQ5 ===
+First entry: {
+  "id": "Nzc0Mjg2ODQ5IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 38200,
+    "totalPrice": 38200,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxstone stul",
+      "name": "Растущий стульчик Luxstone lxe, МДФ, 46x50x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MDYwMTI3",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0Mjg2ODQ5IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0Mjg2ODQ5IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0Mjg2ODQ5IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0Mjg2ODQ5IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0Mjg2ODQ5IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 774286849
+=== Entries for order NzcwMzk3NjQx ===
+First entry: {
+  "id": "NzcwMzk3NjQxIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzk3NjQxIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzk3NjQxIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzk3NjQxIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzk3NjQxIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzk3NjQxIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 770397641
+=== Entries for order NzY5MzkxMTU4 ===
+First entry: {
+  "id": "NzY5MzkxMTU4IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 56800,
+    "totalPrice": 56800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Luxstone Parta",
+      "name": "Luxstone 854 растущая парта, 79x52x83 см, МДФ, металл, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA3OTIzNzE3",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzkxMTU4IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzkxMTU4IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzkxMTU4IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzkxMTU4IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzkxMTU4IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 769391158
+=== Entries for order NzcyMjI3Njcx ===
+First entry: {
+  "id": "NzcyMjI3NjcxIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 159000,
+    "totalPrice": 159000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi 1000",
+      "name": "Проектор Luxstone Lumi 1000"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4NDg1MDQx",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMjI3NjcxIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMjI3NjcxIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMjI3NjcxIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMjI3NjcxIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyMjI3NjcxIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 772227671
+=== Entries for order Nzc1NTExNDM5 ===
+First entry: {
+  "id": "Nzc1NTExNDM5IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc1NTExNDM5IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc1NTExNDM5IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc1NTExNDM5IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc1NTExNDM5IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc1NTExNDM5IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 775511439
+=== Entries for order NzcwMzg0ODMx ===
+First entry: {
+  "id": "NzcwMzg0ODMxIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 94350,
+    "totalPrice": 94350,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Lumafaneranabor",
+      "name": "Luxstone Lumawood растущая парта, 85x60x120 см, бежевый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTIyMDI2MDMw",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzg0ODMxIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzg0ODMxIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzg0ODMxIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzg0ODMxIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMzg0ODMxIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 770384831
+=== Entries for order NzcyNjQ4MjY4 ===
+First entry: {
+  "id": "NzcyNjQ4MjY4IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 64500,
+    "totalPrice": 64500,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxstone06",
+      "name": "Растущий стульчик Luxstone 06, МДФ, металл, пластик, 46x50x83, белый-зеленый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA4MjUyMTk4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyNjQ4MjY4IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyNjQ4MjY4IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyNjQ4MjY4IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyNjQ4MjY4IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyNjQ4MjY4IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 772648268
+=== Entries for order NzcxOTk4Njcx ===
+First entry: {
+  "id": "NzcxOTk4NjcxIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 1000,
+    "basePrice": 249700,
+    "totalPrice": 249700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "157063584",
+      "name": "Цифровое пианино Luxstone Lapiano"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM0Nzc4OTY4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxOTk4NjcxIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxOTk4NjcxIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxOTk4NjcxIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxOTk4NjcxIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxOTk4NjcxIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 771998671
+=== Entries for order NzcyNzc3MDYx ===
+First entry: {
+  "id": "NzcyNzc3MDYxIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 38200,
+    "totalPrice": 38200,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxstone stul",
+      "name": "Растущий стульчик Luxstone lxe, МДФ, 46x50x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MDYwMTI3",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyNzc3MDYxIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyNzc3MDYxIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyNzc3MDYxIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyNzc3MDYxIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyNzc3MDYxIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 772777061
+=== Entries for order NzcxOTYxMTgw ===
+First entry: {
+  "id": "NzcxOTYxMTgwIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxOTYxMTgwIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxOTYxMTgwIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxOTYxMTgwIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxOTYxMTgwIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxOTYxMTgwIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 771961180
+=== Entries for order NzY4OTU1ODMz ===
+First entry: {
+  "id": "NzY4OTU1ODMzIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 79000,
+    "totalPrice": 79000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Parta stul",
+      "name": "Luxstone 104163223 растущий комплект, 79x53x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MTYzMjIz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4OTU1ODMzIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY4OTU1ODMzIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4OTU1ODMzIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY4OTU1ODMzIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY4OTU1ODMzIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 768955833
+=== Entries for order NzczOTU3NTUz ===
+First entry: {
+  "id": "NzczOTU3NTUzIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 38200,
+    "totalPrice": 38200,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxstone stul",
+      "name": "Растущий стульчик Luxstone lxe, МДФ, 46x50x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MDYwMTI3",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczOTU3NTUzIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzczOTU3NTUzIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczOTU3NTUzIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzczOTU3NTUzIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczOTU3NTUzIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 773957553
+=== Entries for order Nzc0Njg3MDU1 ===
+First entry: {
+  "id": "Nzc0Njg3MDU1IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 159000,
+    "totalPrice": 159000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi 1000",
+      "name": "Проектор Luxstone Lumi 1000"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4NDg1MDQx",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0Njg3MDU1IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0Njg3MDU1IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0Njg3MDU1IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0Njg3MDU1IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0Njg3MDU1IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 774687055
+=== Entries for order NzcxOTg5NDM3 ===
+First entry: {
+  "id": "NzcxOTg5NDM3IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 1000,
+    "basePrice": 249700,
+    "totalPrice": 249700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "157063584",
+      "name": "Цифровое пианино Luxstone Lapiano"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM0Nzc4OTY4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxOTg5NDM3IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxOTg5NDM3IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxOTg5NDM3IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxOTg5NDM3IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxOTg5NDM3IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 771989437
+=== Entries for order NzczOTA0NTU0 ===
+First entry: {
+  "id": "NzczOTA0NTU0IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 57800,
+    "totalPrice": 57800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi Pro",
+      "name": "Проектор для дома"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4OTY4ODA0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczOTA0NTU0IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzczOTA0NTU0IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczOTA0NTU0IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzczOTA0NTU0IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczOTA0NTU0IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 773904554
+=== Entries for order Nzc1OTk2ODcw ===
+First entry: {
+  "id": "Nzc1OTk2ODcwIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 38200,
+    "totalPrice": 38200,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxstone stul",
+      "name": "Растущий стульчик Luxstone lxe, МДФ, 46x50x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MDYwMTI3",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc1OTk2ODcwIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc1OTk2ODcwIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc1OTk2ODcwIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc1OTk2ODcwIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc1OTk2ODcwIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 775996870
+=== Entries for order NzcyODQzOTYw ===
+First entry: {
+  "id": "NzcyODQzOTYwIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyODQzOTYwIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyODQzOTYwIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyODQzOTYwIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcyODQzOTYwIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcyODQzOTYwIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 772843960
+=== Entries for order Nzc0OTIzNzQy ===
+First entry: {
+  "id": "Nzc0OTIzNzQyIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 38200,
+    "totalPrice": 38200,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxstone stul",
+      "name": "Растущий стульчик Luxstone lxe, МДФ, 46x50x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MDYwMTI3",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0OTIzNzQyIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0OTIzNzQyIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0OTIzNzQyIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0OTIzNzQyIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0OTIzNzQyIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 774923742
+=== Entries for order Nzc4MDk5NjQ3 ===
+First entry: {
+  "id": "Nzc4MDk5NjQ3IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 995,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 57800,
+    "totalPrice": 57800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi Pro",
+      "name": "Проектор для дома"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4OTY4ODA0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4MDk5NjQ3IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4MDk5NjQ3IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4MDk5NjQ3IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4MDk5NjQ3IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4MDk5NjQ3IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 778099647
+=== Entries for order Nzc5NTE0ODE4 ===
+First entry: {
+  "id": "Nzc5NTE0ODE4IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 1000,
+    "basePrice": 249700,
+    "totalPrice": 249700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "157063584",
+      "name": "Цифровое пианино Luxstone Lapiano"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM0Nzc4OTY4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5NTE0ODE4IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5NTE0ODE4IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5NTE0ODE4IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5NTE0ODE4IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5NTE0ODE4IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 779514818
+=== Entries for order Nzc0NDk0OTM0 ===
+First entry: {
+  "id": "Nzc0NDk0OTM0IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 38000,
+    "totalPrice": 38000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxivorychair",
+      "name": "Luxstone Luxivorychair, МДФ, 47x52x84, бежевый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTEzOTM1NTM0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0NDk0OTM0IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0NDk0OTM0IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0NDk0OTM0IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0NDk0OTM0IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0NDk0OTM0IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 774494934
+=== Entries for order NzczNDQzMDA4 ===
+First entry: {
+  "id": "NzczNDQzMDA4IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczNDQzMDA4IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzczNDQzMDA4IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczNDQzMDA4IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzczNDQzMDA4IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczNDQzMDA4IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 773443008
+=== Entries for order Nzc4MzkxMzEy ===
+First entry: {
+  "id": "Nzc4MzkxMzEyIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9300,
+    "basePrice": 38200,
+    "totalPrice": 38200,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxstonebel",
+      "name": "Растущий стульчик Luxstone luni, МДФ, металл, 47x52x84 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA1MDgxOTI3",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4MzkxMzEyIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4MzkxMzEyIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4MzkxMzEyIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4MzkxMzEyIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4MzkxMzEyIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 778391312
+=== Entries for order Nzc3OTUyNzY0 ===
+First entry: {
+  "id": "Nzc3OTUyNzY0IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9300,
+    "basePrice": 38200,
+    "totalPrice": 38200,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxstonebel",
+      "name": "Растущий стульчик Luxstone luni, МДФ, металл, 47x52x84 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA1MDgxOTI3",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3OTUyNzY0IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3OTUyNzY0IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3OTUyNzY0IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3OTUyNzY0IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3OTUyNzY0IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 777952764
+=== Entries for order Nzc4ODAyMTE0 ===
+First entry: {
+  "id": "Nzc4ODAyMTE0IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 995,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 159000,
+    "totalPrice": 159000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi 1000",
+      "name": "Проектор Luxstone Lumi 1000"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4NDg1MDQx",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4ODAyMTE0IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4ODAyMTE0IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4ODAyMTE0IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4ODAyMTE0IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4ODAyMTE0IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 778802114
+=== Entries for order Nzc5MTA5MDk1 ===
+First entry: {
+  "id": "Nzc5MTA5MDk1IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 1000,
+    "basePrice": 249700,
+    "totalPrice": 249700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "157063584",
+      "name": "Цифровое пианино Luxstone Lapiano"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM0Nzc4OTY4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5MTA5MDk1IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5MTA5MDk1IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5MTA5MDk1IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5MTA5MDk1IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5MTA5MDk1IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 779109095
+=== Entries for order Nzc5OTYwMjk1 ===
+First entry: {
+  "id": "Nzc5OTYwMjk1IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 9900,
+    "totalPrice": 9900,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Newborn babies clothing sets",
+      "title": "Комплекты одежды для малышей"
+    },
+    "offer": {
+      "code": "mikkikids",
+      "name": "Комплект Luxstone mikkikids синий 74"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTEwMzc1MDUz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5OTYwMjk1IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5OTYwMjk1IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5OTYwMjk1IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5OTYwMjk1IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5OTYwMjk1IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 779960295
+=== Entries for order Nzc1MzU1NTI0 ===
+First entry: {
+  "id": "Nzc1MzU1NTI0IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc1MzU1NTI0IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc1MzU1NTI0IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc1MzU1NTI0IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc1MzU1NTI0IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc1MzU1NTI0IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 775355524
+=== Entries for order Nzc4Mzk4ODAz ===
+First entry: {
+  "id": "Nzc4Mzk4ODAzIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 48000,
+    "totalPrice": 48000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Myata",
+      "name": "Растущий стульчик Luxstone Luxpod, МДФ, металл, текстиль, 46x50x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA4MDIzMDA0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4Mzk4ODAzIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4Mzk4ODAzIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4Mzk4ODAzIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4Mzk4ODAzIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4Mzk4ODAzIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 778398803
+=== Entries for order Nzc2OTM1MjYw ===
+First entry: {
+  "id": "Nzc2OTM1MjYwIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 57800,
+    "totalPrice": 57800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi Pro",
+      "name": "Проектор для дома"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4OTY4ODA0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc2OTM1MjYwIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc2OTM1MjYwIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc2OTM1MjYwIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc2OTM1MjYwIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc2OTM1MjYwIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 776935260
+=== Entries for order NzcxODMzMTA5 ===
+First entry: {
+  "id": "NzcxODMzMTA5IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 14500,
+    "totalPrice": 14500,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "608946",
+      "name": "Табурет Luxstone wolfstep, МДФ, 33x35x46 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTEwNTgzMjM4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxODMzMTA5IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxODMzMTA5IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxODMzMTA5IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcxODMzMTA5IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcxODMzMTA5IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 771833109
+=== Entries for order Nzc3MDYxMDE3 ===
+First entry: {
+  "id": "Nzc3MDYxMDE3IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 38200,
+    "totalPrice": 38200,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxstone stul",
+      "name": "Растущий стульчик Luxstone lxe, МДФ, 46x50x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MDYwMTI3",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3MDYxMDE3IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3MDYxMDE3IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3MDYxMDE3IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3MDYxMDE3IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3MDYxMDE3IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 777061017
+=== Entries for order NzgwMjUwMTE1 ===
+First entry: {
+  "id": "NzgwMjUwMTE1IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 995,
+    "quantity": 1,
+    "weight": 1000,
+    "basePrice": 249700,
+    "totalPrice": 249700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "157063584",
+      "name": "Цифровое пианино Luxstone Lapiano"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM0Nzc4OTY4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgwMjUwMTE1IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgwMjUwMTE1IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgwMjUwMTE1IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgwMjUwMTE1IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgwMjUwMTE1IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 780250115
+=== Entries for order Nzc3Nzc5OTQ1 ===
+First entry: {
+  "id": "Nzc3Nzc5OTQ1IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 159000,
+    "totalPrice": 159000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi 1000",
+      "name": "Проектор Luxstone Lumi 1000"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4NDg1MDQx",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3Nzc5OTQ1IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3Nzc5OTQ1IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3Nzc5OTQ1IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3Nzc5OTQ1IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3Nzc5OTQ1IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 777779945
+=== Entries for order NzgwODU3OTAx ===
+First entry: {
+  "id": "NzgwODU3OTAxIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 38000,
+    "totalPrice": 38000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxivorychair",
+      "name": "Luxstone Luxivorychair, МДФ, 47x52x84, бежевый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTEzOTM1NTM0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgwODU3OTAxIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgwODU3OTAxIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgwODU3OTAxIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgwODU3OTAxIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgwODU3OTAxIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 780857901
+=== Entries for order Nzc5NTc1NDEz ===
+First entry: {
+  "id": "Nzc5NTc1NDEzIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 57800,
+    "totalPrice": 57800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi Pro",
+      "name": "Проектор для дома"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4OTY4ODA0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5NTc1NDEzIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5NTc1NDEzIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5NTc1NDEzIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5NTc1NDEzIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5NTc1NDEzIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 779575413
+=== Entries for order Nzc3MDY4NzEx ===
+First entry: {
+  "id": "Nzc3MDY4NzExIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3MDY4NzExIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3MDY4NzExIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3MDY4NzExIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3MDY4NzExIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3MDY4NzExIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 777068711
+=== Entries for order NzgxMjA4NjEy ===
+First entry: {
+  "id": "NzgxMjA4NjEyIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 2,
+    "weight": 18000,
+    "basePrice": 38200,
+    "totalPrice": 76400,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxstone stul",
+      "name": "Растущий стульчик Luxstone lxe, МДФ, 46x50x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MDYwMTI3",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxMjA4NjEyIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgxMjA4NjEyIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxMjA4NjEyIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgxMjA4NjEyIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxMjA4NjEyIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 781208612
+=== Entries for order NzgxMDA4MDg5 ===
+First entry: {
+  "id": "NzgxMDA4MDg5IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 119700,
+    "totalPrice": 119700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Luxkerwhite",
+      "name": "Luxstone Luma растущий комплект, 85x60x120 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTEzODk0OTU2",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxMDA4MDg5IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgxMDA4MDg5IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxMDA4MDg5IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgxMDA4MDg5IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxMDA4MDg5IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 781008089
+=== Entries for order NzgwODIyNzE3 ===
+First entry: {
+  "id": "NzgwODIyNzE3IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 119700,
+    "totalPrice": 119700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Luxkerwhite",
+      "name": "Luxstone Luma растущий комплект, 85x60x120 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTEzODk0OTU2",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgwODIyNzE3IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgwODIyNzE3IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgwODIyNzE3IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgwODIyNzE3IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgwODIyNzE3IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 780822717
+=== Entries for order Nzc0OTMyOTM3 ===
+First entry: {
+  "id": "Nzc0OTMyOTM3IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 159000,
+    "totalPrice": 159000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi 1000",
+      "name": "Проектор Luxstone Lumi 1000"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4NDg1MDQx",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0OTMyOTM3IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0OTMyOTM3IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0OTMyOTM3IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0OTMyOTM3IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0OTMyOTM3IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 774932937
+=== Entries for order NzgwNjM3NTIw ===
+First entry: {
+  "id": "NzgwNjM3NTIwIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 79000,
+    "totalPrice": 79000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Parta stul",
+      "name": "Luxstone 104163223 растущий комплект, 79x53x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MTYzMjIz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgwNjM3NTIwIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgwNjM3NTIwIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgwNjM3NTIwIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgwNjM3NTIwIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgwNjM3NTIwIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 780637520
+=== Entries for order Nzc5NTI2MTA3 ===
+First entry: {
+  "id": "Nzc5NTI2MTA3IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 38200,
+    "totalPrice": 38200,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxstone stul",
+      "name": "Растущий стульчик Luxstone lxe, МДФ, 46x50x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MDYwMTI3",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5NTI2MTA3IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5NTI2MTA3IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5NTI2MTA3IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5NTI2MTA3IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5NTI2MTA3IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 779526107
+=== Entries for order NzgyMDI4NDky ===
+First entry: {
+  "id": "NzgyMDI4NDkyIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9300,
+    "basePrice": 38200,
+    "totalPrice": 38200,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxstonebel",
+      "name": "Растущий стульчик Luxstone luni, МДФ, металл, 47x52x84 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA1MDgxOTI3",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgyMDI4NDkyIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgyMDI4NDkyIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgyMDI4NDkyIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgyMDI4NDkyIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgyMDI4NDkyIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 782028492
+=== Entries for order NzgxODkzNTM1 ===
+First entry: {
+  "id": "NzgxODkzNTM1IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 79000,
+    "totalPrice": 79000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Parta stul",
+      "name": "Luxstone 104163223 растущий комплект, 79x53x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MTYzMjIz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxODkzNTM1IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgxODkzNTM1IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxODkzNTM1IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgxODkzNTM1IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxODkzNTM1IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 781893535
+=== Entries for order NzgxNzMwOTU4 ===
+First entry: {
+  "id": "NzgxNzMwOTU4IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 79000,
+    "totalPrice": 79000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Parta stul",
+      "name": "Luxstone 104163223 растущий комплект, 79x53x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MTYzMjIz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxNzMwOTU4IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgxNzMwOTU4IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxNzMwOTU4IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgxNzMwOTU4IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxNzMwOTU4IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 781730958
+=== Entries for order NzgxNzc4NzU1 ===
+First entry: {
+  "id": "NzgxNzc4NzU1IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 1000,
+    "basePrice": 249700,
+    "totalPrice": 249700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "157063584",
+      "name": "Цифровое пианино Luxstone Lapiano"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM0Nzc4OTY4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxNzc4NzU1IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgxNzc4NzU1IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxNzc4NzU1IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgxNzc4NzU1IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxNzc4NzU1IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 781778755
+=== Entries for order Nzc5OTE2MDYy ===
+First entry: {
+  "id": "Nzc5OTE2MDYyIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 219860,
+    "totalPrice": 219860,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5OTE2MDYyIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5OTE2MDYyIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5OTE2MDYyIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5OTE2MDYyIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5OTE2MDYyIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 779916062
+=== Entries for order NzgxNzM3ODA4 ===
+First entry: {
+  "id": "NzgxNzM3ODA4IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 79000,
+    "totalPrice": 79000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Parta stul",
+      "name": "Luxstone 104163223 растущий комплект, 79x53x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MTYzMjIz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxNzM3ODA4IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgxNzM3ODA4IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxNzM3ODA4IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzgxNzM3ODA4IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzgxNzM3ODA4IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 781737808
+=== Entries for order Nzc4OTI3Njg5 ===
+First entry: {
+  "id": "Nzc4OTI3Njg5IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 119700,
+    "totalPrice": 119700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Luxkerwhite",
+      "name": "Luxstone Luma растущий комплект, 85x60x120 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTEzODk0OTU2",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4OTI3Njg5IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4OTI3Njg5IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4OTI3Njg5IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4OTI3Njg5IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4OTI3Njg5IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 778927689
+=== Entries for order NzczOTYxNTYy ===
+First entry: {
+  "id": "NzczOTYxNTYyIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 1000,
+    "basePrice": 249700,
+    "totalPrice": 249700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "157063584",
+      "name": "Цифровое пианино Luxstone Lapiano"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM0Nzc4OTY4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczOTYxNTYyIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzczOTYxNTYyIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczOTYxNTYyIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzczOTYxNTYyIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzczOTYxNTYyIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 773961562
+=== Entries for order NzY0ODk4Njcx ===
+First entry: {
+  "id": "NzY0ODk4NjcxIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9000,
+    "basePrice": 79000,
+    "totalPrice": 79000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Parta stul",
+      "name": "Luxstone 104163223 растущий комплект, 79x53x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA0MTYzMjIz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY0ODk4NjcxIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY0ODk4NjcxIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY0ODk4NjcxIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY0ODk4NjcxIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY0ODk4NjcxIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 764898671
+=== Entries for order NzY5MzA5NTM2 ===
+First entry: {
+  "id": "NzY5MzA5NTM2IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 9300,
+    "basePrice": 38200,
+    "totalPrice": 38200,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxstonebel",
+      "name": "Растущий стульчик Luxstone luni, МДФ, металл, 47x52x84 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA1MDgxOTI3",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzA5NTM2IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzA5NTM2IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzA5NTM2IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzA5NTM2IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5MzA5NTM2IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 769309536
+=== Entries for order NzcwNDgzNzk3 ===
+First entry: {
+  "id": "NzcwNDgzNzk3IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 119700,
+    "totalPrice": 119700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Kids desks",
+      "title": "Детские столы и парты"
+    },
+    "offer": {
+      "code": "Luxkerwhite",
+      "name": "Luxstone Luma растущий комплект, 85x60x120 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTEzODk0OTU2",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwNDgzNzk3IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwNDgzNzk3IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwNDgzNzk3IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwNDgzNzk3IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwNDgzNzk3IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 770483797
+=== Entries for order NzY5NjA4Njg3 ===
+First entry: {
+  "id": "NzY5NjA4Njg3IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 64500,
+    "totalPrice": 64500,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "graykid",
+      "name": "Растущий стул со столиком"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4MzcxMzU4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5NjA4Njg3IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY5NjA4Njg3IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5NjA4Njg3IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY5NjA4Njg3IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY5NjA4Njg3IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 769608687
+=== Entries for order Nzc3NDI2NTc5 ===
+First entry: {
+  "id": "Nzc3NDI2NTc5IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 48000,
+    "totalPrice": 48000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Myata",
+      "name": "Растущий стульчик Luxstone Luxpod, МДФ, металл, текстиль, 46x50x83 см, белый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTA4MDIzMDA0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3NDI2NTc5IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3NDI2NTc5IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3NDI2NTc5IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3NDI2NTc5IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3NDI2NTc5IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 777426579
+=== Entries for order NzcwMTQ1NTQx ===
+First entry: {
+  "id": "NzcwMTQ1NTQxIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 57800,
+    "totalPrice": 57800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Video projectors",
+      "title": "Проекторы"
+    },
+    "offer": {
+      "code": "Lumi Pro",
+      "name": "Проектор для дома"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM4OTY4ODA0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMTQ1NTQxIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMTQ1NTQxIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDc",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMTQ1NTQxIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMTQ1NTQxIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzcwMTQ1NTQxIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 770145541
+=== Entries for order Nzc3MTk2NDQ5 ===
+First entry: {
+  "id": "Nzc3MTk2NDQ5IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 1000,
+    "basePrice": 249700,
+    "totalPrice": 249700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "157063584",
+      "name": "Цифровое пианино Luxstone Lapiano"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM0Nzc4OTY4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3MTk2NDQ5IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3MTk2NDQ5IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3MTk2NDQ5IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3MTk2NDQ5IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc3MTk2NDQ5IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 777196449
+=== Entries for order NzY3NjQwMzQ1 ===
+First entry: {
+  "id": "NzY3NjQwMzQ1IyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY3NjQwMzQ1IyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY3NjQwMzQ1IyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY3NjQwMzQ1IyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/NzY3NjQwMzQ1IyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/NzY3NjQwMzQ1IyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 767640345
+=== Entries for order Nzc5ODM2MDUz ===
+First entry: {
+  "id": "Nzc5ODM2MDUzIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 0,
+    "basePrice": 38000,
+    "totalPrice": 38000,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Childrens chairs and stools",
+      "title": "Детские стулья и табуреты"
+    },
+    "offer": {
+      "code": "Luxivorychair",
+      "name": "Luxstone Luxivorychair, МДФ, 47x52x84, бежевый"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTEzOTM1NTM0",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5ODM2MDUzIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5ODM2MDUzIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5ODM2MDUzIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5ODM2MDUzIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc5ODM2MDUzIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 779836053
+=== Entries for order Nzc4NTk0ODAy ===
+First entry: {
+  "id": "Nzc4NTk0ODAyIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 1000,
+    "basePrice": 249700,
+    "totalPrice": 249700,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "157063584",
+      "name": "Цифровое пианино Luxstone Lapiano"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM0Nzc4OTY4",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4NTk0ODAyIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4NTk0ODAyIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4NTk0ODAyIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4NTk0ODAyIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc4NTk0ODAyIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 778594802
+=== Entries for order Nzc0NTg4MTgx ===
+First entry: {
+  "id": "Nzc0NTg4MTgxIyMw",
+  "type": "orderentries",
+  "attributes": {
+    "entryNumber": 0,
+    "deliveryCost": 0,
+    "quantity": 1,
+    "weight": 35000,
+    "basePrice": 199800,
+    "totalPrice": 199800,
+    "unitType": "PIECES",
+    "category": {
+      "code": "Master - Digital pianos",
+      "title": "Цифровые пианино, рояли и фортепиано"
+    },
+    "offer": {
+      "code": "Leni",
+      "name": "Цифровое пианино Luxstone Leni"
+    },
+    "isImeiRequired": false
+  },
+  "relationships": {
+    "product": {
+      "data": {
+        "id": "MTM1NzAzMzYz",
+        "type": "masterproducts"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0NTg4MTgxIyMw/relationships/product",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0NTg4MTgxIyMw/product"
+      }
+    },
+    "deliveryPointOfService": {
+      "data": {
+        "id": "NDkyOTAxNl9QUDE",
+        "type": "pointofservices"
+      },
+      "links": {
+        "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0NTg4MTgxIyMw/relationships/deliveryPointOfService",
+        "related": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0NTg4MTgxIyMw/deliveryPointOfService"
+      }
+    }
+  },
+  "links": {
+    "self": "https://kaspi.kz/shop/api/v2/orderentries/Nzc0NTg4MTgxIyMw"
+  }
+}
+Entry attributes keys: [
+  'entryNumber',
+  'deliveryCost',
+  'quantity',
+  'weight',
+  'basePrice',
+  'totalPrice',
+  'unitType',
+  'category',
+  'offer',
+  'isImeiRequired'
+]
+===================================
+Loaded 1 entries for order 774588181
+ POST /api/kaspi/sync 200 in 3.7s (compile: 269ms, render: 3.5s)
+ GET /dashboard/orders/767066518 200 in 37ms (compile: 10ms, render: 26ms)

@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(npx prisma:*)",
+      "Bash(npm run dev:*)",
+      "Bash(timeout /t 10)",
+      "Bash(echo \"# Database\nDATABASE_URL=\"\"postgresql://postgres:password@localhost:5432/kaspi_analytics\"\"\n\n# Kaspi Merchant API\nKASPI_API_URL=\"\"https://kaspi.kz/shop/api/v2\"\"\nKASPI_MERCHANT_ID=\"\"\"\"\nKASPI_API_KEY=\"\"\"\"\nKASPI_API_SECRET=\"\"\"\"\n\n# NextAuth\nNEXTAUTH_URL=\"\"http://localhost:3000\"\"\nNEXTAUTH_SECRET=\"\"kaspi-analytics-secret-change-me\"\"\n\n# Email Configuration\nSMTP_HOST=\"\"smtp.gmail.com\"\"\nSMTP_PORT=587\nSMTP_USER=\"\"\"\"\nSMTP_PASSWORD=\"\"\"\"\nEMAIL_FROM=\"\"noreply@yourcompany.com\"\"\n\n# Application\nNODE_ENV=\"\"development\"\"\")",
+      "Bash(test:*)",
+      "Bash(timeout 5 tail:*)",
+      "Bash(tasklist:*)",
+      "Bash(findstr:*)",
+      "Bash(taskkill:*)",
+      "Bash(del /F /Q .nextdevlock)",
+      "Bash(netstat:*)",
+      "Bash(npx playwright install:*)",
+      "Bash(robocopy:*)",
+      "Bash(xcopy:*)",
+      "Bash(powershell -Command:*)",
+      "Bash(dir:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"=== {} ===\"\" && head -20 \"\"{}\"\"')",
+      "Bash(cat:*)",
+      "Bash(lsof:*)",
+      "Bash(npm run build:*)",
+      "Bash(npx tsc:*)",
+      "Bash(node scripts/generate-mock-data.js:*)",
+      "Bash(npx next lint:*)",
+      "Bash(npx eslint:*)",
+      "Bash(git add:*)"
+    ]
+  }
+}

@@ -1,0 +1,4276 @@
+{
+  "syncedOrders": 100,
+  "syncedEntries": 100,
+  "totalOrders": 100,
+  "totalRevenue": 12463810,
+  "ordersByState": {
+    "ARCHIVE": 91,
+    "KASPI_DELIVERY": 9
+  },
+  "orders": [
+    {
+      "code": "767066518",
+      "orderId": "NzY3MDY2NTE4",
+      "totalPrice": 119700,
+      "deliveryCostForSeller": 4031,
+      "creationDate": 1766748310862,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Кажымукана",
+        "streetNumber": "152",
+        "town": "Косшы",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Косшы, улица Кажымукана, 152",
+        "latitude": 50.9476616734907,
+        "longitude": 71.36075575584096
+      },
+      "customer": {
+        "id": "NzA3ODQ4NzQyMg",
+        "name": "Рустем",
+        "cellPhone": "7078487422",
+        "firstName": "Рустем",
+        "lastName": "Н"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 119700,
+          "basePrice": 119700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/X3Jacl9aQUZNaEEtVVpydUlyM2o5dy4ucm03RFhYNTNvNElJWTBSWHFhWTJ0dy4u",
+        "courierTransmissionDate": 1766833754000,
+        "courierTransmissionPlanningDate": 1766833754000,
+        "waybillNumber": "334426721",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "767927373",
+      "orderId": "NzY3OTI3Mzcz",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 4031,
+      "creationDate": 1766819483303,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Кенжебека Кумисбекова",
+        "streetNumber": "2",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "367",
+        "formattedAddress": "Астана, улица Кенжебека Кумисбекова, 2, 367",
+        "latitude": 51.16298,
+        "longitude": 71.40109
+      },
+      "customer": {
+        "id": "NzAxOTEwNTA3Ng",
+        "name": "Гаухар",
+        "cellPhone": "7019105076",
+        "firstName": "Гаухар",
+        "lastName": "Е"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/dE9lTHJMTml0VU9jY1owZVZka0pXUS4uVU1fMWFLMlZrdDE4OTVfQWpOZXRMZy4u",
+        "courierTransmissionDate": 1766833765000,
+        "courierTransmissionPlanningDate": 1766833765000,
+        "waybillNumber": "334428028",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "766051259",
+      "orderId": "NzY2MDUxMjU5",
+      "totalPrice": 249700,
+      "deliveryCostForSeller": 4031,
+      "creationDate": 1766673470380,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Есет Батыра",
+        "streetNumber": "95к3",
+        "town": "Актобе",
+        "district": null,
+        "building": null,
+        "apartment": "4",
+        "formattedAddress": "Актобе, улица Есет Батыра, 95к3, 4",
+        "latitude": 50.300095,
+        "longitude": 57.164185
+      },
+      "customer": {
+        "id": "NzA1ODE5MTUwMw",
+        "name": "Виктория",
+        "cellPhone": "7058191503",
+        "firstName": "Виктория",
+        "lastName": "Р"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 249700,
+          "basePrice": 249700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/aGhjOEtzTUNRVEdnVTJBU0xMM0RVQS4uWC00MGJiVDZkeVpSYWNtbGpkOWRiUS4u",
+        "courierTransmissionDate": 1766744395000,
+        "courierTransmissionPlanningDate": 1766744395000,
+        "waybillNumber": "333791083",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "770145541",
+      "orderId": "NzcwMTQ1NTQx",
+      "totalPrice": 57800,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1766990580149,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Панфилова",
+        "streetNumber": "98",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Алматы, улица Панфилова, 98",
+        "latitude": 43.257454,
+        "longitude": 76.945016
+      },
+      "customer": {
+        "id": "NzAxNjAzNzM0MQ",
+        "name": "Тимур",
+        "cellPhone": "7016037341",
+        "firstName": "Тимур",
+        "lastName": "Е"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 57800,
+          "basePrice": 57800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "770398071",
+      "orderId": "NzcwMzk4MDcx",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767005918318,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Ташена Утепова",
+        "streetNumber": "31блок10",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "1161",
+        "formattedAddress": "Алматы, улица Ташена Утепова, 31блок10, 1161",
+        "latitude": 43.220419,
+        "longitude": 76.887021
+      },
+      "customer": {
+        "id": "NzAyNTI1MTk1MA",
+        "name": "Ғалихан",
+        "cellPhone": "7025251950",
+        "firstName": "Ғалихан",
+        "lastName": "Ә"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "771013673",
+      "orderId": "NzcxMDEzNjcz",
+      "totalPrice": 159000,
+      "deliveryCostForSeller": 1679,
+      "creationDate": 1767070542529,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "проспект Юрия Гагарина",
+        "streetNumber": "233/1",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "29",
+        "formattedAddress": "Алматы, проспект Юрия Гагарина, 233/1, 29",
+        "latitude": 43.211234,
+        "longitude": 76.89772
+      },
+      "customer": {
+        "id": "NzAxODA2NjA0MA",
+        "name": "Омер",
+        "cellPhone": "7018066040",
+        "firstName": "Омер",
+        "lastName": "С"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 159000,
+          "basePrice": 159000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/bGI2WC1ZczM1Y0hmUFZibmVnZEpCdy4uazZMa1BWSFNiaFBlS2RJOVB4bUNzdy4u",
+        "courierTransmissionDate": 1767079625000,
+        "courierTransmissionPlanningDate": 1767079625000,
+        "waybillNumber": "335719078",
+        "express": true,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "764898671",
+      "orderId": "NzY0ODk4Njcx",
+      "totalPrice": 79000,
+      "deliveryCostForSeller": 1903,
+      "creationDate": 1766593147528,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "проспект Абулхаир Хана",
+        "streetNumber": "31/10",
+        "town": "Атырау",
+        "district": null,
+        "building": null,
+        "apartment": "5",
+        "formattedAddress": "Атырау, проспект Абулхаир Хана, 31/10, 5",
+        "latitude": 47.114833,
+        "longitude": 51.843644
+      },
+      "customer": {
+        "id": "NzAyMjk5NDIzMA",
+        "name": "Елена",
+        "cellPhone": "7022994230",
+        "firstName": "Елена",
+        "lastName": "М"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 79000,
+          "basePrice": 79000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/b1lyazVPV1JwMmhjWDg5ZGtaUUF4dy4uYVoyZm9hTXhIRmpnZWw4eHBEelZFZy4u",
+        "courierTransmissionDate": 1766659685000,
+        "courierTransmissionPlanningDate": 1766659685000,
+        "waybillNumber": "333132842",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "769304934",
+      "orderId": "NzY5MzA0OTM0",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 4031,
+      "creationDate": 1766916824399,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "Учетный квартал № 273",
+        "streetNumber": "60/36",
+        "town": "Абай (Алмат.обл)",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Абай (Алмат.обл), Учетный квартал № 273, 60/36",
+        "latitude": 43.20182466562269,
+        "longitude": 76.76588128096367
+      },
+      "customer": {
+        "id": "NzA4NTQyMDMxNw",
+        "name": "Зарина",
+        "cellPhone": "7085420317",
+        "firstName": "Зарина",
+        "lastName": "Қ"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/Q2p0Y2RPLTA4Q3kzOV9jRFBWWkNDZy4uQmNNcFJtbzVvTUpReHpXRzlubHNmZy4u",
+        "courierTransmissionDate": 1767011664000,
+        "courierTransmissionPlanningDate": 1767011664000,
+        "waybillNumber": "335526792",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "766658677",
+      "orderId": "NzY2NjU4Njc3",
+      "totalPrice": 159000,
+      "deliveryCostForSeller": 1455,
+      "creationDate": 1766726731479,
+      "deliveryMode": "DELIVERY_PICKUP",
+      "customer": {
+        "id": "Nzc3MTU1NDQyMQ",
+        "name": "Сергей",
+        "cellPhone": "7771554421",
+        "firstName": "Сергей",
+        "lastName": "Р"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 159000,
+          "basePrice": 159000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/T1JiblBKeElhbktYbU11S0MtelJZdy4uRjI5cVdRTThXMUVnNF9CMGJ3aVUtQS4u",
+        "courierTransmissionDate": 1766744375000,
+        "courierTransmissionPlanningDate": 1766744375000,
+        "waybillNumber": "333791623",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "768999739",
+      "orderId": "NzY4OTk5NzM5",
+      "totalPrice": 159000,
+      "deliveryCostForSeller": 1455,
+      "creationDate": 1766900565902,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "Әйтеке би",
+        "streetNumber": "142",
+        "town": "Шалкар (Актюб.обл)",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Шалкар (Актюб.обл), Әйтеке би, 142",
+        "latitude": null,
+        "longitude": null
+      },
+      "customer": {
+        "id": "Nzc4ODA2NDEwOA",
+        "name": "Бахытгул",
+        "cellPhone": "7788064108",
+        "firstName": "Бахытгул",
+        "lastName": "Б"
+      },
+      "state": "KASPI_DELIVERY",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 159000,
+          "basePrice": 159000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/cmxXUFVEYl80TDN2UzFQczR4RlJyUS4uaXNHbzZ3aFg3V3FBS0JSVUFCWFp5Zy4u",
+        "courierTransmissionDate": 1767011679000,
+        "courierTransmissionPlanningDate": 1767011679000,
+        "waybillNumber": "335526628",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "767640345",
+      "orderId": "NzY3NjQwMzQ1",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 4031,
+      "creationDate": 1766781076044,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Гоголя",
+        "streetNumber": "54",
+        "town": "Караганда",
+        "district": null,
+        "building": null,
+        "apartment": "49",
+        "formattedAddress": "Караганда, улица Гоголя, 54, 49",
+        "latitude": 49.810667,
+        "longitude": 73.105428
+      },
+      "customer": {
+        "id": "NzAyNDQ1ODI5OA",
+        "name": "Любовь",
+        "cellPhone": "7024458298",
+        "firstName": "Любовь",
+        "lastName": "П"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/aDM5UWNTU0ZzakdBZEVkQXF0aTdzUS4ub0NFendWV2pLeE81S0FCQTBlS09qUS4u",
+        "courierTransmissionDate": 1766813080000,
+        "courierTransmissionPlanningDate": 1766813080000,
+        "waybillNumber": "334141165",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "770209106",
+      "orderId": "NzcwMjA5MTA2",
+      "totalPrice": 79000,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1766994300314,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Каныша Сатпаева",
+        "streetNumber": "90/58",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "Блок 12, квартира 202",
+        "formattedAddress": "Алматы, улица Каныша Сатпаева, 90/58, Блок 12, квартира 202",
+        "latitude": 43.230785,
+        "longitude": 76.877696
+      },
+      "customer": {
+        "id": "NzAxMjEzMDE0NA",
+        "name": "Асан",
+        "cellPhone": "7012130144",
+        "firstName": "Асан",
+        "lastName": "А"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 79000,
+          "basePrice": 79000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "770217960",
+      "orderId": "NzcwMjE3OTYw",
+      "totalPrice": 48000,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1766995223121,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Таира Жарокова",
+        "streetNumber": "218к8",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "36 этаж 11",
+        "formattedAddress": "Алматы, улица Таира Жарокова, 218к8, 36 этаж 11",
+        "latitude": 43.218422,
+        "longitude": 76.90337
+      },
+      "customer": {
+        "id": "NzAyOTk5ODYyMA",
+        "name": "Анель",
+        "cellPhone": "7029998620",
+        "firstName": "Анель",
+        "lastName": "И"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 48000,
+          "basePrice": 48000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "770263325",
+      "orderId": "NzcwMjYzMzI1",
+      "totalPrice": 79000,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1766998760875,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "Алматы",
+        "streetNumber": "Capital Tower",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "1 этаж ресепшн",
+        "formattedAddress": "Алматы, Алматы, Capital Tower, 1 этаж ресепшн",
+        "latitude": 43.20497,
+        "longitude": 76.890848
+      },
+      "customer": {
+        "id": "Nzc3MTc3Mzc2NQ",
+        "name": "Алибек",
+        "cellPhone": "7771773765",
+        "firstName": "Алибек",
+        "lastName": "К"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 79000,
+          "basePrice": 79000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "769797728",
+      "orderId": "NzY5Nzk3NzI4",
+      "totalPrice": 38200,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1766945502814,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Кенесары Хана",
+        "streetNumber": "54/15",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "27",
+        "formattedAddress": "Алматы, улица Кенесары Хана, 54/15, 27",
+        "latitude": 43.169595,
+        "longitude": 76.872055
+      },
+      "customer": {
+        "id": "NzAxMTQ1NDA1NQ",
+        "name": "Елена",
+        "cellPhone": "7011454055",
+        "firstName": "Елена",
+        "lastName": "Г"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38200,
+          "basePrice": 38200
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "765924553",
+      "orderId": "NzY1OTI0NTUz",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 4031,
+      "creationDate": 1766666473837,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Хусейн бен Талал",
+        "streetNumber": "39",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "3 подъезд 308 квартира 4 этаж",
+        "formattedAddress": "Астана, улица Хусейн бен Талал, 39, 3 подъезд 308 квартира 4 этаж",
+        "latitude": 51.078958,
+        "longitude": 71.431453
+      },
+      "customer": {
+        "id": "Nzc4MTkxOTY3Mw",
+        "name": "Ақбота",
+        "cellPhone": "7781919673",
+        "firstName": "Ақбота",
+        "lastName": "Т"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/Q0xpMjE1alBGVUhjaXdINGQzcU9xQS4uM0h0LWwyU0FTbzRPNXpyZGQtVDAtQS4u",
+        "courierTransmissionDate": 1766744380000,
+        "courierTransmissionPlanningDate": 1766744380000,
+        "waybillNumber": "333790401",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "771308619",
+      "orderId": "NzcxMzA4NjE5",
+      "totalPrice": 159000,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767089707964,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Султанбека Ходжанова",
+        "streetNumber": "57/9",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Алматы, улица Султанбека Ходжанова, 57/9",
+        "latitude": 43.209164,
+        "longitude": 76.911248
+      },
+      "customer": {
+        "id": "Nzc4MjU3ODE2MQ",
+        "name": "Лилит",
+        "cellPhone": "7782578161",
+        "firstName": "Лилит",
+        "lastName": "Г"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 159000,
+          "basePrice": 159000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "771398446",
+      "orderId": "NzcxMzk4NDQ2",
+      "totalPrice": 57800,
+      "deliveryCostForSeller": 1679,
+      "creationDate": 1767095043338,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Бактыгереева",
+        "streetNumber": "15",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Алматы, улица Бактыгереева, 15",
+        "latitude": 43.179135,
+        "longitude": 76.926313
+      },
+      "customer": {
+        "id": "NzAxNzc1OTg4MQ",
+        "name": "Дмитрий",
+        "cellPhone": "7017759881",
+        "firstName": "Дмитрий",
+        "lastName": "Т"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 57800,
+          "basePrice": 57800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/YnBaR3lYU3NUZjN6VE1IYmdrYjg2dy4uUEpjZXJzcEhBdUlCNWIyVU5USUh5US4u",
+        "courierTransmissionDate": 1767109166000,
+        "courierTransmissionPlanningDate": 1767109166000,
+        "waybillNumber": "335935137",
+        "express": true,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "771523920",
+      "orderId": "NzcxNTIzOTIw",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767103668727,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "микрорайон Тастак-1",
+        "streetNumber": "17",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "13",
+        "formattedAddress": "Алматы, микрорайон Тастак-1, 17, 13",
+        "latitude": 43.24961249616919,
+        "longitude": 76.85547691207415
+      },
+      "customer": {
+        "id": "NzA3MzQ1NzMyMQ",
+        "name": "Николай",
+        "cellPhone": "7073457321",
+        "firstName": "Николай",
+        "lastName": "П"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "768186353",
+      "orderId": "NzY4MTg2MzUz",
+      "totalPrice": 48000,
+      "deliveryCostForSeller": 1903,
+      "creationDate": 1766832334580,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Санжара Асфендиярова",
+        "streetNumber": "8",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "438",
+        "formattedAddress": "Астана, улица Санжара Асфендиярова, 8, 438",
+        "latitude": 51.134283,
+        "longitude": 71.381633
+      },
+      "customer": {
+        "id": "NzAyNTU1NTU0Ng",
+        "name": "Сарыбай",
+        "cellPhone": "7025555546",
+        "firstName": "Сарыбай",
+        "lastName": "Ш"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 48000,
+          "basePrice": 48000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/ZFpENm9vNGZtS0YydE5BMURwRFVaZy4ucF84NFB2Z2NpMjlJV2Q2RDJMa3Q5QS4u",
+        "courierTransmissionDate": 1767011665000,
+        "courierTransmissionPlanningDate": 1767011665000,
+        "waybillNumber": "335526177",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "768302006",
+      "orderId": "NzY4MzAyMDA2",
+      "totalPrice": 249700,
+      "deliveryCostForSeller": 4031,
+      "creationDate": 1766838170206,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "проспект Бухар Жырау",
+        "streetNumber": "77/2",
+        "town": "Караганда",
+        "district": null,
+        "building": null,
+        "apartment": "6",
+        "formattedAddress": "Караганда, проспект Бухар Жырау, 77/2, 6",
+        "latitude": 49.796306,
+        "longitude": 73.090255
+      },
+      "customer": {
+        "id": "NzAxNjQwNjA5Ng",
+        "name": "Екатерина",
+        "cellPhone": "7016406096",
+        "firstName": "Екатерина",
+        "lastName": "Б"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 249700,
+          "basePrice": 249700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/OWNQbDZxSEQ4OW96cnhlZVlpdHBXdy4uZFBkZ0oxTl9TUWFreVhyOWg2TDBDUS4u",
+        "courierTransmissionDate": 1767011660000,
+        "courierTransmissionPlanningDate": 1767011660000,
+        "waybillNumber": "335526537",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "766909726",
+      "orderId": "NzY2OTA5NzI2",
+      "totalPrice": 249700,
+      "deliveryCostForSeller": 4031,
+      "creationDate": 1766740317124,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Жолдасовых",
+        "streetNumber": "4",
+        "town": "Аягоз",
+        "district": null,
+        "building": null,
+        "apartment": "4",
+        "formattedAddress": "Аягоз, улица Жолдасовых, 4, 4",
+        "latitude": 47.976903,
+        "longitude": 80.442041
+      },
+      "customer": {
+        "id": "Nzc1MzcxNzI3Mg",
+        "name": "Бибигуль",
+        "cellPhone": "7753717272",
+        "firstName": "Бибигуль",
+        "lastName": "А"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 249700,
+          "basePrice": 249700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/UWhYQWlBbnBNbWR4VlNyX2pNM0JjUS4uMThnY1RSQXdNN3JURnZMNzhNM0JpQS4u",
+        "courierTransmissionDate": 1766837543000,
+        "courierTransmissionPlanningDate": 1766837543000,
+        "waybillNumber": "334426580",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "771721268",
+      "orderId": "NzcxNzIxMjY4",
+      "totalPrice": 57800,
+      "deliveryCostForSeller": 1679,
+      "creationDate": 1767116844993,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Марал",
+        "streetNumber": "8",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Алматы, улица Марал, 8",
+        "latitude": 43.184538,
+        "longitude": 76.905436
+      },
+      "customer": {
+        "id": "NzA1NjAxODIxMg",
+        "name": "Анастасия",
+        "cellPhone": "7056018212",
+        "firstName": "Анастасия",
+        "lastName": "Щ"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 57800,
+          "basePrice": 57800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/SUp6SXFSZm1USVRLN05HclFtLWZWQS4uN0d6Y0hYa2FMbS1fUmcxZlpETXZIQS4u",
+        "courierTransmissionDate": 1767166364000,
+        "courierTransmissionPlanningDate": 1767166364000,
+        "waybillNumber": "335997599",
+        "express": true,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "772031105",
+      "orderId": "NzcyMDMxMTA1",
+      "totalPrice": 249700,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767161909283,
+      "deliveryMode": "DELIVERY_PICKUP",
+      "customer": {
+        "id": "Nzc3Mjc5NDU4Mw",
+        "name": "Макпал",
+        "cellPhone": "7772794583",
+        "firstName": "Макпал",
+        "lastName": "Б"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 249700,
+          "basePrice": 249700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "769309536",
+      "orderId": "NzY5MzA5NTM2",
+      "totalPrice": 38200,
+      "deliveryCostForSeller": 1903,
+      "creationDate": 1766916993175,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "Гранитная",
+        "streetNumber": "13",
+        "town": "Аршалы",
+        "district": null,
+        "building": null,
+        "apartment": "2",
+        "formattedAddress": "Аршалы, Гранитная, 13, 2",
+        "latitude": null,
+        "longitude": null
+      },
+      "customer": {
+        "id": "NzAxODE0ODY0NA",
+        "name": "Людмила",
+        "cellPhone": "7018148644",
+        "firstName": "Людмила",
+        "lastName": "М"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38200,
+          "basePrice": 38200
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/dHlJVjJpVUF1RVB2WHRUNlB2dkx4US4uNWFTM3RHVXBwS0E5NG9Zek92UHZWZy4u",
+        "courierTransmissionDate": 1767011666000,
+        "courierTransmissionPlanningDate": 1767011666000,
+        "waybillNumber": "335525979",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "769035838",
+      "orderId": "NzY5MDM1ODM4",
+      "totalPrice": 38000,
+      "deliveryCostForSeller": 4031,
+      "creationDate": 1766902779173,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Сейфуллина",
+        "streetNumber": "108",
+        "town": "Аягоз",
+        "district": null,
+        "building": null,
+        "apartment": "124A",
+        "formattedAddress": "Аягоз, улица Сейфуллина, 108, 124A",
+        "latitude": 47.98036858408719,
+        "longitude": 80.43453729850914
+      },
+      "customer": {
+        "id": "NzQ3OTIzNjQ3OQ",
+        "name": "Айгерім",
+        "cellPhone": "7479236479",
+        "firstName": "Айгерім",
+        "lastName": "А"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38000,
+          "basePrice": 38000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/bzBETXZMb0dfQnUwZ1JxYnBkeUJGUS4ucG5RdEhzQXNjZUVyV0c2dU5xQnJWUS4u",
+        "courierTransmissionDate": 1767011668000,
+        "courierTransmissionPlanningDate": 1767011668000,
+        "waybillNumber": "335526859",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "768026513",
+      "orderId": "NzY4MDI2NTEz",
+      "totalPrice": 38000,
+      "deliveryCostForSeller": 4031,
+      "creationDate": 1766824375677,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "проспект Мангилик Ел",
+        "streetNumber": "66/1",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "Подъезд 2, квартира 240",
+        "formattedAddress": "Астана, проспект Мангилик Ел, 66/1, Подъезд 2, квартира 240",
+        "latitude": 51.078584,
+        "longitude": 71.422883
+      },
+      "customer": {
+        "id": "NzAxNzA1MjEzMA",
+        "name": "Гаухар",
+        "cellPhone": "7017052130",
+        "firstName": "Гаухар",
+        "lastName": "У"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38000,
+          "basePrice": 38000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/U1BmSzloOGczZkdaajJWVTgxbkhhUS4ubmZLVEY4WTFLYnJ0UlpMQUdxUFMzZy4u",
+        "courierTransmissionDate": 1767011669000,
+        "courierTransmissionPlanningDate": 1767011669000,
+        "waybillNumber": "335526080",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "772251223",
+      "orderId": "NzcyMjUxMjIz",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767180951349,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "проспект Сакена Сейфуллина",
+        "streetNumber": "574/1к3",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "9-го этаж, кв. 24 (Central Avenue)",
+        "formattedAddress": "Алматы, проспект Сакена Сейфуллина, 574/1к3, 9-го этаж, кв. 24 (Central Avenue)",
+        "latitude": 43.23075166879465,
+        "longitude": 76.93887988141243
+      },
+      "customer": {
+        "id": "NzA4MDAxMjQ4MA",
+        "name": "Yong Hee",
+        "cellPhone": "7080012480",
+        "firstName": "Yong Hee",
+        "lastName": "Y"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "771771111",
+      "orderId": "NzcxNzcxMTEx",
+      "totalPrice": 79000,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767120224624,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Утепова",
+        "streetNumber": "29",
+        "town": "Усть-Каменогорск",
+        "district": null,
+        "building": null,
+        "apartment": "136 кв. 2 этаж",
+        "formattedAddress": "Усть-Каменогорск, улица Утепова, 29, 136 кв. 2 этаж",
+        "latitude": 49.90049,
+        "longitude": 82.613314
+      },
+      "customer": {
+        "id": "Nzc3MTUxOTEyMg",
+        "name": "Асель",
+        "cellPhone": "7771519122",
+        "firstName": "Асель",
+        "lastName": "Ж"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 79000,
+          "basePrice": 79000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": null,
+        "courierTransmissionDate": null,
+        "courierTransmissionPlanningDate": 1767267961282,
+        "waybillNumber": null,
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "768237232",
+      "orderId": "NzY4MjM3MjMy",
+      "totalPrice": 159000,
+      "deliveryCostForSeller": 1455,
+      "creationDate": 1766834894316,
+      "deliveryMode": "DELIVERY_PICKUP",
+      "customer": {
+        "id": "NzAxOTkzMTQxOA",
+        "name": "Жанна",
+        "cellPhone": "7019931418",
+        "firstName": "Жанна",
+        "lastName": "Д"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 159000,
+          "basePrice": 159000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/TUF5V2pQN3JPNjFjN0g4TDhrYWhxdy4ubUdjeTVmUzZsaWUyaURZRDFkMHJGUS4u",
+        "courierTransmissionDate": 1767011676000,
+        "courierTransmissionPlanningDate": 1767011676000,
+        "waybillNumber": "335526455",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "768259222",
+      "orderId": "NzY4MjU5MjIy",
+      "totalPrice": 79000,
+      "deliveryCostForSeller": 1903,
+      "creationDate": 1766835968770,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Жибек жолы",
+        "streetNumber": "3",
+        "town": "Усть-Каменогорск",
+        "district": null,
+        "building": null,
+        "apartment": "77",
+        "formattedAddress": "Усть-Каменогорск, улица Жибек жолы, 3, 77",
+        "latitude": 49.92961,
+        "longitude": 82.616
+      },
+      "customer": {
+        "id": "NzA1NTA0Mjc2Nw",
+        "name": "Алла",
+        "cellPhone": "7055042767",
+        "firstName": "Алла",
+        "lastName": "М"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 79000,
+          "basePrice": 79000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/RkU0RkZjMFk1M09xOTNUTDJyekd3US4uWDBNT3dBRWo0SXczd016VlNiWHotUS4u",
+        "courierTransmissionDate": 1767093446000,
+        "courierTransmissionPlanningDate": 1767093446000,
+        "waybillNumber": "335873627",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "769608687",
+      "orderId": "NzY5NjA4Njg3",
+      "totalPrice": 64500,
+      "deliveryCostForSeller": 1903,
+      "creationDate": 1766934326710,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "5-й микрорайон",
+        "streetNumber": "3",
+        "town": "Риддер",
+        "district": null,
+        "building": null,
+        "apartment": "25",
+        "formattedAddress": "Риддер, 5-й микрорайон, 3, 25",
+        "latitude": 50.323007,
+        "longitude": 83.506571
+      },
+      "customer": {
+        "id": "Nzc3NzQyMTUxNQ",
+        "name": "Алексей",
+        "cellPhone": "7777421515",
+        "firstName": "Алексей",
+        "lastName": "К"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 64500,
+          "basePrice": 64500
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/cGt0MXQ0Vy1yYW5POTFqWW1QUmdjQS4uX2wxUnhubFdxQXFzbDBfbE1xemVvUS4u",
+        "courierTransmissionDate": 1767093435000,
+        "courierTransmissionPlanningDate": 1767093435000,
+        "waybillNumber": "335874040",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "773147201",
+      "orderId": "NzczMTQ3MjAx",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 3653,
+      "creationDate": 1767296606140,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "жилой комплекс Солнечная долина",
+        "streetNumber": "157/11",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "З4",
+        "formattedAddress": "Алматы, жилой комплекс Солнечная долина, 157/11, З4",
+        "latitude": 43.187582,
+        "longitude": 76.869144
+      },
+      "customer": {
+        "id": "NzAxOTc3MTEwMA",
+        "name": "Акбубек",
+        "cellPhone": "7019771100",
+        "firstName": "Акбубек",
+        "lastName": "К"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/eGRSVGRHSDV2VWhBc2JENU1PVW9RQS4uVkttWFlpcWdmOXF4bzJlOGhMRk5UQS4u",
+        "courierTransmissionDate": null,
+        "courierTransmissionPlanningDate": 1767345072893,
+        "waybillNumber": "336442141",
+        "express": true,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "769380183",
+      "orderId": "NzY5MzgwMTgz",
+      "totalPrice": 79000,
+      "deliveryCostForSeller": 1903,
+      "creationDate": 1766920495562,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Баздырева",
+        "streetNumber": "33",
+        "town": "Семей",
+        "district": null,
+        "building": null,
+        "apartment": "59",
+        "formattedAddress": "Семей, улица Баздырева, 33, 59",
+        "latitude": 50.385193,
+        "longitude": 80.235769
+      },
+      "customer": {
+        "id": "Nzc3OTk0ODY4Ng",
+        "name": "Куат",
+        "cellPhone": "7779948686",
+        "firstName": "Куат",
+        "lastName": "М"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 79000,
+          "basePrice": 79000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/dlp1UEpYZURHUzdDNTVVM2RGbmlDdy4uNldiRnpIeDZhZ0hlMW96UWZHTWxSdy4u",
+        "courierTransmissionDate": 1767093450000,
+        "courierTransmissionPlanningDate": 1767093450000,
+        "waybillNumber": "335873889",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "773481259",
+      "orderId": "NzczNDgxMjU5",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767345176195,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "жилой комплекс Солнечная долина",
+        "streetNumber": "157/11",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "З4",
+        "formattedAddress": "Алматы, жилой комплекс Солнечная долина, 157/11, З4",
+        "latitude": 43.187582,
+        "longitude": 76.869144
+      },
+      "customer": {
+        "id": "NzAxOTc3MTEwMA",
+        "name": "Акбубек",
+        "cellPhone": "7019771100",
+        "firstName": "Акбубек",
+        "lastName": "К"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "770483797",
+      "orderId": "NzcwNDgzNzk3",
+      "totalPrice": 119700,
+      "deliveryCostForSeller": 4031,
+      "creationDate": 1767012426030,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Ахмета Байтурсынова",
+        "streetNumber": "67",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "Кв 30",
+        "formattedAddress": "Астана, улица Ахмета Байтурсынова, 67, Кв 30",
+        "latitude": 51.113632,
+        "longitude": 71.542332
+      },
+      "customer": {
+        "id": "Nzc1MzMzMTU1NQ",
+        "name": "Айгерім",
+        "cellPhone": "7753331555",
+        "firstName": "Айгерім",
+        "lastName": "М"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 119700,
+          "basePrice": 119700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/TVdVN2VtTXJZYVVmLXRjNFdraDFGQS4ueEpXOFdQdmZGRnJrUEJLc2I1Ym4yUS4u",
+        "courierTransmissionDate": 1767093458000,
+        "courierTransmissionPlanningDate": 1767093458000,
+        "waybillNumber": "335874240",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "770622416",
+      "orderId": "NzcwNjIyNDE2",
+      "totalPrice": 64500,
+      "deliveryCostForSeller": 1903,
+      "creationDate": 1767022496770,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Чингиза Айтматова",
+        "streetNumber": "62/1",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "233",
+        "formattedAddress": "Астана, улица Чингиза Айтматова, 62/1, 233",
+        "latitude": 51.161285,
+        "longitude": 71.376018
+      },
+      "customer": {
+        "id": "Nzc1MzUwODUwMg",
+        "name": "Галия",
+        "cellPhone": "7753508502",
+        "firstName": "Галия",
+        "lastName": "Б"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 64500,
+          "basePrice": 64500
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/WlgzMFBDbzF3SzUwa2locnZyRkNpQS4ud0w3Y20yRm9mMzN1S0lET2pOWEc4QS4u",
+        "courierTransmissionDate": 1767093453000,
+        "courierTransmissionPlanningDate": 1767093453000,
+        "waybillNumber": "335874319",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "770300644",
+      "orderId": "NzcwMzAwNjQ0",
+      "totalPrice": 38200,
+      "deliveryCostForSeller": 1903,
+      "creationDate": 1767000060252,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "14-й микрорайон",
+        "streetNumber": "35",
+        "town": "Караганда",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Караганда, 14-й микрорайон, 35",
+        "latitude": 49.887573,
+        "longitude": 73.21292
+      },
+      "customer": {
+        "id": "NzA3NDcxNjE4OQ",
+        "name": "Наталья",
+        "cellPhone": "7074716189",
+        "firstName": "Наталья",
+        "lastName": "В"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38200,
+          "basePrice": 38200
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/b2NSX2lXTmtQY1Nwc1h1X3ctSko5dy4uS09LZHk2NDczZGhZelZqcHJoM19mZy4u",
+        "courierTransmissionDate": 1767093428000,
+        "courierTransmissionPlanningDate": 1767093428000,
+        "waybillNumber": "335874120",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "772605431",
+      "orderId": "NzcyNjA1NDMx",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767251196521,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Солодовникова",
+        "streetNumber": "3/140",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "12",
+        "formattedAddress": "Алматы, улица Солодовникова, 3/140, 12",
+        "latitude": 43.23401,
+        "longitude": 76.9016
+      },
+      "customer": {
+        "id": "Nzc3MzY1NDQ0NQ",
+        "name": "Бахадур",
+        "cellPhone": "7773654445",
+        "firstName": "Бахадур",
+        "lastName": "А"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "772237122",
+      "orderId": "NzcyMjM3MTIy",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767179188024,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "микрорайон Калкаман-2, улица Саурык Батыра",
+        "streetNumber": "51",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Алматы, микрорайон Калкаман-2, улица Саурык Батыра, 51",
+        "latitude": 43.206278771564726,
+        "longitude": 76.80681040587262
+      },
+      "customer": {
+        "id": "NzcxNDE4MzEwNw",
+        "name": "Ерасыл",
+        "cellPhone": "7714183107",
+        "firstName": "Ерасыл",
+        "lastName": "Қ"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "773961562",
+      "orderId": "NzczOTYxNTYy",
+      "totalPrice": 249700,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767377230966,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "микрорайон Орбита-2",
+        "streetNumber": "12",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "64",
+        "formattedAddress": "Алматы, микрорайон Орбита-2, 12, 64",
+        "latitude": 43.19516,
+        "longitude": 76.885862
+      },
+      "customer": {
+        "id": "NzA1NTU1NTgwMA",
+        "name": "Марлен",
+        "cellPhone": "7055555800",
+        "firstName": "Марлен",
+        "lastName": "А"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 249700,
+          "basePrice": 249700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "774287278",
+      "orderId": "Nzc0Mjg3Mjc4",
+      "totalPrice": 38200,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767422756490,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Толе би",
+        "streetNumber": "5",
+        "town": "Каскелен",
+        "district": null,
+        "building": null,
+        "apartment": "Дом 5 кВ 90 этаж 3 подъезд 7",
+        "formattedAddress": "Каскелен, улица Толе би, 5, Дом 5 кВ 90 этаж 3 подъезд 7",
+        "latitude": 43.200497,
+        "longitude": 76.625458
+      },
+      "customer": {
+        "id": "NzA1OTE1NjIyNQ",
+        "name": "Камилла",
+        "cellPhone": "7059156225",
+        "firstName": "Камилла",
+        "lastName": "С"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38200,
+          "basePrice": 38200
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": null,
+        "courierTransmissionDate": null,
+        "courierTransmissionPlanningDate": 1767422872270,
+        "waybillNumber": null,
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "772227671",
+      "orderId": "NzcyMjI3Njcx",
+      "totalPrice": 159000,
+      "deliveryCostForSeller": 1507,
+      "creationDate": 1767178779694,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "Әйтеке би",
+        "streetNumber": "142",
+        "town": "Шалкар (Актюб.обл)",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Шалкар (Актюб.обл), Әйтеке би, 142",
+        "latitude": null,
+        "longitude": null
+      },
+      "customer": {
+        "id": "Nzc4ODA2NDEwOA",
+        "name": "Бахытгул",
+        "cellPhone": "7788064108",
+        "firstName": "Бахытгул",
+        "lastName": "Б"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 159000,
+          "basePrice": 159000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/aFZHaFEwQ0pGVm1YbnFYSWVfdWdNUS4uWU5JcFltWVVtUmQ3MGw1SGNDUGo1QS4u",
+        "courierTransmissionDate": null,
+        "courierTransmissionPlanningDate": 1767433664120,
+        "waybillNumber": "336728401",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "774360625",
+      "orderId": "Nzc0MzYwNjI1",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 3653,
+      "creationDate": 1767428001500,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "микрорайон Аксай-5",
+        "streetNumber": "25",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "КВ 199,корпус 6 ,этаж 10",
+        "formattedAddress": "Алматы, микрорайон Аксай-5, 25, КВ 199,корпус 6 ,этаж 10",
+        "latitude": 43.231757,
+        "longitude": 76.832197
+      },
+      "customer": {
+        "id": "NzA3MDIyODA4MA",
+        "name": "Ангелина",
+        "cellPhone": "7070228080",
+        "firstName": "Ангелина",
+        "lastName": "С"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/VFQzRUNONlpHYU9zVE1sNXl0UXVnQS4ueGlmT2dzeWRHckIxM0wzUXR0WjJzZy4u",
+        "courierTransmissionDate": 1767441923000,
+        "courierTransmissionPlanningDate": 1767441923000,
+        "waybillNumber": "337047192",
+        "express": true,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "772805942",
+      "orderId": "NzcyODA1OTQy",
+      "totalPrice": 119700,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767269879177,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "микрорайон Аксай-4",
+        "streetNumber": "119",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "145 кв 3 подьезд",
+        "formattedAddress": "Алматы, микрорайон Аксай-4, 119, 145 кв 3 подьезд",
+        "latitude": 43.230069,
+        "longitude": 76.841818
+      },
+      "customer": {
+        "id": "NzAxNjE2NjI5Nw",
+        "name": "Данэля",
+        "cellPhone": "7016166297",
+        "firstName": "Данэля",
+        "lastName": "М"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 119700,
+          "basePrice": 119700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "770905862",
+      "orderId": "NzcwOTA1ODYy",
+      "totalPrice": 57800,
+      "deliveryCostForSeller": 1455,
+      "creationDate": 1767044758048,
+      "deliveryMode": "DELIVERY_PICKUP",
+      "customer": {
+        "id": "Nzc3MjYzOTIwMA",
+        "name": "Бағдар",
+        "cellPhone": "7772639200",
+        "firstName": "Бағдар",
+        "lastName": "Н"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 57800,
+          "basePrice": 57800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/TW9qMUlyT1pfNlZuSUhNVWdiLXQzZy4uTG5mdUZmRDZVZzNvXzNNOTQ5MVJsQS4u",
+        "courierTransmissionDate": 1767093438000,
+        "courierTransmissionPlanningDate": 1767093438000,
+        "waybillNumber": "335874369",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "775511439",
+      "orderId": "Nzc1NTExNDM5",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767525902140,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Калижана Бекхожина",
+        "streetNumber": "15А",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "221",
+        "formattedAddress": "Алматы, улица Калижана Бекхожина, 15А, 221",
+        "latitude": 43.24617343691513,
+        "longitude": 76.9656117034142
+      },
+      "customer": {
+        "id": "NzA3Njg4MDk4Ng",
+        "name": "Мурат",
+        "cellPhone": "7076880986",
+        "firstName": "Мурат",
+        "lastName": "Х"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "774286849",
+      "orderId": "Nzc0Mjg2ODQ5",
+      "totalPrice": 38200,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767422985729,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "микрорайон Горный Гигант, улица Василия Шукшина",
+        "streetNumber": "71",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "20",
+        "formattedAddress": "Алматы, микрорайон Горный Гигант, улица Василия Шукшина, 71, 20",
+        "latitude": 43.21718,
+        "longitude": 76.941171
+      },
+      "customer": {
+        "id": "NzA1OTE1NjIyNQ",
+        "name": "Камилла",
+        "cellPhone": "7059156225",
+        "firstName": "Камилла",
+        "lastName": "С"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38200,
+          "basePrice": 38200
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "772648268",
+      "orderId": "NzcyNjQ4MjY4",
+      "totalPrice": 64500,
+      "deliveryCostForSeller": 1903,
+      "creationDate": 1767255556947,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "проспект Сатпаева",
+        "streetNumber": "74",
+        "town": "Усть-Каменогорск",
+        "district": null,
+        "building": null,
+        "apartment": "46",
+        "formattedAddress": "Усть-Каменогорск, проспект Сатпаева, 74, 46",
+        "latitude": 49.913428,
+        "longitude": 82.627552
+      },
+      "customer": {
+        "id": "Nzc3ODU1NTk1NA",
+        "name": "Алия",
+        "cellPhone": "7778555954",
+        "firstName": "Алия",
+        "lastName": "З"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 64500,
+          "basePrice": 64500
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/OTE5VEt1VWx5NUFnamU3TDRQSmN3QS4ueWI4SnNQbFdqdlVNTjdQN3F6YmNhQS4u",
+        "courierTransmissionDate": 1767444935000,
+        "courierTransmissionPlanningDate": 1767444935000,
+        "waybillNumber": "336892211",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": "9"
+      }
+    },
+    {
+      "code": "770384831",
+      "orderId": "NzcwMzg0ODMx",
+      "totalPrice": 94350,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767005444546,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Владимира Радостовца",
+        "streetNumber": "333А",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Алматы, улица Владимира Радостовца, 333А",
+        "latitude": 43.20779288849729,
+        "longitude": 76.89556340608242
+      },
+      "customer": {
+        "id": "NzAxNzc3MTcwNQ",
+        "name": "Арслан",
+        "cellPhone": "7017771705",
+        "firstName": "Арслан",
+        "lastName": "Н"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 94350,
+          "basePrice": 94350
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": true
+    },
+    {
+      "code": "769391158",
+      "orderId": "NzY5MzkxMTU4",
+      "totalPrice": 56800,
+      "deliveryCostForSeller": 1903,
+      "creationDate": 1766921161153,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Шакшак Жанибек батыра",
+        "streetNumber": "45Г",
+        "town": "Костанай",
+        "district": null,
+        "building": null,
+        "apartment": "164",
+        "formattedAddress": "Костанай, улица Шакшак Жанибек батыра, 45Г, 164",
+        "latitude": 53.216691,
+        "longitude": 63.570521
+      },
+      "customer": {
+        "id": "NzA3ODA4NjY5Ng",
+        "name": "Саят",
+        "cellPhone": "7078086696",
+        "firstName": "Саят",
+        "lastName": "Ж"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 56800,
+          "basePrice": 56800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/ZUY1RlctMERUUEt5UGQzTF9UU3JuUS4uX01aeHBzMWdtWnZuTXpZQjFaTGZmQS4u",
+        "courierTransmissionDate": 1767093455000,
+        "courierTransmissionPlanningDate": 1767093455000,
+        "waybillNumber": "335873940",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "770397641",
+      "orderId": "NzcwMzk3NjQx",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 4031,
+      "creationDate": 1767006219872,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Затаевича",
+        "streetNumber": "31",
+        "town": "Семей",
+        "district": null,
+        "building": null,
+        "apartment": "87",
+        "formattedAddress": "Семей, улица Затаевича, 31, 87",
+        "latitude": 50.393326,
+        "longitude": 80.231934
+      },
+      "customer": {
+        "id": "NzQ3MjI0NTQ3Nw",
+        "name": "Баян",
+        "cellPhone": "7472245477",
+        "firstName": "Баян",
+        "lastName": "Ж"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/RUNIbWJqN0QybURlZ1RhdXdvOVA3US4uQUgzZFlhbHdRMmlfR3NQR2hteWRPZy4u",
+        "courierTransmissionDate": 1767331298000,
+        "courierTransmissionPlanningDate": 1767331298000,
+        "waybillNumber": "335874167",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "774687055",
+      "orderId": "Nzc0Njg3MDU1",
+      "totalPrice": 159000,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767448539398,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "микрорайон Водник-2",
+        "streetNumber": "53",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "5",
+        "formattedAddress": "Алматы, микрорайон Водник-2, 53, 5",
+        "latitude": 43.367781,
+        "longitude": 76.858921
+      },
+      "customer": {
+        "id": "NzA3NzQwMzU2NA",
+        "name": "Ольга",
+        "cellPhone": "7077403564",
+        "firstName": "Ольга",
+        "lastName": "Х"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 159000,
+          "basePrice": 159000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "771961180",
+      "orderId": "NzcxOTYxMTgw",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 4175,
+      "creationDate": 1767155118025,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "проспект Туран",
+        "streetNumber": "41А",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "69",
+        "formattedAddress": "Астана, проспект Туран, 41А, 69",
+        "latitude": 51.125527,
+        "longitude": 71.403048
+      },
+      "customer": {
+        "id": "NzA1NTI4MTAxMg",
+        "name": "Анипа",
+        "cellPhone": "7055281012",
+        "firstName": "Анипа",
+        "lastName": "А"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/ZTNhbUlXSkk4R3BHU2RRVkllb004Zy4uaDIwVnpwbHIxYzM3RHpwd3lhT3lwUS4u",
+        "courierTransmissionDate": 1767416181000,
+        "courierTransmissionPlanningDate": 1767416181000,
+        "waybillNumber": "336727462",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "771998671",
+      "orderId": "NzcxOTk4Njcx",
+      "totalPrice": 249700,
+      "deliveryCostForSeller": 4175,
+      "creationDate": 1767159526614,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "Валиханова",
+        "streetNumber": "29",
+        "town": "Молодёжный",
+        "district": null,
+        "building": null,
+        "apartment": "2",
+        "formattedAddress": "Молодёжный, Валиханова, 29, 2",
+        "latitude": null,
+        "longitude": null
+      },
+      "customer": {
+        "id": "NzA1OTc5NDIwMQ",
+        "name": "Ирина",
+        "cellPhone": "7059794201",
+        "firstName": "Ирина",
+        "lastName": "Г"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 249700,
+          "basePrice": 249700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/MXBOclBhdS0tX1Vja1oyMDlTbXl5QS4uZVVzaER0UzJuNXlYcUVfYml1WU9SQS4u",
+        "courierTransmissionDate": 1767434117000,
+        "courierTransmissionPlanningDate": 1767434117000,
+        "waybillNumber": "336891203",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "768955833",
+      "orderId": "NzY4OTU1ODMz",
+      "totalPrice": 79000,
+      "deliveryCostForSeller": 1903,
+      "creationDate": 1766897027985,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "11 микрорайон",
+        "streetNumber": "5 дом",
+        "town": "Житикара",
+        "district": null,
+        "building": null,
+        "apartment": "42 квартира",
+        "formattedAddress": "Житикара, 11 микрорайон, 5 дом, 42 квартира",
+        "latitude": null,
+        "longitude": null
+      },
+      "customer": {
+        "id": "NzQ3NzU3MzUyMA",
+        "name": "Самат",
+        "cellPhone": "7477573520",
+        "firstName": "Самат",
+        "lastName": "Н"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 79000,
+          "basePrice": 79000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/Rl9xVkpNNXJBUjFzNGh5WldlZ1NDZy4ua0V1N0ZyaW9tZmE4bDZEMFByTU5OUS4u",
+        "courierTransmissionDate": 1767093462000,
+        "courierTransmissionPlanningDate": 1767093462000,
+        "waybillNumber": "335873776",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "771989437",
+      "orderId": "NzcxOTg5NDM3",
+      "totalPrice": 249700,
+      "deliveryCostForSeller": 4175,
+      "creationDate": 1767158546819,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "проспект Металлургов",
+        "streetNumber": "10/3",
+        "town": "Темиртау",
+        "district": null,
+        "building": null,
+        "apartment": "50",
+        "formattedAddress": "Темиртау, проспект Металлургов, 10/3, 50",
+        "latitude": 50.061508,
+        "longitude": 72.966917
+      },
+      "customer": {
+        "id": "Nzc4MTg0MDM1Nw",
+        "name": "Олег",
+        "cellPhone": "7781840357",
+        "firstName": "Олег",
+        "lastName": "Ч"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 249700,
+          "basePrice": 249700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/a2tqajJFXzNra0FEZTR5YThVVWtMUS4uXzBBUGtOc2JDVXJpdVNtRUI5dXdwZy4u",
+        "courierTransmissionDate": 1767434120000,
+        "courierTransmissionPlanningDate": 1767434120000,
+        "waybillNumber": "336891022",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "775996870",
+      "orderId": "Nzc1OTk2ODcw",
+      "totalPrice": 38200,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767554372158,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "микрорайон Аксай-5",
+        "streetNumber": "20",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "49",
+        "formattedAddress": "Алматы, микрорайон Аксай-5, 20, 49",
+        "latitude": 43.226358,
+        "longitude": 76.833472
+      },
+      "customer": {
+        "id": "NzAyMjM1MjMyNA",
+        "name": "Асия",
+        "cellPhone": "7022352324",
+        "firstName": "Асия",
+        "lastName": "А"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38200,
+          "basePrice": 38200
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "772777061",
+      "orderId": "NzcyNzc3MDYx",
+      "totalPrice": 38200,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767267096312,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Назыра Торекулова",
+        "streetNumber": "95/1",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "197 (3 подъезд)",
+        "formattedAddress": "Алматы, улица Назыра Торекулова, 95/1, 197 (3 подъезд)",
+        "latitude": 43.266823,
+        "longitude": 76.928685
+      },
+      "customer": {
+        "id": "NzAxOTU5MjI2MA",
+        "name": "Әсем",
+        "cellPhone": "7019592260",
+        "firstName": "Әсем",
+        "lastName": "Д"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38200,
+          "basePrice": 38200
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "773957553",
+      "orderId": "NzczOTU3NTUz",
+      "totalPrice": 38200,
+      "deliveryCostForSeller": 1971,
+      "creationDate": 1767376868222,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Бейбитшилик",
+        "streetNumber": "60",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Астана, улица Бейбитшилик, 60",
+        "latitude": 51.18651,
+        "longitude": 71.415975
+      },
+      "customer": {
+        "id": "Nzc2NzE2MjM5MA",
+        "name": "Нургуль",
+        "cellPhone": "7767162390",
+        "firstName": "Нургуль",
+        "lastName": "С"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38200,
+          "basePrice": 38200
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/LVdhY2dRc2tFa184eEtzZmM1emhRQS4uNGFXMkczOEdMaGE4Vk9YNWVZUnFUZy4u",
+        "courierTransmissionDate": 1767444933000,
+        "courierTransmissionPlanningDate": 1767444933000,
+        "waybillNumber": "336892313",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "773904554",
+      "orderId": "NzczOTA0NTU0",
+      "totalPrice": 57800,
+      "deliveryCostForSeller": 1507,
+      "creationDate": 1767373501691,
+      "deliveryMode": "DELIVERY_PICKUP",
+      "customer": {
+        "id": "Nzc3ODIzODczNw",
+        "name": "Элмурад",
+        "cellPhone": "7778238737",
+        "firstName": "Элмурад",
+        "lastName": "М"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 57800,
+          "basePrice": 57800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/ZUtjUkt6UzJfUEVsNkNQNHNfZkE0QS4uNWt4b1pzVFFVN1hwSHJlVGEtV01sQS4u",
+        "courierTransmissionDate": 1767434121000,
+        "courierTransmissionPlanningDate": 1767434121000,
+        "waybillNumber": "336728357",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "772843960",
+      "orderId": "NzcyODQzOTYw",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 4175,
+      "creationDate": 1767273369415,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "Есильский район, проспект Аль-Фараби",
+        "streetNumber": "30/1",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "88",
+        "formattedAddress": "Астана, Есильский район, проспект Аль-Фараби, 30/1, 88",
+        "latitude": 51.09016,
+        "longitude": 71.450614
+      },
+      "customer": {
+        "id": "NzA3NDU4NTU0NA",
+        "name": "Даурен",
+        "cellPhone": "7074585544",
+        "firstName": "Даурен",
+        "lastName": "И"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/MDZHZEgxNVVVWTlJdVVmX1U0NTktQS4uc2ktMUJKMHV4WFFvWnFSX2ZfZzE1QS4u",
+        "courierTransmissionDate": 1767416177000,
+        "courierTransmissionPlanningDate": 1767416177000,
+        "waybillNumber": "336728165",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "778391312",
+      "orderId": "Nzc4MzkxMzEy",
+      "totalPrice": 38200,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767760374983,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Инабат",
+        "streetNumber": "9А",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Алматы, улица Инабат, 9А",
+        "latitude": 43.267368,
+        "longitude": 76.797171
+      },
+      "customer": {
+        "id": "NzA3Nzg2NTY4NA",
+        "name": "Александра",
+        "cellPhone": "7077865684",
+        "firstName": "Александра",
+        "lastName": "К"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38200,
+          "basePrice": 38200
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "777426579",
+      "orderId": "Nzc3NDI2NTc5",
+      "totalPrice": 48000,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767683571933,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Богенбай Батыра",
+        "streetNumber": "121",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "35",
+        "formattedAddress": "Алматы, улица Богенбай Батыра, 121, 35",
+        "latitude": 43.253383,
+        "longitude": 76.946139
+      },
+      "customer": {
+        "id": "Nzc3MjE1MTM4NA",
+        "name": "Игорь",
+        "cellPhone": "7772151384",
+        "firstName": "Игорь",
+        "lastName": "П"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 48000,
+          "basePrice": 48000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "773443008",
+      "orderId": "NzczNDQzMDA4",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 4175,
+      "creationDate": 1767342593657,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "микрорайон Нурсая, проспект Елорда",
+        "streetNumber": "6Бблок7",
+        "town": "Атырау",
+        "district": null,
+        "building": null,
+        "apartment": "49",
+        "formattedAddress": "Атырау, микрорайон Нурсая, проспект Елорда, 6Бблок7, 49",
+        "latitude": 47.11447980088561,
+        "longitude": 51.84485910387339
+      },
+      "customer": {
+        "id": "NzAxNjIzMTAxMg",
+        "name": "Әлібек",
+        "cellPhone": "7016231012",
+        "firstName": "Әлібек",
+        "lastName": "Е"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/NW5zMjdMb2l2SXNLeVNSX3FRTGN6dy4uTE5IRHg5Si1RdzZMVFoxOHVGa1VGdy4u",
+        "courierTransmissionDate": 1767416185000,
+        "courierTransmissionPlanningDate": 1767416185000,
+        "waybillNumber": "336728292",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "777952764",
+      "orderId": "Nzc3OTUyNzY0",
+      "totalPrice": 38200,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767713628916,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "Турксибский район, Бухтарминская улица",
+        "streetNumber": "153/53блок10",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "Блок 10 подъезд 1 квартира 17",
+        "formattedAddress": "Алматы, Турксибский район, Бухтарминская улица, 153/53блок10, Блок 10 подъезд 1 квартира 17",
+        "latitude": 43.321468,
+        "longitude": 77.019325
+      },
+      "customer": {
+        "id": "NzcxODQ4ODQ4NQ",
+        "name": "Екатерина",
+        "cellPhone": "7718488485",
+        "firstName": "Екатерина",
+        "lastName": "П"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38200,
+          "basePrice": 38200
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "778099647",
+      "orderId": "Nzc4MDk5NjQ3",
+      "totalPrice": 57800,
+      "deliveryCostForSeller": 1971,
+      "creationDate": 1767721439872,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Чайковского",
+        "streetNumber": "170",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "All Saints",
+        "formattedAddress": "Алматы, улица Чайковского, 170, All Saints",
+        "latitude": 43.248629,
+        "longitude": 76.939051
+      },
+      "customer": {
+        "id": "NzQ3MTcwOTE3MQ",
+        "name": "Елена",
+        "cellPhone": "7471709171",
+        "firstName": "Елена",
+        "lastName": "Г"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 57800,
+          "basePrice": 57800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/NXRWYjN6dnhNcEd4MDRMOFUzcm9mQS4uLVRTa3daZWlaYm9aLVBTSzFKckdHUS4u",
+        "courierTransmissionDate": 1767783904000,
+        "courierTransmissionPlanningDate": 1767783904000,
+        "waybillNumber": "338989014",
+        "express": true,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "778802114",
+      "orderId": "Nzc4ODAyMTE0",
+      "totalPrice": 159000,
+      "deliveryCostForSeller": 1971,
+      "creationDate": 1767785423087,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "Спасская улица",
+        "streetNumber": "61",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "77 (8 подъезд, угловой в правой части дома)",
+        "formattedAddress": "Алматы, Спасская улица, 61, 77 (8 подъезд, угловой в правой части дома)",
+        "latitude": 43.355793,
+        "longitude": 76.951502
+      },
+      "customer": {
+        "id": "NzA3OTU1NTQ4OQ",
+        "name": "Денис",
+        "cellPhone": "7079555489",
+        "firstName": "Денис",
+        "lastName": "М"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 159000,
+          "basePrice": 159000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/UHl3eHR2VzlmMXdFVWhPSFI5NmhPZy4uV1dIVlEzZXdnUGk3VUhhTUFmd0RCUS4u",
+        "courierTransmissionDate": 1767787170000,
+        "courierTransmissionPlanningDate": 1767787170000,
+        "waybillNumber": "339421477",
+        "express": true,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "779514818",
+      "orderId": "Nzc5NTE0ODE4",
+      "totalPrice": 249700,
+      "deliveryCostForSeller": 4175,
+      "creationDate": 1767845912085,
+      "plannedDeliveryDate": 1768244390999,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "Некрасова",
+        "streetNumber": "25",
+        "town": "Прапорщиково",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Прапорщиково, Некрасова, 25",
+        "latitude": null,
+        "longitude": null
+      },
+      "customer": {
+        "id": "Nzc3OTgxNTkxMQ",
+        "name": "Анастасия",
+        "cellPhone": "7779815911",
+        "firstName": "Анастасия",
+        "lastName": "М"
+      },
+      "state": "KASPI_DELIVERY",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 249700,
+          "basePrice": 249700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/UmpRZkRKXy0xcjNjSHZfOGR5LVlyQS4uUW1YUkZndWIzTFI0bEQtTWZQeml3QS4u",
+        "courierTransmissionDate": 1767865782000,
+        "courierTransmissionPlanningDate": 1767865782000,
+        "waybillNumber": "339875071",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "778594802",
+      "orderId": "Nzc4NTk0ODAy",
+      "totalPrice": 249700,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767774802722,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Навои",
+        "streetNumber": "7",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "276",
+        "formattedAddress": "Алматы, улица Навои, 7, 276",
+        "latitude": 43.218245,
+        "longitude": 76.880364
+      },
+      "customer": {
+        "id": "NzAxNzUxMTk2NQ",
+        "name": "Ирина",
+        "cellPhone": "7017511965",
+        "firstName": "Ирина",
+        "lastName": "Х"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 249700,
+          "basePrice": 249700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "774923742",
+      "orderId": "Nzc0OTIzNzQy",
+      "totalPrice": 38200,
+      "deliveryCostForSeller": 1971,
+      "creationDate": 1767464189136,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Сыганак",
+        "streetNumber": "32",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "4 подъезд, 7 этаж, 155 квартира",
+        "formattedAddress": "Астана, улица Сыганак, 32, 4 подъезд, 7 этаж, 155 квартира",
+        "latitude": 51.127568,
+        "longitude": 71.394164
+      },
+      "customer": {
+        "id": "NzAyMjg5MzMzOA",
+        "name": "Перизат",
+        "cellPhone": "7022893338",
+        "firstName": "Перизат",
+        "lastName": "Ж"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38200,
+          "basePrice": 38200
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/OEJZZG53bzA3NFE1c19kRmZDcldYdy4uMnVDcGlxanduMGZDeS00UXoyTmEwdy4u",
+        "courierTransmissionDate": 1767616489000,
+        "courierTransmissionPlanningDate": 1767616489000,
+        "waybillNumber": "338067918",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "779109095",
+      "orderId": "Nzc5MTA5MDk1",
+      "totalPrice": 249700,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767802404482,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "микрорайон Жетысу-4",
+        "streetNumber": "9",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "3",
+        "formattedAddress": "Алматы, микрорайон Жетысу-4, 9, 3",
+        "latitude": 43.21902,
+        "longitude": 76.837793
+      },
+      "customer": {
+        "id": "NzAxOTg1NDAwNw",
+        "name": "Аминям",
+        "cellPhone": "7019854007",
+        "firstName": "Аминям",
+        "lastName": "С"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 249700,
+          "basePrice": 249700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "776935260",
+      "orderId": "Nzc2OTM1MjYw",
+      "totalPrice": 57800,
+      "deliveryCostForSeller": 1275,
+      "creationDate": 1767632421796,
+      "deliveryMode": "DELIVERY_PICKUP",
+      "customer": {
+        "id": "Nzc3MjkwNDQyMQ",
+        "name": "Юрий",
+        "cellPhone": "7772904421",
+        "firstName": "Юрий",
+        "lastName": "Х"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 57800,
+          "basePrice": 57800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/c19lOTZTMXU0TEFwNG9rZnI2czdYZy4uNzVYVElaeW1Fd2FuWHZ3M1lGUGZSdy4u",
+        "courierTransmissionDate": 1767691118000,
+        "courierTransmissionPlanningDate": 1767691118000,
+        "waybillNumber": "338583820",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "777196449",
+      "orderId": "Nzc3MTk2NDQ5",
+      "totalPrice": 249700,
+      "deliveryCostForSeller": 4175,
+      "creationDate": 1767649041849,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Медеу",
+        "streetNumber": "17",
+        "town": "Каскелен",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Каскелен, улица Медеу, 17",
+        "latitude": 43.18252570962839,
+        "longitude": 76.6130900171969
+      },
+      "customer": {
+        "id": "Nzc1OTE5NzcxMQ",
+        "name": "Гулдария",
+        "cellPhone": "7759197711",
+        "firstName": "Гулдария",
+        "lastName": "Н"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 249700,
+          "basePrice": 249700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/M1V3YzhiTDRfR2s3LUNpSjhZUVZUdy4udlZXMm12a191ODRSUGgzT0Q1Sm4zdy4u",
+        "courierTransmissionDate": 1767691108000,
+        "courierTransmissionPlanningDate": 1767691108000,
+        "waybillNumber": "338584120",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "777779945",
+      "orderId": "Nzc3Nzc5OTQ1",
+      "totalPrice": 159000,
+      "deliveryCostForSeller": 1507,
+      "creationDate": 1767703434322,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Салима Капакова",
+        "streetNumber": "73",
+        "town": "Атырау",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Атырау, улица Салима Капакова, 73",
+        "latitude": 47.078572,
+        "longitude": 51.852007
+      },
+      "customer": {
+        "id": "Nzc4Mzg2Mjk3Ng",
+        "name": "Арай",
+        "cellPhone": "7783862976",
+        "firstName": "Арай",
+        "lastName": "Е"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 159000,
+          "basePrice": 159000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/VTlhRkd0N0lLNk13NkgxWDFweGJvZy4uRTNlNVV3VXVXcTYtM2V2TXcxXzNYdy4u",
+        "courierTransmissionDate": 1767777493000,
+        "courierTransmissionPlanningDate": 1767777493000,
+        "waybillNumber": "339159658",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "774494934",
+      "orderId": "Nzc0NDk0OTM0",
+      "totalPrice": 38000,
+      "deliveryCostForSeller": 6553,
+      "creationDate": 1767436648868,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Жубана Молдагалиева",
+        "streetNumber": "9",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "7 подъезд, 410 квартира",
+        "formattedAddress": "Астана, улица Жубана Молдагалиева, 9, 7 подъезд, 410 квартира",
+        "latitude": 51.125273,
+        "longitude": 71.371841
+      },
+      "customer": {
+        "id": "NzA4NTA2MDA3Nw",
+        "name": "Мөлдір",
+        "cellPhone": "7085060077",
+        "firstName": "Мөлдір",
+        "lastName": "Б"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38000,
+          "basePrice": 38000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/MEFCd3dNaVhDM3d2MVJfZ0tUUkFaQS4ueWJJYnA5UWtEdHJFVExJNnhqNmFqQS4u",
+        "courierTransmissionDate": 1767616488000,
+        "courierTransmissionPlanningDate": 1767616488000,
+        "waybillNumber": "338067787",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "779960295",
+      "orderId": "Nzc5OTYwMjk1",
+      "totalPrice": 9900,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767873761078,
+      "deliveryMode": "DELIVERY_PICKUP",
+      "customer": {
+        "id": "NzA1MjMyMjg3Mw",
+        "name": "Ольга",
+        "cellPhone": "7052322873",
+        "firstName": "Ольга",
+        "lastName": "П"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 9900,
+          "basePrice": 9900
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": null,
+        "courierTransmissionDate": null,
+        "courierTransmissionPlanningDate": 1767885154502,
+        "waybillNumber": null,
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "775355524",
+      "orderId": "Nzc1MzU1NTI0",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 4175,
+      "creationDate": 1767516930521,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Габидена Мустафина",
+        "streetNumber": "13к1",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "кв 1",
+        "formattedAddress": "Астана, улица Габидена Мустафина, 13к1, кв 1",
+        "latitude": 51.154795,
+        "longitude": 71.506885
+      },
+      "customer": {
+        "id": "NzcxMjY0MzEyMQ",
+        "name": "Гульназ",
+        "cellPhone": "7712643121",
+        "firstName": "Гульназ",
+        "lastName": "М"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/UWdNU0M0UEJoLWM2UW8xVGtKak1Fdy4uSDIzVVdzUFRoZ3l3YTFHdWlFck50dy4u",
+        "courierTransmissionDate": 1767616502000,
+        "courierTransmissionPlanningDate": 1767616502000,
+        "waybillNumber": "338068906",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "779836053",
+      "orderId": "Nzc5ODM2MDUz",
+      "totalPrice": 38000,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767866584051,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "микрорайон Таугуль",
+        "streetNumber": "31",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "29, этаж 3",
+        "formattedAddress": "Алматы, микрорайон Таугуль, 31, 29, этаж 3",
+        "latitude": 43.208297,
+        "longitude": 76.874885
+      },
+      "customer": {
+        "id": "Nzc1MjA0OTM4MA",
+        "name": "Аяна",
+        "cellPhone": "7752049380",
+        "firstName": "Аяна",
+        "lastName": "А"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38000,
+          "basePrice": 38000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "771833109",
+      "orderId": "NzcxODMzMTA5",
+      "totalPrice": 14500,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767125156210,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "улица Кабанбай батыра",
+        "streetNumber": "83",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "15",
+        "formattedAddress": "Алматы, улица Кабанбай батыра, 83, 15",
+        "latitude": 43.250054,
+        "longitude": 76.946471
+      },
+      "customer": {
+        "id": "NzQ3NjI0MTY4MA",
+        "name": "Cihan",
+        "cellPhone": "7476241680",
+        "firstName": "Cihan",
+        "lastName": "C"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 14500,
+          "basePrice": 14500
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": true
+    },
+    {
+      "code": "780250115",
+      "orderId": "NzgwMjUwMTE1",
+      "totalPrice": 249700,
+      "deliveryCostForSeller": 3653,
+      "creationDate": 1767890565324,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "микрорайон Калкаман-2, улица Байкена Ашимова",
+        "streetNumber": "1/5",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "1 блок, КВ.42, 8 этаж",
+        "formattedAddress": "Алматы, микрорайон Калкаман-2, улица Байкена Ашимова, 1/5, 1 блок, КВ.42, 8 этаж",
+        "latitude": 43.226857,
+        "longitude": 76.802067
+      },
+      "customer": {
+        "id": "NzAxNzMwODM3Mw",
+        "name": "Гулжан",
+        "cellPhone": "7017308373",
+        "firstName": "Гулжан",
+        "lastName": "Д"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 249700,
+          "basePrice": 249700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/cmVnS0oxV3NBT2J5QzlfVmx2N2s4QS4uUzU1SUVQbHBrNmRZVnRhUFR0SEtlZy4u",
+        "courierTransmissionDate": 1767940930000,
+        "courierTransmissionPlanningDate": 1767940930000,
+        "waybillNumber": "340191496",
+        "express": true,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "778398803",
+      "orderId": "Nzc4Mzk4ODAz",
+      "totalPrice": 48000,
+      "deliveryCostForSeller": 1971,
+      "creationDate": 1767761749469,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "проспект Бауыржана Момышулы",
+        "streetNumber": "2/7",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "18",
+        "formattedAddress": "Астана, проспект Бауыржана Момышулы, 2/7, 18",
+        "latitude": 51.134554,
+        "longitude": 71.463334
+      },
+      "customer": {
+        "id": "NzA1NzM4MDIxOQ",
+        "name": "Татьяна",
+        "cellPhone": "7057380219",
+        "firstName": "Татьяна",
+        "lastName": "Т"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 48000,
+          "basePrice": 48000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/M2V4M1FvMFdSZUJraGlOOXV3amdQUS4uRVhvaFhmRXRKZHhHWkIzYUJqQ0Zvdy4u",
+        "courierTransmissionDate": 1767777497000,
+        "courierTransmissionPlanningDate": 1767777497000,
+        "waybillNumber": "339159729",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "780822717",
+      "orderId": "NzgwODIyNzE3",
+      "totalPrice": 119700,
+      "deliveryCostForSeller": 6553,
+      "creationDate": 1767947661797,
+      "plannedDeliveryDate": 1768500000000,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "проспект Улы Дала",
+        "streetNumber": "41А",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "2",
+        "formattedAddress": "Астана, проспект Улы Дала, 41А, 2",
+        "latitude": 51.097913572834216,
+        "longitude": 71.41397346606962
+      },
+      "customer": {
+        "id": "NzA1NjQ1NTAwNw",
+        "name": "Мариям",
+        "cellPhone": "7056455007",
+        "firstName": "Мариям",
+        "lastName": "Ж"
+      },
+      "state": "KASPI_DELIVERY",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 119700,
+          "basePrice": 119700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/Rm1VMFB5cWZmRGlVTG9SUFN5SG5PUS4ucGVBMTZka3VuY0RZdURXNGI0OS1kdy4u",
+        "courierTransmissionDate": 1768040729000,
+        "courierTransmissionPlanningDate": 1768040729000,
+        "waybillNumber": "341047517",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "779575413",
+      "orderId": "Nzc5NTc1NDEz",
+      "totalPrice": 57800,
+      "deliveryCostForSeller": 1507,
+      "creationDate": 1767850772524,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Шевченко",
+        "streetNumber": "138",
+        "town": "Белбулак",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Белбулак, улица Шевченко, 138",
+        "latitude": 43.319914,
+        "longitude": 77.096068
+      },
+      "customer": {
+        "id": "NzAxNDE2MzM2MQ",
+        "name": "Светлана",
+        "cellPhone": "7014163361",
+        "firstName": "Светлана",
+        "lastName": "В"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 57800,
+          "basePrice": 57800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/SnhzaW9JWV9peVd4YXV0Q1Q2UnJady4uVUtldVRpVnZNenBvZTFUNEhtd3N1Zy4u",
+        "courierTransmissionDate": 1767865790000,
+        "courierTransmissionPlanningDate": 1767865790000,
+        "waybillNumber": "339875497",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": "9"
+      }
+    },
+    {
+      "code": "780857901",
+      "orderId": "NzgwODU3OTAx",
+      "totalPrice": 38000,
+      "deliveryCostForSeller": 6553,
+      "creationDate": 1767949570292,
+      "plannedDeliveryDate": 1768244390999,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Машхура Жусупа",
+        "streetNumber": "18",
+        "town": "Павлодар",
+        "district": null,
+        "building": null,
+        "apartment": "49",
+        "formattedAddress": "Павлодар, улица Машхура Жусупа, 18, 49",
+        "latitude": 52.291576,
+        "longitude": 76.951259
+      },
+      "customer": {
+        "id": "NzA1NDQyOTM3Mw",
+        "name": "Марина",
+        "cellPhone": "7054429373",
+        "firstName": "Марина",
+        "lastName": "Б"
+      },
+      "state": "KASPI_DELIVERY",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38000,
+          "basePrice": 38000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/UE5kQXBVVlktMXBtd1dhZl84SGYtUS4uWmdVRGZ0WDlvT2Rxdno2SURHaHk3dy4u",
+        "courierTransmissionDate": 1768040732000,
+        "courierTransmissionPlanningDate": 1768040732000,
+        "waybillNumber": "341047632",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "777061017",
+      "orderId": "Nzc3MDYxMDE3",
+      "totalPrice": 38200,
+      "deliveryCostForSeller": 1971,
+      "creationDate": 1767638579031,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Карла Либкнехта",
+        "streetNumber": "52",
+        "town": "Караганда",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Караганда, улица Карла Либкнехта, 52",
+        "latitude": 49.851563,
+        "longitude": 73.198385
+      },
+      "customer": {
+        "id": "NzA1MzE3NzE5MA",
+        "name": "Татьяна",
+        "cellPhone": "7053177190",
+        "firstName": "Татьяна",
+        "lastName": "Л"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38200,
+          "basePrice": 38200
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/dmpZLVB0V0d0SDNnLUFCYWpJOS1fdy4uYm9BNlBQR3hSeTNVckQ4aC1pZGtOZy4u",
+        "courierTransmissionDate": 1767691101000,
+        "courierTransmissionPlanningDate": 1767691101000,
+        "waybillNumber": "338583896",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "781008089",
+      "orderId": "NzgxMDA4MDg5",
+      "totalPrice": 119700,
+      "deliveryCostForSeller": 6553,
+      "creationDate": 1767957367282,
+      "plannedDeliveryDate": 1768672800000,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "5-й микрорайон",
+        "streetNumber": "20",
+        "town": "Аксай",
+        "district": null,
+        "building": null,
+        "apartment": "51",
+        "formattedAddress": "Аксай, 5-й микрорайон, 20, 51",
+        "latitude": 51.160528052321396,
+        "longitude": 53.0317154227952
+      },
+      "customer": {
+        "id": "Nzc3MjQ5OTQxOA",
+        "name": "Акжемис",
+        "cellPhone": "7772499418",
+        "firstName": "Акжемис",
+        "lastName": "Ж"
+      },
+      "state": "KASPI_DELIVERY",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 119700,
+          "basePrice": 119700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/QkVLc2ZGS0U1M1ZOODB6aDFGNkU4dy4uVHhDeUVYOFN3UkhycFVfaEhGMjM5US4u",
+        "courierTransmissionDate": 1768040726000,
+        "courierTransmissionPlanningDate": 1768040726000,
+        "waybillNumber": "341047756",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "774932937",
+      "orderId": "Nzc0OTMyOTM3",
+      "totalPrice": 159000,
+      "deliveryCostForSeller": 1507,
+      "creationDate": 1767464911769,
+      "deliveryMode": "DELIVERY_PICKUP",
+      "customer": {
+        "id": "NzA4NTYzMTk0Nw",
+        "name": "Багдат",
+        "cellPhone": "7085631947",
+        "firstName": "Багдат",
+        "lastName": "Б"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 159000,
+          "basePrice": 159000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/dWVxZ1RTbGFFZzMzVl9CRkZVQkFUZy4uT193bXBjRW02VU9rSklvVXQ1Q1BkZy4u",
+        "courierTransmissionDate": 1767616486000,
+        "courierTransmissionPlanningDate": 1767616486000,
+        "waybillNumber": "338068059",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "781208612",
+      "orderId": "NzgxMjA4NjEy",
+      "totalPrice": 76400,
+      "deliveryCostForSeller": 4175,
+      "creationDate": 1767969446584,
+      "plannedDeliveryDate": 1768413600000,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Академика Сатпаева",
+        "streetNumber": "253",
+        "town": "Павлодар",
+        "district": null,
+        "building": null,
+        "apartment": "277",
+        "formattedAddress": "Павлодар, улица Академика Сатпаева, 253, 277",
+        "latitude": 52.265487,
+        "longitude": 76.94401
+      },
+      "customer": {
+        "id": "Nzc2ODE2MzgzNA",
+        "name": "Таңсұлу",
+        "cellPhone": "7768163834",
+        "firstName": "Таңсұлу",
+        "lastName": "Б"
+      },
+      "state": "KASPI_DELIVERY",
+      "entries": [
+        {
+          "quantity": 2,
+          "product": {},
+          "totalPrice": 76400,
+          "basePrice": 38200
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/NDRqS1I2elJ3MVRNX043MVBKR001US4uczd0WVNSdWkwZkRyTjJCTkhYQzhwUS4u",
+        "courierTransmissionDate": 1768040718000,
+        "courierTransmissionPlanningDate": 1768040718000,
+        "waybillNumber": "341047859",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "777068711",
+      "orderId": "Nzc3MDY4NzEx",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 4175,
+      "creationDate": 1767639328574,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "194-й квартал",
+        "streetNumber": "165",
+        "town": "Шымкент",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Шымкент, 194-й квартал, 165",
+        "latitude": 42.352412,
+        "longitude": 69.665285
+      },
+      "customer": {
+        "id": "NzA3ODE5NzA5OQ",
+        "name": "Дариға",
+        "cellPhone": "7078197099",
+        "firstName": "Дариға",
+        "lastName": "С"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/X0MtU0ZUakFna3ZVbUpNUFkwMEplZy4uS1dsaHhpVG9iNUVaVi1hbEhsdFU5dy4u",
+        "courierTransmissionDate": 1767691098000,
+        "courierTransmissionPlanningDate": 1767691098000,
+        "waybillNumber": "338584036",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "779526107",
+      "orderId": "Nzc5NTI2MTA3",
+      "totalPrice": 38200,
+      "deliveryCostForSeller": 1971,
+      "creationDate": 1767846433297,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Ержанова",
+        "streetNumber": "8",
+        "town": "Караганда",
+        "district": null,
+        "building": null,
+        "apartment": "78",
+        "formattedAddress": "Караганда, улица Ержанова, 8, 78",
+        "latitude": 49.796882,
+        "longitude": 73.087381
+      },
+      "customer": {
+        "id": "NzQ3MTYyNzgzOQ",
+        "name": "Олжас",
+        "cellPhone": "7471627839",
+        "firstName": "Олжас",
+        "lastName": "К"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38200,
+          "basePrice": 38200
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/cmRUS0dUZXZHRnFFcVhUZmdsQ2hYdy4uX2lEY2ZPYUdzVEU2bnBicGJHVUc3QS4u",
+        "courierTransmissionDate": 1767865774000,
+        "courierTransmissionPlanningDate": 1767865774000,
+        "waybillNumber": "339875249",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "781730958",
+      "orderId": "NzgxNzMwOTU4",
+      "totalPrice": 79000,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1768022632720,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Алихана Бокейханова",
+        "streetNumber": "29Б",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "55",
+        "formattedAddress": "Астана, улица Алихана Бокейханова, 29Б, 55",
+        "latitude": 51.08263,
+        "longitude": 71.430591
+      },
+      "customer": {
+        "id": "NzAxNzIwODIwOA",
+        "name": "Асель",
+        "cellPhone": "7017208208",
+        "firstName": "Асель",
+        "lastName": "Т"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 79000,
+          "basePrice": 79000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": null,
+        "courierTransmissionDate": null,
+        "courierTransmissionPlanningDate": 1768022672824,
+        "waybillNumber": null,
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "780637520",
+      "orderId": "NzgwNjM3NTIw",
+      "totalPrice": 79000,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1767935791854,
+      "deliveryMode": "DELIVERY_LOCAL",
+      "deliveryAddress": {
+        "streetName": "микрорайон Мадениет, Ағыбай Батыр көшесі",
+        "streetNumber": "12",
+        "town": "Алматы",
+        "district": null,
+        "building": null,
+        "apartment": "14 дом",
+        "formattedAddress": "Алматы, микрорайон Мадениет, Ағыбай Батыр көшесі, 12, 14 дом",
+        "latitude": 43.331607,
+        "longitude": 76.81185
+      },
+      "customer": {
+        "id": "NzQ3OTczMjA4Nw",
+        "name": "Куралай",
+        "cellPhone": "7479732087",
+        "firstName": "Куралай",
+        "lastName": "М"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 79000,
+          "basePrice": 79000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false
+    },
+    {
+      "code": "781778755",
+      "orderId": "NzgxNzc4NzU1",
+      "totalPrice": 249700,
+      "deliveryCostForSeller": 4175,
+      "creationDate": 1768025986613,
+      "plannedDeliveryDate": 1768413600000,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Машхура Жусупа",
+        "streetNumber": "270",
+        "town": "Павлодар",
+        "district": null,
+        "building": null,
+        "apartment": "54",
+        "formattedAddress": "Павлодар, улица Машхура Жусупа, 270, 54",
+        "latitude": 52.27081,
+        "longitude": 76.952984
+      },
+      "customer": {
+        "id": "NzAyMTgwMDEyNw",
+        "name": "Ирина",
+        "cellPhone": "7021800127",
+        "firstName": "Ирина",
+        "lastName": "Г"
+      },
+      "state": "KASPI_DELIVERY",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 249700,
+          "basePrice": 249700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/cUtKY3pkT0x3b083c25HNlVnbXRyUS4uRHowRnUtSVVZV2Q2bmRVVG1sSnBfUS4u",
+        "courierTransmissionDate": 1768040741000,
+        "courierTransmissionPlanningDate": 1768040741000,
+        "waybillNumber": "341048335",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "781737808",
+      "orderId": "NzgxNzM3ODA4",
+      "totalPrice": 79000,
+      "deliveryCostForSeller": 0,
+      "creationDate": 1768023061488,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Алихана Бокейханова",
+        "streetNumber": "29Б",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "55",
+        "formattedAddress": "Астана, улица Алихана Бокейханова, 29Б, 55",
+        "latitude": 51.08263,
+        "longitude": 71.430591
+      },
+      "customer": {
+        "id": "NzAxNzIwODIwOA",
+        "name": "Асель",
+        "cellPhone": "7017208208",
+        "firstName": "Асель",
+        "lastName": "Т"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 79000,
+          "basePrice": 79000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": null,
+        "courierTransmissionDate": null,
+        "courierTransmissionPlanningDate": 1768032680181,
+        "waybillNumber": null,
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "781893535",
+      "orderId": "NzgxODkzNTM1",
+      "totalPrice": 79000,
+      "deliveryCostForSeller": 1971,
+      "creationDate": 1768032754151,
+      "plannedDeliveryDate": 1768672800000,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Алихана Бокейханова",
+        "streetNumber": "29Б",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "55",
+        "formattedAddress": "Астана, улица Алихана Бокейханова, 29Б, 55",
+        "latitude": 51.08263,
+        "longitude": 71.430591
+      },
+      "customer": {
+        "id": "NzAxNzIwODIwOA",
+        "name": "Асель",
+        "cellPhone": "7017208208",
+        "firstName": "Асель",
+        "lastName": "Т"
+      },
+      "state": "KASPI_DELIVERY",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 79000,
+          "basePrice": 79000
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/X08wZmpjS080TF9KRG82Vlo2NG1sdy4uWFRQZUlieDNCSng1WWNpX2JxeG5WUS4u",
+        "courierTransmissionDate": 1768222698000,
+        "courierTransmissionPlanningDate": 1768222698000,
+        "waybillNumber": "342200337",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "778927689",
+      "orderId": "Nzc4OTI3Njg5",
+      "totalPrice": 119700,
+      "deliveryCostForSeller": 6553,
+      "creationDate": 1767792702776,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "3-й микрорайон",
+        "streetNumber": "40",
+        "town": "Конаев (Капшагай)",
+        "district": null,
+        "building": null,
+        "apartment": "55",
+        "formattedAddress": "Конаев (Капшагай), 3-й микрорайон, 40, 55",
+        "latitude": 43.849057,
+        "longitude": 77.056883
+      },
+      "customer": {
+        "id": "NzA3MTQyNDI2Mw",
+        "name": "Кумисай",
+        "cellPhone": "7071424263",
+        "firstName": "Кумисай",
+        "lastName": "К"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 119700,
+          "basePrice": 119700
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/MjJkWW5jaE5LemFVMEFFM0xlQ3NoUS4ueGdMSlpUZFZaYnBNRWhLNFRkb3llZy4u",
+        "courierTransmissionDate": 1767865776000,
+        "courierTransmissionPlanningDate": 1767865776000,
+        "waybillNumber": "339874382",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "782028492",
+      "orderId": "NzgyMDI4NDky",
+      "totalPrice": 38200,
+      "deliveryCostForSeller": 1971,
+      "creationDate": 1768040121067,
+      "plannedDeliveryDate": 1768327200000,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Сартай Батыра",
+        "streetNumber": "12Б",
+        "town": "Отеген батыр",
+        "district": null,
+        "building": null,
+        "apartment": "Образовательный центр",
+        "formattedAddress": "Отеген батыр, улица Сартай Батыра, 12Б, Образовательный центр",
+        "latitude": 43.416521,
+        "longitude": 77.025685
+      },
+      "customer": {
+        "id": "NzAxNzczOTAxNA",
+        "name": "Назигул",
+        "cellPhone": "7017739014",
+        "firstName": "Назигул",
+        "lastName": "Ш"
+      },
+      "state": "KASPI_DELIVERY",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 38200,
+          "basePrice": 38200
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/cG1ZNlVfdGxQSmpSRjF1RkJFR2JJUS4uS0NoYXNYbG45blBwajhGSC1yZUxzdy4u",
+        "courierTransmissionDate": 1768222696000,
+        "courierTransmissionPlanningDate": 1768222696000,
+        "waybillNumber": "342200443",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "779916062",
+      "orderId": "Nzc5OTE2MDYy",
+      "totalPrice": 219860,
+      "deliveryCostForSeller": 4175,
+      "creationDate": 1767871046498,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "Центральная улица",
+        "streetNumber": "133",
+        "town": "Конаев (Капшагай)",
+        "district": null,
+        "building": null,
+        "apartment": null,
+        "formattedAddress": "Конаев (Капшагай), Центральная улица, 133",
+        "latitude": 43.89938580931204,
+        "longitude": 77.1056694468358
+      },
+      "customer": {
+        "id": "NzA4MjM5NDQ2MA",
+        "name": "Дарья",
+        "cellPhone": "7082394460",
+        "firstName": "Дарья",
+        "lastName": "Д"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 219860,
+          "basePrice": 219860
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/Wms4Xzg5THY5emRsd1hkRDRYS0stQS4uNDV5U29fQUhlcm5LZUU5bTVIeENsQS4u",
+        "courierTransmissionDate": 1767945779000,
+        "courierTransmissionPlanningDate": 1767945779000,
+        "waybillNumber": "340365824",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    },
+    {
+      "code": "774588181",
+      "orderId": "Nzc0NTg4MTgx",
+      "totalPrice": 199800,
+      "deliveryCostForSeller": 4175,
+      "creationDate": 1767442028968,
+      "deliveryMode": "DELIVERY_REGIONAL_TODOOR",
+      "deliveryAddress": {
+        "streetName": "улица Чингиза Айтматова",
+        "streetNumber": "77/7",
+        "town": "Астана",
+        "district": null,
+        "building": null,
+        "apartment": "272",
+        "formattedAddress": "Астана, улица Чингиза Айтматова, 77/7, 272",
+        "latitude": 51.167001,
+        "longitude": 71.368823
+      },
+      "customer": {
+        "id": "NzA3MjU1Mzc0NA",
+        "name": "Ануар",
+        "cellPhone": "7072553744",
+        "firstName": "Ануар",
+        "lastName": "А"
+      },
+      "state": "ARCHIVE",
+      "entries": [
+        {
+          "quantity": 1,
+          "product": {},
+          "totalPrice": 199800,
+          "basePrice": 199800
+        }
+      ],
+      "signatureRequired": false,
+      "preOrder": false,
+      "kaspiDelivery": {
+        "waybill": "https://kaspi.kz/shop/api/waybill/MDV3S3FMUW5UUlpQV280SHIwczktdy4uWkxieTgwSGE2N1NQNm82bUNoZUlUQS4u",
+        "courierTransmissionDate": 1767616500000,
+        "courierTransmissionPlanningDate": 1767616500000,
+        "waybillNumber": "338067838",
+        "express": false,
+        "returnedToWarehouse": false,
+        "firstMileCourier": null
+      }
+    }
+  ],
+  "period": {
+    "from": "2025-12-29T12:15:19.036Z",
+    "to": "2026-01-12T12:15:19.036Z",
+    "days": 14
+  }
+}

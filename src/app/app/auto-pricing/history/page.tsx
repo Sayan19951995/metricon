@@ -1,0 +1,462 @@
+'use client';
+
+import { useState } from 'react';
+import {
+  ArrowLeft,
+  Search,
+  TrendingDown,
+  TrendingUp,
+  Minus,
+  Calendar,
+  Clock
+} from 'lucide-react';
+
+// Типы
+type ChangeType = 'decrease' | 'increase' | 'match';
+
+interface PriceChange {
+  id: string;
+  productId: number;
+  productName: string;
+  productSku: string;
+  productImage: string;
+  changeType: ChangeType;
+  oldPrice: number;
+  newPrice: number;
+  competitorPrice: number;
+  competitorName: string;
+  reason: string;
+  timestamp: string;
+  position: number;
+}
+
+// Mock данные истории
+const mockHistory: PriceChange[] = [
+  {
+    id: 'ch-1',
+    productId: 1,
+    productName: 'iPhone 14 Pro 256GB',
+    productSku: 'APL-IP14P-256',
+    productImage: '📱',
+    changeType: 'decrease',
+    oldPrice: 451900,
+    newPrice: 449900,
+    competitorPrice: 451900,
+    competitorName: 'TechStore KZ',
+    reason: 'Демпинг: цена снижена на 2000 ₸ ниже конкурента',
+    timestamp: '2025-01-16T10:30:00',
+    position: 2,
+  },
+  {
+    id: 'ch-2',
+    productId: 4,
+    productName: 'MacBook Pro 14" M3',
+    productSku: 'APL-MBP14-M3',
+    productImage: '💻',
+    changeType: 'decrease',
+    oldPrice: 1155000,
+    newPrice: 1149900,
+    competitorPrice: 1155000,
+    competitorName: 'Digital Store',
+    reason: 'Демпинг: цена снижена на 5100 ₸ ниже конкурента',
+    timestamp: '2025-01-16T11:00:00',
+    position: 1,
+  },
+  {
+    id: 'ch-3',
+    productId: 2,
+    productName: 'Samsung Galaxy S24 Ultra',
+    productSku: 'SAM-S24U-256',
+    productImage: '📱',
+    changeType: 'increase',
+    oldPrice: 545900,
+    newPrice: 549900,
+    competitorPrice: 555000,
+    competitorName: 'Mobile World',
+    reason: 'Позиция: цена повышена для оптимизации маржи',
+    timestamp: '2025-01-16T09:15:00',
+    position: 3,
+  },
+  {
+    id: 'ch-4',
+    productId: 1,
+    productName: 'iPhone 14 Pro 256GB',
+    productSku: 'APL-IP14P-256',
+    productImage: '📱',
+    changeType: 'decrease',
+    oldPrice: 455000,
+    newPrice: 451900,
+    competitorPrice: 453000,
+    competitorName: 'Gadget KZ',
+    reason: 'Демпинг: цена снижена на 1100 ₸ ниже конкурента',
+    timestamp: '2025-01-16T08:45:00',
+    position: 3,
+  },
+  {
+    id: 'ch-5',
+    productId: 3,
+    productName: 'AirPods Pro 2',
+    productSku: 'APL-APP2',
+    productImage: '🎧',
+    changeType: 'match',
+    oldPrice: 91900,
+    newPrice: 89900,
+    competitorPrice: 89900,
+    competitorName: 'Apple Store KZ',
+    reason: 'Паритет: цена установлена равной конкуренту',
+    timestamp: '2025-01-15T18:45:00',
+    position: 1,
+  },
+  {
+    id: 'ch-6',
+    productId: 4,
+    productName: 'MacBook Pro 14" M3',
+    productSku: 'APL-MBP14-M3',
+    productImage: '💻',
+    changeType: 'decrease',
+    oldPrice: 1165000,
+    newPrice: 1155000,
+    competitorPrice: 1160000,
+    competitorName: 'iStore KZ',
+    reason: 'Демпинг: цена снижена на 5000 ₸ ниже конкурента',
+    timestamp: '2025-01-15T16:30:00',
+    position: 2,
+  },
+  {
+    id: 'ch-7',
+    productId: 1,
+    productName: 'iPhone 14 Pro 256GB',
+    productSku: 'APL-IP14P-256',
+    productImage: '📱',
+    changeType: 'increase',
+    oldPrice: 448000,
+    newPrice: 455000,
+    competitorPrice: 460000,
+    competitorName: 'MegaStore',
+    reason: 'Позиция: конкурент поднял цену, оптимизация маржи',
+    timestamp: '2025-01-15T14:20:00',
+    position: 1,
+  },
+  {
+    id: 'ch-8',
+    productId: 2,
+    productName: 'Samsung Galaxy S24 Ultra',
+    productSku: 'SAM-S24U-256',
+    productImage: '📱',
+    changeType: 'decrease',
+    oldPrice: 555000,
+    newPrice: 545900,
+    competitorPrice: 549000,
+    competitorName: 'Galaxy Store',
+    reason: 'Демпинг: цена снижена на 3100 ₸ ниже конкурента',
+    timestamp: '2025-01-15T12:00:00',
+    position: 2,
+  },
+];
+
+export default function AutoPricingHistoryPage() {
+  const [history] = useState<PriceChange[]>(mockHistory);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [typeFilter, setTypeFilter] = useState<ChangeType | 'all'>('all');
+  const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'all'>('all');
+
+  // Форматирование даты
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    });
+  };
+
+  const formatTime = (dateStr: string) => {
+    const date = new Date(dateStr);
+    return date.toLocaleTimeString('ru-RU', {
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  };
+
+  // Фильтрация истории
+  const filteredHistory = history.filter(change => {
+    const matchesSearch = change.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          change.productSku.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesType = typeFilter === 'all' || change.changeType === typeFilter;
+
+    // Фильтр по дате
+    const changeDate = new Date(change.timestamp);
+    const now = new Date();
+    let matchesDate = true;
+
+    if (dateFilter === 'today') {
+      matchesDate = changeDate.toDateString() === now.toDateString();
+    } else if (dateFilter === 'week') {
+      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      matchesDate = changeDate >= weekAgo;
+    } else if (dateFilter === 'month') {
+      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+      matchesDate = changeDate >= monthAgo;
+    }
+
+    return matchesSearch && matchesType && matchesDate;
+  });
+
+  // Группировка по дням
+  const groupedHistory = filteredHistory.reduce((groups, change) => {
+    const date = formatDate(change.timestamp);
+    if (!groups[date]) {
+      groups[date] = [];
+    }
+    groups[date].push(change);
+    return groups;
+  }, {} as Record<string, PriceChange[]>);
+
+  // Получить иконку типа изменения
+  const getChangeIcon = (type: ChangeType) => {
+    switch (type) {
+      case 'decrease': return <TrendingDown className="w-4 h-4" />;
+      case 'increase': return <TrendingUp className="w-4 h-4" />;
+      case 'match': return <Minus className="w-4 h-4" />;
+    }
+  };
+
+  // Получить цвет типа изменения
+  const getChangeColor = (type: ChangeType) => {
+    switch (type) {
+      case 'decrease': return 'text-red-600 bg-red-100';
+      case 'increase': return 'text-emerald-600 bg-emerald-100';
+      case 'match': return 'text-blue-600 bg-blue-100';
+    }
+  };
+
+  // Статистика
+  const stats = {
+    total: filteredHistory.length,
+    decreases: filteredHistory.filter(c => c.changeType === 'decrease').length,
+    increases: filteredHistory.filter(c => c.changeType === 'increase').length,
+    matches: filteredHistory.filter(c => c.changeType === 'match').length,
+  };
+
+  return (
+    <div className="p-6 max-w-[1400px] mx-auto">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <a
+          href="/app/auto-pricing"
+          className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        >
+          <ArrowLeft className="w-5 h-5 text-gray-500" />
+        </a>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">История изменений цен</h1>
+          <p className="text-gray-500 mt-1">Все автоматические корректировки цен</p>
+        </div>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <div className="text-sm text-gray-500 mb-1">Всего изменений</div>
+          <div className="text-2xl font-bold text-gray-900">{stats.total}</div>
+        </div>
+        <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-sm text-red-600 mb-1">
+            <TrendingDown className="w-4 h-4" />
+            Снижения
+          </div>
+          <div className="text-2xl font-bold text-red-600">{stats.decreases}</div>
+        </div>
+        <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-sm text-emerald-600 mb-1">
+            <TrendingUp className="w-4 h-4" />
+            Повышения
+          </div>
+          <div className="text-2xl font-bold text-emerald-600">{stats.increases}</div>
+        </div>
+        <div className="bg-white rounded-2xl p-4 shadow-sm">
+          <div className="flex items-center gap-2 text-sm text-blue-600 mb-1">
+            <Minus className="w-4 h-4" />
+            Паритет
+          </div>
+          <div className="text-2xl font-bold text-blue-600">{stats.matches}</div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white rounded-2xl shadow-sm mb-6">
+        <div className="p-4 flex items-center gap-4">
+          {/* Search */}
+          <div className="flex-1 relative">
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Поиск по названию или SKU..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-11 pr-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+            />
+          </div>
+
+          {/* Type Filter */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setTypeFilter('all')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                typeFilter === 'all' ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              Все
+            </button>
+            <button
+              onClick={() => setTypeFilter('decrease')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
+                typeFilter === 'decrease' ? 'bg-red-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <TrendingDown className="w-3 h-3" />
+              Снижения
+            </button>
+            <button
+              onClick={() => setTypeFilter('increase')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
+                typeFilter === 'increase' ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <TrendingUp className="w-3 h-3" />
+              Повышения
+            </button>
+            <button
+              onClick={() => setTypeFilter('match')}
+              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1 ${
+                typeFilter === 'match' ? 'bg-blue-500 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              <Minus className="w-3 h-3" />
+              Паритет
+            </button>
+          </div>
+
+          {/* Date Filter */}
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-gray-400" />
+            <select
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value as typeof dateFilter)}
+              className="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="all">Всё время</option>
+              <option value="today">Сегодня</option>
+              <option value="week">За неделю</option>
+              <option value="month">За месяц</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      {/* History List */}
+      <div className="space-y-6">
+        {Object.keys(groupedHistory).length === 0 ? (
+          <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
+            <Clock className="w-12 h-12 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">История пуста</h3>
+            <p className="text-gray-500">
+              {searchQuery || typeFilter !== 'all' || dateFilter !== 'all'
+                ? 'Попробуйте изменить параметры поиска'
+                : 'Изменения цен будут отображаться здесь'}
+            </p>
+          </div>
+        ) : (
+          Object.entries(groupedHistory).map(([date, changes]) => (
+            <div key={date}>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="text-sm font-semibold text-gray-900">{date}</div>
+                <div className="flex-1 h-px bg-gray-200" />
+                <div className="text-xs text-gray-500">{changes.length} изменений</div>
+              </div>
+
+              <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                <div className="divide-y divide-gray-100">
+                  {changes.map(change => (
+                    <div key={change.id} className="p-4 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center gap-4">
+                        {/* Time */}
+                        <div className="w-16 text-center">
+                          <div className="text-sm font-medium text-gray-900">
+                            {formatTime(change.timestamp)}
+                          </div>
+                        </div>
+
+                        {/* Change Type Icon */}
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getChangeColor(change.changeType)}`}>
+                          {getChangeIcon(change.changeType)}
+                        </div>
+
+                        {/* Product */}
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-xl">
+                          {change.productImage}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 text-sm">{change.productName}</div>
+                          <div className="text-xs text-gray-500 font-mono">{change.productSku}</div>
+                        </div>
+
+                        {/* Price Change */}
+                        <div className="text-right">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-gray-400 line-through">
+                              {change.oldPrice.toLocaleString('ru-RU')} ₸
+                            </span>
+                            <span className="text-sm text-gray-400">→</span>
+                            <span className="text-sm font-bold text-gray-900">
+                              {change.newPrice.toLocaleString('ru-RU')} ₸
+                            </span>
+                          </div>
+                          <div className={`text-xs font-medium ${
+                            change.changeType === 'decrease' ? 'text-red-600' :
+                            change.changeType === 'increase' ? 'text-emerald-600' : 'text-blue-600'
+                          }`}>
+                            {change.changeType === 'decrease' ? '-' : change.changeType === 'increase' ? '+' : ''}
+                            {Math.abs(change.newPrice - change.oldPrice).toLocaleString('ru-RU')} ₸
+                          </div>
+                        </div>
+
+                        {/* Competitor */}
+                        <div className="w-32 text-right">
+                          <div className="text-xs text-gray-500">Конкурент</div>
+                          <div className="text-sm font-medium text-gray-700">
+                            {change.competitorPrice.toLocaleString('ru-RU')} ₸
+                          </div>
+                          <div className="text-xs text-gray-400 truncate" title={change.competitorName}>
+                            {change.competitorName}
+                          </div>
+                        </div>
+
+                        {/* Position */}
+                        <div className="w-16 text-center">
+                          <div className={`text-lg font-bold ${
+                            change.position === 1 ? 'text-emerald-600' :
+                            change.position <= 3 ? 'text-amber-600' : 'text-gray-600'
+                          }`}>
+                            #{change.position}
+                          </div>
+                          <div className="text-xs text-gray-500">позиция</div>
+                        </div>
+                      </div>
+
+                      {/* Reason */}
+                      <div className="mt-2 ml-24 text-xs text-gray-500">
+                        {change.reason}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

@@ -1,0 +1,183 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id              String   @id @default(cuid())
+  email           String   @unique
+  name            String?
+  password        String
+  role            String   @default("user")
+  kaspiConnected  Boolean  @default(false)
+  kaspiMerchantId String?
+  kaspiUsername   String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model Order {
+  id              String       @id @default(cuid())
+  kaspiOrderCode  String       @unique
+  kaspiOrderId    String
+  totalPrice      Float
+  creationDate    DateTime
+  deliveryMode    String
+  customerName    String
+  customerPhone   String
+  state           String
+  entries         OrderEntry[]
+  signatureRequired Boolean
+  preOrder        Boolean
+  kaspiDelivery   Boolean
+  syncedAt        DateTime     @default(now())
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+
+  @@index([state])
+  @@index([creationDate])
+}
+
+model OrderEntry {
+  id          String  @id @default(cuid())
+  orderId     String
+  order       Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  quantity    Int
+  productCode String
+  productName String
+  productSku  String
+  totalPrice  Float
+  basePrice   Float
+  createdAt   DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productCode])
+}
+
+model Product {
+  id              String   @id @default(cuid())
+  sku             String   @unique
+  kaspiId         String?
+  name            String
+  price           Float
+  availableAmount Int
+  categoryId      String?
+  images          String[]
+  attributes      Json?
+  syncedAt        DateTime @default(now())
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([sku])
+  @@index([categoryId])
+}
+
+model ProductAnalytics {
+  id            String   @id @default(cuid())
+  productSku    String
+  productName   String
+  date          DateTime
+  totalSales    Int
+  totalRevenue  Float
+  averagePrice  Float
+  stockLevel    Int
+  createdAt     DateTime @default(now())
+
+  @@unique([productSku, date])
+  @@index([date])
+  @@index([productSku])
+}
+
+model FinancialMetrics {
+  id           String   @id @default(cuid())
+  date         DateTime @unique
+  totalRevenue Float
+  totalOrders  Int
+  commission   Float
+  netProfit    Float
+  createdAt    DateTime @default(now())
+
+  @@index([date])
+}
+
+model CompetitorPrice {
+  id            String   @id @default(cuid())
+  productName   String
+  productUrl    String
+  price         Float
+  merchantName  String
+  rating        Float?
+  reviewsCount  Int?
+  scrapedAt     DateTime @default(now())
+  createdAt     DateTime @default(now())
+
+  @@index([productName])
+  @@index([scrapedAt])
+}
+
+model EmailNotification {
+  id          String   @id @default(cuid())
+  orderId     String
+  customerEmail String
+  subject     String
+  body        String
+  status      String   @default("pending")
+  sentAt      DateTime?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([status])
+  @@index([orderId])
+}
+
+model SyncLog {
+  id        String   @id @default(cuid())
+  syncType  String
+  status    String
+  message   String?
+  itemCount Int      @default(0)
+  startedAt DateTime @default(now())
+  completedAt DateTime?
+
+  @@index([syncType])
+  @@index([status])
+}
+
+model PriceRule {
+  id              String   @id @default(cuid())
+  productSku      String   @unique
+  productName     String
+  enabled         Boolean  @default(true)
+  minPrice        Float    // Минимальная цена (не опускаться ниже)
+  targetPrice     Float?   // Целевая цена (желаемая цена)
+  dumpingAmount   Float    @default(100) // На сколько снижать цену (в тенге)
+  dumpingPercent  Float?   // Или процент снижения
+  autoUpdate      Boolean  @default(false) // Автоматически обновлять цену
+  checkInterval   Int      @default(60) // Интервал проверки в минутах
+  lastChecked     DateTime?
+  lastUpdated     DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([productSku])
+  @@index([enabled])
+  @@index([autoUpdate])
+}
+
+model PriceHistory {
+  id            String   @id @default(cuid())
+  productSku    String
+  productName   String
+  oldPrice      Float
+  newPrice      Float
+  competitorPrice Float?
+  reason        String   // 'manual', 'auto_dumping', 'competitor_price_change'
+  changedBy     String?  // 'system' or user id
+  createdAt     DateTime @default(now())
+
+  @@index([productSku])
+  @@index([createdAt])
+}

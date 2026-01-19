@@ -1,0 +1,141 @@
+@import "tailwindcss";
+
+:root {
+  /* Минималистичная цветовая схема */
+  --background: #fafafa;
+  --foreground: #0a0a0a;
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --border: #e5e7eb;
+  --card-bg: #ffffff;
+  --muted: #6b7280;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'SF Pro Text', 'Helvetica Neue', sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Минималистичные стили для элементов */
+* {
+  box-sizing: border-box;
+}
+
+/* Убираем рамки и эффекты при клике/hover на графики Recharts */
+.recharts-wrapper,
+.recharts-wrapper *,
+.recharts-surface,
+.recharts-wrapper svg,
+.recharts-bar-rectangle,
+.recharts-pie-sector,
+.recharts-rectangle,
+.recharts-bar,
+.recharts-responsive-container,
+.recharts-responsive-container * {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.recharts-wrapper:focus,
+.recharts-wrapper:focus-visible,
+.recharts-wrapper *:focus,
+.recharts-wrapper *:focus-visible,
+.recharts-surface:focus,
+.recharts-wrapper svg:focus,
+.recharts-responsive-container:focus,
+.recharts-responsive-container:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Убираем серый фон при hover на столбцах */
+.recharts-rectangle.recharts-tooltip-cursor {
+  fill: transparent !important;
+  stroke: none !important;
+}
+
+/* Курсор-рука при наведении на столбцы */
+.recharts-bar-rectangle {
+  cursor: pointer;
+}
+
+/* Кнопки */
+.btn-primary {
+  background: var(--primary);
+  color: white;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 500;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-primary:hover {
+  background: var(--primary-hover);
+}
+
+/* Карточки */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+}
+
+/* Инпуты */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="date"],
+input[type="tel"],
+textarea,
+select {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  padding: 0.625rem 1rem;
+  font-size: 14px;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* Таблицы */
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th {
+  text-align: left;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--muted);
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
+
+td {
+  padding: 0.875rem 1rem;
+  border-bottom: 1px solid var(--border);
+}
