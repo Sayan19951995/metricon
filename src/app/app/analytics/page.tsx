@@ -768,6 +768,8 @@ export default function AnalyticsPage() {
         expressDelivery: Math.max(totalOrders > 0 ? 1 : 0, Math.round(totalOrders * expressPercent)),
         pickup: Math.max(totalOrders > 0 ? 1 : 0, Math.round(totalOrders * pickupPercent)),
       },
+      pendingOrders: mockAnalyticsData.pendingOrders,
+      reviewsData: mockAnalyticsData.reviewsData,
     };
   };
 
