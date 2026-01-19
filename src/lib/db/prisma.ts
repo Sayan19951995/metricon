@@ -1,14 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+// Prisma disabled for demo deployment
+// import { PrismaClient } from '@prisma/client';
 
-const globalForPrisma = globalThis as unknown as {
-  prisma: PrismaClient | undefined;
+// Mock prisma client for demo
+export const prisma = null as unknown as {
+  // Add mock types as needed
+  [key: string]: unknown;
 };
-
-// В Prisma 7 DATABASE_URL настраивается через prisma.config.ts
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
-  });
-
-if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;

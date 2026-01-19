@@ -2296,9 +2296,12 @@ export default function AnalyticsPage() {
                         fill="#10b981"
                         stackId="a"
                         cursor="pointer"
-                        onClick={(data) => {
-                          setSelectedReviewsDay(data.date);
-                          setShowReviewsDayPopup(true);
+                        onClick={(_data, _index, e) => {
+                          const payload = (e as unknown as { payload?: { date?: string } })?.payload;
+                          if (payload?.date) {
+                            setSelectedReviewsDay(payload.date);
+                            setShowReviewsDayPopup(true);
+                          }
                         }}
                       />
                       <Bar
@@ -2307,9 +2310,12 @@ export default function AnalyticsPage() {
                         fill="#f59e0b"
                         stackId="a"
                         cursor="pointer"
-                        onClick={(data) => {
-                          setSelectedReviewsDay(data.date);
-                          setShowReviewsDayPopup(true);
+                        onClick={(_data, _index, e) => {
+                          const payload = (e as unknown as { payload?: { date?: string } })?.payload;
+                          if (payload?.date) {
+                            setSelectedReviewsDay(payload.date);
+                            setShowReviewsDayPopup(true);
+                          }
                         }}
                       />
                       <Bar
@@ -2319,9 +2325,12 @@ export default function AnalyticsPage() {
                         stackId="a"
                         radius={[4, 4, 0, 0]}
                         cursor="pointer"
-                        onClick={(data) => {
-                          setSelectedReviewsDay(data.date);
-                          setShowReviewsDayPopup(true);
+                        onClick={(_data, _index, e) => {
+                          const payload = (e as unknown as { payload?: { date?: string } })?.payload;
+                          if (payload?.date) {
+                            setSelectedReviewsDay(payload.date);
+                            setShowReviewsDayPopup(true);
+                          }
                         }}
                       />
                     </BarChart>

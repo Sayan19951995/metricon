@@ -26,7 +26,11 @@
       "Bash(node scripts/generate-mock-data.js:*)",
       "Bash(npx next lint:*)",
       "Bash(npx eslint:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd Metricon landing page, login/register pages, and full dashboard\n\n- Create modern landing page with pricing, features, FAQ sections\n- Add login page with demo credentials \\(demo@kaspi.kz / demo123\\)\n- Add two-step registration form\n- Fix input field icon overlap using flex layout\n- Update dashboard analytics link\n- Add warehouse management with order creation\n- Include all API routes and components\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(git commit:*)"
     ]
   }
 }
