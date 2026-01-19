@@ -260,24 +260,24 @@ export default function MarketAnalysisPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6"
+          className="mb-4 sm:mb-6"
         >
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Анализ рынка Kaspi</h1>
-              <p className="text-gray-500 mt-1">Статистика продаж, категории и товары маркетплейса</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Анализ рынка Kaspi</h1>
+              <p className="text-gray-500 mt-1 text-sm">Статистика продаж, категории и товары маркетплейса</p>
             </div>
             <a
               href="https://kaspi.kz/shop"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-[#f14635] text-white rounded-xl hover:bg-[#d93d2e] transition-colors cursor-pointer"
+              className="flex items-center justify-center gap-2 px-4 py-2 bg-[#f14635] text-white rounded-xl hover:bg-[#d93d2e] transition-colors cursor-pointer text-sm sm:text-base"
             >
               <ExternalLink className="w-4 h-4" />
               Kaspi.kz
@@ -285,34 +285,54 @@ export default function MarketAnalysisPage() {
           </div>
 
           {/* Search & Filters */}
-          <div className="bg-white rounded-2xl p-4 shadow-sm">
-            <div className="flex gap-3 mb-4">
-              {/* Search Type Toggle */}
-              <div className="flex bg-gray-100 rounded-xl p-1">
-                <button
-                  onClick={() => setSearchType('text')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                    searchType === 'text' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'
-                  }`}
-                >
-                  <Search className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setSearchType('link')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                    searchType === 'link' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'
-                  }`}
-                >
-                  <LinkIcon className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => setSearchType('sku')}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                    searchType === 'sku' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'
-                  }`}
-                >
-                  SKU
-                </button>
+          <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-sm">
+            <div className="flex flex-col sm:flex-row gap-3 mb-4">
+              {/* Search Type Toggle & Period - Mobile row */}
+              <div className="flex gap-2 sm:gap-3">
+                <div className="flex bg-gray-100 rounded-xl p-1">
+                  <button
+                    onClick={() => setSearchType('text')}
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                      searchType === 'text' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'
+                    }`}
+                  >
+                    <Search className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setSearchType('link')}
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                      searchType === 'link' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'
+                    }`}
+                  >
+                    <LinkIcon className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setSearchType('sku')}
+                    className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                      searchType === 'sku' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'
+                    }`}
+                  >
+                    SKU
+                  </button>
+                </div>
+
+                {/* Period Filter - visible on mobile */}
+                <div className="flex bg-gray-100 rounded-xl p-1 overflow-x-auto flex-1 sm:flex-none">
+                  {(['week', 'month', '3months', 'year'] as Period[]).map((p) => (
+                    <button
+                      key={p}
+                      onClick={() => setPeriod(p)}
+                      className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
+                        period === p ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'
+                      }`}
+                    >
+                      {p === 'week' && '7д'}
+                      {p === 'month' && '30д'}
+                      {p === '3months' && '90д'}
+                      {p === 'year' && '1г'}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {/* Search Input */}
@@ -331,33 +351,15 @@ export default function MarketAnalysisPage() {
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               </div>
 
-              {/* Period Filter */}
-              <div className="flex bg-gray-100 rounded-xl p-1">
-                {(['week', 'month', '3months', 'year'] as Period[]).map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setPeriod(p)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                      period === p ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'
-                    }`}
-                  >
-                    {p === 'week' && '7д'}
-                    {p === 'month' && '30д'}
-                    {p === '3months' && '90д'}
-                    {p === 'year' && '1г'}
-                  </button>
-                ))}
-              </div>
-
               {/* Filter Button */}
               <button
                 onClick={() => setShowFilters(!showFilters)}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer flex items-center gap-2 ${
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer flex items-center justify-center gap-2 ${
                   showFilters ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                 }`}
               >
                 <Filter className="w-4 h-4" />
-                Фильтры
+                <span className="hidden sm:inline">Фильтры</span>
               </button>
             </div>
 
@@ -370,7 +372,7 @@ export default function MarketAnalysisPage() {
                   exit={{ opacity: 0, height: 0 }}
                   className="pt-4 border-t border-gray-100"
                 >
-                  <div className="grid grid-cols-4 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                     <div>
                       <label className="text-xs text-gray-500 mb-1 block">Цена от</label>
                       <input
@@ -412,7 +414,7 @@ export default function MarketAnalysisPage() {
         </motion.div>
 
         {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
           {/* Categories List */}
           <motion.div
             variants={containerVariants}
@@ -421,8 +423,8 @@ export default function MarketAnalysisPage() {
             className="lg:col-span-2"
           >
             <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-4 border-b border-gray-100">
-                <h2 className="text-lg font-semibold text-gray-900">Категории маркетплейса</h2>
+              <div className="p-3 sm:p-4 border-b border-gray-100">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900">Категории маркетплейса</h2>
               </div>
 
               <div className="divide-y divide-gray-50">
@@ -431,19 +433,19 @@ export default function MarketAnalysisPage() {
                     {/* Category Row */}
                     <div
                       onClick={() => toggleCategory(category.id)}
-                      className="flex items-center gap-4 p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-gray-50 transition-colors cursor-pointer"
                     >
-                      <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center text-xl">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gray-100 rounded-xl flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
                         {category.icon}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900">{category.name}</span>
+                          <span className="font-medium text-gray-900 text-sm sm:text-base">{category.name}</span>
                           {category.subcategories.length > 0 && (
                             <span className="text-xs text-gray-400">({category.subcategories.length})</span>
                           )}
                         </div>
-                        <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-gray-500">
                           <span className="flex items-center gap-1">
                             <DollarSign className="w-3 h-3" />
                             {formatCurrency(category.totalSales)}
@@ -452,23 +454,23 @@ export default function MarketAnalysisPage() {
                             <Package className="w-3 h-3" />
                             {formatUnits(category.totalUnits)} шт
                           </span>
-                          <span className="flex items-center gap-1">
+                          <span className="hidden sm:flex items-center gap-1">
                             <Store className="w-3 h-3" />
                             {category.sellersCount}
                           </span>
                         </div>
                       </div>
-                      <div className="text-right">
-                        <div className={`flex items-center gap-1 text-sm font-medium ${
+                      <div className="text-right flex-shrink-0">
+                        <div className={`flex items-center gap-1 text-xs sm:text-sm font-medium ${
                           category.growth > 0 ? 'text-emerald-500' : 'text-red-500'
                         }`}>
-                          {category.growth > 0 ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
+                          {category.growth > 0 ? <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                           {category.growth > 0 ? '+' : ''}{category.growth}%
                         </div>
-                        <div className="text-xs text-gray-400 mt-1">за период</div>
+                        <div className="text-xs text-gray-400 mt-1 hidden sm:block">за период</div>
                       </div>
                       {category.subcategories.length > 0 && (
-                        <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${
+                        <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform flex-shrink-0 ${
                           expandedCategories.includes(category.id) ? 'rotate-90' : ''
                         }`} />
                       )}
@@ -487,23 +489,23 @@ export default function MarketAnalysisPage() {
                             <div key={sub.id}>
                               <div
                                 onClick={() => toggleSubcategory(sub.id)}
-                                className="flex items-center gap-4 p-4 pl-16 hover:bg-gray-100 transition-colors cursor-pointer"
+                                className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 pl-10 sm:pl-16 hover:bg-gray-100 transition-colors cursor-pointer"
                               >
-                                <div className="flex-1">
-                                  <span className="font-medium text-gray-800">{sub.name}</span>
-                                  <div className="flex items-center gap-4 mt-1 text-sm text-gray-500">
+                                <div className="flex-1 min-w-0">
+                                  <span className="font-medium text-gray-800 text-sm sm:text-base">{sub.name}</span>
+                                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-gray-500">
                                     <span>{formatCurrency(sub.totalSales)}</span>
                                     <span>{formatUnits(sub.totalUnits)} шт</span>
-                                    <span>{sub.sellersCount} продавцов</span>
+                                    <span className="hidden sm:inline">{sub.sellersCount} продавцов</span>
                                   </div>
                                 </div>
-                                <div className={`text-sm font-medium ${
+                                <div className={`text-xs sm:text-sm font-medium flex-shrink-0 ${
                                   sub.growth > 0 ? 'text-emerald-500' : 'text-red-500'
                                 }`}>
                                   {sub.growth > 0 ? '+' : ''}{sub.growth}%
                                 </div>
                                 {sub.products.length > 0 && (
-                                  <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform ${
+                                  <ChevronRight className={`w-4 h-4 text-gray-400 transition-transform flex-shrink-0 ${
                                     expandedSubcategories.includes(sub.id) ? 'rotate-90' : ''
                                   }`} />
                                 )}
@@ -522,22 +524,22 @@ export default function MarketAnalysisPage() {
                                       <div
                                         key={product.id}
                                         onClick={() => setSelectedProduct(product)}
-                                        className="flex items-center gap-4 p-4 pl-24 hover:bg-emerald-50 transition-colors cursor-pointer border-l-2 border-transparent hover:border-emerald-500"
+                                        className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 pl-14 sm:pl-24 hover:bg-emerald-50 transition-colors cursor-pointer border-l-2 border-transparent hover:border-emerald-500"
                                       >
-                                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center text-xl">
+                                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-lg flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
                                           {product.image}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                          <div className="font-medium text-gray-900 truncate">{product.name}</div>
+                                          <div className="font-medium text-gray-900 truncate text-sm sm:text-base">{product.name}</div>
                                           <div className="text-xs text-gray-400">SKU: {product.sku}</div>
                                         </div>
-                                        <div className="text-right">
-                                          <div className="font-medium text-gray-900">{product.price.toLocaleString()} ₸</div>
-                                          <div className="text-xs text-gray-500">{product.sales.toLocaleString()} продаж</div>
+                                        <div className="text-right flex-shrink-0">
+                                          <div className="font-medium text-gray-900 text-sm sm:text-base">{product.price.toLocaleString()} ₸</div>
+                                          <div className="text-xs text-gray-500 hidden sm:block">{product.sales.toLocaleString()} продаж</div>
                                         </div>
-                                        <div className="flex items-center gap-1 text-amber-500">
-                                          <Star className="w-4 h-4 fill-amber-400" />
-                                          <span className="text-sm font-medium">{product.rating}</span>
+                                        <div className="flex items-center gap-1 text-amber-500 flex-shrink-0">
+                                          <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-amber-400" />
+                                          <span className="text-xs sm:text-sm font-medium">{product.rating}</span>
                                         </div>
                                       </div>
                                     ))}
@@ -560,35 +562,35 @@ export default function MarketAnalysisPage() {
             variants={containerVariants}
             initial="hidden"
             animate="visible"
-            className="space-y-6"
+            className="space-y-4 sm:space-y-6"
           >
             {/* Market Summary */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Статистика рынка</h3>
-              <div className="space-y-4">
+            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Статистика рынка</h3>
+              <div className="space-y-3 sm:space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">Общий оборот</span>
-                  <span className="font-bold text-gray-900">6.6 млрд ₸</span>
+                  <span className="text-gray-500 text-sm">Общий оборот</span>
+                  <span className="font-bold text-gray-900 text-sm sm:text-base">6.6 млрд ₸</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">Всего продаж</span>
-                  <span className="font-bold text-gray-900">833K шт</span>
+                  <span className="text-gray-500 text-sm">Всего продаж</span>
+                  <span className="font-bold text-gray-900 text-sm sm:text-base">833K шт</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">Активных продавцов</span>
-                  <span className="font-bold text-gray-900">5,650</span>
+                  <span className="text-gray-500 text-sm">Активных продавцов</span>
+                  <span className="font-bold text-gray-900 text-sm sm:text-base">5,650</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500">Средний чек</span>
-                  <span className="font-bold text-gray-900">7,920 ₸</span>
+                  <span className="text-gray-500 text-sm">Средний чек</span>
+                  <span className="font-bold text-gray-900 text-sm sm:text-base">7,920 ₸</span>
                 </div>
               </div>
             </motion.div>
 
             {/* Sales Trend Chart */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Тренд продаж</h3>
-              <ResponsiveContainer width="100%" height={180}>
+            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Тренд продаж</h3>
+              <ResponsiveContainer width="100%" height={150} className="sm:!h-[180px]">
                 <LineChart data={salesTrendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                   <XAxis dataKey="date" tick={{ fontSize: 10 }} />
@@ -600,20 +602,20 @@ export default function MarketAnalysisPage() {
             </motion.div>
 
             {/* Top Categories */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-5 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Топ категорий по росту</h3>
-              <div className="space-y-3">
+            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Топ категорий по росту</h3>
+              <div className="space-y-2.5 sm:space-y-3">
                 {categoriesData
                   .sort((a, b) => b.growth - a.growth)
                   .slice(0, 5)
                   .map((cat, index) => (
-                    <div key={cat.id} className="flex items-center gap-3">
-                      <span className="w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center text-xs font-medium text-gray-600">
+                    <div key={cat.id} className="flex items-center gap-2 sm:gap-3">
+                      <span className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-100 rounded-full flex items-center justify-center text-xs font-medium text-gray-600">
                         {index + 1}
                       </span>
-                      <span className="text-lg">{cat.icon}</span>
-                      <span className="flex-1 text-sm text-gray-900">{cat.name}</span>
-                      <span className={`text-sm font-medium ${cat.growth > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
+                      <span className="text-base sm:text-lg">{cat.icon}</span>
+                      <span className="flex-1 text-xs sm:text-sm text-gray-900">{cat.name}</span>
+                      <span className={`text-xs sm:text-sm font-medium ${cat.growth > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                         {cat.growth > 0 ? '+' : ''}{cat.growth}%
                       </span>
                     </div>
@@ -630,7 +632,7 @@ export default function MarketAnalysisPage() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
+              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-2 sm:p-4"
               onClick={() => setSelectedProduct(null)}
             >
               <motion.div
@@ -638,12 +640,12 @@ export default function MarketAnalysisPage() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden"
+                className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden max-h-[90vh] overflow-y-auto"
               >
                 {/* Header */}
-                <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 px-6 py-4">
+                <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 sm:px-6 py-3 sm:py-4 sticky top-0">
                   <div className="flex items-center justify-between">
-                    <h3 className="text-xl font-bold text-white">Карточка товара</h3>
+                    <h3 className="text-lg sm:text-xl font-bold text-white">Карточка товара</h3>
                     <button
                       onClick={() => setSelectedProduct(null)}
                       className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors cursor-pointer"
@@ -654,31 +656,31 @@ export default function MarketAnalysisPage() {
                 </div>
 
                 {/* Body */}
-                <div className="p-6">
+                <div className="p-4 sm:p-6">
                   {/* Product Info */}
-                  <div className="flex gap-4 mb-6">
-                    <div className="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center text-4xl">
+                  <div className="flex flex-col sm:flex-row gap-4 mb-4 sm:mb-6">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-xl flex items-center justify-center text-3xl sm:text-4xl flex-shrink-0 mx-auto sm:mx-0">
                       {selectedProduct.image}
                     </div>
-                    <div className="flex-1">
-                      <h4 className="text-xl font-bold text-gray-900">{selectedProduct.name}</h4>
+                    <div className="flex-1 text-center sm:text-left">
+                      <h4 className="text-lg sm:text-xl font-bold text-gray-900">{selectedProduct.name}</h4>
                       <p className="text-gray-500 text-sm">SKU: {selectedProduct.sku}</p>
-                      <div className="flex items-center gap-2 mt-2">
+                      <div className="flex items-center justify-center sm:justify-start gap-2 mt-2">
                         <div className="flex items-center gap-1 text-amber-500">
                           <Star className="w-4 h-4 fill-amber-400" />
                           <span className="font-medium">{selectedProduct.rating}</span>
                         </div>
                         <span className="text-gray-300">•</span>
-                        <span className="text-gray-500">{selectedProduct.sellers} продавцов</span>
+                        <span className="text-gray-500 text-sm">{selectedProduct.sellers} продавцов</span>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-gray-900">{selectedProduct.price.toLocaleString()} ₸</div>
+                    <div className="text-center sm:text-right">
+                      <div className="text-xl sm:text-2xl font-bold text-gray-900">{selectedProduct.price.toLocaleString()} ₸</div>
                       <a
                         href={`https://kaspi.kz/shop/p/${selectedProduct.sku}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-emerald-600 hover:underline flex items-center justify-end gap-1 mt-1"
+                        className="text-sm text-emerald-600 hover:underline flex items-center justify-center sm:justify-end gap-1 mt-1"
                       >
                         Открыть на Kaspi <ExternalLink className="w-3 h-3" />
                       </a>
@@ -686,25 +688,25 @@ export default function MarketAnalysisPage() {
                   </div>
 
                   {/* Stats Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-gray-50 rounded-xl p-4">
-                      <div className="text-gray-500 text-sm mb-1">Продажи</div>
-                      <div className="text-xl font-bold text-gray-900">{selectedProduct.sales.toLocaleString()}</div>
+                  <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
+                    <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
+                      <div className="text-gray-500 text-xs sm:text-sm mb-1">Продажи</div>
+                      <div className="text-lg sm:text-xl font-bold text-gray-900">{selectedProduct.sales.toLocaleString()}</div>
                       <div className="text-xs text-emerald-500">за период</div>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-4">
-                      <div className="text-gray-500 text-sm mb-1">Выручка</div>
-                      <div className="text-xl font-bold text-gray-900">{formatCurrency(selectedProduct.revenue)}</div>
+                    <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
+                      <div className="text-gray-500 text-xs sm:text-sm mb-1">Выручка</div>
+                      <div className="text-lg sm:text-xl font-bold text-gray-900">{formatCurrency(selectedProduct.revenue)}</div>
                       <div className="text-xs text-emerald-500">за период</div>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-4">
-                      <div className="text-gray-500 text-sm mb-1">Продавцов</div>
-                      <div className="text-xl font-bold text-gray-900">{selectedProduct.sellers}</div>
+                    <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
+                      <div className="text-gray-500 text-xs sm:text-sm mb-1">Продавцов</div>
+                      <div className="text-lg sm:text-xl font-bold text-gray-900">{selectedProduct.sellers}</div>
                       <div className="text-xs text-gray-400">активных</div>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-4">
-                      <div className="text-gray-500 text-sm mb-1">Рейтинг</div>
-                      <div className="text-xl font-bold text-gray-900 flex items-center gap-1">
+                    <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
+                      <div className="text-gray-500 text-xs sm:text-sm mb-1">Рейтинг</div>
+                      <div className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-1">
                         {selectedProduct.rating}
                         <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                       </div>
@@ -713,9 +715,9 @@ export default function MarketAnalysisPage() {
                   </div>
 
                   {/* Sales Trend */}
-                  <div className="bg-gray-50 rounded-xl p-4">
-                    <h5 className="font-medium text-gray-900 mb-3">Динамика продаж</h5>
-                    <ResponsiveContainer width="100%" height={150}>
+                  <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
+                    <h5 className="font-medium text-gray-900 mb-3 text-sm sm:text-base">Динамика продаж</h5>
+                    <ResponsiveContainer width="100%" height={120} className="sm:!h-[150px]">
                       <BarChart data={salesTrendData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                         <XAxis dataKey="date" tick={{ fontSize: 10 }} />
