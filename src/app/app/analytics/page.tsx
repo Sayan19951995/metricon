@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, Package, CheckCircle, AlertTriangle, XCircle, Truck, CircleCheck, CircleX, CircleAlert, Star, MessageCircle, ThumbsUp, ThumbsDown, Megaphone } from 'lucide-react';
+import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Megaphone } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import DateRangeCalendar from '@/components/DateRangeCalendar';
@@ -22,6 +22,47 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts';
+
+// Типы для аналитики
+interface DailyData {
+  date: string;
+  fullDate: Date;
+  day: string;
+  orders: number;
+  revenue: number;
+  cost: number;
+  advertising: number;
+  commissions: number;
+  tax: number;
+  delivery: number;
+  profit: number;
+  totalExpenses?: number;
+}
+
+interface TopProduct {
+  id: number;
+  name: string;
+  sku: string;
+  image: string;
+  sales: number;
+  revenue: number;
+  cost: number;
+  profit: number;
+}
+
+interface MonthlyData {
+  date: string;
+  day?: string;
+  orders: number;
+  revenue: number;
+  cost: number;
+  advertising: number;
+  commissions: number;
+  tax: number;
+  delivery: number;
+  profit: number;
+  totalExpenses?: number;
+}
 
 // Насыщенные но спокойные цвета для источников продаж
 const SALES_SOURCE_COLORS = ['#4a90d9', '#e07b4a', '#6b7280']; // Синий (Органика), оранжевый (Реклама), серый (Оффлайн)
@@ -509,7 +550,7 @@ function AnalyticsPageContent() {
   const [endDate, setEndDate] = useState<Date | null>(defaultDates.end);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showExpenseDetails, setShowExpenseDetails] = useState(false);
-  const [selectedDayData, setSelectedDayData] = useState<any>(null);
+  const [selectedDayData, setSelectedDayData] = useState<DailyData | null>(null);
   const [showDayPopup, setShowDayPopup] = useState(false);
   const calendarRef = useRef<HTMLDivElement>(null);
 
@@ -521,7 +562,7 @@ function AnalyticsPageContent() {
 
   // Попап для детализации из таблицы "Детализация по дням"
   const [showTableDayPopup, setShowTableDayPopup] = useState(false);
-  const [selectedTableDay, setSelectedTableDay] = useState<any>(null);
+  const [selectedTableDay, setSelectedTableDay] = useState<DailyData | null>(null);
   const [showTotalPopup, setShowTotalPopup] = useState(false);
 
   // Попапы для источников продаж
@@ -548,7 +589,8 @@ function AnalyticsPageContent() {
 
   // Попап детализации по товару
   const [showProductPopup, setShowProductPopup] = useState(false);
-  const [selectedProduct, setSelectedProduct] = useState<any>(null);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const [selectedProduct, setSelectedProduct] = useState<TopProduct | null>(null);
   const [productPopupPeriod, setProductPopupPeriod] = useState<'week' | 'month' | '3months'>('week');
 
   // Попап заказов в пути (ожидают поступления)
@@ -615,18 +657,19 @@ function AnalyticsPageContent() {
   };
 
   // Обработчик клика по столбцу графика
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleBarClick = (data: any) => {
     console.log('Bar clicked:', data); // Для отладки
 
     // Recharts передает данные напрямую в event handler
     if (data && data.fullDate) {
-      setSelectedDayData(data);
+      setSelectedDayData(data as DailyData);
       setShowDayPopup(true);
     } else if (data && data.activePayload && data.activePayload[0]) {
       const dayData = data.activePayload[0].payload;
       // Проверяем, что это данные за день (не месяц)
       if (dayData.fullDate) {
-        setSelectedDayData(dayData);
+        setSelectedDayData(dayData as DailyData);
         setShowDayPopup(true);
       }
     }
@@ -654,8 +697,8 @@ function AnalyticsPageContent() {
   };
 
   // Функция для группировки данных по месяцам
-  const groupByMonth = (data: any[]) => {
-    const monthMap = new Map<string, any>();
+  const groupByMonth = (data: DailyData[]) => {
+    const monthMap = new Map<string, MonthlyData>();
 
     data.forEach(day => {
       // Формируем ключ как "YYYY-MM" для правильной сортировки
@@ -678,15 +721,17 @@ function AnalyticsPageContent() {
       }
 
       const monthData = monthMap.get(monthKey);
-      monthData.orders += day.orders;
-      monthData.revenue += day.revenue;
-      monthData.cost += day.cost;
-      monthData.advertising += day.advertising;
-      monthData.commissions += day.commissions;
-      monthData.tax += day.tax;
-      monthData.delivery += day.delivery;
-      monthData.totalExpenses += day.totalExpenses;
-      monthData.profit += day.profit;
+      if (monthData) {
+        monthData.orders += day.orders;
+        monthData.revenue += day.revenue;
+        monthData.cost += day.cost;
+        monthData.advertising += day.advertising;
+        monthData.commissions += day.commissions;
+        monthData.tax += day.tax;
+        monthData.delivery += day.delivery;
+        monthData.totalExpenses = (monthData.totalExpenses || 0) + (day.totalExpenses || 0);
+        monthData.profit += day.profit;
+      }
     });
 
     // Сортируем по ключу (хронологически)
@@ -1312,7 +1357,7 @@ function AnalyticsPageContent() {
                         key={index}
                         className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
                         onClick={() => {
-                          setSelectedTableDay({ ...day, totalExpenses: dayExpenses });
+                          setSelectedTableDay({ ...day, totalExpenses: dayExpenses } as DailyData);
                           setShowTableDayPopup(true);
                         }}
                       >
@@ -2784,7 +2829,7 @@ function AnalyticsPageContent() {
                       <div className="text-gray-500 text-sm">Поступления</div>
                     </div>
                     <div className="bg-rose-50 rounded-xl p-4 text-center">
-                      <div className="text-rose-500 font-bold text-lg">{selectedTableDay.totalExpenses.toLocaleString('ru-RU')} ₸</div>
+                      <div className="text-rose-500 font-bold text-lg">{(selectedTableDay.totalExpenses || 0).toLocaleString('ru-RU')} ₸</div>
                       <div className="text-gray-500 text-sm">Расходы</div>
                     </div>
                     <div className="bg-teal-50 rounded-xl p-4 text-center">
@@ -2798,8 +2843,8 @@ function AnalyticsPageContent() {
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Заказы ({selectedTableDay.orders})</h3>
                     <div className="space-y-2">
                       {Array.from({ length: Math.min(selectedTableDay.orders, 5) }).map((_, i) => {
-                        const orderNum = 100000 + Math.floor(Math.random() * 900000);
-                        const orderAmount = Math.round(selectedTableDay.revenue / selectedTableDay.orders * (0.8 + Math.random() * 0.4));
+                        const orderNum = 100000 + (i + 1) * 12345;
+                        const orderAmount = Math.round(selectedTableDay.revenue / selectedTableDay.orders * (0.8 + (i * 0.1)));
                         const productIndex = i % data.topProducts.length;
                         const product = data.topProducts[productIndex];
                         const isOrganic = i % 3 !== 0;
@@ -3049,7 +3094,7 @@ function AnalyticsPageContent() {
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {Array.from({ length: Math.min(data.salesSources.organic, 8) }).map((_, i) => {
                         const product = data.topProducts[i % data.topProducts.length];
-                        const orderAmount = Math.round((data.totalRevenue * 0.6) / data.salesSources.organic * (0.8 + Math.random() * 0.4));
+                        const orderAmount = Math.round((data.totalRevenue * 0.6) / data.salesSources.organic * (0.8 + (i * 0.05)));
                         return (
                           <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div className="flex-1 min-w-0 pr-3">
@@ -3130,7 +3175,7 @@ function AnalyticsPageContent() {
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {Array.from({ length: Math.min(data.salesSources.advertising, 6) }).map((_, i) => {
                         const product = data.topProducts[i % data.topProducts.length];
-                        const orderAmount = Math.round((data.totalRevenue * 0.4) / data.salesSources.advertising * (0.8 + Math.random() * 0.4));
+                        const orderAmount = Math.round((data.totalRevenue * 0.4) / data.salesSources.advertising * (0.8 + (i * 0.05)));
                         return (
                           <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div className="flex-1 min-w-0 pr-3">
@@ -3194,7 +3239,7 @@ function AnalyticsPageContent() {
                     <div className="space-y-2">
                       {Array.from({ length: offlineOrders }).map((_, i) => {
                         const product = data.topProducts[i % data.topProducts.length];
-                        const orderAmount = Math.round((data.totalRevenue * 0.05) / offlineOrders * (0.8 + Math.random() * 0.4));
+                        const orderAmount = Math.round((data.totalRevenue * 0.05) / offlineOrders * (0.8 + (i * 0.05)));
                         return (
                           <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div className="flex-1 min-w-0 pr-3">
@@ -3259,7 +3304,7 @@ function AnalyticsPageContent() {
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {Array.from({ length: Math.min(data.deliveryModes.myDelivery, 8) }).map((_, i) => {
                         const product = data.topProducts[i % data.topProducts.length];
-                        const orderAmount = Math.round((data.totalRevenue * 0.42) / data.deliveryModes.myDelivery * (0.8 + Math.random() * 0.4));
+                        const orderAmount = Math.round((data.totalRevenue * 0.42) / data.deliveryModes.myDelivery * (0.8 + (i * 0.05)));
                         return (
                           <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div className="flex-1 min-w-0 pr-3">
@@ -3323,7 +3368,7 @@ function AnalyticsPageContent() {
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {Array.from({ length: Math.min(data.deliveryModes.expressDelivery, 8) }).map((_, i) => {
                         const product = data.topProducts[i % data.topProducts.length];
-                        const orderAmount = Math.round((data.totalRevenue * 0.17) / data.deliveryModes.expressDelivery * (0.8 + Math.random() * 0.4));
+                        const orderAmount = Math.round((data.totalRevenue * 0.17) / data.deliveryModes.expressDelivery * (0.8 + (i * 0.05)));
                         return (
                           <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div className="flex-1 min-w-0 pr-3">
@@ -3387,7 +3432,7 @@ function AnalyticsPageContent() {
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {Array.from({ length: Math.min(data.deliveryModes.pickup, 8) }).map((_, i) => {
                         const product = data.topProducts[i % data.topProducts.length];
-                        const orderAmount = Math.round((data.totalRevenue * 0.16) / data.deliveryModes.pickup * (0.8 + Math.random() * 0.4));
+                        const orderAmount = Math.round((data.totalRevenue * 0.16) / data.deliveryModes.pickup * (0.8 + (i * 0.05)));
                         return (
                           <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div className="flex-1 min-w-0 pr-3">
@@ -3451,7 +3496,7 @@ function AnalyticsPageContent() {
                     <div className="space-y-2">
                       {Array.from({ length: offlineOrders }).map((_, i) => {
                         const product = data.topProducts[i % data.topProducts.length];
-                        const orderAmount = Math.round((data.totalRevenue * 0.05) / offlineOrders * (0.8 + Math.random() * 0.4));
+                        const orderAmount = Math.round((data.totalRevenue * 0.05) / offlineOrders * (0.8 + (i * 0.05)));
                         return (
                           <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div className="flex-1 min-w-0 pr-3">
@@ -3523,7 +3568,7 @@ function AnalyticsPageContent() {
                           <div className="space-y-2 max-h-60 overflow-y-auto">
                             {Array.from({ length: Math.min(cityOrders, 8) }).map((_, i) => {
                               const product = data.topProducts[i % data.topProducts.length];
-                              const orderAmount = Math.round(avgOrderValue * (0.8 + Math.random() * 0.4));
+                              const orderAmount = Math.round(avgOrderValue * (0.8 + (i * 0.05)));
                               return (
                                 <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                                   <div className="flex-1 min-w-0 pr-3">
@@ -3789,7 +3834,7 @@ function AnalyticsPageContent() {
                 <div className="p-4 sm:p-6">
                   <h3 className="font-semibold text-gray-900 mb-3 text-sm">Список заказов</h3>
                   <div className="space-y-2 max-h-60 overflow-y-auto">
-                    {(data.pendingOrders?.orders || []).map((order: any) => (
+                    {(data.pendingOrders?.orders || []).map((order: { id: string; product: string; amount: number; date: string; customer: string }) => (
                       <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
                         <div className="flex-1 min-w-0 pr-3">
                           <div className="flex items-center gap-2">
