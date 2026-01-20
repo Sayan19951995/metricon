@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Calendar, DollarSign, TrendingUp, Package, Calculator, CheckCircle, Settings, Plus } from 'lucide-react';
+import { Search, Package, Settings, ArrowRightLeft, Minus, Plus, Truck, AlertTriangle, History } from 'lucide-react';
+import Link from 'next/link';
 import CreateOrderModal from '@/components/warehouse/CreateOrderModal';
 
 // Анимации
@@ -19,67 +20,224 @@ const itemVariants = {
   visible: { opacity: 1, y: 0 }
 };
 
-// Mock данные для движения склада
-const warehouseMovementData = {
-  receipts: [
-    { name: 'iPhone 14 Pro 256GB', qty: 25, cost: 187500, date: '15.11' },
-    { name: 'Samsung Galaxy S23 Ultra', qty: 18, cost: 162000, date: '14.11' },
-    { name: 'AirPods Pro 2', qty: 40, cost: 120000, date: '12.11' },
-    { name: 'MacBook Pro 14" M2', qty: 8, cost: 136000, date: '10.11' },
-    { name: 'iPad Air 5th Gen', qty: 15, cost: 105000, date: '08.11' },
-    { name: 'Apple Watch Ultra', qty: 20, cost: 80000, date: '05.11' },
-    { name: 'Sony WH-1000XM5', qty: 30, cost: 56500, date: '03.11' },
-  ],
-  writeOffs: [
-    { id: 1, name: 'iPhone 14 Pro 256GB', sku: 'APL-IP14P-256', sales: 32, cost: 187500 },
-    { id: 2, name: 'Samsung Galaxy S23 Ultra', sku: 'SAM-S23U-256', sales: 24, cost: 162000 },
-    { id: 3, name: 'AirPods Pro 2', sku: 'APL-APP2', sales: 45, cost: 120000 },
-    { id: 4, name: 'MacBook Pro 14" M2', sku: 'APL-MBP14-M2', sales: 8, cost: 136000 },
-    { id: 5, name: 'iPad Air 5th Gen', sku: 'APL-IPA5', sales: 15, cost: 105000 },
-    { id: 6, name: 'Apple Watch Ultra', sku: 'APL-AWU', sales: 18, cost: 80000 },
-    { id: 7, name: 'Sony WH-1000XM5', sku: 'SNY-WH1000', sales: 22, cost: 56500 },
-  ],
-  history: [
-    { id: 'ПР-001247', date: '15.11.2025', items: 3, qty: 45, cost: 487500, status: 'completed' },
-    { id: 'ПР-001246', date: '14.11.2025', items: 2, qty: 28, cost: 252000, status: 'completed' },
-    { id: 'ПР-001245', date: '12.11.2025', items: 1, qty: 40, cost: 120000, status: 'completed' },
-    { id: 'ПР-001244', date: '10.11.2025', items: 4, qty: 35, cost: 315000, status: 'completed' },
-    { id: 'ПР-001243', date: '08.11.2025', items: 2, qty: 22, cost: 154000, status: 'completed' },
-    { id: 'ПР-001242', date: '05.11.2025', items: 3, qty: 50, cost: 175000, status: 'completed' },
-    { id: 'ПР-001241', date: '03.11.2025', items: 2, qty: 30, cost: 84000, status: 'completed' },
-    { id: 'ПР-001240', date: '01.11.2025', items: 5, qty: 65, cost: 422500, status: 'completed' },
-  ]
-};
+type WarehouseTab = 'all' | 'almaty' | 'astana' | 'karaganda' | 'shymkent';
 
-// Подсчет общих значений
-const totalReceipts = warehouseMovementData.receipts.reduce((sum, item) => sum + item.qty, 0);
-const totalReceiptsCost = warehouseMovementData.receipts.reduce((sum, item) => sum + item.cost, 0);
-const totalWriteOffs = warehouseMovementData.writeOffs.reduce((sum, item) => sum + item.sales, 0);
-const totalWriteOffsCost = warehouseMovementData.writeOffs.reduce((sum, item) => sum + item.cost, 0);
+// Данные товаров на складе
+const warehouseProducts = [
+  { id: 1, name: 'iPhone 14 Pro 256GB', sku: 'APL-IP14P-256', qty: 15, inTransit: 10, costPrice: 485000, price: 549000, warehouse: 'almaty' },
+  { id: 2, name: 'Samsung Galaxy S23 Ultra', sku: 'SAM-S23U-256', qty: 8, inTransit: 0, costPrice: 420000, price: 489000, warehouse: 'almaty' },
+  { id: 3, name: 'AirPods Pro 2', sku: 'APL-APP2', qty: 32, inTransit: 20, costPrice: 89000, price: 109000, warehouse: 'almaty' },
+  { id: 4, name: 'MacBook Pro 14" M2', sku: 'APL-MBP14-M2', qty: 5, inTransit: 5, costPrice: 890000, price: 999000, warehouse: 'astana' },
+  { id: 5, name: 'iPad Air 5th Gen', sku: 'APL-IPA5', qty: 12, inTransit: 0, costPrice: 285000, price: 339000, warehouse: 'almaty' },
+  { id: 6, name: 'Apple Watch Ultra', sku: 'APL-AWU', qty: 18, inTransit: 0, costPrice: 320000, price: 389000, warehouse: 'astana' },
+  { id: 7, name: 'Sony WH-1000XM5', sku: 'SNY-WH1000', qty: 25, inTransit: 15, costPrice: 145000, price: 179000, warehouse: 'karaganda' },
+  { id: 8, name: 'Google Pixel 8 Pro', sku: 'GOO-PX8P', qty: 6, inTransit: 0, costPrice: 380000, price: 449000, warehouse: 'almaty' },
+  { id: 9, name: 'Samsung Galaxy Tab S9', sku: 'SAM-TABS9', qty: 10, inTransit: 5, costPrice: 290000, price: 359000, warehouse: 'shymkent' },
+  { id: 10, name: 'Nintendo Switch OLED', sku: 'NIN-SWOLED', qty: 14, inTransit: 0, costPrice: 165000, price: 199000, warehouse: 'almaty' },
+  { id: 11, name: 'DJI Mini 3 Pro', sku: 'DJI-M3P', qty: 4, inTransit: 3, costPrice: 420000, price: 499000, warehouse: 'astana' },
+  { id: 12, name: 'Bose QuietComfort 45', sku: 'BOSE-QC45', qty: 20, inTransit: 0, costPrice: 125000, price: 159000, warehouse: 'karaganda' },
+];
 
 export default function WarehousePage() {
   const [showCreateOrderModal, setShowCreateOrderModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<WarehouseTab>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showCriticalOnly, setShowCriticalOnly] = useState(false);
+
+  // Фильтрация по складу, поиску и критическому остатку
+  const filteredProducts = warehouseProducts.filter(product => {
+    const matchesWarehouse = activeTab === 'all' || product.warehouse === activeTab;
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          product.sku.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCritical = !showCriticalOnly || product.qty < 10;
+    return matchesWarehouse && matchesSearch && matchesCritical;
+  });
+
+  // Подсчёт товаров по складам
+  const warehouseCounts = {
+    all: warehouseProducts.length,
+    almaty: warehouseProducts.filter(p => p.warehouse === 'almaty').length,
+    astana: warehouseProducts.filter(p => p.warehouse === 'astana').length,
+    karaganda: warehouseProducts.filter(p => p.warehouse === 'karaganda').length,
+    shymkent: warehouseProducts.filter(p => p.warehouse === 'shymkent').length,
+  };
+
+  // Суммарные значения
+  const totalQty = filteredProducts.reduce((sum, p) => sum + p.qty, 0);
+  const totalCost = filteredProducts.reduce((sum, p) => sum + (p.costPrice * p.qty), 0);
+  const totalPrice = filteredProducts.reduce((sum, p) => sum + (p.price * p.qty), 0);
+  const totalInTransit = filteredProducts.reduce((sum, p) => sum + p.inTransit, 0);
+  const criticalCount = filteredProducts.filter(p => p.qty < 10).length;
+
+  const getWarehouseName = (warehouse: string) => {
+    switch (warehouse) {
+      case 'almaty': return 'Алматы';
+      case 'astana': return 'Астана';
+      case 'karaganda': return 'Караганда';
+      case 'shymkent': return 'Шымкент';
+      default: return warehouse;
+    }
+  };
 
   return (
-    <div className="p-4 sm:p-6">
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+      <div className="mb-6 lg:mb-8 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Склад</h1>
-          <p className="text-sm text-gray-500 mt-1">Движение товаров и приёмки</p>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Склад</h1>
+          <p className="text-gray-500 text-sm">Остатки товаров на складах</p>
         </div>
-        <div className="flex flex-wrap gap-2 sm:gap-3 w-full sm:w-auto">
-          <a
+        <div className="flex items-center gap-2">
+          <Link
             href="/app/warehouse/history"
-            className="px-3 sm:px-4 py-2 sm:py-2.5 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition-colors font-medium text-sm"
+            className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-colors text-sm font-medium text-gray-700"
           >
-            История
-          </a>
+            <History className="w-4 h-4" />
+            <span className="hidden sm:inline">История приёмок</span>
+          </Link>
+          <Link
+            href="/app/warehouse/settings"
+            className="p-2.5 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-colors"
+            title="Настройки складов"
+          >
+            <Settings className="w-5 h-5 text-gray-600" />
+          </Link>
+        </div>
+      </div>
+
+      {/* Stats Blocks */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
+              <Package className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Себестоимость склада</p>
+              <p className="text-lg font-bold text-gray-900">{totalCost.toLocaleString()} ₸</p>
+            </div>
+          </div>
+        </div>
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
+              <Package className="w-5 h-5 text-emerald-600" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Оценочная стоимость</p>
+              <p className="text-lg font-bold text-emerald-600">{totalPrice.toLocaleString()} ₸</p>
+            </div>
+          </div>
+        </div>
+        <button
+          onClick={() => setShowCriticalOnly(!showCriticalOnly)}
+          className={`bg-white rounded-xl p-4 shadow-sm text-left transition-all cursor-pointer ${
+            showCriticalOnly ? 'ring-2 ring-amber-500' : 'hover:shadow-md'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
+              <AlertTriangle className="w-5 h-5 text-amber-600" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">Критический остаток</p>
+              <p className="text-lg font-bold text-amber-600">{criticalCount} товаров</p>
+            </div>
+          </div>
+        </button>
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center">
+              <Truck className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-xs text-gray-500">В пути</p>
+              <p className="text-lg font-bold text-purple-600">{totalInTransit} шт</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters and Search */}
+      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm mb-4 sm:mb-6">
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Search */}
+          <div className="flex-1">
+            <div className="relative">
+              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+                <Search className="w-4 h-4 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Поиск по названию или артикулу..."
+                style={{ paddingLeft: '2.5rem' }}
+                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 transition-colors"
+              />
+            </div>
+          </div>
+
+          {/* Add Button */}
           <button
             onClick={() => setShowCreateOrderModal(true)}
-            className="px-3 sm:px-4 py-2 sm:py-2.5 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors font-medium text-sm cursor-pointer flex-1 sm:flex-none"
+            className="px-4 sm:px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0"
           >
-            + Заказ
+            + Добавить
+          </button>
+        </div>
+
+        {/* Warehouse Tabs */}
+        <div className="flex gap-2 overflow-x-auto pt-4 pb-1">
+          <button
+            onClick={() => setActiveTab('all')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              activeTab === 'all'
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Все склады <span className={`text-xs ${activeTab === 'all' ? 'text-gray-300' : 'text-gray-400'}`}>{warehouseCounts.all}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('almaty')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              activeTab === 'almaty'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Алматы <span className={`text-xs ${activeTab === 'almaty' ? 'text-blue-200' : 'text-gray-400'}`}>{warehouseCounts.almaty}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('astana')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              activeTab === 'astana'
+                ? 'bg-purple-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Астана <span className={`text-xs ${activeTab === 'astana' ? 'text-purple-200' : 'text-gray-400'}`}>{warehouseCounts.astana}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('karaganda')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              activeTab === 'karaganda'
+                ? 'bg-orange-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Караганда <span className={`text-xs ${activeTab === 'karaganda' ? 'text-orange-200' : 'text-gray-400'}`}>{warehouseCounts.karaganda}</span>
+          </button>
+          <button
+            onClick={() => setActiveTab('shymkent')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              activeTab === 'shymkent'
+                ? 'bg-emerald-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Шымкент <span className={`text-xs ${activeTab === 'shymkent' ? 'text-emerald-200' : 'text-gray-400'}`}>{warehouseCounts.shymkent}</span>
           </button>
         </div>
       </div>
@@ -89,249 +247,140 @@ export default function WarehousePage() {
         initial="hidden"
         animate="visible"
       >
-        {/* Period Info */}
-        <div className="mb-6 flex items-center gap-2 text-sm text-gray-400">
-          <Calendar className="w-4 h-4" />
-          <span>Период: <span className="text-gray-500">01.11 - 15.11</span></span>
-          <span className="text-gray-300">|</span>
-          <span>+{totalReceipts} / -{totalWriteOffs} шт</span>
+        {/* Products - Mobile Cards */}
+        <div className="lg:hidden space-y-3">
+          {filteredProducts.map((product, index) => (
+            <motion.div
+              key={product.id}
+              variants={itemVariants}
+              className="bg-white rounded-xl p-4 shadow-sm"
+            >
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold text-sm truncate">{product.name}</p>
+                  <p className="text-xs text-gray-500">{product.sku}</p>
+                </div>
+                <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 ml-2">
+                  {getWarehouseName(product.warehouse)}
+                </span>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <div className="flex items-center gap-3 text-gray-500">
+                  <span className="font-medium text-gray-900">{product.qty} шт</span>
+                  <span>{product.costPrice.toLocaleString()} ₸</span>
+                </div>
+                <span className="font-semibold text-emerald-600">{product.price.toLocaleString()} ₸</span>
+              </div>
+            </motion.div>
+          ))}
+
+          {/* Mobile Total */}
+          <div className="bg-white rounded-xl p-4 shadow-sm border-t-2 border-gray-200">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-gray-700">Итого: {totalQty} шт.</span>
+              <span className="text-sm font-bold text-gray-900">{totalCost.toLocaleString()} ₸</span>
+            </div>
+          </div>
         </div>
 
-        {/* Warehouse Summary Cards */}
-        <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4 mb-6">
-          <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-              </div>
-              <span className="text-gray-600 text-xs sm:text-sm">Стоимость склада</span>
-            </div>
-            <div className="text-xl sm:text-2xl font-bold text-gray-900">2.8M ₸</div>
-            <div className="text-xs text-gray-500 mt-1">текущая оценка</div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
-              </div>
-              <span className="text-gray-600 text-xs sm:text-sm">Поступило</span>
-            </div>
-            <div className="text-xl sm:text-2xl font-bold text-emerald-600">{(totalReceiptsCost / 1000).toFixed(0)}K ₸</div>
-            <div className="text-xs mt-1">
-              <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-medium">за период</span>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-                <Package className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
-              </div>
-              <span className="text-gray-600 text-xs sm:text-sm">Приемок</span>
-            </div>
-            <div className="text-xl sm:text-2xl font-bold text-amber-600">{warehouseMovementData.history.length}</div>
-            <div className="text-xs mt-1">
-              <span className="bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded font-medium">за период</span>
-            </div>
-          </div>
-
-          <div className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
-            <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-              <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                <Calculator className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
-              </div>
-              <span className="text-gray-600 text-xs sm:text-sm">Рентабельность</span>
-            </div>
-            <div className="text-xl sm:text-2xl font-bold text-purple-600">34.2%</div>
-            <div className="text-xs text-gray-500 mt-1">оборачиваемость</div>
-          </div>
-        </motion.div>
-
-        {/* Движение товаров за период */}
-        <motion.div variants={itemVariants} className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6 mb-6">
-          {/* Поступления */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div className="p-4 sm:p-5 border-b border-gray-200 bg-emerald-50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">Поступления</h3>
-                    <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded text-xs font-medium">за период</span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Приход товаров за период</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg sm:text-2xl font-bold text-emerald-600">+{totalReceipts} шт</div>
-                  <div className="text-xs sm:text-sm text-gray-500">{totalReceiptsCost.toLocaleString('ru-RU')} ₸</div>
-                </div>
-              </div>
-            </div>
-            <div className="p-3 sm:p-4 space-y-2 sm:space-y-3 max-h-80 overflow-y-auto">
-              {warehouseMovementData.receipts.map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-2.5 sm:p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 text-sm truncate">{item.name}</div>
-                    <div className="text-xs text-gray-500">{item.date}</div>
-                  </div>
-                  <div className="text-right flex-shrink-0 ml-2">
-                    <div className="text-sm font-semibold text-emerald-600">+{item.qty} шт</div>
-                    <div className="text-xs text-gray-500">{item.cost.toLocaleString('ru-RU')} ₸</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Списания/Продажи */}
-          <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-            <div className="p-4 sm:p-5 border-b border-gray-200 bg-red-50">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900">Списания</h3>
-                    <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded text-xs font-medium">за период</span>
-                  </div>
-                  <p className="text-xs sm:text-sm text-gray-500 mt-0.5">Расход товаров за период</p>
-                </div>
-                <div className="text-right">
-                  <div className="text-lg sm:text-2xl font-bold text-red-600">-{totalWriteOffs} шт</div>
-                  <div className="text-xs sm:text-sm text-gray-500">{totalWriteOffsCost.toLocaleString('ru-RU')} ₸</div>
-                </div>
-              </div>
-            </div>
-            <div className="p-3 sm:p-4 space-y-2 sm:space-y-3 max-h-80 overflow-y-auto">
-              {warehouseMovementData.writeOffs.map((item, i) => (
-                <div key={i} className="flex items-center justify-between p-2.5 sm:p-3 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-gray-900 text-sm truncate">{item.name}</div>
-                    <div className="text-xs text-gray-500">Продажи</div>
-                  </div>
-                  <div className="text-right flex-shrink-0 ml-2">
-                    <div className="text-sm font-semibold text-red-600">-{item.sales} шт</div>
-                    <div className="text-xs text-gray-500">{item.cost.toLocaleString('ru-RU')} ₸</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-
-        {/* История приемок */}
-        <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <div className="p-4 sm:p-6 border-b border-gray-200">
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-900">История приемок</h3>
-            <p className="text-xs sm:text-sm text-gray-500 mt-1">Все поступления товаров за выбранный период</p>
-          </div>
-
-          {/* Mobile Cards */}
-          <div className="sm:hidden divide-y divide-gray-100">
-            {warehouseMovementData.history.map((receipt, index) => (
-              <div key={index} className="p-3 hover:bg-gray-50 transition-colors">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="font-medium text-gray-900">{receipt.id}</div>
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                    <CheckCircle className="w-3 h-3" /> Проведено
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <div className="text-gray-500">{receipt.date}</div>
-                  <div className="text-emerald-600 font-medium">+{receipt.qty} шт</div>
-                </div>
-                <div className="flex items-center justify-between text-xs text-gray-500 mt-1">
-                  <div>{receipt.items} позиций</div>
-                  <div className="font-medium text-gray-900">{receipt.cost.toLocaleString('ru-RU')} ₸</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Desktop Table */}
-          <div className="hidden sm:block overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
-                <tr>
-                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Дата</th>
-                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Приемка</th>
-                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-center">Позиций</th>
-                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-center">Количество</th>
-                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Себестоимость</th>
-                  <th className="px-4 lg:px-6 py-3 lg:py-4 text-xs font-medium text-gray-500 uppercase tracking-wider text-center">Статус</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {warehouseMovementData.history.map((receipt, index) => (
-                  <tr key={index} className="hover:bg-gray-50 transition-colors cursor-pointer">
-                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
-                      <div className="text-sm text-gray-900">{receipt.date}</div>
-                    </td>
-                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap">
-                      <div className="font-medium text-gray-900">{receipt.id}</div>
-                    </td>
-                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-center">
-                      <div className="text-sm text-gray-600">{receipt.items}</div>
-                    </td>
-                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-center">
-                      <div className="text-sm font-medium text-emerald-600">+{receipt.qty} шт</div>
-                    </td>
-                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-right">
-                      <div className="text-sm font-medium text-gray-900">{receipt.cost.toLocaleString('ru-RU')} ₸</div>
-                    </td>
-                    <td className="px-4 lg:px-6 py-3 lg:py-4 whitespace-nowrap text-center">
-                      <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                        <CheckCircle className="w-3.5 h-3.5" /> Проведено
+        {/* Products Table - Desktop */}
+        <motion.div variants={itemVariants} className="hidden lg:block bg-white rounded-2xl shadow-sm overflow-hidden">
+          <table className="w-full">
+            <thead className="bg-gray-50 border-b border-gray-200">
+              <tr>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Товар</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Остаток</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">В пути</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Себест. общ.</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Цена общ.</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Склад</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Действия</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filteredProducts.map((product, index) => (
+                <motion.tr
+                  key={product.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: index * 0.03 }}
+                  className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                >
+                  <td className="py-4 px-6">
+                    <p className="font-medium text-sm text-gray-900">{product.name}</p>
+                  </td>
+                  <td className="py-4 px-6">
+                    <span className="text-sm font-semibold text-gray-900">
+                      {product.qty} шт
+                    </span>
+                  </td>
+                  <td className="py-4 px-6">
+                    {product.inTransit > 0 ? (
+                      <span className="text-sm font-medium text-purple-600">
+                        {product.inTransit} шт
                       </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Итого */}
-          <div className="p-4 sm:p-6 border-t border-gray-200 bg-gray-50">
-            <div className="grid grid-cols-3 gap-4 sm:gap-6">
-              <div>
-                <div className="text-xs sm:text-sm text-gray-500">Всего приемок</div>
-                <div className="text-lg sm:text-xl font-bold text-gray-900">{warehouseMovementData.history.length}</div>
-              </div>
-              <div>
-                <div className="text-xs sm:text-sm text-gray-500">Всего единиц</div>
-                <div className="text-lg sm:text-xl font-bold text-emerald-600">+{warehouseMovementData.history.reduce((sum, r) => sum + r.qty, 0)} шт</div>
-              </div>
-              <div>
-                <div className="text-xs sm:text-sm text-gray-500">Общая себестоимость</div>
-                <div className="text-lg sm:text-xl font-bold text-gray-900">{warehouseMovementData.history.reduce((sum, r) => sum + r.cost, 0).toLocaleString('ru-RU')} ₸</div>
-              </div>
-            </div>
-          </div>
-        </motion.div>
-
-        {/* Рентабельность склада */}
-        <motion.div variants={itemVariants} className="mt-6 bg-white rounded-2xl shadow-sm p-4 sm:p-6">
-          <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Анализ рентабельности склада</h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-            <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
-              <div className="text-xs sm:text-sm text-gray-500 mb-1">Средняя оборачиваемость</div>
-              <div className="text-xl sm:text-2xl font-bold text-gray-900">18 дней</div>
-              <div className="text-xs text-emerald-600 mt-1">-3 дня vs прошлый период</div>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
-              <div className="text-xs sm:text-sm text-gray-500 mb-1">ROI склада</div>
-              <div className="text-xl sm:text-2xl font-bold text-emerald-600">34.2%</div>
-              <div className="text-xs text-emerald-600 mt-1">+5.1% vs прошлый период</div>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
-              <div className="text-xs sm:text-sm text-gray-500 mb-1">Замороженные средства</div>
-              <div className="text-xl sm:text-2xl font-bold text-amber-600">245K ₸</div>
-              <div className="text-xs text-gray-500 mt-1">товары без движения 30+ дней</div>
-            </div>
-            <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
-              <div className="text-xs sm:text-sm text-gray-500 mb-1">Потенциальная прибыль</div>
-              <div className="text-xl sm:text-2xl font-bold text-purple-600">956K ₸</div>
-              <div className="text-xs text-gray-500 mt-1">при текущих остатках</div>
-            </div>
-          </div>
+                    ) : (
+                      <span className="text-sm text-gray-400">—</span>
+                    )}
+                  </td>
+                  <td className="py-4 px-6">
+                    <span className="text-sm text-gray-600">{(product.costPrice * product.qty).toLocaleString()} ₸</span>
+                  </td>
+                  <td className="py-4 px-6">
+                    <span className="text-sm font-semibold text-emerald-600">{(product.price * product.qty).toLocaleString()} ₸</span>
+                  </td>
+                  <td className="py-4 px-6">
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                      {getWarehouseName(product.warehouse)}
+                    </span>
+                  </td>
+                  <td className="py-4 px-6">
+                    <div className="flex items-center justify-start gap-1">
+                      <button
+                        className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors group cursor-pointer"
+                        title="Переместить"
+                      >
+                        <ArrowRightLeft className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
+                      </button>
+                      <button
+                        className="p-1.5 hover:bg-red-50 rounded-lg transition-colors group cursor-pointer"
+                        title="Списать"
+                      >
+                        <Minus className="w-4 h-4 text-gray-400 group-hover:text-red-600" />
+                      </button>
+                      <button
+                        className="p-1.5 hover:bg-emerald-50 rounded-lg transition-colors group cursor-pointer"
+                        title="Добавить"
+                      >
+                        <Plus className="w-4 h-4 text-gray-400 group-hover:text-emerald-600" />
+                      </button>
+                    </div>
+                  </td>
+                </motion.tr>
+              ))}
+            </tbody>
+            <tfoot className="bg-gray-50 border-t border-gray-200">
+              <tr>
+                <td className="py-4 px-6">
+                  <span className="text-sm font-semibold text-gray-700">Итого:</span>
+                </td>
+                <td className="py-4 px-6">
+                  <span className="text-sm font-semibold text-gray-900">{totalQty} шт</span>
+                </td>
+                <td className="py-4 px-6">
+                  <span className="text-sm font-semibold text-purple-600">{totalInTransit} шт</span>
+                </td>
+                <td className="py-4 px-6">
+                  <span className="text-sm font-bold text-gray-900">{totalCost.toLocaleString()} ₸</span>
+                </td>
+                <td className="py-4 px-6">
+                  <span className="text-sm font-bold text-emerald-600">{totalPrice.toLocaleString()} ₸</span>
+                </td>
+                <td className="py-4 px-6"></td>
+                <td className="py-4 px-6"></td>
+              </tr>
+            </tfoot>
+          </table>
         </motion.div>
       </motion.div>
 

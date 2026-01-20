@@ -4,11 +4,6 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import {
-  ClipboardList,
-  Clock,
-  RefreshCw,
-  Package,
-  CheckCircle,
   Search,
   ChevronRight,
   ArrowUpDown,
@@ -17,8 +12,8 @@ import {
   X
 } from 'lucide-react';
 
-type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-type FilterStatus = 'all' | 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+type OrderStatus = 'my_delivery' | 'express' | 'pickup' | 'packing' | 'transfer' | 'offline' | 'transferred';
+type FilterStatus = 'all' | OrderStatus;
 type SortField = 'code' | 'customer' | 'date' | 'items' | 'total' | 'status';
 type SortDirection = 'asc' | 'desc';
 
@@ -40,9 +35,8 @@ export default function OrdersPage() {
       time: '14:30',
       items: 3,
       total: 1287000,
-      status: 'pending' as OrderStatus,
-      payment: 'card',
-      delivery: 'courier'
+      status: 'my_delivery' as OrderStatus,
+      payment: 'kaspi',
     },
     {
       id: 2,
@@ -52,9 +46,8 @@ export default function OrdersPage() {
       time: '12:15',
       items: 1,
       total: 549000,
-      status: 'processing' as OrderStatus,
+      status: 'express' as OrderStatus,
       payment: 'kaspi',
-      delivery: 'pickup'
     },
     {
       id: 3,
@@ -64,9 +57,8 @@ export default function OrdersPage() {
       time: '18:45',
       items: 2,
       total: 838000,
-      status: 'shipped' as OrderStatus,
-      payment: 'cash',
-      delivery: 'courier'
+      status: 'pickup' as OrderStatus,
+      payment: 'kaspi',
     },
     {
       id: 4,
@@ -76,9 +68,8 @@ export default function OrdersPage() {
       time: '10:20',
       items: 4,
       total: 1456000,
-      status: 'delivered' as OrderStatus,
-      payment: 'card',
-      delivery: 'courier'
+      status: 'packing' as OrderStatus,
+      payment: 'kaspi',
     },
     {
       id: 5,
@@ -88,9 +79,8 @@ export default function OrdersPage() {
       time: '16:30',
       items: 1,
       total: 149000,
-      status: 'cancelled' as OrderStatus,
+      status: 'transfer' as OrderStatus,
       payment: 'kaspi',
-      delivery: 'pickup'
     },
     {
       id: 6,
@@ -100,9 +90,30 @@ export default function OrdersPage() {
       time: '11:00',
       items: 2,
       total: 728000,
-      status: 'delivered' as OrderStatus,
-      payment: 'card',
-      delivery: 'courier'
+      status: 'offline' as OrderStatus,
+      payment: 'kaspi',
+    },
+    {
+      id: 7,
+      code: 'ORD-2025-007',
+      customer: 'Иван Петров',
+      date: '11.01.2025',
+      time: '09:15',
+      items: 1,
+      total: 325000,
+      status: 'transferred' as OrderStatus,
+      payment: 'kaspi',
+    },
+    {
+      id: 8,
+      code: 'ORD-2025-008',
+      customer: 'Ольга Сидорова',
+      date: '11.01.2025',
+      time: '15:45',
+      items: 2,
+      total: 890000,
+      status: 'my_delivery' as OrderStatus,
+      payment: 'kaspi',
     },
   ]);
 
@@ -158,31 +169,39 @@ export default function OrdersPage() {
       return sortDirection === 'asc' ? comparison : -comparison;
     });
 
-  const stats = {
-    total: orders.length,
-    pending: orders.filter(o => o.status === 'pending').length,
-    processing: orders.filter(o => o.status === 'processing').length,
-    shipped: orders.filter(o => o.status === 'shipped').length,
-    delivered: orders.filter(o => o.status === 'delivered').length,
+  // Подсчёт заказов по статусам
+  const statusCounts = {
+    all: orders.length,
+    my_delivery: orders.filter(o => o.status === 'my_delivery').length,
+    express: orders.filter(o => o.status === 'express').length,
+    pickup: orders.filter(o => o.status === 'pickup').length,
+    packing: orders.filter(o => o.status === 'packing').length,
+    transfer: orders.filter(o => o.status === 'transfer').length,
+    offline: orders.filter(o => o.status === 'offline').length,
+    transferred: orders.filter(o => o.status === 'transferred').length,
   };
 
   const getStatusColor = (status: OrderStatus) => {
     switch (status) {
-      case 'pending': return 'bg-yellow-100 text-yellow-700';
-      case 'processing': return 'bg-blue-100 text-blue-700';
-      case 'shipped': return 'bg-purple-100 text-purple-700';
-      case 'delivered': return 'bg-emerald-100 text-emerald-700';
-      case 'cancelled': return 'bg-gray-100 text-gray-700';
+      case 'my_delivery': return 'bg-blue-100 text-blue-700';
+      case 'express': return 'bg-orange-100 text-orange-700';
+      case 'pickup': return 'bg-purple-100 text-purple-700';
+      case 'packing': return 'bg-yellow-100 text-yellow-700';
+      case 'transfer': return 'bg-cyan-100 text-cyan-700';
+      case 'offline': return 'bg-gray-100 text-gray-700';
+      case 'transferred': return 'bg-emerald-100 text-emerald-700';
     }
   };
 
   const getStatusText = (status: OrderStatus) => {
     switch (status) {
-      case 'pending': return 'Ожидает';
-      case 'processing': return 'В обработке';
-      case 'shipped': return 'Отправлен';
-      case 'delivered': return 'Доставлен';
-      case 'cancelled': return 'Отменён';
+      case 'my_delivery': return 'Моя доставка';
+      case 'express': return 'Экспресс';
+      case 'pickup': return 'Самовывоз';
+      case 'packing': return 'Упаковка';
+      case 'transfer': return 'Передача';
+      case 'offline': return 'Оффлайн';
+      case 'transferred': return 'Передан';
     }
   };
 
@@ -192,74 +211,6 @@ export default function OrdersPage() {
       <div className="mb-6 lg:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold mb-2">Заказы</h1>
         <p className="text-gray-500 text-sm">Управление заказами и доставкой</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mb-6 lg:mb-8">
-        <div
-          onClick={() => setFilterStatus('all')}
-          className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-500">Всего</span>
-            <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center">
-              <ClipboardList className="w-5 h-5 text-gray-600" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold">{stats.total}</p>
-        </div>
-
-        <div
-          onClick={() => setFilterStatus('pending')}
-          className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-500">Ожидают</span>
-            <div className="w-10 h-10 bg-yellow-50 rounded-xl flex items-center justify-center">
-              <Clock className="w-5 h-5 text-yellow-600" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold">{stats.pending}</p>
-        </div>
-
-        <div
-          onClick={() => setFilterStatus('processing')}
-          className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-500">В обработке</span>
-            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-              <RefreshCw className="w-5 h-5 text-blue-600" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold">{stats.processing}</p>
-        </div>
-
-        <div
-          onClick={() => setFilterStatus('shipped')}
-          className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-500">Отправлены</span>
-            <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center">
-              <Package className="w-5 h-5 text-purple-600" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold">{stats.shipped}</p>
-        </div>
-
-        <div
-          onClick={() => setFilterStatus('delivered')}
-          className="bg-white rounded-2xl p-6 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-        >
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-sm text-gray-500">Доставлены</span>
-            <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
-              <CheckCircle className="w-5 h-5 text-emerald-600" />
-            </div>
-          </div>
-          <p className="text-2xl font-bold">{stats.delivered}</p>
-        </div>
       </div>
 
       {/* Filters and Search */}
@@ -282,49 +233,97 @@ export default function OrdersPage() {
             </div>
           </div>
 
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            {/* Status Filter */}
-            <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
-              <button
-                onClick={() => setFilterStatus('all')}
-                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                  filterStatus === 'all'
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Все
-              </button>
-              <button
-                onClick={() => setFilterStatus('pending')}
-                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                  filterStatus === 'pending'
-                    ? 'bg-yellow-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Ожидают
-              </button>
-              <button
-                onClick={() => setFilterStatus('processing')}
-                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                  filterStatus === 'processing'
-                    ? 'bg-blue-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                В обработке
-              </button>
-            </div>
+          {/* Add Button */}
+          <button
+            onClick={() => router.push('/app/orders/add')}
+            className="px-4 sm:px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0"
+          >
+            + Добавить
+          </button>
+        </div>
 
-            {/* Add Button */}
-            <button
-              onClick={() => router.push('/app/orders/add')}
-              className="px-4 sm:px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer whitespace-nowrap"
-            >
-              + Добавить
-            </button>
-          </div>
+        {/* Status Filter Buttons */}
+        <div className="flex gap-2 overflow-x-auto pt-4 pb-1">
+          <button
+            onClick={() => setFilterStatus('all')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              filterStatus === 'all'
+                ? 'bg-gray-900 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Все <span className={`text-xs ${filterStatus === 'all' ? 'text-gray-300' : 'text-gray-400'}`}>{statusCounts.all}</span>
+          </button>
+          <button
+            onClick={() => setFilterStatus('my_delivery')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              filterStatus === 'my_delivery'
+                ? 'bg-blue-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Моя доставка <span className={`text-xs ${filterStatus === 'my_delivery' ? 'text-blue-200' : 'text-gray-400'}`}>{statusCounts.my_delivery}</span>
+          </button>
+          <button
+            onClick={() => setFilterStatus('express')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              filterStatus === 'express'
+                ? 'bg-orange-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Экспресс <span className={`text-xs ${filterStatus === 'express' ? 'text-orange-200' : 'text-gray-400'}`}>{statusCounts.express}</span>
+          </button>
+          <button
+            onClick={() => setFilterStatus('pickup')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              filterStatus === 'pickup'
+                ? 'bg-purple-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Самовывоз <span className={`text-xs ${filterStatus === 'pickup' ? 'text-purple-200' : 'text-gray-400'}`}>{statusCounts.pickup}</span>
+          </button>
+          <button
+            onClick={() => setFilterStatus('packing')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              filterStatus === 'packing'
+                ? 'bg-yellow-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Упаковка <span className={`text-xs ${filterStatus === 'packing' ? 'text-yellow-200' : 'text-gray-400'}`}>{statusCounts.packing}</span>
+          </button>
+          <button
+            onClick={() => setFilterStatus('transfer')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              filterStatus === 'transfer'
+                ? 'bg-cyan-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Передача <span className={`text-xs ${filterStatus === 'transfer' ? 'text-cyan-200' : 'text-gray-400'}`}>{statusCounts.transfer}</span>
+          </button>
+          <button
+            onClick={() => setFilterStatus('offline')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              filterStatus === 'offline'
+                ? 'bg-gray-700 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Оффлайн <span className={`text-xs ${filterStatus === 'offline' ? 'text-gray-400' : 'text-gray-400'}`}>{statusCounts.offline}</span>
+          </button>
+          <button
+            onClick={() => setFilterStatus('transferred')}
+            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+              filterStatus === 'transferred'
+                ? 'bg-emerald-500 text-white'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+            }`}
+          >
+            Передан <span className={`text-xs ${filterStatus === 'transferred' ? 'text-emerald-200' : 'text-gray-400'}`}>{statusCounts.transferred}</span>
+          </button>
         </div>
       </div>
 
@@ -357,6 +356,14 @@ export default function OrdersPage() {
             </div>
           </motion.div>
         ))}
+
+        {/* Mobile Total */}
+        <div className="bg-white rounded-xl p-4 shadow-sm border-t-2 border-gray-200">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-semibold text-gray-700">Итого: {filteredOrders.reduce((sum, o) => sum + o.items, 0)} шт.</span>
+            <span className="text-sm font-bold text-gray-900">{filteredOrders.reduce((sum, o) => sum + o.total, 0).toLocaleString()} ₸</span>
+          </div>
+        </div>
       </div>
 
       {/* Orders Table - Desktop */}
@@ -431,16 +438,10 @@ export default function OrdersPage() {
                 className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
               >
                 <td className="py-4 px-6">
-                  <div>
-                    <p className="font-semibold text-sm">{order.code}</p>
-                    <p className="text-xs text-gray-500">{order.delivery === 'courier' ? '🚚 Курьер' : '📦 Самовывоз'}</p>
-                  </div>
+                  <p className="font-semibold text-sm">{order.code}</p>
                 </td>
                 <td className="py-4 px-6">
-                  <div>
-                    <p className="text-sm font-medium">{order.customer}</p>
-                    <p className="text-xs text-gray-500">{order.payment === 'card' ? '💳 Карта' : order.payment === 'kaspi' ? '🟣 Kaspi' : '💵 Наличные'}</p>
-                  </div>
+                  <p className="text-sm font-medium">{order.customer}</p>
                 </td>
                 <td className="py-4 px-6">
                   <div>
@@ -472,6 +473,20 @@ export default function OrdersPage() {
               </motion.tr>
             ))}
           </tbody>
+          <tfoot className="bg-gray-50 border-t border-gray-200">
+            <tr>
+              <td colSpan={3} className="py-4 px-6">
+                <span className="text-sm font-semibold text-gray-700">Итого:</span>
+              </td>
+              <td className="py-4 px-6">
+                <span className="text-sm font-semibold text-gray-900">{filteredOrders.reduce((sum, o) => sum + o.items, 0)} шт.</span>
+              </td>
+              <td className="py-4 px-6">
+                <span className="text-sm font-bold text-gray-900">{filteredOrders.reduce((sum, o) => sum + o.total, 0).toLocaleString()} ₸</span>
+              </td>
+              <td colSpan={2}></td>
+            </tr>
+          </tfoot>
         </table>
       </div>
 
@@ -511,18 +526,9 @@ export default function OrdersPage() {
               {/* Customer Info */}
               <div className="bg-gray-50 rounded-xl p-4 space-y-3">
                 <h3 className="font-semibold text-gray-900">Информация о клиенте</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <p className="text-xs text-gray-500">Имя клиента</p>
-                    <p className="text-sm font-medium">{selectedOrder.customer}</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Способ оплаты</p>
-                    <p className="text-sm font-medium">
-                      {selectedOrder.payment === 'card' ? '💳 Карта' :
-                       selectedOrder.payment === 'kaspi' ? '🟣 Kaspi' : '💵 Наличные'}
-                    </p>
-                  </div>
+                <div>
+                  <p className="text-xs text-gray-500">Имя клиента</p>
+                  <p className="text-sm font-medium">{selectedOrder.customer}</p>
                 </div>
               </div>
 
@@ -541,12 +547,6 @@ export default function OrdersPage() {
                   <div>
                     <p className="text-xs text-gray-500">Количество товаров</p>
                     <p className="text-sm font-medium">{selectedOrder.items} шт.</p>
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Способ доставки</p>
-                    <p className="text-sm font-medium">
-                      {selectedOrder.delivery === 'courier' ? '🚚 Курьер' : '📦 Самовывоз'}
-                    </p>
                   </div>
                 </div>
               </div>

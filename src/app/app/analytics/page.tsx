@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, Package, CheckCircle, AlertTriangle, XCircle, Truck, CircleCheck, CircleX, CircleAlert, Star, MessageCircle, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, Package, CheckCircle, AlertTriangle, XCircle, Truck, CircleCheck, CircleX, CircleAlert, Star, MessageCircle, ThumbsUp, ThumbsDown, Megaphone } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import DateRangeCalendar from '@/components/DateRangeCalendar';
@@ -457,7 +457,7 @@ const mockAnalyticsData = {
   }
 };
 
-type TabType = 'finances' | 'sales' | 'products' | 'warehouse' | 'advertising' | 'reviews';
+type TabType = 'finances' | 'sales' | 'warehouse' | 'reviews';
 
 // Компонент-обёртка для Suspense
 export default function AnalyticsPage() {
@@ -491,7 +491,7 @@ function AnalyticsPageSkeleton() {
 function AnalyticsPageContent() {
   const searchParams = useSearchParams();
   const tabFromUrl = searchParams.get('tab') as TabType | null;
-  const validTabs: TabType[] = ['finances', 'sales', 'products', 'warehouse', 'advertising', 'reviews'];
+  const validTabs: TabType[] = ['finances', 'sales', 'warehouse', 'reviews'];
   const initialTab = tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : 'finances';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
@@ -949,17 +949,7 @@ function AnalyticsPageContent() {
                       : 'bg-white text-gray-700 hover:bg-gray-50'
                   }`}
                 >
-                  Заказы
-                </button>
-                <button
-                  onClick={() => setActiveTab('products')}
-                  className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
-                    activeTab === 'products'
-                      ? 'bg-emerald-500 text-white shadow-sm'
-                      : 'bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  Товары
+                  Заказы и реклама
                 </button>
                 <button
                   onClick={() => setActiveTab('warehouse')}
@@ -970,16 +960,6 @@ function AnalyticsPageContent() {
                   }`}
                 >
                   Склад
-                </button>
-                <button
-                  onClick={() => setActiveTab('advertising')}
-                  className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
-                    activeTab === 'advertising'
-                      ? 'bg-emerald-500 text-white shadow-sm'
-                      : 'bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  Реклама
                 </button>
                 <button
                   onClick={() => setActiveTab('reviews')}
@@ -1695,151 +1675,149 @@ function AnalyticsPageContent() {
                 </div>
               </motion.div>
             </motion.div>
-          </>
-        )}
 
-        {/* Products Tab */}
-        {activeTab === 'products' && (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {/* Period Info */}
-            <div className="mb-4 sm:mb-6 flex items-center gap-2 text-xs sm:text-sm text-gray-400">
-              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>Период: <span className="text-gray-500">{formatShortPeriod()}</span></span>
-              <span className="text-gray-300">|</span>
-              <span>{data.topProducts.reduce((s, p) => s + p.sales, 0)} шт продано</span>
-            </div>
-
-            {/* Products Table */}
-            <div className="bg-white rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-3 sm:p-6 border-b border-gray-200">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mb-1">
-                  <h3 className="text-lg sm:text-2xl font-semibold text-gray-900">Аналитика по товарам</h3>
-                  <span className="bg-emerald-100 text-emerald-700 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium w-fit">{formatShortPeriod()}</span>
+            {/* Рекламная аналитика */}
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="mt-6 sm:mt-8"
+            >
+              <motion.div variants={itemVariants} className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-4 sm:p-6 shadow-sm border border-amber-200">
+                <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                  <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
+                    <Megaphone className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Эффективность рекламы</h3>
+                    <p className="text-xs sm:text-sm text-gray-500">Анализ окупаемости рекламных затрат</p>
+                  </div>
                 </div>
-                <p className="text-xs sm:text-sm text-gray-500">Подробная информация о продажах каждого товара</p>
-              </div>
 
-              {/* Mobile Cards */}
-              <div className="sm:hidden divide-y divide-gray-100">
-                {data.topProducts.map((product, index) => {
-                  const profitMargin = ((product.profit / product.revenue) * 100).toFixed(1);
-                  return (
-                    <div
-                      key={product.id}
-                      className="p-3 hover:bg-gray-50 transition-colors cursor-pointer"
-                      onClick={() => {
-                        setSelectedProduct(product);
-                        setShowProductPopup(true);
-                      }}
-                    >
-                      <div className="flex items-start gap-2.5">
-                        {/* Rank Badge */}
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-white text-xs flex-shrink-0 ${
-                          index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
-                          index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500' :
-                          index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600' :
-                          'bg-emerald-500'
-                        }`}>
-                          {index < 3 ? (index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉') : index + 1}
-                        </div>
+                {/* Метрики рекламы */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                  <div className="bg-white rounded-xl p-3 sm:p-4">
+                    <div className="text-xs sm:text-sm text-gray-500 mb-1">Расход на рекламу</div>
+                    <div className="text-lg sm:text-2xl font-bold text-amber-600">{data.totalAdvertising.toLocaleString('ru-RU')} ₸</div>
+                  </div>
+                  <div className="bg-white rounded-xl p-3 sm:p-4">
+                    <div className="text-xs sm:text-sm text-gray-500 mb-1">Заказов с рекламы</div>
+                    <div className="text-lg sm:text-2xl font-bold text-emerald-600">{data.ordersBySource.ads}</div>
+                    <div className="text-[10px] sm:text-xs text-gray-400">{((data.ordersBySource.ads / data.totalOrders) * 100).toFixed(0)}% от всех заказов</div>
+                  </div>
+                  <div className="bg-white rounded-xl p-3 sm:p-4">
+                    <div className="text-xs sm:text-sm text-gray-500 mb-1">Цена заказа (CAC)</div>
+                    <div className="text-lg sm:text-2xl font-bold text-blue-600">
+                      {data.ordersBySource.ads > 0 ? Math.round(data.totalAdvertising / data.ordersBySource.ads).toLocaleString('ru-RU') : 0} ₸
+                    </div>
+                    <div className="text-[10px] sm:text-xs text-gray-400">стоимость привлечения</div>
+                  </div>
+                  <div className="bg-white rounded-xl p-3 sm:p-4">
+                    <div className="text-xs sm:text-sm text-gray-500 mb-1">ROAS</div>
+                    <div className={`text-lg sm:text-2xl font-bold ${
+                      data.totalAdvertising > 0 && (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 3
+                        ? 'text-emerald-600'
+                        : (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 2
+                          ? 'text-amber-600'
+                          : 'text-red-500'
+                    }`}>
+                      {data.totalAdvertising > 0 ? ((data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising).toFixed(1) : 0}x
+                    </div>
+                    <div className="text-[10px] sm:text-xs text-gray-400">окупаемость рекламы</div>
+                  </div>
+                </div>
 
-                        {/* Product Image */}
-                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-base flex-shrink-0">
-                          {product.image}
-                        </div>
-
-                        {/* Product Info */}
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-gray-900 text-sm truncate">{product.name}</div>
-                          <div className="text-[10px] text-gray-500 font-mono">{product.sku}</div>
-                        </div>
-
-                        {/* Sales */}
-                        <div className="text-right flex-shrink-0">
-                          <div className="text-sm font-semibold text-gray-900">{product.sales} шт</div>
-                          <div className="text-[10px] text-emerald-600 font-medium">{(product.revenue / 1000).toFixed(0)}к ₸</div>
-                        </div>
+                {/* Сравнение органика vs реклама */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Органика */}
+                  <div className="bg-white rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
+                      <span className="font-medium text-gray-900">Органика</span>
+                      <span className="text-xs text-gray-500 ml-auto">{data.ordersBySource.organic} заказов</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Выручка</span>
+                        <span className="font-medium text-gray-900">{Math.round(data.ordersBySource.organic * data.avgOrderValue).toLocaleString('ru-RU')} ₸</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Затраты на привлечение</span>
+                        <span className="font-medium text-emerald-600">0 ₸</span>
+                      </div>
+                      <div className="flex justify-between text-sm pt-2 border-t">
+                        <span className="text-gray-700 font-medium">Чистая маржа</span>
+                        <span className="font-bold text-emerald-600">100%</span>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
+                  </div>
 
-              {/* Desktop Table */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">#</th>
-                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Товар</th>
-                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Продано</th>
-                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Выручка</th>
-                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Расход</th>
-                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Прибыль</th>
-                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Маржа</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {data.topProducts.map((product, index) => {
-                      const profitMargin = ((product.profit / product.revenue) * 100).toFixed(1);
+                  {/* Реклама */}
+                  <div className="bg-white rounded-xl p-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                      <span className="font-medium text-gray-900">Реклама</span>
+                      <span className="text-xs text-gray-500 ml-auto">{data.ordersBySource.ads} заказов</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Выручка</span>
+                        <span className="font-medium text-gray-900">{Math.round(data.ordersBySource.ads * data.avgOrderValue).toLocaleString('ru-RU')} ₸</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-gray-500">Затраты на рекламу</span>
+                        <span className="font-medium text-red-500">-{data.totalAdvertising.toLocaleString('ru-RU')} ₸</span>
+                      </div>
+                      <div className="flex justify-between text-sm pt-2 border-t">
+                        <span className="text-gray-700 font-medium">Прибыль от рекламы</span>
+                        <span className={`font-bold ${(data.ordersBySource.ads * data.avgOrderValue - data.totalAdvertising) > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                          {(data.ordersBySource.ads * data.avgOrderValue - data.totalAdvertising).toLocaleString('ru-RU')} ₸
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-                      return (
-                        <tr
-                          key={product.id}
-                          className="hover:bg-gray-50 transition-colors cursor-pointer"
-                          onClick={() => {
-                            setSelectedProduct(product);
-                            setShowProductPopup(true);
-                          }}
-                        >
-                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap">
-                            <div className={`w-7 h-7 lg:w-8 lg:h-8 rounded-full flex items-center justify-center font-bold text-white text-xs lg:text-sm ${
-                              index === 0 ? 'bg-gradient-to-br from-yellow-400 to-yellow-600' :
-                              index === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-500' :
-                              index === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-600' :
-                              'bg-emerald-500'
-                            }`}>
-                              {index < 3 ? (index === 0 ? '🥇' : index === 1 ? '🥈' : '🥉') : index + 1}
-                            </div>
-                          </td>
-                          <td className="px-4 lg:px-6 py-3">
-                            <div className="flex items-center gap-2 lg:gap-3">
-                              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gray-100 rounded-lg flex items-center justify-center text-lg lg:text-xl flex-shrink-0">
-                                {product.image}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="font-medium text-gray-900 text-sm truncate max-w-[120px] lg:max-w-none">{product.name}</div>
-                                <div className="text-xs text-gray-500">{product.sku}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-right">
-                            <div className="text-sm font-medium text-gray-900">{product.sales} шт</div>
-                          </td>
-                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-right hidden lg:table-cell">
-                            <div className="text-sm font-medium text-blue-600">{product.revenue.toLocaleString('ru-RU')} ₸</div>
-                          </td>
-                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-right hidden lg:table-cell">
-                            <div className="text-sm font-medium text-red-600">{product.cost.toLocaleString('ru-RU')} ₸</div>
-                          </td>
-                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-right">
-                            <div className="text-sm font-bold text-emerald-600">{product.profit.toLocaleString('ru-RU')} ₸</div>
-                          </td>
-                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-right hidden lg:table-cell">
-                            <div className="text-sm font-medium text-gray-900">{profitMargin}%</div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </motion.div>
+                {/* Индикатор рентабельности */}
+                <div className="mt-4 p-3 sm:p-4 bg-white rounded-xl">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm text-gray-600">Рентабельность рекламы</span>
+                    <span className={`text-sm font-medium px-2 py-0.5 rounded ${
+                      data.totalAdvertising > 0 && (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 3
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 2
+                          ? 'bg-amber-100 text-amber-700'
+                          : 'bg-red-100 text-red-700'
+                    }`}>
+                      {data.totalAdvertising > 0 && (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 3
+                        ? 'Отлично'
+                        : (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 2
+                          ? 'Нормально'
+                          : 'Низкая'}
+                    </span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div
+                      className={`h-2 rounded-full transition-all ${
+                        data.totalAdvertising > 0 && (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 3
+                          ? 'bg-emerald-500'
+                          : (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 2
+                            ? 'bg-amber-500'
+                            : 'bg-red-500'
+                      }`}
+                      style={{ width: `${Math.min(((data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising / 5) * 100, 100)}%` }}
+                    ></div>
+                  </div>
+                  <div className="flex justify-between text-xs text-gray-400 mt-1">
+                    <span>0x</span>
+                    <span>2x</span>
+                    <span>3x</span>
+                    <span>5x+</span>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          </>
         )}
 
         {/* Warehouse Tab - Движение склада */}
@@ -2127,207 +2105,6 @@ function AnalyticsPageContent() {
           </motion.div>
           );
         })()}
-
-        {/* Advertising Tab - Реклама */}
-        {activeTab === 'advertising' && (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {/* Period Info */}
-            <div className="mb-6 flex items-center gap-2 text-sm text-gray-400">
-              <Calendar className="w-4 h-4" />
-              <span>Период: <span className="text-gray-500">{formatShortPeriod()}</span></span>
-              <span className="text-gray-300">|</span>
-              <span>{(data.totalAdvertising / 1000).toFixed(0)}K ₸ расход</span>
-            </div>
-
-            {/* Рекламные метрики */}
-            <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <DollarSign className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <span className="text-gray-600 text-sm">Расход на рекламу</span>
-                </div>
-                <div className="text-2xl font-bold text-gray-900">{data.totalAdvertising.toLocaleString('ru-RU')} ₸</div>
-                <div className="text-xs mt-1">
-                  <span className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-                    <ShoppingBag className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <span className="text-gray-600 text-sm">Заказы с рекламы</span>
-                </div>
-                <div className="text-2xl font-bold text-emerald-600">{data.ordersBySource.ads}</div>
-                <div className="text-xs mt-1">
-                  <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-                    <Calculator className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <span className="text-gray-600 text-sm">Стоимость заказа (CAC)</span>
-                </div>
-                <div className="text-2xl font-bold text-amber-600">
-                  {data.ordersBySource.ads > 0 ? Math.round(data.totalAdvertising / data.ordersBySource.ads).toLocaleString('ru-RU') : 0} ₸
-                </div>
-                <div className="text-xs mt-1">
-                  <span className="bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <span className="text-gray-600 text-sm">ROAS</span>
-                </div>
-                <div className="text-2xl font-bold text-purple-600">
-                  {data.totalAdvertising > 0 ? ((data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising * 100).toFixed(0) : 0}%
-                </div>
-                <div className="text-xs mt-1">
-                  <span className="bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
-                </div>
-              </div>
-            </motion.div>
-
-            {/* График расходов на рекламу */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-              <div className="flex items-center gap-3 mb-4">
-                <h3 className="text-xl font-semibold text-gray-900">Динамика расходов на рекламу</h3>
-                <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
-              </div>
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={data.dailyData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                    <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#9ca3af" />
-                    <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                    <Tooltip
-                      formatter={(value) => [`${Number(value).toLocaleString('ru-RU')} ₸`, 'Реклама']}
-                      labelFormatter={(label) => `Дата: ${label}`}
-                      contentStyle={{
-                        backgroundColor: 'white',
-                        border: '1px solid #e5e7eb',
-                        borderRadius: '12px',
-                        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                      }}
-                    />
-                    <Bar dataKey="advertising" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </motion.div>
-
-            {/* Рекламные кампании */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
-              <div className="p-6 border-b border-gray-200">
-                <h3 className="text-xl font-semibold text-gray-900">Рекламные кампании</h3>
-                <p className="text-sm text-gray-500 mt-1">Эффективность кампаний за выбранный период</p>
-              </div>
-
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Кампания</th>
-                      <th className="px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ textAlign: 'center' }}>Показы</th>
-                      <th className="px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ textAlign: 'center' }}>Клики</th>
-                      <th className="px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ textAlign: 'center' }}>CTR</th>
-                      <th className="px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ textAlign: 'center' }}>Заказы</th>
-                      <th className="px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ textAlign: 'right' }}>Расход</th>
-                      <th className="px-6 py-4 text-xs font-medium text-gray-500 uppercase tracking-wider" style={{ textAlign: 'center' }}>ROAS</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {[
-                      { name: 'iPhone продвижение', impressions: 45200, clicks: 1850, orders: 32, spend: 12500, revenue: 512000 },
-                      { name: 'Samsung топ', impressions: 38700, clicks: 1420, orders: 24, spend: 9800, revenue: 384000 },
-                      { name: 'Аксессуары AirPods', impressions: 28400, clicks: 980, orders: 18, spend: 6200, revenue: 126000 },
-                      { name: 'MacBook кампания', impressions: 15600, clicks: 520, orders: 8, spend: 5500, revenue: 192000 },
-                      { name: 'Часы и фитнес', impressions: 12300, clicks: 380, orders: 6, spend: 4000, revenue: 72000 },
-                    ].map((campaign, index) => {
-                      const ctr = ((campaign.clicks / campaign.impressions) * 100).toFixed(2);
-                      const roas = ((campaign.revenue / campaign.spend) * 100).toFixed(0);
-                      return (
-                        <tr key={index} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="font-medium text-gray-900">{campaign.name}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap" style={{ textAlign: 'center' }}>
-                            <div className="text-sm text-gray-600">{campaign.impressions.toLocaleString('ru-RU')}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap" style={{ textAlign: 'center' }}>
-                            <div className="text-sm text-gray-600">{campaign.clicks.toLocaleString('ru-RU')}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap" style={{ textAlign: 'center' }}>
-                            <div className="text-sm font-medium text-blue-600">{ctr}%</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap" style={{ textAlign: 'center' }}>
-                            <div className="text-sm font-medium text-emerald-600">{campaign.orders}</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap" style={{ textAlign: 'right' }}>
-                            <div className="text-sm font-medium text-gray-900">{campaign.spend.toLocaleString('ru-RU')} ₸</div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap" style={{ textAlign: 'center' }}>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                              Number(roas) >= 300 ? 'bg-emerald-100 text-emerald-700' :
-                              Number(roas) >= 200 ? 'bg-amber-100 text-amber-700' :
-                              'bg-red-100 text-red-700'
-                            }`}>
-                              {roas}%
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            </motion.div>
-
-            {/* Топ товаров по рекламе */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm p-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Топ товаров по рекламному трафику</h3>
-              <div className="space-y-4">
-                {[
-                  { name: 'iPhone 14 Pro 256GB', clicks: 1250, orders: 18, spend: 8500, conversion: 1.44 },
-                  { name: 'Samsung Galaxy S23 Ultra', clicks: 980, orders: 14, spend: 6200, conversion: 1.43 },
-                  { name: 'AirPods Pro 2', clicks: 750, orders: 12, spend: 4500, conversion: 1.60 },
-                  { name: 'MacBook Pro 14" M2', clicks: 420, orders: 5, spend: 4200, conversion: 1.19 },
-                  { name: 'Apple Watch Ultra', clicks: 380, orders: 6, spend: 3100, conversion: 1.58 },
-                ].map((product, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className="w-8 h-8 bg-amber-100 rounded-lg flex items-center justify-center text-sm font-bold text-amber-600">
-                        {index + 1}
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900">{product.name}</div>
-                        <div className="text-sm text-gray-500">{product.clicks} кликов • {product.orders} заказов</div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="font-semibold text-gray-900">{product.spend.toLocaleString('ru-RU')} ₸</div>
-                      <div className="text-sm text-emerald-600">CR: {product.conversion.toFixed(2)}%</div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
 
         {/* Reviews Tab */}
         {activeTab === 'reviews' && (
