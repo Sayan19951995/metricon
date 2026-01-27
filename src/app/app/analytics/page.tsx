@@ -21,6 +21,7 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
+  LabelList,
 } from 'recharts';
 
 // Типы для аналитики
@@ -1607,7 +1608,14 @@ function AnalyticsPageContent() {
                           />
                           <Bar dataKey="cost" name="cost" stackId="a" fill="#f87171" />
                           <Bar dataKey="advertising" name="advertising" stackId="a" fill="#fbbf24" />
-                          <Bar dataKey="profit" name="profit" stackId="a" fill="#34d399" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="profit" name="profit" stackId="a" fill="#34d399" radius={[4, 4, 0, 0]}>
+                            <LabelList
+                              dataKey="revenue"
+                              position="top"
+                              formatter={(value) => `${(Number(value) / 1000).toFixed(0)}K`}
+                              style={{ fontSize: 10, fill: '#374151', fontWeight: 500 }}
+                            />
+                          </Bar>
                         </BarChart>
                       </ResponsiveContainer>
 
