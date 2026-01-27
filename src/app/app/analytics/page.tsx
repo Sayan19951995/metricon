@@ -1688,15 +1688,9 @@ function AnalyticsPageContent() {
                       outerRadius={80}
                       fill="#8884d8"
                       dataKey="value"
-                      onClick={(data) => {
-                        if (data.name === 'Органика') setShowOrganicPopup(true);
-                        else if (data.name === 'Реклама') setShowAdsPopup(true);
-                        else if (data.name === 'Оффлайн') setShowOfflineSourcePopup(true);
-                      }}
-                      style={{ cursor: 'pointer' }}
                     >
                       {salesSourcesData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={SALES_SOURCE_COLORS[index % SALES_SOURCE_COLORS.length]} style={{ cursor: 'pointer' }} />
+                        <Cell key={`cell-${index}`} fill={SALES_SOURCE_COLORS[index % SALES_SOURCE_COLORS.length]} />
                       ))}
                     </Pie>
                     <Tooltip
@@ -1720,12 +1714,7 @@ function AnalyticsPageContent() {
                     return (
                       <div
                         key={item.name}
-                        className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-1 rounded-lg transition-colors"
-                        onClick={() => {
-                          if (item.name === 'Органика') setShowOrganicPopup(true);
-                          else if (item.name === 'Реклама') setShowAdsPopup(true);
-                          else if (item.name === 'Оффлайн') setShowOfflineSourcePopup(true);
-                        }}
+                        className="flex items-center gap-3 -mx-2 px-2 py-1 rounded-lg"
                       >
                         <div
                           className="w-3 h-3 rounded-full flex-shrink-0"
@@ -1733,15 +1722,12 @@ function AnalyticsPageContent() {
                         />
                         <div className="flex-1 flex justify-between items-center">
                           <span className="text-sm text-gray-700">{item.name}</span>
-                          <div className="flex items-center gap-2">
-                            <div className="text-right">
-                              <span className="text-sm font-medium text-gray-900">{item.value} зак.</span>
-                              <span className="text-gray-300 mx-1.5">•</span>
-                              <span className="text-sm font-medium text-gray-900">{(itemRevenue / 1000).toFixed(0)}K ₸</span>
-                              <span className="text-gray-300 mx-1.5">•</span>
-                              <span className="text-sm text-gray-500">{percent}%</span>
-                            </div>
-                            <ChevronRight className="w-4 h-4 text-gray-400" />
+                          <div className="text-right">
+                            <span className="text-sm font-medium text-gray-900">{item.value} зак.</span>
+                            <span className="text-gray-300 mx-1.5">•</span>
+                            <span className="text-sm font-medium text-gray-900">{(itemRevenue / 1000).toFixed(0)}K ₸</span>
+                            <span className="text-gray-300 mx-1.5">•</span>
+                            <span className="text-sm text-gray-500">{percent}%</span>
                           </div>
                         </div>
                       </div>
