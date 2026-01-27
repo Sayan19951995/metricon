@@ -565,6 +565,9 @@ function AnalyticsPageContent() {
   // Toggle состояния для линий графика
   const [showPreviousPeriod, setShowPreviousPeriod] = useState(false);
 
+  // Toggle для показа только рекламных заказов
+  const [showAdsOnly, setShowAdsOnly] = useState(false);
+
   // Модальное окно для детализации по городам (межгород)
   const [showCitiesModal, setShowCitiesModal] = useState(false);
 
@@ -1482,7 +1485,7 @@ function AnalyticsPageContent() {
               </motion.div>
             </motion.div>
 
-            {/* Orders Chart - Full Width */}
+            {/* Orders Chart - Full Width with Cost/Ads/Profit breakdown */}
             <motion.div
               variants={containerVariants}
               initial="hidden"
@@ -1490,34 +1493,167 @@ function AnalyticsPageContent() {
               className="mb-6 sm:mb-8"
             >
               <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-                <div className="flex items-center gap-2 sm:gap-3 mb-4 sm:mb-6">
-                  <h3 className="text-base sm:text-xl font-semibold text-gray-900">Количество заказов</h3>
-                  <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
+                <div className="flex items-center justify-between mb-4 sm:mb-6">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <h3 className="text-base sm:text-xl font-semibold text-gray-900">Структура выручки</h3>
+                    <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
+                  </div>
+                  {/* Toggle для рекламных заказов */}
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <span className="text-xs sm:text-sm text-gray-600">Только реклама</span>
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={showAdsOnly}
+                        onChange={() => setShowAdsOnly(!showAdsOnly)}
+                        className="sr-only"
+                      />
+                      <div className={`w-10 h-5 rounded-full transition-colors ${showAdsOnly ? 'bg-amber-500' : 'bg-gray-300'}`}>
+                        <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${showAdsOnly ? 'translate-x-5' : ''}`} />
+                      </div>
+                    </div>
+                  </label>
                 </div>
-                <ResponsiveContainer width="100%" height={240} className="sm:!h-[300px]">
-                  <BarChart data={data.dailyData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis dataKey="date" stroke="#6b7280" />
-                    <YAxis stroke="#6b7280" />
-                    <Tooltip
-                      cursor={false}
-                      contentStyle={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        borderRadius: '12px',
-                      }}
-                    />
-                    <Legend />
-                    <Bar
-                      dataKey="orders"
-                      name="Заказы"
-                      fill="#10b981"
-                      radius={[8, 8, 0, 0]}
-                      onClick={handleBarClick}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
+
+                {(() => {
+                  // Подготовка данных для stacked bar chart
+                  const adsRatio = data.ordersBySource.ads / data.totalOrders; // Доля рекламных заказов
+
+                  const chartData = data.dailyData.map(day => {
+                    // Если показываем только рекламу - берём пропорциональную часть
+                    const multiplier = showAdsOnly ? adsRatio : 1;
+                    const dayRevenue = day.revenue * multiplier;
+                    const dayCost = day.cost * multiplier;
+                    const dayAds = day.advertising; // Реклама всегда полная
+                    const dayProfit = dayRevenue - dayCost - dayAds;
+
+                    // Проценты для каждой части
+                    const costPercent = dayRevenue > 0 ? ((dayCost / dayRevenue) * 100).toFixed(0) : 0;
+                    const adsPercent = dayRevenue > 0 ? ((dayAds / dayRevenue) * 100).toFixed(0) : 0;
+                    const profitPercent = dayRevenue > 0 ? ((dayProfit / dayRevenue) * 100).toFixed(0) : 0;
+
+                    return {
+                      date: day.date,
+                      day: day.day || '',
+                      cost: dayCost,
+                      advertising: dayAds,
+                      profit: Math.max(0, dayProfit),
+                      loss: dayProfit < 0 ? Math.abs(dayProfit) : 0,
+                      revenue: dayRevenue,
+                      costPercent,
+                      adsPercent,
+                      profitPercent: dayProfit >= 0 ? profitPercent : 0,
+                      orders: showAdsOnly ? Math.round(day.orders * adsRatio) : day.orders
+                    };
+                  });
+
+                  return (
+                    <>
+                      <ResponsiveContainer width="100%" height={280} className="sm:!h-[320px]">
+                        <BarChart data={chartData}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis dataKey="date" stroke="#6b7280" tick={{ fontSize: 11 }} />
+                          <YAxis stroke="#6b7280" tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                          <Tooltip
+                            cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                            content={({ active, payload, label }) => {
+                              if (active && payload && payload.length) {
+                                const item = payload[0]?.payload;
+                                return (
+                                  <div className="bg-white p-3 rounded-xl shadow-lg border border-gray-100">
+                                    <p className="font-semibold text-gray-900 mb-2">{label} ({item?.day})</p>
+                                    <p className="text-sm text-gray-600 mb-1">
+                                      Заказов: <span className="font-medium">{item?.orders}</span>
+                                    </p>
+                                    <div className="space-y-1 text-sm">
+                                      <div className="flex justify-between gap-4">
+                                        <span className="text-rose-500">Себестоимость:</span>
+                                        <span className="font-medium">{item?.cost?.toLocaleString('ru-RU')} ₸ ({item?.costPercent}%)</span>
+                                      </div>
+                                      <div className="flex justify-between gap-4">
+                                        <span className="text-amber-500">Реклама:</span>
+                                        <span className="font-medium">{item?.advertising?.toLocaleString('ru-RU')} ₸ ({item?.adsPercent}%)</span>
+                                      </div>
+                                      <div className="flex justify-between gap-4">
+                                        <span className="text-emerald-500">Прибыль:</span>
+                                        <span className="font-medium">{item?.profit?.toLocaleString('ru-RU')} ₸ ({item?.profitPercent}%)</span>
+                                      </div>
+                                      {item?.loss > 0 && (
+                                        <div className="flex justify-between gap-4">
+                                          <span className="text-red-600">Убыток:</span>
+                                          <span className="font-medium text-red-600">-{item?.loss?.toLocaleString('ru-RU')} ₸</span>
+                                        </div>
+                                      )}
+                                      <div className="flex justify-between gap-4 pt-1 border-t mt-1">
+                                        <span className="text-gray-700 font-medium">Выручка:</span>
+                                        <span className="font-bold">{item?.revenue?.toLocaleString('ru-RU')} ₸</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            }}
+                          />
+                          <Legend
+                            formatter={(value) => {
+                              const labels: Record<string, string> = {
+                                cost: 'Себестоимость',
+                                advertising: 'Реклама',
+                                profit: 'Прибыль'
+                              };
+                              return labels[value] || value;
+                            }}
+                          />
+                          <Bar dataKey="cost" name="cost" stackId="a" fill="#f87171" />
+                          <Bar dataKey="advertising" name="advertising" stackId="a" fill="#fbbf24" />
+                          <Bar dataKey="profit" name="profit" stackId="a" fill="#34d399" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+
+                      {/* Итоги под графиком */}
+                      <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-4 text-center">
+                        <div className="p-2 sm:p-3 bg-rose-50 rounded-lg">
+                          <div className="text-xs text-rose-600 mb-1">Себестоимость</div>
+                          <div className="text-sm sm:text-base font-bold text-rose-600">
+                            {((showAdsOnly ? data.totalCost * adsRatio : data.totalCost) / 1000).toFixed(0)}K ₸
+                          </div>
+                          <div className="text-[10px] text-rose-500">
+                            {(((showAdsOnly ? data.totalCost * adsRatio : data.totalCost) / (showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue)) * 100).toFixed(0)}%
+                          </div>
+                        </div>
+                        <div className="p-2 sm:p-3 bg-amber-50 rounded-lg">
+                          <div className="text-xs text-amber-600 mb-1">Реклама</div>
+                          <div className="text-sm sm:text-base font-bold text-amber-600">
+                            {(data.totalAdvertising / 1000).toFixed(0)}K ₸
+                          </div>
+                          <div className="text-[10px] text-amber-500">
+                            {((data.totalAdvertising / (showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue)) * 100).toFixed(0)}%
+                          </div>
+                        </div>
+                        <div className="p-2 sm:p-3 bg-emerald-50 rounded-lg">
+                          <div className="text-xs text-emerald-600 mb-1">Прибыль</div>
+                          <div className="text-sm sm:text-base font-bold text-emerald-600">
+                            {(() => {
+                              const rev = showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue;
+                              const cost = showAdsOnly ? data.totalCost * adsRatio : data.totalCost;
+                              const profit = rev - cost - data.totalAdvertising;
+                              return `${(profit / 1000).toFixed(0)}K ₸`;
+                            })()}
+                          </div>
+                          <div className="text-[10px] text-emerald-500">
+                            {(() => {
+                              const rev = showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue;
+                              const cost = showAdsOnly ? data.totalCost * adsRatio : data.totalCost;
+                              const profit = rev - cost - data.totalAdvertising;
+                              return `${((profit / rev) * 100).toFixed(0)}%`;
+                            })()}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
               </motion.div>
             </motion.div>
 
@@ -1726,154 +1862,6 @@ function AnalyticsPageContent() {
                     );
                   })}
                 </div>
-              </motion.div>
-            </motion.div>
-
-            {/* Графики рекламной эффективности */}
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"
-            >
-              {/* График 1: Только рекламные заказы vs расходы */}
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-                <div className="mb-4">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">Рекламные заказы vs Расходы</h3>
-                  <p className="text-xs text-gray-500">Только заказы пришедшие с рекламы</p>
-                </div>
-                {(() => {
-                  const adsRevenue = data.ordersBySource.ads * data.avgOrderValue;
-                  const adsPercent = adsRevenue > 0 ? ((data.totalAdvertising / adsRevenue) * 100).toFixed(1) : 0;
-                  const profit = adsRevenue - data.totalAdvertising;
-                  const isProfit = profit > 0;
-
-                  return (
-                    <>
-                      <ResponsiveContainer width="100%" height={200}>
-                        <BarChart
-                          data={[
-                            { name: 'Выручка с рекламы', value: adsRevenue, fill: '#10b981' },
-                            { name: 'Расход на рекламу', value: data.totalAdvertising, fill: '#f59e0b' }
-                          ]}
-                          layout="vertical"
-                          margin={{ left: 20, right: 20 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                          <XAxis type="number" tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                          <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12 }} />
-                          <Tooltip
-                            formatter={(value) => [`${Number(value).toLocaleString('ru-RU')} ₸`]}
-                            contentStyle={{
-                              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                              border: '1px solid #e5e7eb',
-                              borderRadius: '8px',
-                            }}
-                          />
-                          <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                            {[
-                              { name: 'Выручка с рекламы', fill: '#10b981' },
-                              { name: 'Расход на рекламу', fill: '#f59e0b' }
-                            ].map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-
-                      <div className="mt-4 p-3 bg-gray-50 rounded-xl">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-gray-600">Доля рекламы в выручке:</span>
-                          <span className={`text-lg font-bold ${Number(adsPercent) <= 30 ? 'text-emerald-600' : Number(adsPercent) <= 50 ? 'text-amber-600' : 'text-red-500'}`}>
-                            {adsPercent}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3">
-                          <div
-                            className={`h-3 rounded-full ${Number(adsPercent) <= 30 ? 'bg-emerald-500' : Number(adsPercent) <= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
-                            style={{ width: `${Math.min(Number(adsPercent), 100)}%` }}
-                          />
-                        </div>
-                        <div className="flex justify-between mt-3 text-sm">
-                          <span className="text-gray-500">Прибыль с рекламы:</span>
-                          <span className={`font-semibold ${isProfit ? 'text-emerald-600' : 'text-red-500'}`}>
-                            {isProfit ? '+' : ''}{profit.toLocaleString('ru-RU')} ₸
-                          </span>
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
-              </motion.div>
-
-              {/* График 2: Все заказы vs расходы на рекламу */}
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-                <div className="mb-4">
-                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">Все заказы vs Расходы на рекламу</h3>
-                  <p className="text-xs text-gray-500">Рекламные расходы от общей выручки</p>
-                </div>
-                {(() => {
-                  const totalRevenue = data.totalRevenue;
-                  const totalPercent = totalRevenue > 0 ? ((data.totalAdvertising / totalRevenue) * 100).toFixed(1) : 0;
-                  const totalProfit = data.totalProfit;
-                  const isProfit = totalProfit > 0;
-
-                  return (
-                    <>
-                      <ResponsiveContainer width="100%" height={200}>
-                        <BarChart
-                          data={[
-                            { name: 'Общая выручка', value: totalRevenue, fill: '#3b82f6' },
-                            { name: 'Расход на рекламу', value: data.totalAdvertising, fill: '#f59e0b' }
-                          ]}
-                          layout="vertical"
-                          margin={{ left: 20, right: 20 }}
-                        >
-                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                          <XAxis type="number" tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
-                          <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12 }} />
-                          <Tooltip
-                            formatter={(value) => [`${Number(value).toLocaleString('ru-RU')} ₸`]}
-                            contentStyle={{
-                              backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                              border: '1px solid #e5e7eb',
-                              borderRadius: '8px',
-                            }}
-                          />
-                          <Bar dataKey="value" radius={[0, 4, 4, 0]}>
-                            {[
-                              { name: 'Общая выручка', fill: '#3b82f6' },
-                              { name: 'Расход на рекламу', fill: '#f59e0b' }
-                            ].map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.fill} />
-                            ))}
-                          </Bar>
-                        </BarChart>
-                      </ResponsiveContainer>
-
-                      <div className="mt-4 p-3 bg-gray-50 rounded-xl">
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-sm text-gray-600">Доля рекламы в выручке:</span>
-                          <span className={`text-lg font-bold ${Number(totalPercent) <= 10 ? 'text-emerald-600' : Number(totalPercent) <= 20 ? 'text-amber-600' : 'text-red-500'}`}>
-                            {totalPercent}%
-                          </span>
-                        </div>
-                        <div className="w-full bg-gray-200 rounded-full h-3">
-                          <div
-                            className={`h-3 rounded-full ${Number(totalPercent) <= 10 ? 'bg-emerald-500' : Number(totalPercent) <= 20 ? 'bg-amber-500' : 'bg-red-500'}`}
-                            style={{ width: `${Math.min(Number(totalPercent) * 3, 100)}%` }}
-                          />
-                        </div>
-                        <div className="flex justify-between mt-3 text-sm">
-                          <span className="text-gray-500">Общая прибыль:</span>
-                          <span className={`font-semibold ${isProfit ? 'text-emerald-600' : 'text-red-500'}`}>
-                            {isProfit ? '+' : ''}{totalProfit.toLocaleString('ru-RU')} ₸
-                          </span>
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
               </motion.div>
             </motion.div>
 
