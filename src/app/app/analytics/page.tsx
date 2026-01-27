@@ -1729,6 +1729,154 @@ function AnalyticsPageContent() {
               </motion.div>
             </motion.div>
 
+            {/* Графики рекламной эффективности */}
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="mt-6 sm:mt-8 grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"
+            >
+              {/* График 1: Только рекламные заказы vs расходы */}
+              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
+                <div className="mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">Рекламные заказы vs Расходы</h3>
+                  <p className="text-xs text-gray-500">Только заказы пришедшие с рекламы</p>
+                </div>
+                {(() => {
+                  const adsRevenue = data.ordersBySource.ads * data.avgOrderValue;
+                  const adsPercent = adsRevenue > 0 ? ((data.totalAdvertising / adsRevenue) * 100).toFixed(1) : 0;
+                  const profit = adsRevenue - data.totalAdvertising;
+                  const isProfit = profit > 0;
+
+                  return (
+                    <>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <BarChart
+                          data={[
+                            { name: 'Выручка с рекламы', value: adsRevenue, fill: '#10b981' },
+                            { name: 'Расход на рекламу', value: data.totalAdvertising, fill: '#f59e0b' }
+                          ]}
+                          layout="vertical"
+                          margin={{ left: 20, right: 20 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis type="number" tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                          <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12 }} />
+                          <Tooltip
+                            formatter={(value) => [`${Number(value).toLocaleString('ru-RU')} ₸`]}
+                            contentStyle={{
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                            }}
+                          />
+                          <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                            {[
+                              { name: 'Выручка с рекламы', fill: '#10b981' },
+                              { name: 'Расход на рекламу', fill: '#f59e0b' }
+                            ].map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+
+                      <div className="mt-4 p-3 bg-gray-50 rounded-xl">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm text-gray-600">Доля рекламы в выручке:</span>
+                          <span className={`text-lg font-bold ${Number(adsPercent) <= 30 ? 'text-emerald-600' : Number(adsPercent) <= 50 ? 'text-amber-600' : 'text-red-500'}`}>
+                            {adsPercent}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className={`h-3 rounded-full ${Number(adsPercent) <= 30 ? 'bg-emerald-500' : Number(adsPercent) <= 50 ? 'bg-amber-500' : 'bg-red-500'}`}
+                            style={{ width: `${Math.min(Number(adsPercent), 100)}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between mt-3 text-sm">
+                          <span className="text-gray-500">Прибыль с рекламы:</span>
+                          <span className={`font-semibold ${isProfit ? 'text-emerald-600' : 'text-red-500'}`}>
+                            {isProfit ? '+' : ''}{profit.toLocaleString('ru-RU')} ₸
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </motion.div>
+
+              {/* График 2: Все заказы vs расходы на рекламу */}
+              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
+                <div className="mb-4">
+                  <h3 className="text-base sm:text-lg font-semibold text-gray-900">Все заказы vs Расходы на рекламу</h3>
+                  <p className="text-xs text-gray-500">Рекламные расходы от общей выручки</p>
+                </div>
+                {(() => {
+                  const totalRevenue = data.totalRevenue;
+                  const totalPercent = totalRevenue > 0 ? ((data.totalAdvertising / totalRevenue) * 100).toFixed(1) : 0;
+                  const totalProfit = data.totalProfit;
+                  const isProfit = totalProfit > 0;
+
+                  return (
+                    <>
+                      <ResponsiveContainer width="100%" height={200}>
+                        <BarChart
+                          data={[
+                            { name: 'Общая выручка', value: totalRevenue, fill: '#3b82f6' },
+                            { name: 'Расход на рекламу', value: data.totalAdvertising, fill: '#f59e0b' }
+                          ]}
+                          layout="vertical"
+                          margin={{ left: 20, right: 20 }}
+                        >
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                          <XAxis type="number" tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                          <YAxis type="category" dataKey="name" width={120} tick={{ fontSize: 12 }} />
+                          <Tooltip
+                            formatter={(value) => [`${Number(value).toLocaleString('ru-RU')} ₸`]}
+                            contentStyle={{
+                              backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                              border: '1px solid #e5e7eb',
+                              borderRadius: '8px',
+                            }}
+                          />
+                          <Bar dataKey="value" radius={[0, 4, 4, 0]}>
+                            {[
+                              { name: 'Общая выручка', fill: '#3b82f6' },
+                              { name: 'Расход на рекламу', fill: '#f59e0b' }
+                            ].map((entry, index) => (
+                              <Cell key={`cell-${index}`} fill={entry.fill} />
+                            ))}
+                          </Bar>
+                        </BarChart>
+                      </ResponsiveContainer>
+
+                      <div className="mt-4 p-3 bg-gray-50 rounded-xl">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-sm text-gray-600">Доля рекламы в выручке:</span>
+                          <span className={`text-lg font-bold ${Number(totalPercent) <= 10 ? 'text-emerald-600' : Number(totalPercent) <= 20 ? 'text-amber-600' : 'text-red-500'}`}>
+                            {totalPercent}%
+                          </span>
+                        </div>
+                        <div className="w-full bg-gray-200 rounded-full h-3">
+                          <div
+                            className={`h-3 rounded-full ${Number(totalPercent) <= 10 ? 'bg-emerald-500' : Number(totalPercent) <= 20 ? 'bg-amber-500' : 'bg-red-500'}`}
+                            style={{ width: `${Math.min(Number(totalPercent) * 3, 100)}%` }}
+                          />
+                        </div>
+                        <div className="flex justify-between mt-3 text-sm">
+                          <span className="text-gray-500">Общая прибыль:</span>
+                          <span className={`font-semibold ${isProfit ? 'text-emerald-600' : 'text-red-500'}`}>
+                            {isProfit ? '+' : ''}{totalProfit.toLocaleString('ru-RU')} ₸
+                          </span>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+              </motion.div>
+            </motion.div>
+
             {/* Рекламная аналитика */}
             <motion.div
               variants={containerVariants}
