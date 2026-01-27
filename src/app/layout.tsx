@@ -9,7 +9,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Kaspi Analytics Dashboard",
+  title: "Metricon Analytics",
   description: "Управление магазином Kaspi.kz - аналитика, товары, финансы",
 };
 

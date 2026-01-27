@@ -217,7 +217,15 @@ const mockAnalyticsData = {
     { date: '16.01', fullDate: new Date('2026-01-16'), day: 'Пт', orders: 8, revenue: 100440, cost: 62590, advertising: 4856, commissions: 8035, tax: 4017, delivery: 1506, profit: 19436 },
     { date: '17.01', fullDate: new Date('2026-01-17'), day: 'Сб', orders: 5, revenue: 64920, cost: 37584, advertising: 2874, commissions: 5193, tax: 2596, delivery: 973, profit: 15700 },
     { date: '18.01', fullDate: new Date('2026-01-18'), day: 'Вс', orders: 5, revenue: 81840, cost: 52239, advertising: 4386, commissions: 6547, tax: 3273, delivery: 1227, profit: 14168 },
-    { date: '19.01', fullDate: new Date('2026-01-19'), day: 'Пн', orders: 8, revenue: 110864, cost: 66251, advertising: 5774, commissions: 8869, tax: 4434, delivery: 1662, profit: 23874 }
+    { date: '19.01', fullDate: new Date('2026-01-19'), day: 'Пн', orders: 8, revenue: 110864, cost: 66251, advertising: 5774, commissions: 8869, tax: 4434, delivery: 1662, profit: 23874 },
+    { date: '20.01', fullDate: new Date('2026-01-20'), day: 'Вт', orders: 6, revenue: 89520, cost: 53712, advertising: 3580, commissions: 7161, tax: 3580, delivery: 1342, profit: 20145 },
+    { date: '21.01', fullDate: new Date('2026-01-21'), day: 'Ср', orders: 7, revenue: 102340, cost: 61404, advertising: 4093, commissions: 8187, tax: 4093, delivery: 1535, profit: 23028 },
+    { date: '22.01', fullDate: new Date('2026-01-22'), day: 'Чт', orders: 5, revenue: 73150, cost: 43890, advertising: 2926, commissions: 5852, tax: 2926, delivery: 1097, profit: 16459 },
+    { date: '23.01', fullDate: new Date('2026-01-23'), day: 'Пт', orders: 9, revenue: 131670, cost: 79002, advertising: 5266, commissions: 10533, tax: 5266, delivery: 1975, profit: 29628 },
+    { date: '24.01', fullDate: new Date('2026-01-24'), day: 'Сб', orders: 4, revenue: 58480, cost: 35088, advertising: 2339, commissions: 4678, tax: 2339, delivery: 877, profit: 13159 },
+    { date: '25.01', fullDate: new Date('2026-01-25'), day: 'Вс', orders: 3, revenue: 43860, cost: 26316, advertising: 1754, commissions: 3508, tax: 1754, delivery: 657, profit: 9871 },
+    { date: '26.01', fullDate: new Date('2026-01-26'), day: 'Пн', orders: 7, revenue: 102410, cost: 61446, advertising: 4096, commissions: 8192, tax: 4096, delivery: 1536, profit: 23044 },
+    { date: '27.01', fullDate: new Date('2026-01-27'), day: 'Вт', orders: 6, revenue: 87780, cost: 52668, advertising: 3511, commissions: 7022, tax: 3511, delivery: 1316, profit: 19752 }
   ],
 
   topProducts: [
