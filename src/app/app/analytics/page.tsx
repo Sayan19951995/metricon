@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Megaphone } from 'lucide-react';
+import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Megaphone, Plus, X, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import DateRangeCalendar from '@/components/DateRangeCalendar';
@@ -53,6 +53,7 @@ interface TopProduct {
 
 interface MonthlyData {
   date: string;
+  fullDate?: Date;
   day?: string;
   orders: number;
   revenue: number;
@@ -63,6 +64,15 @@ interface MonthlyData {
   delivery: number;
   profit: number;
   totalExpenses?: number;
+}
+
+// Интерфейс для операционных расходов
+interface OperationalExpense {
+  id: string;
+  name: string;
+  amount: number;        // Сумма расхода
+  startDate: Date;       // Начало периода
+  endDate: Date;         // Конец периода
 }
 
 // Насыщенные но спокойные цвета для источников продаж
@@ -608,6 +618,69 @@ function AnalyticsPageContent() {
   // Попап заказов в пути (ожидают поступления)
   const [showPendingOrdersPopup, setShowPendingOrdersPopup] = useState(false);
 
+  // Операционные расходы
+  const [operationalExpenses, setOperationalExpenses] = useState<OperationalExpense[]>([
+    { id: '1', name: 'Зарплата сотрудников', amount: 500000, startDate: new Date('2026-01-01'), endDate: new Date('2026-01-31') },
+    { id: '2', name: 'Аренда офиса', amount: 150000, startDate: new Date('2026-01-01'), endDate: new Date('2026-01-31') },
+  ]);
+  const [showExpensesPopup, setShowExpensesPopup] = useState(false);
+  const [newExpenseName, setNewExpenseName] = useState('');
+  const [newExpenseAmount, setNewExpenseAmount] = useState('');
+  const [newExpenseStartDate, setNewExpenseStartDate] = useState<Date>(new Date('2026-01-01'));
+  const [newExpenseEndDate, setNewExpenseEndDate] = useState<Date>(new Date('2026-01-31'));
+  const [showExpenseCalendar, setShowExpenseCalendar] = useState(false);
+
+  // Функция для добавления нового расхода
+  const handleAddExpense = () => {
+    if (newExpenseName && newExpenseAmount && newExpenseStartDate && newExpenseEndDate) {
+      const newExpense: OperationalExpense = {
+        id: Date.now().toString(),
+        name: newExpenseName,
+        amount: parseFloat(newExpenseAmount),
+        startDate: newExpenseStartDate,
+        endDate: newExpenseEndDate,
+      };
+      setOperationalExpenses([...operationalExpenses, newExpense]);
+      setNewExpenseName('');
+      setNewExpenseAmount('');
+      setNewExpenseStartDate(new Date('2026-01-01'));
+      setNewExpenseEndDate(new Date('2026-01-31'));
+    }
+  };
+
+  // Функция для удаления расхода
+  const handleDeleteExpense = (id: string) => {
+    setOperationalExpenses(operationalExpenses.filter(exp => exp.id !== id));
+  };
+
+  // Рассчитать дневную сумму операционных расходов для конкретной даты
+  const calculateDailyOperationalExpensesForDate = (date: Date) => {
+    return operationalExpenses.reduce((total, expense) => {
+      // Проверяем, попадает ли дата в период расхода
+      if (date >= expense.startDate && date <= expense.endDate) {
+        // Количество дней в периоде расхода
+        const periodDays = Math.ceil((expense.endDate.getTime() - expense.startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+        return total + expense.amount / periodDays;
+      }
+      return total;
+    }, 0);
+  };
+
+  // Рассчитать общую сумму операционных расходов в месяц (для отображения)
+  const calculateMonthlyOperationalExpenses = () => {
+    return operationalExpenses.reduce((total, expense) => total + expense.amount, 0);
+  };
+
+  // Рассчитать среднюю дневную сумму (для отображения)
+  const calculateAverageDailyExpenses = () => {
+    if (operationalExpenses.length === 0) return 0;
+    let totalDailyAmount = 0;
+    operationalExpenses.forEach(expense => {
+      const periodDays = Math.ceil((expense.endDate.getTime() - expense.startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      totalDailyAmount += expense.amount / periodDays;
+    });
+    return totalDailyAmount;
+  };
 
   // Закрытие календаря по клику вне его
   useEffect(() => {
@@ -718,8 +791,11 @@ function AnalyticsPageContent() {
       const monthLabel = format(day.fullDate, 'MMM yyyy', { locale: ru });
 
       if (!monthMap.has(monthKey)) {
+        // Берём первый день месяца для fullDate
+        const firstDayOfMonth = new Date(day.fullDate.getFullYear(), day.fullDate.getMonth(), 1);
         monthMap.set(monthKey, {
           date: monthLabel,
+          fullDate: firstDayOfMonth,
           orders: 0,
           revenue: 0,
           cost: 0,
@@ -1071,6 +1147,14 @@ function AnalyticsPageContent() {
                   className="px-2.5 sm:px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   Год
+                </button>
+                {/* Кнопка операционных расходов */}
+                <button
+                  onClick={() => setShowExpensesPopup(true)}
+                  className="px-2.5 sm:px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex-shrink-0 flex items-center gap-1"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  Опер. расходы
                 </button>
               </div>
 
@@ -1526,23 +1610,28 @@ function AnalyticsPageContent() {
                     const dayRevenue = day.revenue * multiplier;
                     const dayCost = day.cost * multiplier;
                     const dayAds = day.advertising; // Реклама всегда полная
-                    const dayProfit = dayRevenue - dayCost - dayAds;
+                    // Операционные расходы для конкретной даты
+                    const dayOpExpenses = (day.fullDate ? calculateDailyOperationalExpensesForDate(day.fullDate) : 0) * multiplier;
+                    const dayProfit = dayRevenue - dayCost - dayAds - dayOpExpenses;
 
                     // Проценты для каждой части
                     const costPercent = dayRevenue > 0 ? ((dayCost / dayRevenue) * 100).toFixed(0) : 0;
                     const adsPercent = dayRevenue > 0 ? ((dayAds / dayRevenue) * 100).toFixed(0) : 0;
-                    const profitPercent = dayRevenue > 0 ? ((dayProfit / dayRevenue) * 100).toFixed(0) : 0;
+                    const opExpensesPercent = dayRevenue > 0 ? ((dayOpExpenses / dayRevenue) * 100).toFixed(0) : 0;
+                    const profitPercent = dayRevenue > 0 ? ((Math.max(0, dayProfit) / dayRevenue) * 100).toFixed(0) : 0;
 
                     return {
                       date: day.date,
                       day: day.day || '',
                       cost: dayCost,
                       advertising: dayAds,
+                      opExpenses: dayOpExpenses,
                       profit: Math.max(0, dayProfit),
                       loss: dayProfit < 0 ? Math.abs(dayProfit) : 0,
                       revenue: dayRevenue,
                       costPercent,
                       adsPercent,
+                      opExpensesPercent,
                       profitPercent: dayProfit >= 0 ? profitPercent : 0,
                       orders: showAdsOnly ? Math.round(day.orders * adsRatio) : day.orders
                     };
@@ -1575,6 +1664,12 @@ function AnalyticsPageContent() {
                                         <span className="text-amber-500">Реклама:</span>
                                         <span className="font-medium">{item?.advertising?.toLocaleString('ru-RU')} ₸ ({item?.adsPercent}%)</span>
                                       </div>
+                                      {item?.opExpenses > 0 && (
+                                        <div className="flex justify-between gap-4">
+                                          <span className="text-indigo-500">Опер. расходы:</span>
+                                          <span className="font-medium">{Math.round(item?.opExpenses)?.toLocaleString('ru-RU')} ₸ ({item?.opExpensesPercent}%)</span>
+                                        </div>
+                                      )}
                                       <div className="flex justify-between gap-4">
                                         <span className="text-emerald-500">Прибыль:</span>
                                         <span className="font-medium">{item?.profit?.toLocaleString('ru-RU')} ₸ ({item?.profitPercent}%)</span>
@@ -1601,6 +1696,7 @@ function AnalyticsPageContent() {
                               const labels: Record<string, string> = {
                                 cost: 'Себестоимость',
                                 advertising: 'Реклама',
+                                opExpenses: 'Опер. расходы',
                                 profit: 'Прибыль'
                               };
                               return labels[value] || value;
@@ -1608,6 +1704,7 @@ function AnalyticsPageContent() {
                           />
                           <Bar dataKey="cost" name="cost" stackId="a" fill="#f87171" />
                           <Bar dataKey="advertising" name="advertising" stackId="a" fill="#fbbf24" />
+                          <Bar dataKey="opExpenses" name="opExpenses" stackId="a" fill="#818cf8" />
                           <Bar dataKey="profit" name="profit" stackId="a" fill="#34d399" radius={[4, 4, 0, 0]}>
                             <LabelList
                               dataKey="revenue"
@@ -1620,7 +1717,7 @@ function AnalyticsPageContent() {
                       </ResponsiveContainer>
 
                       {/* Итоги под графиком */}
-                      <div className="mt-4 grid grid-cols-3 gap-2 sm:gap-4 text-center">
+                      <div className="mt-4 grid grid-cols-4 gap-2 sm:gap-4 text-center">
                         <div className="p-2 sm:p-3 bg-rose-50 rounded-lg">
                           <div className="text-xs text-rose-600 mb-1">Себестоимость</div>
                           <div className="text-sm sm:text-base font-bold text-rose-600">
@@ -1637,6 +1734,22 @@ function AnalyticsPageContent() {
                           </div>
                           <div className="text-[10px] text-amber-500">
                             {((data.totalAdvertising / (showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue)) * 100).toFixed(0)}%
+                          </div>
+                        </div>
+                        <div className="p-2 sm:p-3 bg-sky-50 rounded-lg">
+                          <div className="text-xs text-sky-600 mb-1">Цена 1 клиента</div>
+                          <div className="text-sm sm:text-base font-bold text-sky-600">
+                            {(() => {
+                              // CAC = Расходы на рекламу / Количество заказов
+                              // При toggle "только реклама" - считаем на рекламные заказы
+                              // При toggle выкл - считаем на все заказы (распределяем рекламу на всех)
+                              const orders = showAdsOnly ? data.ordersBySource.ads : data.totalOrders;
+                              const cac = orders > 0 ? data.totalAdvertising / orders : 0;
+                              return `${(cac / 1000).toFixed(1)}K ₸`;
+                            })()}
+                          </div>
+                          <div className="text-[10px] text-sky-500">
+                            {showAdsOnly ? data.ordersBySource.ads : data.totalOrders} заказов
                           </div>
                         </div>
                         <div className="p-2 sm:p-3 bg-emerald-50 rounded-lg">
@@ -3997,6 +4110,259 @@ function AnalyticsPageContent() {
                     className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium transition-colors"
                   >
                     Закрыть
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Operational Expenses Popup */}
+        <AnimatePresence>
+          {showExpensesPopup && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowExpensesPopup(false)}
+                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-white rounded-2xl shadow-2xl z-50 overflow-hidden max-h-[90vh] overflow-y-auto"
+              >
+                {/* Header */}
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-500 p-4 sm:p-6 text-white">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                        <Calculator className="w-5 h-5 sm:w-6 sm:h-6" />
+                      </div>
+                      <div>
+                        <h2 className="text-lg sm:text-xl font-bold">Операционные расходы</h2>
+                        <p className="text-indigo-100 text-xs sm:text-sm">Регулярные затраты бизнеса</p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => setShowExpensesPopup(false)}
+                      className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/20 transition-colors"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Summary */}
+                <div className="p-4 sm:p-6 bg-indigo-50 border-b border-indigo-200">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="text-center">
+                      <div className="text-2xl sm:text-3xl font-bold text-indigo-700">
+                        {(calculateMonthlyOperationalExpenses() / 1000).toFixed(0)}K ₸
+                      </div>
+                      <div className="text-xs sm:text-sm text-indigo-600">Всего расходов</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-2xl sm:text-3xl font-bold text-indigo-700">
+                        {(calculateAverageDailyExpenses() / 1000).toFixed(1)}K ₸
+                      </div>
+                      <div className="text-xs sm:text-sm text-indigo-600">В день (средн.)</div>
+                    </div>
+                  </div>
+                  <div className="mt-3 p-2 bg-indigo-100 rounded-lg text-xs sm:text-sm text-indigo-700 text-center">
+                    Расходы распределяются по дням в указанном периоде
+                  </div>
+                </div>
+
+                {/* Expenses List */}
+                <div className="p-4 sm:p-6">
+                  <h3 className="font-semibold text-gray-900 mb-3 text-sm">Текущие расходы</h3>
+                  <div className="space-y-2 max-h-48 overflow-y-auto mb-4">
+                    {operationalExpenses.map(expense => {
+                      const periodDays = Math.ceil((expense.endDate.getTime() - expense.startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                      const dailyAmount = expense.amount / periodDays;
+                      return (
+                        <div key={expense.id} className="p-3 bg-gray-50 rounded-xl group">
+                          <div className="flex items-center justify-between">
+                            <div className="font-medium text-gray-900 text-sm">{expense.name}</div>
+                            <div className="flex items-center gap-2">
+                              <div className="font-semibold text-gray-900 text-sm">
+                                {expense.amount.toLocaleString('ru-RU')} ₸
+                              </div>
+                              <button
+                                onClick={() => handleDeleteExpense(expense.id)}
+                                className="w-7 h-7 flex items-center justify-center rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 opacity-0 group-hover:opacity-100 transition-all"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </button>
+                            </div>
+                          </div>
+                          <div className="flex items-center justify-between mt-1">
+                            <div className="text-xs text-gray-500 flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {format(expense.startDate, 'd MMM', { locale: ru })} — {format(expense.endDate, 'd MMM yyyy', { locale: ru })}
+                            </div>
+                            <div className="text-xs text-indigo-600">
+                              {(dailyAmount / 1000).toFixed(1)}K ₸/день
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                    {operationalExpenses.length === 0 && (
+                      <div className="text-center text-gray-500 text-sm py-4">
+                        Нет добавленных расходов
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Add New Expense Form */}
+                  <div className="border-t pt-4">
+                    <h3 className="font-semibold text-gray-900 mb-3 text-sm">Добавить расход</h3>
+                    <div className="space-y-3">
+                      <input
+                        type="text"
+                        value={newExpenseName}
+                        onChange={(e) => setNewExpenseName(e.target.value)}
+                        placeholder="Название (например: Зарплата)"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      />
+                      <input
+                        type="number"
+                        value={newExpenseAmount}
+                        onChange={(e) => setNewExpenseAmount(e.target.value)}
+                        placeholder="Сумма за период"
+                        className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                      />
+                      {/* Period Selection */}
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowExpenseCalendar(!showExpenseCalendar)}
+                          className="w-full flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg text-sm hover:border-indigo-500 transition-colors"
+                        >
+                          <span className="flex items-center gap-2">
+                            <Calendar className="w-4 h-4 text-gray-500" />
+                            <span className="text-gray-700">
+                              {format(newExpenseStartDate, 'd MMM', { locale: ru })} — {format(newExpenseEndDate, 'd MMM yyyy', { locale: ru })}
+                            </span>
+                          </span>
+                          <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${showExpenseCalendar ? 'rotate-180' : ''}`} />
+                        </button>
+
+                        {/* Quick Period Buttons */}
+                        <AnimatePresence>
+                          {showExpenseCalendar && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-200 rounded-xl shadow-lg p-3 z-10"
+                            >
+                              <div className="text-xs text-gray-500 mb-2">Быстрый выбор:</div>
+                              <div className="flex flex-wrap gap-2 mb-3">
+                                <button
+                                  onClick={() => {
+                                    setNewExpenseStartDate(new Date('2026-01-01'));
+                                    setNewExpenseEndDate(new Date('2026-01-31'));
+                                    setShowExpenseCalendar(false);
+                                  }}
+                                  className="px-2.5 py-1.5 bg-gray-100 hover:bg-indigo-100 text-gray-700 hover:text-indigo-700 rounded-lg text-xs font-medium transition-colors"
+                                >
+                                  Январь
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setNewExpenseStartDate(new Date('2026-02-01'));
+                                    setNewExpenseEndDate(new Date('2026-02-28'));
+                                    setShowExpenseCalendar(false);
+                                  }}
+                                  className="px-2.5 py-1.5 bg-gray-100 hover:bg-indigo-100 text-gray-700 hover:text-indigo-700 rounded-lg text-xs font-medium transition-colors"
+                                >
+                                  Февраль
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setNewExpenseStartDate(new Date('2026-01-01'));
+                                    setNewExpenseEndDate(new Date('2026-03-31'));
+                                    setShowExpenseCalendar(false);
+                                  }}
+                                  className="px-2.5 py-1.5 bg-gray-100 hover:bg-indigo-100 text-gray-700 hover:text-indigo-700 rounded-lg text-xs font-medium transition-colors"
+                                >
+                                  Q1 2026
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    setNewExpenseStartDate(new Date('2026-01-01'));
+                                    setNewExpenseEndDate(new Date('2026-12-31'));
+                                    setShowExpenseCalendar(false);
+                                  }}
+                                  className="px-2.5 py-1.5 bg-gray-100 hover:bg-indigo-100 text-gray-700 hover:text-indigo-700 rounded-lg text-xs font-medium transition-colors"
+                                >
+                                  Год 2026
+                                </button>
+                              </div>
+                              <div className="text-xs text-gray-500 mb-2">Или введите даты:</div>
+                              <div className="flex gap-2">
+                                <div className="flex-1">
+                                  <label className="text-[10px] text-gray-400 mb-1 block">От</label>
+                                  <input
+                                    type="date"
+                                    value={format(newExpenseStartDate, 'yyyy-MM-dd')}
+                                    onChange={(e) => setNewExpenseStartDate(new Date(e.target.value))}
+                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  />
+                                </div>
+                                <div className="flex-1">
+                                  <label className="text-[10px] text-gray-400 mb-1 block">До</label>
+                                  <input
+                                    type="date"
+                                    value={format(newExpenseEndDate, 'yyyy-MM-dd')}
+                                    onChange={(e) => setNewExpenseEndDate(new Date(e.target.value))}
+                                    className="w-full px-2 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                  />
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => setShowExpenseCalendar(false)}
+                                className="w-full mt-3 px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-xs font-medium transition-colors"
+                              >
+                                Применить
+                              </button>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
+                      {newExpenseStartDate && newExpenseEndDate && newExpenseAmount && (
+                        <div className="text-xs text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg">
+                          ≈ {((parseFloat(newExpenseAmount) / (Math.ceil((newExpenseEndDate.getTime() - newExpenseStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1)) / 1000).toFixed(1)}K ₸ в день
+                        </div>
+                      )}
+
+                      <button
+                        onClick={() => {
+                          handleAddExpense();
+                          setShowExpenseCalendar(false);
+                        }}
+                        disabled={!newExpenseName || !newExpenseAmount}
+                        className="w-full px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        Добавить
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Footer */}
+                <div className="bg-gray-50 p-4 flex justify-end">
+                  <button
+                    onClick={() => setShowExpensesPopup(false)}
+                    className="px-6 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl font-medium transition-colors"
+                  >
+                    Готово
                   </button>
                 </div>
               </motion.div>
