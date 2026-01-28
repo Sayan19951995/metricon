@@ -595,6 +595,9 @@ function AnalyticsPageContent() {
   // Toggle для показа только рекламных заказов
   const [showAdsOnly, setShowAdsOnly] = useState(false);
 
+  // Toggle для рентабельности - только реклама или все продажи
+  const [showAdsOnlyROI, setShowAdsOnlyROI] = useState(true);
+
   // Состояние сворачиваемых секций в табе Sales
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
     revenue: false,      // Структура выручки
@@ -1176,14 +1179,6 @@ function AnalyticsPageContent() {
                 >
                   Год
                 </button>
-                {/* Кнопка операционных расходов */}
-                <button
-                  onClick={() => setShowExpensesPopup(true)}
-                  className="px-2.5 sm:px-3 py-1.5 bg-indigo-100 hover:bg-indigo-200 text-indigo-700 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex-shrink-0 flex items-center gap-1"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  Опер. расходы
-                </button>
               </div>
 
               {/* Calendar Dropdown */}
@@ -1201,6 +1196,17 @@ function AnalyticsPageContent() {
             )}
           </div>
         </motion.div>
+
+        {/* Кнопка операционных расходов - вне блока */}
+        <div className="mt-4">
+          <button
+            onClick={() => setShowExpensesPopup(true)}
+            className="px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer flex items-center gap-2 shadow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Добавить опер. расходы
+          </button>
+        </div>
 
         {/* Tab Content */}
         {activeTab === 'finances' && (
@@ -1599,6 +1605,260 @@ function AnalyticsPageContent() {
                 <div className="text-[10px] sm:text-xs mt-1 text-amber-600">
                   {((data.pendingOrders?.totalAmount || 0) / 1000000).toFixed(1)}M ₸ ожидает
                 </div>
+              </motion.div>
+            </motion.div>
+
+            {/* Рентабельность по товарам */}
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="mb-6 sm:mb-8"
+            >
+              <motion.div variants={itemVariants} className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-sm overflow-hidden">
+                {/* Заголовок */}
+                <div className="flex items-center justify-between p-4 sm:p-6">
+                  <div
+                    className="flex items-center gap-2 sm:gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                    onClick={() => toggleSection('adProducts')}
+                  >
+                    <div className={`p-1.5 rounded-lg transition-transform ${collapsedSections.adProducts ? 'rotate-180' : ''}`}>
+                      <ChevronUp className="w-4 h-4 text-indigo-600" />
+                    </div>
+                    <div className="p-2 bg-indigo-100 rounded-xl">
+                      <TrendingUp className="w-5 h-5 text-indigo-600" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Рентабельность по товарам</h3>
+                      <p className="text-xs sm:text-sm text-gray-500">
+                        {showAdsOnlyROI ? 'ROI каждого товара от рекламы' : 'Маржинальность всех продаж'}
+                      </p>
+                    </div>
+                  </div>
+                  {/* Toggle только реклама */}
+                  <div
+                    className="flex items-center gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <span className="text-xs text-gray-500">Только реклама</span>
+                    <button
+                      onClick={() => setShowAdsOnlyROI(!showAdsOnlyROI)}
+                      className={`relative w-11 h-6 rounded-full transition-colors ${
+                        showAdsOnlyROI ? 'bg-indigo-500' : 'bg-gray-300'
+                      }`}
+                    >
+                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                        showAdsOnlyROI ? 'translate-x-6' : 'translate-x-1'
+                      }`} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Содержимое */}
+                <AnimatePresence>
+                  {!collapsedSections.adProducts && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="px-4 sm:px-6 pb-4 sm:pb-6"
+                    >
+                {(() => {
+                  // Расчёт данных для каждого товара
+                  const totalAdSales = data.topProducts.reduce((sum, p) => sum + (p.adSales || 0), 0);
+
+                  const productsWithROI = data.topProducts.map(product => {
+                    if (showAdsOnlyROI) {
+                      // Режим "только реклама"
+                      const adSales = product.adSales || 0;
+                      const adSalesRatio = product.sales > 0 ? adSales / product.sales : 0;
+                      const adRevenue = Math.round(product.revenue * adSalesRatio);
+                      const adCost = Math.round(product.cost * adSalesRatio);
+                      const adExpense = totalAdSales > 0 ? Math.round((adSales / totalAdSales) * data.totalAdvertising) : 0;
+                      const adProfit = adRevenue - adCost - adExpense;
+                      const roi = adExpense > 0 ? Math.round((adProfit / adExpense) * 100) : 0;
+
+                      return {
+                        ...product,
+                        displaySales: adSales,
+                        totalSales: product.sales,
+                        displayRevenue: adRevenue,
+                        displayExpense: adExpense,
+                        displayProfit: adProfit,
+                        displayROI: roi,
+                        isAdsMode: true
+                      };
+                    } else {
+                      // Режим "все продажи" - маржинальность
+                      const totalProfit = product.profit;
+                      const margin = product.revenue > 0 ? Math.round((totalProfit / product.revenue) * 100) : 0;
+
+                      return {
+                        ...product,
+                        displaySales: product.sales,
+                        totalSales: product.sales,
+                        displayRevenue: product.revenue,
+                        displayExpense: product.cost,
+                        displayProfit: totalProfit,
+                        displayROI: margin,
+                        isAdsMode: false
+                      };
+                    }
+                  }).sort((a, b) => b.displayROI - a.displayROI);
+
+                  return (
+                    <>
+                      {/* Таблица */}
+                      <div className="mb-6" style={{ overflow: 'visible' }}>
+                        <table className="w-full min-w-[600px]">
+                          <thead>
+                            <tr className="border-b border-gray-200">
+                              <th className="text-left py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">Товар</th>
+                              <th className="text-center py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
+                                <div className="flex items-center justify-center gap-1">
+                                  Продажи
+                                  <HelpTooltip text={showAdsOnlyROI ? "Продажи из рекламы / всего" : "Всего продаж товара"} />
+                                </div>
+                              </th>
+                              <th className="text-right py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
+                                <div className="flex items-center justify-end gap-1">
+                                  Выручка
+                                  <HelpTooltip text={showAdsOnlyROI ? "Выручка от рекламных продаж" : "Общая выручка от товара"} />
+                                </div>
+                              </th>
+                              <th className="text-right py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
+                                <div className="flex items-center justify-end gap-1">
+                                  {showAdsOnlyROI ? 'Расход' : 'Себест.'}
+                                  <HelpTooltip text={showAdsOnlyROI ? "Расход на рекламу товара" : "Себестоимость товара"} />
+                                </div>
+                              </th>
+                              <th className="text-right py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
+                                <div className="flex items-center justify-end gap-1">
+                                  Прибыль
+                                  <HelpTooltip text={showAdsOnlyROI ? "Прибыль от рекламы: выручка − себест. − реклама" : "Чистая прибыль: выручка − себестоимость"} />
+                                </div>
+                              </th>
+                              <th className="text-center py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
+                                <div className="flex items-center justify-center gap-1">
+                                  {showAdsOnlyROI ? 'ROI' : 'Маржа'}
+                                  <HelpTooltip text={showAdsOnlyROI ? "ROI: прибыль ÷ расход × 100%" : "Маржинальность: прибыль ÷ выручка × 100%"} />
+                                </div>
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {productsWithROI.map((product) => (
+                              <tr key={product.id} className="border-b border-gray-100 hover:bg-white/50 transition-colors">
+                                <td className="py-3 px-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-lg">{product.image}</span>
+                                    <div>
+                                      <div className="font-medium text-gray-900 text-sm">{product.name.length > 25 ? product.name.substring(0, 25) + '...' : product.name}</div>
+                                      <div className="text-xs text-gray-500">{product.sku}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-2 text-center">
+                                  <span className="font-medium text-gray-900">{product.displaySales}</span>
+                                  {showAdsOnlyROI && (
+                                    <span className="text-gray-400 text-xs ml-1">из {product.totalSales}</span>
+                                  )}
+                                </td>
+                                <td className="py-3 px-2 text-right font-medium text-gray-900">
+                                  {product.displayRevenue.toLocaleString('ru-RU')} ₸
+                                </td>
+                                <td className="py-3 px-2 text-right font-medium text-red-500">
+                                  -{product.displayExpense.toLocaleString('ru-RU')} ₸
+                                </td>
+                                <td className={`py-3 px-2 text-right font-medium ${product.displayProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                  {product.displayProfit >= 0 ? '+' : ''}{product.displayProfit.toLocaleString('ru-RU')} ₸
+                                </td>
+                                <td className="py-3 px-2 text-center">
+                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${
+                                    product.displayROI >= 100 ? 'bg-emerald-100 text-emerald-700' :
+                                    product.displayROI >= 50 ? 'bg-amber-100 text-amber-700' :
+                                    product.displayROI >= 0 ? 'bg-orange-100 text-orange-700' :
+                                    'bg-red-100 text-red-700'
+                                  }`}>
+                                    {product.displayROI}%
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* График */}
+                      <div className="bg-white rounded-xl p-4">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-4">
+                          {showAdsOnlyROI ? 'ROI рекламы по товарам' : 'Маржинальность по товарам'}
+                        </h4>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <BarChart data={productsWithROI} layout="vertical" margin={{ top: 0, right: 30, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis type="number" tickFormatter={(v) => `${v}%`} />
+                            <YAxis
+                              type="category"
+                              dataKey="name"
+                              width={120}
+                              tick={{ fontSize: 11 }}
+                              tickFormatter={(v) => v.length > 15 ? v.substring(0, 15) + '...' : v}
+                            />
+                            <Tooltip
+                              formatter={(value) => [`${value ?? 0}%`, showAdsOnlyROI ? 'ROI' : 'Маржа']}
+                              contentStyle={{
+                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '8px',
+                              }}
+                            />
+                            <Bar
+                              dataKey="displayROI"
+                              radius={[0, 4, 4, 0]}
+                            >
+                              {productsWithROI.map((entry, index) => (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={
+                                    entry.displayROI >= 100 ? '#10b981' :
+                                    entry.displayROI >= 50 ? '#f59e0b' :
+                                    entry.displayROI >= 0 ? '#f97316' :
+                                    '#ef4444'
+                                  }
+                                />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+
+                        {/* Легенда */}
+                        <div className="flex flex-wrap justify-center gap-4 mt-4 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded bg-emerald-500"></div>
+                            <span className="text-gray-600">Отлично (100%+)</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded bg-amber-500"></div>
+                            <span className="text-gray-600">Хорошо (50-100%)</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded bg-orange-500"></div>
+                            <span className="text-gray-600">Слабо (0-50%)</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded bg-red-500"></div>
+                            <span className="text-gray-600">Убыток (&lt;0%)</span>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             </motion.div>
 
@@ -2233,215 +2493,6 @@ function AnalyticsPageContent() {
               </motion.div>
             </motion.div>
 
-            {/* Рентабельность рекламы по товарам */}
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="mt-6"
-            >
-              <motion.div variants={itemVariants} className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-sm overflow-hidden">
-                {/* Заголовок - кликабельный */}
-                <div
-                  className="flex items-center gap-2 sm:gap-3 p-4 sm:p-6 cursor-pointer hover:bg-indigo-100/50 transition-colors"
-                  onClick={() => toggleSection('adProducts')}
-                >
-                  <div className={`p-1.5 rounded-lg transition-transform ${collapsedSections.adProducts ? 'rotate-180' : ''}`}>
-                    <ChevronUp className="w-4 h-4 text-indigo-600" />
-                  </div>
-                  <div className="p-2 bg-indigo-100 rounded-xl">
-                    <TrendingUp className="w-5 h-5 text-indigo-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Рентабельность рекламы по товарам</h3>
-                    <p className="text-xs sm:text-sm text-gray-500">ROI каждого товара от рекламных продаж</p>
-                  </div>
-                </div>
-
-                {/* Содержимое */}
-                <AnimatePresence>
-                  {!collapsedSections.adProducts && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="px-4 sm:px-6 pb-4 sm:pb-6"
-                    >
-                {(() => {
-                  // Расчёт данных для каждого товара
-                  const totalAdSales = data.topProducts.reduce((sum, p) => sum + (p.adSales || 0), 0);
-
-                  const productsWithROI = data.topProducts.map(product => {
-                    const adSales = product.adSales || 0;
-                    const adSalesRatio = product.sales > 0 ? adSales / product.sales : 0;
-                    const adRevenue = Math.round(product.revenue * adSalesRatio);
-                    const adCost = Math.round(product.cost * adSalesRatio);
-                    // Распределяем рекламные расходы пропорционально продажам
-                    const adExpense = totalAdSales > 0 ? Math.round((adSales / totalAdSales) * data.totalAdvertising) : 0;
-                    const adProfit = adRevenue - adCost - adExpense;
-                    const roi = adExpense > 0 ? Math.round((adProfit / adExpense) * 100) : 0;
-
-                    return {
-                      ...product,
-                      adRevenue,
-                      adCost,
-                      adExpense,
-                      adProfit,
-                      roi
-                    };
-                  }).sort((a, b) => b.roi - a.roi);
-
-                  return (
-                    <>
-                      {/* Таблица */}
-                      <div className="mb-6" style={{ overflow: 'visible' }}>
-                        <table className="w-full min-w-[600px]">
-                          <thead>
-                            <tr className="border-b border-gray-200">
-                              <th className="text-left py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">Товар</th>
-                              <th className="text-center py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
-                                <div className="flex items-center justify-center gap-1">
-                                  Продажи
-                                  <HelpTooltip text="Продажи из рекламы / всего продаж" />
-                                </div>
-                              </th>
-                              <th className="text-right py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
-                                <div className="flex items-center justify-end gap-1">
-                                  Выручка
-                                  <HelpTooltip text="Выручка от рекламных продаж товара" />
-                                </div>
-                              </th>
-                              <th className="text-right py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
-                                <div className="flex items-center justify-end gap-1">
-                                  Расход
-                                  <HelpTooltip text="Расход на рекламу этого товара" />
-                                </div>
-                              </th>
-                              <th className="text-right py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
-                                <div className="flex items-center justify-end gap-1">
-                                  Прибыль
-                                  <HelpTooltip text="Выручка − себестоимость − реклама" />
-                                </div>
-                              </th>
-                              <th className="text-center py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
-                                <div className="flex items-center justify-center gap-1">
-                                  ROI
-                                  <HelpTooltip text="Окупаемость: прибыль ÷ расход × 100%" />
-                                </div>
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {productsWithROI.map((product, index) => (
-                              <tr key={product.id} className="border-b border-gray-100 hover:bg-white/50 transition-colors">
-                                <td className="py-3 px-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-lg">{product.image}</span>
-                                    <div>
-                                      <div className="font-medium text-gray-900 text-sm">{product.name.length > 25 ? product.name.substring(0, 25) + '...' : product.name}</div>
-                                      <div className="text-xs text-gray-500">{product.sku}</div>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="py-3 px-2 text-center">
-                                  <span className="font-medium text-gray-900">{product.adSales}</span>
-                                  <span className="text-gray-400 text-xs ml-1">из {product.sales}</span>
-                                </td>
-                                <td className="py-3 px-2 text-right font-medium text-gray-900">
-                                  {product.adRevenue.toLocaleString('ru-RU')} ₸
-                                </td>
-                                <td className="py-3 px-2 text-right font-medium text-red-500">
-                                  -{product.adExpense.toLocaleString('ru-RU')} ₸
-                                </td>
-                                <td className={`py-3 px-2 text-right font-medium ${product.adProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                                  {product.adProfit >= 0 ? '+' : ''}{product.adProfit.toLocaleString('ru-RU')} ₸
-                                </td>
-                                <td className="py-3 px-2 text-center">
-                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${
-                                    product.roi >= 100 ? 'bg-emerald-100 text-emerald-700' :
-                                    product.roi >= 50 ? 'bg-amber-100 text-amber-700' :
-                                    product.roi >= 0 ? 'bg-orange-100 text-orange-700' :
-                                    'bg-red-100 text-red-700'
-                                  }`}>
-                                    {product.roi}%
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
-
-                      {/* График ROI */}
-                      <div className="bg-white rounded-xl p-4">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-4">ROI по товарам</h4>
-                        <ResponsiveContainer width="100%" height={200}>
-                          <BarChart data={productsWithROI} layout="vertical" margin={{ top: 0, right: 30, left: 0, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                            <XAxis type="number" tickFormatter={(v) => `${v}%`} />
-                            <YAxis
-                              type="category"
-                              dataKey="name"
-                              width={120}
-                              tick={{ fontSize: 11 }}
-                              tickFormatter={(v) => v.length > 15 ? v.substring(0, 15) + '...' : v}
-                            />
-                            <Tooltip
-                              formatter={(value) => [`${value ?? 0}%`, 'ROI']}
-                              contentStyle={{
-                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                border: '1px solid #e5e7eb',
-                                borderRadius: '8px',
-                              }}
-                            />
-                            <Bar
-                              dataKey="roi"
-                              radius={[0, 4, 4, 0]}
-                            >
-                              {productsWithROI.map((entry, index) => (
-                                <Cell
-                                  key={`cell-${index}`}
-                                  fill={
-                                    entry.roi >= 100 ? '#10b981' :
-                                    entry.roi >= 50 ? '#f59e0b' :
-                                    entry.roi >= 0 ? '#f97316' :
-                                    '#ef4444'
-                                  }
-                                />
-                              ))}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-
-                        {/* Легенда */}
-                        <div className="flex flex-wrap justify-center gap-4 mt-4 text-xs">
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 rounded bg-emerald-500"></div>
-                            <span className="text-gray-600">Отлично (100%+)</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 rounded bg-amber-500"></div>
-                            <span className="text-gray-600">Хорошо (50-100%)</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 rounded bg-orange-500"></div>
-                            <span className="text-gray-600">Слабо (0-50%)</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 rounded bg-red-500"></div>
-                            <span className="text-gray-600">Убыток (&lt;0%)</span>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
-            </motion.div>
           </>
         )}
 
