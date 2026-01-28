@@ -438,20 +438,18 @@ export default function OrdersPage() {
             className="bg-white rounded-xl p-4 shadow-sm"
             onClick={() => setSelectedOrder(order)}
           >
-            <div className="flex items-start justify-between mb-3">
+            <div className="flex items-start justify-between mb-2">
               <div>
                 <p className="font-semibold text-sm">{order.code}</p>
                 <p className="text-xs text-gray-500">{order.customer}</p>
+                <p className="text-xs text-gray-400 mt-1">{order.date} • {order.time}</p>
               </div>
               <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
                 {getStatusText(order.status)}
               </span>
             </div>
-            <div className="flex items-center justify-between text-sm">
-              <div className="flex items-center gap-3 text-gray-500">
-                <span>{order.date}</span>
-                <span>{order.items} шт.</span>
-              </div>
+            <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-100">
+              <span className="text-gray-500">{order.items} шт.</span>
               <span className="font-semibold">{order.total.toLocaleString()} ₸</span>
             </div>
           </motion.div>
