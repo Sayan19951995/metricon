@@ -9,7 +9,15 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  X
+  X,
+  Truck,
+  Zap,
+  MapPin,
+  Package,
+  ArrowRightLeft,
+  Store,
+  CheckCircle2,
+  ShoppingBag
 } from 'lucide-react';
 
 type OrderStatus = 'my_delivery' | 'express' | 'pickup' | 'packing' | 'transfer' | 'offline' | 'transferred';
@@ -181,6 +189,70 @@ export default function OrdersPage() {
     transferred: orders.filter(o => o.status === 'transferred').length,
   };
 
+  // Подсчёт сумм по статусам
+  const statusTotals = {
+    all: orders.reduce((sum, o) => sum + o.total, 0),
+    my_delivery: orders.filter(o => o.status === 'my_delivery').reduce((sum, o) => sum + o.total, 0),
+    express: orders.filter(o => o.status === 'express').reduce((sum, o) => sum + o.total, 0),
+    pickup: orders.filter(o => o.status === 'pickup').reduce((sum, o) => sum + o.total, 0),
+    packing: orders.filter(o => o.status === 'packing').reduce((sum, o) => sum + o.total, 0),
+    transfer: orders.filter(o => o.status === 'transfer').reduce((sum, o) => sum + o.total, 0),
+    offline: orders.filter(o => o.status === 'offline').reduce((sum, o) => sum + o.total, 0),
+    transferred: orders.filter(o => o.status === 'transferred').reduce((sum, o) => sum + o.total, 0),
+  };
+
+  // Статистические карточки
+  const statsCards = [
+    {
+      key: 'all' as const,
+      label: 'Всего заказов',
+      icon: ShoppingBag,
+      color: 'bg-gray-100',
+      iconColor: 'text-gray-600',
+      borderColor: 'border-gray-200'
+    },
+    {
+      key: 'my_delivery' as const,
+      label: 'Моя доставка',
+      icon: Truck,
+      color: 'bg-blue-50',
+      iconColor: 'text-blue-600',
+      borderColor: 'border-blue-200'
+    },
+    {
+      key: 'express' as const,
+      label: 'Экспресс',
+      icon: Zap,
+      color: 'bg-orange-50',
+      iconColor: 'text-orange-600',
+      borderColor: 'border-orange-200'
+    },
+    {
+      key: 'pickup' as const,
+      label: 'Самовывоз',
+      icon: MapPin,
+      color: 'bg-purple-50',
+      iconColor: 'text-purple-600',
+      borderColor: 'border-purple-200'
+    },
+    {
+      key: 'packing' as const,
+      label: 'Упаковка',
+      icon: Package,
+      color: 'bg-yellow-50',
+      iconColor: 'text-yellow-600',
+      borderColor: 'border-yellow-200'
+    },
+    {
+      key: 'transferred' as const,
+      label: 'Передан',
+      icon: CheckCircle2,
+      color: 'bg-emerald-50',
+      iconColor: 'text-emerald-600',
+      borderColor: 'border-emerald-200'
+    },
+  ];
+
   const getStatusColor = (status: OrderStatus) => {
     switch (status) {
       case 'my_delivery': return 'bg-blue-100 text-blue-700';
@@ -211,6 +283,34 @@ export default function OrdersPage() {
       <div className="mb-6 lg:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold mb-2">Заказы</h1>
         <p className="text-gray-500 text-sm">Управление заказами и доставкой</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-4 sm:mb-6">
+        {statsCards.map((card, index) => {
+          const Icon = card.icon;
+          return (
+            <motion.div
+              key={card.key}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.05 }}
+              onClick={() => setFilterStatus(card.key)}
+              className={`${card.color} ${filterStatus === card.key ? `border-2 ${card.borderColor}` : 'border border-transparent'} rounded-xl p-3 sm:p-4 cursor-pointer hover:shadow-md transition-all`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div className={`p-1.5 rounded-lg ${card.color}`}>
+                  <Icon className={`w-4 h-4 ${card.iconColor}`} />
+                </div>
+                <span className="text-xs font-medium text-gray-600 truncate">{card.label}</span>
+              </div>
+              <div className="space-y-1">
+                <p className="text-lg sm:text-xl font-bold text-gray-900">{statusCounts[card.key]}</p>
+                <p className="text-xs text-gray-500">{statusTotals[card.key].toLocaleString()} ₸</p>
+              </div>
+            </motion.div>
+          );
+        })}
       </div>
 
       {/* Filters and Search */}

@@ -3,7 +3,18 @@
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Megaphone, Plus, X, Trash2 } from 'lucide-react';
+import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, ChevronUp, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Megaphone, Plus, X, Trash2, HelpCircle } from 'lucide-react';
+
+// Компонент подсказки
+const HelpTooltip = ({ text }: { text: string }) => (
+  <div className="relative inline-flex items-center group ml-1" style={{ isolation: 'isolate' }}>
+    <HelpCircle className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 cursor-help flex-shrink-0" />
+    <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 w-[180px] text-left z-[9999] shadow-xl pointer-events-none">
+      <span className="whitespace-normal break-words leading-relaxed">{text}</span>
+      <div className="absolute left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-gray-900"></div>
+    </div>
+  </div>
+);
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import DateRangeCalendar from '@/components/DateRangeCalendar';
@@ -246,6 +257,7 @@ const mockAnalyticsData = {
       sku: 'APL-IP14P-256-DP',
       image: '📱',
       sales: 12,
+      adSales: 4,
       revenue: 180000,
       cost: 110000,
       profit: 70000
@@ -256,6 +268,7 @@ const mockAnalyticsData = {
       sku: 'SAM-S23U-512',
       image: '📱',
       sales: 8,
+      adSales: 3,
       revenue: 144000,
       cost: 92000,
       profit: 52000
@@ -266,6 +279,7 @@ const mockAnalyticsData = {
       sku: 'APL-MBP14-M2P-16',
       image: '💻',
       sales: 5,
+      adSales: 2,
       revenue: 125000,
       cost: 85000,
       profit: 40000
@@ -276,6 +290,7 @@ const mockAnalyticsData = {
       sku: 'APL-APP2',
       image: '🎧',
       sales: 15,
+      adSales: 3,
       revenue: 75000,
       cost: 45000,
       profit: 30000
@@ -286,6 +301,7 @@ const mockAnalyticsData = {
       sku: 'APL-IPA5-256-W',
       image: '📱',
       sales: 7,
+      adSales: 2,
       revenue: 98000,
       cost: 70000,
       profit: 28000
@@ -578,6 +594,18 @@ function AnalyticsPageContent() {
 
   // Toggle для показа только рекламных заказов
   const [showAdsOnly, setShowAdsOnly] = useState(false);
+
+  // Состояние сворачиваемых секций в табе Sales
+  const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
+    revenue: false,      // Структура выручки
+    sources: false,      // Источники продаж и способы доставки
+    adEfficiency: false, // Эффективность рекламы
+    adProducts: false    // Рентабельность по товарам
+  });
+
+  const toggleSection = (section: string) => {
+    setCollapsedSections(prev => ({ ...prev, [section]: !prev[section] }));
+  };
 
   // Модальное окно для детализации по городам (межгород)
   const [showCitiesModal, setShowCitiesModal] = useState(false);
@@ -1519,6 +1547,7 @@ function AnalyticsPageContent() {
                     <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                   </div>
                   <span className="text-xs sm:text-sm text-gray-600">Заказов</span>
+                  <HelpTooltip text="Общее количество заказов за выбранный период" />
                 </div>
                 <div className="text-lg sm:text-2xl font-bold text-gray-900">{data.totalOrders}</div>
                 <div className="text-[10px] sm:text-xs mt-1">
@@ -1532,6 +1561,7 @@ function AnalyticsPageContent() {
                     <Calculator className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
                   </div>
                   <span className="text-xs sm:text-sm text-gray-600">Ср. чек</span>
+                  <HelpTooltip text="Средняя сумма одного заказа (выручка ÷ количество заказов)" />
                 </div>
                 <div className="text-lg sm:text-2xl font-bold text-gray-900">{(data.avgOrderValue / 1000).toFixed(0)}K ₸</div>
                 <div className="text-[10px] sm:text-xs mt-1">
@@ -1545,6 +1575,7 @@ function AnalyticsPageContent() {
                     <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
                   </div>
                   <span className="text-xs sm:text-sm text-gray-600">Конверсия</span>
+                  <HelpTooltip text="Процент доставленных заказов от общего числа" />
                 </div>
                 <div className="text-lg sm:text-2xl font-bold text-blue-600">58%</div>
                 <div className="text-[10px] sm:text-xs mt-1">
@@ -1562,6 +1593,7 @@ function AnalyticsPageContent() {
                     <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
                   </div>
                   <span className="text-xs sm:text-sm text-amber-700">В пути</span>
+                  <HelpTooltip text="Заказы в процессе доставки до клиента" />
                 </div>
                 <div className="text-lg sm:text-2xl font-bold text-amber-700">{data.pendingOrders?.count || 0}</div>
                 <div className="text-[10px] sm:text-xs mt-1 text-amber-600">
@@ -1577,15 +1609,24 @@ function AnalyticsPageContent() {
               animate="visible"
               className="mb-6 sm:mb-8"
             >
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-                <div className="flex items-center justify-between mb-4 sm:mb-6">
+              <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                {/* Заголовок - кликабельный для сворачивания */}
+                <div
+                  className="flex items-center justify-between p-4 sm:p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => toggleSection('revenue')}
+                >
                   <div className="flex items-center gap-2 sm:gap-3">
+                    <div className={`p-1.5 rounded-lg transition-transform ${collapsedSections.revenue ? 'rotate-180' : ''}`}>
+                      <ChevronUp className="w-4 h-4 text-gray-500" />
+                    </div>
                     <h3 className="text-base sm:text-xl font-semibold text-gray-900">Структура выручки</h3>
+                    <HelpTooltip text="Разбивка выручки на себестоимость, расходы и прибыль" />
                     <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
                   </div>
                   {/* Toggle для рекламных заказов */}
-                  <label className="flex items-center gap-2 cursor-pointer">
+                  <label className="flex items-center gap-2 cursor-pointer" onClick={(e) => e.stopPropagation()}>
                     <span className="text-xs sm:text-sm text-gray-600">Только реклама</span>
+                    <HelpTooltip text="Показать данные только по заказам из рекламы" />
                     <div className="relative">
                       <input
                         type="checkbox"
@@ -1599,6 +1640,17 @@ function AnalyticsPageContent() {
                     </div>
                   </label>
                 </div>
+
+                {/* Содержимое - сворачиваемое */}
+                <AnimatePresence>
+                  {!collapsedSections.revenue && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="px-4 sm:px-6 pb-4 sm:pb-6"
+                    >
 
                 {(() => {
                   // Подготовка данных для stacked bar chart
@@ -1775,6 +1827,9 @@ function AnalyticsPageContent() {
                     </>
                   );
                 })()}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             </motion.div>
 
@@ -1783,14 +1838,34 @@ function AnalyticsPageContent() {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6"
+              className="mb-6 sm:mb-8"
             >
-              {/* Sales Sources Distribution */}
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-                <div className="flex items-center gap-2 sm:gap-3 mb-4">
-                  <h3 className="text-base sm:text-xl font-semibold text-gray-900">Источники продаж</h3>
+              <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+                {/* Заголовок - кликабельный */}
+                <div
+                  className="flex items-center gap-2 sm:gap-3 p-4 sm:p-6 cursor-pointer hover:bg-gray-50 transition-colors"
+                  onClick={() => toggleSection('sources')}
+                >
+                  <div className={`p-1.5 rounded-lg transition-transform ${collapsedSections.sources ? 'rotate-180' : ''}`}>
+                    <ChevronUp className="w-4 h-4 text-gray-500" />
+                  </div>
+                  <h3 className="text-base sm:text-xl font-semibold text-gray-900">Источники и способы доставки</h3>
                   <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
                 </div>
+
+                {/* Содержимое */}
+                <AnimatePresence>
+                  {!collapsedSections.sources && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="px-4 sm:px-6 pb-4 sm:pb-6"
+                    >
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
+                        {/* Sales Sources Distribution */}
+                        <div className="bg-gray-50 rounded-xl p-4">
                 <ResponsiveContainer width="100%" height={180} className="sm:!h-[200px]">
                   <PieChart>
                     <Pie
@@ -1847,14 +1922,13 @@ function AnalyticsPageContent() {
                     );
                   })}
                 </div>
-              </motion.div>
+                        </div>
 
-              {/* Delivery Mode */}
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-                <div className="flex items-center gap-2 sm:gap-3 mb-4">
-                  <h3 className="text-base sm:text-xl font-semibold text-gray-900">Способы доставки</h3>
-                  <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
-                </div>
+                        {/* Delivery Mode */}
+                        <div className="bg-gray-50 rounded-xl p-4">
+                          <div className="flex items-center gap-2 mb-4">
+                            <h4 className="text-base font-semibold text-gray-900">Способы доставки</h4>
+                          </div>
                 <ResponsiveContainer width="100%" height={180} className="sm:!h-[200px]">
                   <PieChart>
                     <Pie
@@ -1969,6 +2043,11 @@ function AnalyticsPageContent() {
                     );
                   })}
                 </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             </motion.div>
 
@@ -1979,8 +2058,15 @@ function AnalyticsPageContent() {
               animate="visible"
               className="mt-6 sm:mt-8"
             >
-              <motion.div variants={itemVariants} className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl p-4 sm:p-6 shadow-sm border border-amber-200">
-                <div className="flex items-center gap-3 mb-4 sm:mb-6">
+              <motion.div variants={itemVariants} className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl shadow-sm border border-amber-200 overflow-hidden">
+                {/* Заголовок - кликабельный */}
+                <div
+                  className="flex items-center gap-2 sm:gap-3 p-4 sm:p-6 cursor-pointer hover:bg-amber-100/50 transition-colors"
+                  onClick={() => toggleSection('adEfficiency')}
+                >
+                  <div className={`p-1.5 rounded-lg transition-transform ${collapsedSections.adEfficiency ? 'rotate-180' : ''}`}>
+                    <ChevronUp className="w-4 h-4 text-amber-600" />
+                  </div>
                   <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
                     <Megaphone className="w-5 h-5 text-amber-600" />
                   </div>
@@ -1990,36 +2076,61 @@ function AnalyticsPageContent() {
                   </div>
                 </div>
 
+                {/* Содержимое */}
+                <AnimatePresence>
+                  {!collapsedSections.adEfficiency && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="px-4 sm:px-6 pb-4 sm:pb-6"
+                    >
                 {/* Метрики рекламы */}
                 <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
                   <div className="bg-white rounded-xl p-3 sm:p-4">
-                    <div className="text-xs sm:text-sm text-gray-500 mb-1">Расход на рекламу</div>
+                    <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 mb-1">
+                      Расход на рекламу
+                      <HelpTooltip text="Общая сумма потраченная на рекламу за период" />
+                    </div>
                     <div className="text-lg sm:text-2xl font-bold text-amber-600">{data.totalAdvertising.toLocaleString('ru-RU')} ₸</div>
                   </div>
                   <div className="bg-white rounded-xl p-3 sm:p-4">
-                    <div className="text-xs sm:text-sm text-gray-500 mb-1">Заказов с рекламы</div>
+                    <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 mb-1">
+                      Заказов с рекламы
+                      <HelpTooltip text="Количество заказов привлечённых через рекламу" />
+                    </div>
                     <div className="text-lg sm:text-2xl font-bold text-emerald-600">{data.ordersBySource.ads}</div>
                     <div className="text-[10px] sm:text-xs text-gray-400">{((data.ordersBySource.ads / data.totalOrders) * 100).toFixed(0)}% от всех заказов</div>
                   </div>
                   <div className="bg-white rounded-xl p-3 sm:p-4">
-                    <div className="text-xs sm:text-sm text-gray-500 mb-1">Цена заказа (CAC)</div>
+                    <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 mb-1">
+                      Цена заказа (CAC)
+                      <HelpTooltip text="Customer Acquisition Cost — сколько стоит привлечь одного клиента через рекламу" />
+                    </div>
                     <div className="text-lg sm:text-2xl font-bold text-blue-600">
                       {data.ordersBySource.ads > 0 ? Math.round(data.totalAdvertising / data.ordersBySource.ads).toLocaleString('ru-RU') : 0} ₸
                     </div>
                     <div className="text-[10px] sm:text-xs text-gray-400">стоимость привлечения</div>
                   </div>
                   <div className="bg-white rounded-xl p-3 sm:p-4">
-                    <div className="text-xs sm:text-sm text-gray-500 mb-1">ROAS</div>
-                    <div className={`text-lg sm:text-2xl font-bold ${
-                      data.totalAdvertising > 0 && (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 3
-                        ? 'text-emerald-600'
-                        : (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 2
-                          ? 'text-amber-600'
-                          : 'text-red-500'
-                    }`}>
-                      {data.totalAdvertising > 0 ? ((data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising).toFixed(1) : 0}x
+                    <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 mb-1">
+                      Доля рекламы
+                      <HelpTooltip text="Какой % выручки от рекламных заказов уходит на рекламу. Чем меньше — тем лучше" />
                     </div>
-                    <div className="text-[10px] sm:text-xs text-gray-400">окупаемость рекламы</div>
+                    <div className={`text-lg sm:text-2xl font-bold ${
+                      (() => {
+                        const adsRevenue = data.ordersBySource.ads * data.avgOrderValue;
+                        const percent = adsRevenue > 0 ? (data.totalAdvertising / adsRevenue) * 100 : 0;
+                        return percent <= 15 ? 'text-emerald-600' : percent <= 25 ? 'text-amber-600' : 'text-red-500';
+                      })()
+                    }`}>
+                      {(() => {
+                        const adsRevenue = data.ordersBySource.ads * data.avgOrderValue;
+                        return adsRevenue > 0 ? ((data.totalAdvertising / adsRevenue) * 100).toFixed(1) : 0;
+                      })()}%
+                    </div>
+                    <div className="text-[10px] sm:text-xs text-gray-400">от выручки с рекламы</div>
                   </div>
                 </div>
 
@@ -2030,6 +2141,7 @@ function AnalyticsPageContent() {
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
                       <span className="font-medium text-gray-900">Органика</span>
+                      <HelpTooltip text="Заказы из бесплатного поиска (без затрат на рекламу)" />
                       <span className="text-xs text-gray-500 ml-auto">{data.ordersBySource.organic} заказов</span>
                     </div>
                     <div className="space-y-2">
@@ -2053,6 +2165,7 @@ function AnalyticsPageContent() {
                     <div className="flex items-center gap-2 mb-3">
                       <div className="w-3 h-3 rounded-full bg-amber-500"></div>
                       <span className="font-medium text-gray-900">Реклама</span>
+                      <HelpTooltip text="Заказы привлечённые через платную рекламу" />
                       <span className="text-xs text-gray-500 ml-auto">{data.ordersBySource.ads} заказов</span>
                     </div>
                     <div className="space-y-2">
@@ -2077,7 +2190,10 @@ function AnalyticsPageContent() {
                 {/* Индикатор рентабельности */}
                 <div className="mt-4 p-3 sm:p-4 bg-white rounded-xl">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm text-gray-600">Рентабельность рекламы</span>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm text-gray-600">Рентабельность рекламы</span>
+                      <HelpTooltip text="Выручка ÷ расход. 3x+ отлично, 2-3x нормально, <2x низкая" />
+                    </div>
                     <span className={`text-sm font-medium px-2 py-0.5 rounded ${
                       data.totalAdvertising > 0 && (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 3
                         ? 'bg-emerald-100 text-emerald-700'
@@ -2111,6 +2227,219 @@ function AnalyticsPageContent() {
                     <span>5x+</span>
                   </div>
                 </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </motion.div>
+            </motion.div>
+
+            {/* Рентабельность рекламы по товарам */}
+            <motion.div
+              variants={containerVariants}
+              initial="hidden"
+              animate="visible"
+              className="mt-6"
+            >
+              <motion.div variants={itemVariants} className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-sm overflow-hidden">
+                {/* Заголовок - кликабельный */}
+                <div
+                  className="flex items-center gap-2 sm:gap-3 p-4 sm:p-6 cursor-pointer hover:bg-indigo-100/50 transition-colors"
+                  onClick={() => toggleSection('adProducts')}
+                >
+                  <div className={`p-1.5 rounded-lg transition-transform ${collapsedSections.adProducts ? 'rotate-180' : ''}`}>
+                    <ChevronUp className="w-4 h-4 text-indigo-600" />
+                  </div>
+                  <div className="p-2 bg-indigo-100 rounded-xl">
+                    <TrendingUp className="w-5 h-5 text-indigo-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Рентабельность рекламы по товарам</h3>
+                    <p className="text-xs sm:text-sm text-gray-500">ROI каждого товара от рекламных продаж</p>
+                  </div>
+                </div>
+
+                {/* Содержимое */}
+                <AnimatePresence>
+                  {!collapsedSections.adProducts && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: 'auto', opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="px-4 sm:px-6 pb-4 sm:pb-6"
+                    >
+                {(() => {
+                  // Расчёт данных для каждого товара
+                  const totalAdSales = data.topProducts.reduce((sum, p) => sum + (p.adSales || 0), 0);
+
+                  const productsWithROI = data.topProducts.map(product => {
+                    const adSales = product.adSales || 0;
+                    const adSalesRatio = product.sales > 0 ? adSales / product.sales : 0;
+                    const adRevenue = Math.round(product.revenue * adSalesRatio);
+                    const adCost = Math.round(product.cost * adSalesRatio);
+                    // Распределяем рекламные расходы пропорционально продажам
+                    const adExpense = totalAdSales > 0 ? Math.round((adSales / totalAdSales) * data.totalAdvertising) : 0;
+                    const adProfit = adRevenue - adCost - adExpense;
+                    const roi = adExpense > 0 ? Math.round((adProfit / adExpense) * 100) : 0;
+
+                    return {
+                      ...product,
+                      adRevenue,
+                      adCost,
+                      adExpense,
+                      adProfit,
+                      roi
+                    };
+                  }).sort((a, b) => b.roi - a.roi);
+
+                  return (
+                    <>
+                      {/* Таблица */}
+                      <div className="mb-6" style={{ overflow: 'visible' }}>
+                        <table className="w-full min-w-[600px]">
+                          <thead>
+                            <tr className="border-b border-gray-200">
+                              <th className="text-left py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">Товар</th>
+                              <th className="text-center py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
+                                <div className="flex items-center justify-center gap-1">
+                                  Продажи
+                                  <HelpTooltip text="Продажи из рекламы / всего продаж" />
+                                </div>
+                              </th>
+                              <th className="text-right py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
+                                <div className="flex items-center justify-end gap-1">
+                                  Выручка
+                                  <HelpTooltip text="Выручка от рекламных продаж товара" />
+                                </div>
+                              </th>
+                              <th className="text-right py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
+                                <div className="flex items-center justify-end gap-1">
+                                  Расход
+                                  <HelpTooltip text="Расход на рекламу этого товара" />
+                                </div>
+                              </th>
+                              <th className="text-right py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
+                                <div className="flex items-center justify-end gap-1">
+                                  Прибыль
+                                  <HelpTooltip text="Выручка − себестоимость − реклама" />
+                                </div>
+                              </th>
+                              <th className="text-center py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
+                                <div className="flex items-center justify-center gap-1">
+                                  ROI
+                                  <HelpTooltip text="Окупаемость: прибыль ÷ расход × 100%" />
+                                </div>
+                              </th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {productsWithROI.map((product, index) => (
+                              <tr key={product.id} className="border-b border-gray-100 hover:bg-white/50 transition-colors">
+                                <td className="py-3 px-2">
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-lg">{product.image}</span>
+                                    <div>
+                                      <div className="font-medium text-gray-900 text-sm">{product.name.length > 25 ? product.name.substring(0, 25) + '...' : product.name}</div>
+                                      <div className="text-xs text-gray-500">{product.sku}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="py-3 px-2 text-center">
+                                  <span className="font-medium text-gray-900">{product.adSales}</span>
+                                  <span className="text-gray-400 text-xs ml-1">из {product.sales}</span>
+                                </td>
+                                <td className="py-3 px-2 text-right font-medium text-gray-900">
+                                  {product.adRevenue.toLocaleString('ru-RU')} ₸
+                                </td>
+                                <td className="py-3 px-2 text-right font-medium text-red-500">
+                                  -{product.adExpense.toLocaleString('ru-RU')} ₸
+                                </td>
+                                <td className={`py-3 px-2 text-right font-medium ${product.adProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
+                                  {product.adProfit >= 0 ? '+' : ''}{product.adProfit.toLocaleString('ru-RU')} ₸
+                                </td>
+                                <td className="py-3 px-2 text-center">
+                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${
+                                    product.roi >= 100 ? 'bg-emerald-100 text-emerald-700' :
+                                    product.roi >= 50 ? 'bg-amber-100 text-amber-700' :
+                                    product.roi >= 0 ? 'bg-orange-100 text-orange-700' :
+                                    'bg-red-100 text-red-700'
+                                  }`}>
+                                    {product.roi}%
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {/* График ROI */}
+                      <div className="bg-white rounded-xl p-4">
+                        <h4 className="text-sm font-semibold text-gray-700 mb-4">ROI по товарам</h4>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <BarChart data={productsWithROI} layout="vertical" margin={{ top: 0, right: 30, left: 0, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                            <XAxis type="number" tickFormatter={(v) => `${v}%`} />
+                            <YAxis
+                              type="category"
+                              dataKey="name"
+                              width={120}
+                              tick={{ fontSize: 11 }}
+                              tickFormatter={(v) => v.length > 15 ? v.substring(0, 15) + '...' : v}
+                            />
+                            <Tooltip
+                              formatter={(value) => [`${value ?? 0}%`, 'ROI']}
+                              contentStyle={{
+                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                border: '1px solid #e5e7eb',
+                                borderRadius: '8px',
+                              }}
+                            />
+                            <Bar
+                              dataKey="roi"
+                              radius={[0, 4, 4, 0]}
+                            >
+                              {productsWithROI.map((entry, index) => (
+                                <Cell
+                                  key={`cell-${index}`}
+                                  fill={
+                                    entry.roi >= 100 ? '#10b981' :
+                                    entry.roi >= 50 ? '#f59e0b' :
+                                    entry.roi >= 0 ? '#f97316' :
+                                    '#ef4444'
+                                  }
+                                />
+                              ))}
+                            </Bar>
+                          </BarChart>
+                        </ResponsiveContainer>
+
+                        {/* Легенда */}
+                        <div className="flex flex-wrap justify-center gap-4 mt-4 text-xs">
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded bg-emerald-500"></div>
+                            <span className="text-gray-600">Отлично (100%+)</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded bg-amber-500"></div>
+                            <span className="text-gray-600">Хорошо (50-100%)</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded bg-orange-500"></div>
+                            <span className="text-gray-600">Слабо (0-50%)</span>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <div className="w-3 h-3 rounded bg-red-500"></div>
+                            <span className="text-gray-600">Убыток (&lt;0%)</span>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  );
+                })()}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </motion.div>
             </motion.div>
           </>
@@ -3416,8 +3745,8 @@ function AnalyticsPageContent() {
                       <span className="font-semibold text-emerald-600">{Math.round(data.totalRevenue * 0.4 - data.totalAdvertising).toLocaleString('ru-RU')} ₸</span>
                     </div>
                     <div className="flex justify-between pt-2 border-t">
-                      <span className="text-gray-600">ROAS (окупаемость)</span>
-                      <span className="font-bold text-orange-600">{((data.totalRevenue * 0.4) / data.totalAdvertising).toFixed(1)}x</span>
+                      <span className="text-gray-600">Доля рекламы от выручки</span>
+                      <span className="font-bold text-orange-600">{((data.totalAdvertising / (data.totalRevenue * 0.4)) * 100).toFixed(1)}%</span>
                     </div>
                   </div>
                   {/* Orders */}
