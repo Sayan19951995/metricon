@@ -366,7 +366,7 @@ export default function DashboardPage() {
             const yAxisValues = [maxValue, (maxValue + minValue) / 2, minValue];
 
             return (
-              <div ref={chartRef} onMouseLeave={() => setChartTooltip(null)} onClick={() => setChartTooltip(null)}>
+              <div>
                 {/* Контейнер графика с фиксированной высотой */}
                 <div className="relative h-[100px] flex">
                 {/* Y-ось слева */}
@@ -426,29 +426,19 @@ export default function DashboardPage() {
                   const xPercent = 2 + (i / (pointsCount - 1)) * 96;
                   const y = getY(val);
                   const isToday = i === pointsCount - 1;
-                  const isHovered = chartTooltip?.idx === i;
+                  const isSelected = i === selectedDayIdx;
                   return (
                     <div
                       key={`current-dot-${i}`}
-                      className="absolute cursor-pointer transition-all"
+                      className="absolute transition-all pointer-events-none"
                       style={{
                         left: `${xPercent}%`,
                         top: `${(y / 80) * 100}%`,
                         transform: 'translate(-50%, -50%)',
-                        width: isHovered ? 12 : isToday ? 8 : 6,
-                        height: isHovered ? 12 : isToday ? 8 : 6,
+                        width: isSelected ? 10 : isToday ? 8 : 6,
+                        height: isSelected ? 10 : isToday ? 8 : 6,
                         borderRadius: '50%',
-                        backgroundColor: isHovered ? '#047857' : isToday ? '#059669' : '#10b981',
-                      }}
-                      onMouseEnter={(e) => {
-                        const rect = chartRef.current?.getBoundingClientRect();
-                        if (rect) {
-                          setChartTooltip({ idx: i, x: e.clientX - rect.left, y: e.clientY - rect.top });
-                        }
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setChartTooltip(chartTooltip?.idx === i ? null : { idx: i, x: xPercent, y });
+                        backgroundColor: isSelected ? '#047857' : isToday ? '#059669' : '#10b981',
                       }}
                     />
                   );
@@ -458,79 +448,24 @@ export default function DashboardPage() {
                   const xPercent = 2 + (i / (pointsCount - 1)) * 96;
                   const y = getY(val);
                   const isToday = i === pointsCount - 1;
-                  const isHovered = chartTooltip?.idx === i;
+                  const isSelected = i === selectedDayIdx;
                   return (
                     <div
                       key={`prev-dot-${i}`}
-                      className="absolute cursor-pointer transition-all"
+                      className="absolute transition-all pointer-events-none"
                       style={{
                         left: `${xPercent}%`,
                         top: `${(y / 80) * 100}%`,
                         transform: 'translate(-50%, -50%)',
-                        width: isHovered ? 10 : isToday ? 6 : 5,
-                        height: isHovered ? 10 : isToday ? 6 : 5,
+                        width: isSelected ? 8 : isToday ? 6 : 5,
+                        height: isSelected ? 8 : isToday ? 6 : 5,
                         borderRadius: '50%',
-                        backgroundColor: isHovered ? '#1d4ed8' : '#3b82f6',
+                        backgroundColor: isSelected ? '#1d4ed8' : '#3b82f6',
                         opacity: 0.7,
-                      }}
-                      onMouseEnter={(e) => {
-                        const rect = chartRef.current?.getBoundingClientRect();
-                        if (rect) {
-                          setChartTooltip({ idx: i, x: e.clientX - rect.left, y: e.clientY - rect.top });
-                        }
-                      }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setChartTooltip(chartTooltip?.idx === i ? null : { idx: i, x: xPercent, y });
                       }}
                     />
                   );
                 })}
-
-                {/* Тултип при наведении */}
-                {chartTooltip && (
-                  <div
-                    className="absolute z-50 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg pointer-events-none"
-                    style={{
-                      left: Math.min(chartTooltip.x, 200),
-                      top: -50,
-                      transform: 'translateX(-50%)'
-                    }}
-                  >
-                    {(() => {
-                      const date = new Date();
-                      date.setDate(date.getDate() - (6 - chartTooltip.idx));
-                      const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-                      return (
-                        <div className="text-center">
-                          <div className="font-medium mb-1">
-                            {dayNames[date.getDay()]}, {date.getDate()}.{String(date.getMonth() + 1).padStart(2, '0')}
-                          </div>
-                          <div className="flex items-center gap-2 text-emerald-400">
-                            <span className="w-2 h-2 bg-emerald-400 rounded-full"></span>
-                            Эта: {currentWeekData[chartTooltip.idx].toLocaleString('ru-RU')} ₸
-                          </div>
-                          <div className="flex items-center gap-2 text-blue-400">
-                            <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
-                            Прошлая: {prevWeekData[chartTooltip.idx].toLocaleString('ru-RU')} ₸
-                          </div>
-                          {(() => {
-                            const current = currentWeekData[chartTooltip.idx];
-                            const prev = prevWeekData[chartTooltip.idx];
-                            const diff = prev > 0 ? ((current - prev) / prev * 100).toFixed(0) : 0;
-                            const isPositive = current >= prev;
-                            return (
-                              <div className={`text-center mt-1 ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
-                                {isPositive ? '+' : ''}{diff}%
-                              </div>
-                            );
-                          })()}
-                        </div>
-                      );
-                    })()}
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-[-6px] w-3 h-3 bg-gray-900 rotate-45"></div>
-                  </div>
-                )}
                 </div>
                 </div>
 
@@ -549,7 +484,6 @@ export default function DashboardPage() {
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedDayIdx(idx);
-                          setChartTooltip(null);
                         }}
                         className={`flex flex-col items-center px-1 sm:px-1.5 py-1 rounded-lg transition-all cursor-pointer flex-shrink-0 ${
                           isSelected
@@ -667,7 +601,7 @@ export default function DashboardPage() {
             };
 
             return (
-              <div ref={paymentChartRef} onMouseLeave={() => setPaymentTooltip(null)} onClick={() => setPaymentTooltip(null)}>
+              <div>
                 {/* Контейнер графика */}
                 <div className="relative h-[80px] flex">
                   {/* Y-ось слева - скрыта на мобильных */}
@@ -710,19 +644,6 @@ export default function DashboardPage() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                       />
-                      {/* Вертикальная линия при наведении */}
-                      {paymentTooltip && (
-                        <line
-                          x1={2 + (paymentTooltip.idx / (pointsCount - 1)) * 96}
-                          y1={0}
-                          x2={2 + (paymentTooltip.idx / (pointsCount - 1)) * 96}
-                          y2={60}
-                          stroke="#9ca3af"
-                          strokeWidth="1"
-                          vectorEffect="non-scaling-stroke"
-                          strokeDasharray="3,3"
-                        />
-                      )}
                     </svg>
 
                     {/* Точки */}
@@ -730,57 +651,23 @@ export default function DashboardPage() {
                       const xPercent = 2 + (i / (pointsCount - 1)) * 96;
                       const y = getY(val);
                       const isSelected = selectedPaymentDayIdx === i;
-                      const isHovered = paymentTooltip?.idx === i;
+                      const isToday = i === pointsCount - 1;
                       return (
                         <div
                           key={`payment-dot-${i}`}
-                          className="absolute cursor-pointer transition-all"
+                          className="absolute transition-all pointer-events-none"
                           style={{
                             left: `${xPercent}%`,
                             top: `${(y / 60) * 100}%`,
                             transform: 'translate(-50%, -50%)',
-                            width: isHovered || isSelected ? 12 : 6,
-                            height: isHovered || isSelected ? 12 : 6,
+                            width: isSelected ? 10 : isToday ? 8 : 6,
+                            height: isSelected ? 10 : isToday ? 8 : 6,
                             borderRadius: '50%',
-                            backgroundColor: isSelected ? '#059669' : isHovered ? '#4338ca' : '#6366f1',
-                          }}
-                          onMouseEnter={() => setPaymentTooltip({ idx: i, x: xPercent, y })}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSelectedPaymentDayIdx(selectedPaymentDayIdx === i ? null : i);
+                            backgroundColor: isSelected ? '#059669' : '#6366f1',
                           }}
                         />
                       );
                     })}
-
-                    {/* Тултип */}
-                    {paymentTooltip && (
-                      <div
-                        className="absolute z-50 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg pointer-events-none"
-                        style={{
-                          left: Math.min(Math.max(paymentTooltip.x, 15), 85) + '%',
-                          top: -45,
-                          transform: 'translateX(-50%)'
-                        }}
-                      >
-                        {(() => {
-                          const date = new Date();
-                          date.setDate(date.getDate() - (6 - paymentTooltip.idx));
-                          const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-                          return (
-                            <div className="text-center">
-                              <div className="font-medium mb-1">
-                                {dayNames[date.getDay()]}, {date.getDate()}.{String(date.getMonth() + 1).padStart(2, '0')}
-                              </div>
-                              <div className="text-indigo-300">
-                                {payments[paymentTooltip.idx].toLocaleString('ru-RU')} ₸
-                              </div>
-                            </div>
-                          );
-                        })()}
-                        <div className="absolute left-1/2 -translate-x-1/2 bottom-[-6px] w-3 h-3 bg-gray-900 rotate-45"></div>
-                      </div>
-                    )}
                   </div>
                 </div>
 
@@ -797,7 +684,6 @@ export default function DashboardPage() {
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedPaymentDayIdx(isSelected ? null : idx);
-                          setPaymentTooltip(null);
                         }}
                         className={`flex flex-col items-center px-1 sm:px-1.5 py-1 rounded-lg transition-all cursor-pointer flex-shrink-0 ${
                           isSelected
