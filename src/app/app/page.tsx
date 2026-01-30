@@ -591,7 +591,7 @@ export default function DashboardPage() {
           {selectedPaymentDayIdx === null && (
             <div className="space-y-1.5 text-xs mb-3">
               <div className="flex items-center justify-between">
-                <span className="text-gray-500">Не отправлено</span>
+                <span className="text-gray-500">Не выдано</span>
                 <span className="font-medium text-gray-700">{dashboardData.awaitingPayment.notSentCount} шт · {dashboardData.awaitingPayment.notSent.toLocaleString('ru-RU')} ₸</span>
               </div>
               <div className="flex items-center justify-between">
