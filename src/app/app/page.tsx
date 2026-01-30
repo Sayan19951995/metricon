@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const chartRef = useRef<HTMLDivElement>(null);
   const paymentChartRef = useRef<HTMLDivElement>(null);
 
-  // Закрытие окна уведомлений и тултипа при клике вне их области
+  // Закрытие окна уведомлений и тултипов при клике вне их области
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (notificationsRef.current && !notificationsRef.current.contains(event.target as Node)) {
@@ -42,16 +42,22 @@ export default function DashboardPage() {
       if (growthTooltipRef.current && !growthTooltipRef.current.contains(event.target as Node)) {
         setShowGrowthTooltip(false);
       }
+      // Закрытие тултипа графика продаж
+      if (chartRef.current && !chartRef.current.contains(event.target as Node)) {
+        setChartTooltip(null);
+      }
+      // Закрытие тултипа графика поступлений
+      if (paymentChartRef.current && !paymentChartRef.current.contains(event.target as Node)) {
+        setPaymentTooltip(null);
+      }
     };
 
-    if (showNotifications || showGrowthTooltip) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
+    document.addEventListener('mousedown', handleClickOutside);
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showNotifications, showGrowthTooltip]);
+  }, []);
 
   // Mock данные для дашборда
   const dashboardData = {
