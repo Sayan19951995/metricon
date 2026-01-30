@@ -260,7 +260,7 @@ export default function DashboardPage() {
         {/* Продажи - объединённый блок */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-xl p-4 shadow-sm"
+          className="bg-white rounded-xl p-4 shadow-sm overflow-hidden"
         >
           {/* Заголовок с суммой и количеством - кликабельный */}
           {(() => {
@@ -370,7 +370,7 @@ export default function DashboardPage() {
                 {/* Контейнер графика с фиксированной высотой */}
                 <div className="relative h-[100px] flex">
                 {/* Y-ось слева */}
-                <div className="flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '32px' }}>
+                <div className="hidden sm:flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '28px' }}>
                   {yAxisValues.map((val, i) => (
                     <span key={i} className="text-right">{Math.round(val / 1000)}k</span>
                   ))}
@@ -535,7 +535,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Подписи дат и значений - кликабельные */}
-                <div className="flex justify-between mt-2">
+                <div className="flex justify-between mt-2 overflow-x-auto">
                   {currentWeekData.map((currentValue, idx) => {
                     const prevValue = prevWeekData[idx];
                     const isToday = idx === currentWeekData.length - 1;
@@ -550,22 +550,22 @@ export default function DashboardPage() {
                           e.stopPropagation();
                           setSelectedDayIdx(idx);
                         }}
-                        className={`flex flex-col items-center px-1.5 py-1 rounded-lg transition-all cursor-pointer ${
+                        className={`flex flex-col items-center px-1 sm:px-1.5 py-1 rounded-lg transition-all cursor-pointer flex-shrink-0 ${
                           isSelected
                             ? 'bg-emerald-100 shadow-sm'
                             : 'hover:bg-gray-100'
                         }`}
                       >
                         <div className="flex gap-0.5">
-                          <span className={`text-[10px] ${isSelected ? 'text-emerald-700 font-semibold' : 'text-emerald-600'}`}>
+                          <span className={`text-[9px] sm:text-[10px] ${isSelected ? 'text-emerald-700 font-semibold' : 'text-emerald-600'}`}>
                             {Math.round(currentValue / 1000)}
                           </span>
-                          <span className="text-[10px] text-gray-300">/</span>
-                          <span className={`text-[10px] ${isSelected ? 'text-blue-700 font-semibold' : 'text-blue-600'}`}>
+                          <span className="text-[9px] sm:text-[10px] text-gray-300">/</span>
+                          <span className={`text-[9px] sm:text-[10px] ${isSelected ? 'text-blue-700 font-semibold' : 'text-blue-600'}`}>
                             {Math.round(prevValue / 1000)}
                           </span>
                         </div>
-                        <span className={`text-xs ${isSelected ? 'text-emerald-700 font-semibold' : isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
+                        <span className={`text-[10px] sm:text-xs ${isSelected ? 'text-emerald-700 font-semibold' : isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
                           {dayNum}
                         </span>
                       </button>
@@ -580,7 +580,7 @@ export default function DashboardPage() {
         {/* Ожидаем платежа / Поступления */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-xl p-4 shadow-sm"
+          className="bg-white rounded-xl p-4 shadow-sm overflow-hidden"
         >
           {/* Динамический заголовок */}
           {(() => {
@@ -669,8 +669,8 @@ export default function DashboardPage() {
               <div ref={paymentChartRef} onMouseLeave={() => setPaymentTooltip(null)}>
                 {/* Контейнер графика */}
                 <div className="relative h-[80px] flex">
-                  {/* Y-ось слева */}
-                  <div className="flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '32px' }}>
+                  {/* Y-ось слева - скрыта на мобильных */}
+                  <div className="hidden sm:flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '28px' }}>
                     <span className="text-right">{Math.round(maxVal / 1000)}k</span>
                     <span className="text-right">{Math.round(midVal / 1000)}k</span>
                     <span className="text-right">{Math.round(minVal / 1000)}k</span>
@@ -784,7 +784,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Подписи дней - кликабельные */}
-                <div className="flex justify-between mt-2 ml-8">
+                <div className="flex justify-between mt-2 sm:ml-7 overflow-x-auto">
                   {payments.map((val, idx) => {
                     const date = new Date();
                     date.setDate(date.getDate() - (6 - idx));
@@ -797,16 +797,16 @@ export default function DashboardPage() {
                           e.stopPropagation();
                           setSelectedPaymentDayIdx(isSelected ? null : idx);
                         }}
-                        className={`flex flex-col items-center px-1.5 py-1 rounded-lg transition-all cursor-pointer ${
+                        className={`flex flex-col items-center px-1 sm:px-1.5 py-1 rounded-lg transition-all cursor-pointer flex-shrink-0 ${
                           isSelected
                             ? 'bg-indigo-100 shadow-sm'
                             : 'hover:bg-gray-100'
                         }`}
                       >
-                        <span className={`text-[9px] ${isSelected ? 'text-indigo-700 font-semibold' : 'text-indigo-600'}`}>
+                        <span className={`text-[8px] sm:text-[9px] ${isSelected ? 'text-indigo-700 font-semibold' : 'text-indigo-600'}`}>
                           {Math.round(val / 1000)}k
                         </span>
-                        <span className={`text-[10px] ${isSelected ? 'text-indigo-700 font-semibold' : isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
+                        <span className={`text-[9px] sm:text-[10px] ${isSelected ? 'text-indigo-700 font-semibold' : isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
                           {date.getDate()}
                         </span>
                       </button>
