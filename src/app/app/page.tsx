@@ -138,8 +138,8 @@ export default function DashboardPage() {
       inDeliveryCount: 7,      // Кол-во в доставке
       // Поступления за неделю (Пн-Вс)
       weeklyPayments: [850000, 1120000, 780000, 1450000, 920000, 1680000, 1178800],
-      // Выдано за неделю (Пн-Вс)
-      weeklyIssued: [620000, 890000, 540000, 1120000, 780000, 1450000, 950000],
+      // Кол-во выданных за неделю (Пн-Вс)
+      weeklyIssuedCount: [2, 3, 1, 4, 2, 5, 3],
       // Кол-во заказов за неделю (Пн-Вс)
       weeklyOrders: [3, 4, 2, 5, 3, 6, 4]
     },
@@ -563,7 +563,7 @@ export default function DashboardPage() {
           {/* Динамический заголовок */}
           {(() => {
             const payments = dashboardData.awaitingPayment.weeklyPayments;
-            const issued = dashboardData.awaitingPayment.weeklyIssued;
+            const issuedCount = dashboardData.awaitingPayment.weeklyIssuedCount;
             const orders = dashboardData.awaitingPayment.weeklyOrders;
             const isShowingPayment = selectedPaymentDayIdx !== null;
             const selectedDate = new Date();
@@ -595,13 +595,9 @@ export default function DashboardPage() {
                   </div>
                   {/* Выдано и заказы при выборе дня */}
                   {isShowingPayment && (
-                    <div className="flex items-center gap-3 mt-1 text-xs">
-                      <span className="text-gray-500">
-                        Выдано: <span className="font-medium text-gray-700">{issued[selectedPaymentDayIdx!].toLocaleString('ru-RU')} ₸</span>
-                      </span>
-                      <span className="text-gray-500">
-                        Заказов: <span className="font-medium text-gray-700">{orders[selectedPaymentDayIdx!]}</span>
-                      </span>
+                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
+                      <span>Выдано: <span className="font-medium text-gray-700">{issuedCount[selectedPaymentDayIdx!]}</span></span>
+                      <span>Заказов: <span className="font-medium text-gray-700">{orders[selectedPaymentDayIdx!]}</span></span>
                     </div>
                   )}
                 </div>
