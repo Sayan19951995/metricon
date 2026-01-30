@@ -14,6 +14,7 @@ import {
   HelpCircle,
   AlertTriangle
 } from 'lucide-react';
+import { useWarehouseProducts, WarehouseProduct } from '@/hooks/useWarehouseProducts';
 
 // Комиссии Kaspi по категориям (%)
 // Источник: https://guide.kaspi.kz/partner/ru/shop/conditions/commissions
@@ -113,30 +114,39 @@ const calculateDeliveryCost = (weight: number, price: number, type: 'city' | 'ka
   return rates[rates.length - 1].rate;
 };
 
+const PRODUCTS_PER_PAGE = 10;
+
 export default function ProductsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'archived' | 'preorder'>('all');
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<'name' | 'price' | 'costPrice' | 'profit' | 'preorder' | 'status'>('name');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [editingProduct, setEditingProduct] = useState<WarehouseProduct | null>(null);
   const [editPrice, setEditPrice] = useState('');
+  const [editCostPrice, setEditCostPrice] = useState('');
   const [editPreorder, setEditPreorder] = useState('');
   const [editWeight, setEditWeight] = useState('');
+  const [showOverheadDetails, setShowOverheadDetails] = useState(false);
+  // Ручные накладные расходы (пустая строка = авто)
+  const [customCommission, setCustomCommission] = useState('');
+  const [customTax, setCustomTax] = useState('');
+  const [customDelivery, setCustomDelivery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Примерные данные товаров (costPrice - закупочная цена со склада, weight - вес в кг, может быть null)
-  // Цены установлены для маржинальности ~20-30%
-  // weight: null означает что вес не импортирован из Kaspi
-  const [products] = useState([
-    { id: 1, name: 'iPhone 14 Pro 256GB Deep Purple', sku: 'IP14-256-DP', price: 875000, costPrice: 485000, weight: 0.24 as number | null, stock: 12, category: 'Смартфоны', status: 'active', image: '📱', preorder: null },
-    { id: 2, name: 'MacBook Air M2 13" 256GB Midnight', sku: 'MBA-M2-256-MN', price: 985000, costPrice: 605000, weight: 1.24 as number | null, stock: 8, category: 'Ноутбуки', status: 'active', image: '💻', preorder: 3 },
-    { id: 3, name: 'AirPods Pro 2nd Generation', sku: 'APP-2GEN', price: 215000, costPrice: 118000, weight: null as number | null, stock: 25, category: 'Аксессуары', status: 'active', image: '🎧', preorder: null },
-    { id: 4, name: 'Apple Watch Series 9 45mm GPS', sku: 'AWS9-45-GPS', price: 355000, costPrice: 195000, weight: null as number | null, stock: 15, category: 'Часы', status: 'active', image: '⌚', preorder: 2 },
-    { id: 5, name: 'iPad Air 5th Gen 64GB Wi-Fi', sku: 'IPA5-64-WF', price: 465000, costPrice: 275000, weight: 0.46 as number | null, stock: 6, category: 'Планшеты', status: 'active', image: '📱', preorder: 5 },
-    { id: 6, name: 'Magic Keyboard для iPad Pro', sku: 'MK-IPP', price: 285000, costPrice: 155000, weight: 0.68 as number | null, stock: 4, category: 'Аксессуары', status: 'active', image: '⌨️', preorder: null },
-    { id: 7, name: 'iPhone 13 128GB Midnight', sku: 'IP13-128-MN', price: 659000, costPrice: 365000, weight: null as number | null, stock: 0, category: 'Смартфоны', status: 'archived', image: '📱', preorder: null },
-    { id: 8, name: 'AirPods 2nd Generation', sku: 'AP-2GEN', price: 125000, costPrice: 68000, weight: 0.04 as number | null, stock: 35, category: 'Аксессуары', status: 'active', image: '🎧', preorder: 7 },
-  ]);
+  // Данные товаров из хука (localStorage)
+  const { products: warehouseProducts, updateProduct } = useWarehouseProducts();
+
+  // Маппинг товаров склада в формат страницы (qty -> stock)
+  const products = warehouseProducts.map(p => ({
+    ...p,
+    stock: p.qty,
+    category: p.category || 'Аксессуары',
+    status: p.status || 'active' as const,
+    image: p.image || '📦',
+    preorder: p.preorder ?? null,
+    weight: p.weight ?? null,
+  }));
 
   // Расчёт полной себестоимости: закупка + комиссия (по категории) + налог + доставка (по весу)
   // Если вес не указан, используем минимальный тариф (до 5 кг)
@@ -185,6 +195,21 @@ export default function ProductsPage() {
       return 0;
     });
 
+  // Пагинация
+  const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
+  const paginatedProducts = filteredProducts.slice(
+    (currentPage - 1) * PRODUCTS_PER_PAGE,
+    currentPage * PRODUCTS_PER_PAGE
+  );
+
+  // Сброс страницы при изменении фильтров
+  const handleFilterChange = (type: 'status' | 'category' | 'search', value: string) => {
+    setCurrentPage(1);
+    if (type === 'status') setFilterStatus(value as any);
+    if (type === 'category') setFilterCategory(value);
+    if (type === 'search') setSearchTerm(value);
+  };
+
   const handleSort = (column: typeof sortBy) => {
     if (sortBy === column) {
       setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
@@ -208,16 +233,30 @@ export default function ProductsPage() {
     preorder: products.filter(p => p.preorder && p.preorder > 0).length,
   };
 
-  const handleEdit = (product: any) => {
-    setEditingProduct(product);
+  const handleEdit = (product: typeof products[0]) => {
+    setEditingProduct(warehouseProducts.find(p => p.id === product.id) || null);
     setEditPrice(product.price.toString());
+    setEditCostPrice(product.costPrice.toString());
     setEditPreorder(product.preorder ? product.preorder.toString() : '');
     setEditWeight(product.weight ? product.weight.toString() : '');
+    // Сброс кастомных накладных при открытии
+    setCustomCommission('');
+    setCustomTax('');
+    setCustomDelivery('');
+    setShowOverheadDetails(false);
   };
 
   const handleSave = () => {
-    // Здесь будет логика сохранения
-    console.log('Сохранение:', { price: editPrice, preorder: editPreorder, weight: editWeight });
+    if (!editingProduct) return;
+
+    // Обновляем товар через хук (сохраняется в localStorage)
+    updateProduct(editingProduct.id, {
+      price: parseInt(editPrice) || editingProduct.price,
+      costPrice: parseInt(editCostPrice) || editingProduct.costPrice,
+      preorder: editPreorder ? parseInt(editPreorder) : null,
+      weight: editWeight ? parseFloat(editWeight) : null,
+    });
+
     setEditingProduct(null);
   };
 
@@ -250,7 +289,7 @@ export default function ProductsPage() {
               <input
                 type="text"
                 value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
+                onChange={(e) => handleFilterChange('search', e.target.value)}
                 placeholder="Поиск по названию..."
                 style={{ paddingLeft: '2.5rem' }}
                 className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 transition-colors"
@@ -262,7 +301,7 @@ export default function ProductsPage() {
             {/* Status Filter */}
             <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
               <button
-                onClick={() => setFilterStatus('all')}
+                onClick={() => handleFilterChange('status', 'all')}
                 className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
                   filterStatus === 'all'
                     ? 'bg-gray-900 text-white'
@@ -272,7 +311,7 @@ export default function ProductsPage() {
                 Все ({stats.total})
               </button>
               <button
-                onClick={() => setFilterStatus('active')}
+                onClick={() => handleFilterChange('status', 'active')}
                 className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
                   filterStatus === 'active'
                     ? 'bg-emerald-500 text-white'
@@ -282,7 +321,7 @@ export default function ProductsPage() {
                 В продаже ({stats.active})
               </button>
               <button
-                onClick={() => setFilterStatus('archived')}
+                onClick={() => handleFilterChange('status', 'archived')}
                 className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
                   filterStatus === 'archived'
                     ? 'bg-gray-500 text-white'
@@ -292,7 +331,7 @@ export default function ProductsPage() {
                 Архив ({stats.archived})
               </button>
               <button
-                onClick={() => setFilterStatus('preorder')}
+                onClick={() => handleFilterChange('status', 'preorder')}
                 className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
                   filterStatus === 'preorder'
                     ? 'bg-purple-500 text-white'
@@ -308,7 +347,7 @@ export default function ProductsPage() {
               <span className="text-sm text-gray-600 whitespace-nowrap hidden sm:inline">Категория:</span>
               <select
                 value={filterCategory}
-                onChange={(e) => setFilterCategory(e.target.value)}
+                onChange={(e) => handleFilterChange('category', e.target.value)}
                 className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-gray-300 cursor-pointer flex-1 sm:flex-none"
               >
                 <option value="all">Все</option>
@@ -328,7 +367,7 @@ export default function ProductsPage() {
 
       {/* Products - Mobile Cards */}
       <div className="lg:hidden space-y-3">
-        {filteredProducts.map((product, index) => (
+        {paginatedProducts.map((product, index) => (
           <motion.div
             key={product.id}
             initial={{ opacity: 0, y: 20 }}
@@ -341,9 +380,20 @@ export default function ProductsPage() {
                 {product.image}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{product.name}</p>
-                <p className="text-xs text-gray-400 truncate">{product.category}</p>
-                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <p className="font-medium text-sm truncate">{product.name}</p>
+                    <p className="text-xs text-gray-400 truncate">{product.category}</p>
+                  </div>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
+                    product.status === 'active'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-gray-100 text-gray-700'
+                  }`}>
+                    {product.status === 'active' ? 'Активный' : 'Архив'}
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-1.5">
                   <span className="text-sm font-semibold">{product.price.toLocaleString()} ₸</span>
                   {(() => {
                     const profit = calculateProfit(product.price, product.costPrice, product.weight, product.category);
@@ -365,13 +415,6 @@ export default function ProductsPage() {
                       </div>
                     </div>
                   )}
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                    product.status === 'active'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    {product.status === 'active' ? 'Активный' : 'Архив'}
-                  </span>
                 </div>
               </div>
               <button
@@ -444,7 +487,7 @@ export default function ProductsPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredProducts.map((product, index) => (
+            {paginatedProducts.map((product, index) => (
               <motion.tr
                 key={product.id}
                 initial={{ opacity: 0, y: 20 }}
@@ -530,6 +573,54 @@ export default function ProductsPage() {
         </table>
       </div>
 
+      {/* Pagination */}
+      {totalPages > 1 && (
+        <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 px-2">
+          <div className="text-sm text-gray-500">
+            Показано {((currentPage - 1) * PRODUCTS_PER_PAGE) + 1}–{Math.min(currentPage * PRODUCTS_PER_PAGE, filteredProducts.length)} из {filteredProducts.length}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                currentPage === 1
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer'
+              }`}
+            >
+              Назад
+            </button>
+            <div className="flex items-center gap-1">
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                <button
+                  key={page}
+                  onClick={() => setCurrentPage(page)}
+                  className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                    currentPage === page
+                      ? 'bg-gray-900 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  {page}
+                </button>
+              ))}
+            </div>
+            <button
+              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                currentPage === totalPages
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer'
+              }`}
+            >
+              Вперёд
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Profit Calculation Note */}
       <div className="mt-4 text-xs text-gray-500 px-2">
         <div className="flex items-center gap-1">
@@ -540,12 +631,12 @@ export default function ProductsPage() {
 
       {/* Edit Modal */}
       {editingProduct && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.2 }}
-            className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl"
+            className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-xl font-bold">Редактировать товар</h2>
@@ -583,6 +674,168 @@ export default function ProductsPage() {
                   placeholder="Введите цену"
                 />
               </div>
+
+              {/* Cost Price Input */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Себестоимость (закуп) ₸
+                </label>
+                <input
+                  type="number"
+                  value={editCostPrice}
+                  onChange={(e) => setEditCostPrice(e.target.value)}
+                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                  placeholder="Введите себестоимость"
+                />
+                <div className="flex items-start gap-1.5 mt-2 p-2 bg-amber-50 rounded-lg border border-amber-100">
+                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-xs text-amber-700">
+                    При пополнении склада себестоимость рассчитывается автоматически (средневзвешенная цена закупки + логистика)
+                  </p>
+                </div>
+              </div>
+
+              {/* Profit Calculation Block */}
+              {(() => {
+                const price = parseInt(editPrice) || 0;
+                const costPrice = parseInt(editCostPrice) || 0;
+                const weight = parseFloat(editWeight) || 0;
+                const category = editingProduct.category || 'Аксессуары';
+
+                // Авто-значения
+                const autoCommissionRate = getCategoryCommission(category);
+                const autoCommission = Math.round(price * (autoCommissionRate / 100));
+                const autoTax = Math.round(price * (costSettings.tax / 100));
+                const autoDelivery = calculateDeliveryCost(weight, price, costSettings.deliveryType);
+
+                // Используем кастомные значения если заданы
+                const commission = customCommission !== '' ? parseInt(customCommission) || 0 : autoCommission;
+                const tax = customTax !== '' ? parseInt(customTax) || 0 : autoTax;
+                const delivery = customDelivery !== '' ? parseInt(customDelivery) || 0 : autoDelivery;
+
+                const totalOverhead = commission + tax + delivery;
+                const fullCost = costPrice + totalOverhead;
+                const profit = price - fullCost;
+                const margin = price > 0 ? ((profit / price) * 100).toFixed(1) : '0';
+
+                return (
+                  <div className="p-3 bg-gray-50 rounded-xl space-y-2">
+                    {/* Прибыль - всегда видна */}
+                    <div className={`flex items-center justify-between ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                      <span className="text-sm font-semibold">Прибыль:</span>
+                      <span className="text-sm font-bold">
+                        {profit >= 0 ? '+' : ''}{profit.toLocaleString()} ₸ ({margin}%)
+                      </span>
+                    </div>
+
+                    {/* Кнопка раскрытия деталей */}
+                    <button
+                      type="button"
+                      onClick={() => setShowOverheadDetails(!showOverheadDetails)}
+                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors"
+                    >
+                      {showOverheadDetails ? (
+                        <ChevronUp className="w-3.5 h-3.5" />
+                      ) : (
+                        <ChevronDown className="w-3.5 h-3.5" />
+                      )}
+                      <span>Расчёт накладных расходов</span>
+                    </button>
+
+                    {/* Детали - сворачиваемые с редактированием */}
+                    {showOverheadDetails && (
+                      <div className="space-y-2 pt-2 border-t border-gray-200">
+                        {/* Комиссия */}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-gray-500 flex-shrink-0">
+                            Комиссия Kaspi ({autoCommissionRate}%):
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              value={customCommission}
+                              onChange={(e) => setCustomCommission(e.target.value)}
+                              placeholder={autoCommission.toLocaleString()}
+                              className={`w-24 text-right text-xs px-2 py-1 rounded border transition-colors ${
+                                customCommission !== ''
+                                  ? 'bg-blue-50 border-blue-200'
+                                  : 'bg-white border-gray-200'
+                              }`}
+                            />
+                            <span className="text-xs text-gray-500">₸</span>
+                          </div>
+                        </div>
+
+                        {/* Налог */}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-gray-500 flex-shrink-0">
+                            Налог ({costSettings.tax}%):
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              value={customTax}
+                              onChange={(e) => setCustomTax(e.target.value)}
+                              placeholder={autoTax.toLocaleString()}
+                              className={`w-24 text-right text-xs px-2 py-1 rounded border transition-colors ${
+                                customTax !== ''
+                                  ? 'bg-blue-50 border-blue-200'
+                                  : 'bg-white border-gray-200'
+                              }`}
+                            />
+                            <span className="text-xs text-gray-500">₸</span>
+                          </div>
+                        </div>
+
+                        {/* Доставка */}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-xs text-gray-500 flex-shrink-0">
+                            Доставка Kaspi:
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              value={customDelivery}
+                              onChange={(e) => setCustomDelivery(e.target.value)}
+                              placeholder={autoDelivery.toLocaleString()}
+                              className={`w-24 text-right text-xs px-2 py-1 rounded border transition-colors ${
+                                customDelivery !== ''
+                                  ? 'bg-blue-50 border-blue-200'
+                                  : 'bg-white border-gray-200'
+                              }`}
+                            />
+                            <span className="text-xs text-gray-500">₸</span>
+                          </div>
+                        </div>
+
+                        {/* Кнопка сброса если есть кастомные значения */}
+                        {(customCommission !== '' || customTax !== '' || customDelivery !== '') && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setCustomCommission('');
+                              setCustomTax('');
+                              setCustomDelivery('');
+                            }}
+                            className="text-xs text-blue-500 hover:text-blue-700 transition-colors"
+                          >
+                            ↻ Сбросить к авто-расчёту
+                          </button>
+                        )}
+
+                        {/* Итоги */}
+                        <div className="grid grid-cols-2 gap-1 text-xs pt-2 border-t border-gray-200">
+                          <span className="text-gray-500 font-medium">Итого накладные:</span>
+                          <span className="text-right text-gray-700 font-medium">{totalOverhead.toLocaleString()} ₸</span>
+
+                          <span className="text-gray-500 font-medium">Полная себестоимость:</span>
+                          <span className="text-right text-gray-700 font-medium">{fullCost.toLocaleString()} ₸</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Weight Input */}
               <div>

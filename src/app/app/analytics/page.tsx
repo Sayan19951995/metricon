@@ -126,144 +126,137 @@ const mockAnalyticsData = {
   },
   // Заказы ожидающие поступления (в пути до клиента)
   pendingOrders: {
-    count: 12,           // Количество заказов в пути
-    totalAmount: 186500, // Сумма ожидаемых поступлений
+    count: 5,            // Количество заказов в пути
+    totalAmount: 62200,  // Сумма ожидаемых поступлений
     orders: [
-      { id: 'ORD-2026-001', product: 'iPhone 14 Pro 256GB', amount: 449900, date: '2026-01-17', customer: 'Астана' },
-      { id: 'ORD-2026-002', product: 'Samsung Galaxy S23 Ultra', amount: 389900, date: '2026-01-17', customer: 'Алматы' },
-      { id: 'ORD-2026-003', product: 'AirPods Pro 2', amount: 89900, date: '2026-01-18', customer: 'Караганда' },
-      { id: 'ORD-2026-004', product: 'MacBook Pro 14"', amount: 849900, date: '2026-01-18', customer: 'Шымкент' },
-      { id: 'ORD-2026-005', product: 'Apple Watch Ultra', amount: 379900, date: '2026-01-18', customer: 'Алматы' },
-      { id: 'ORD-2026-006', product: 'iPad Air 5th Gen', amount: 289900, date: '2026-01-19', customer: 'Астана' },
-      { id: 'ORD-2026-007', product: 'Sony WH-1000XM5', amount: 149900, date: '2026-01-19', customer: 'Актобе' },
-      { id: 'ORD-2026-008', product: 'iPhone 14 Pro 256GB', amount: 449900, date: '2026-01-19', customer: 'Алматы' },
-      { id: 'ORD-2026-009', product: 'Samsung Galaxy Tab S9', amount: 329900, date: '2026-01-19', customer: 'Павлодар' },
-      { id: 'ORD-2026-010', product: 'AirPods Pro 2', amount: 89900, date: '2026-01-19', customer: 'Алматы' },
-      { id: 'ORD-2026-011', product: 'Google Pixel 8 Pro', amount: 349900, date: '2026-01-19', customer: 'Астана' },
-      { id: 'ORD-2026-012', product: 'Nintendo Switch OLED', amount: 159900, date: '2026-01-19', customer: 'Караганда' },
+      { id: 'ORD-2026-001', product: 'AirPods Pro 2', amount: 29900, date: '2026-01-17', customer: 'Астана' },
+      { id: 'ORD-2026-002', product: 'Чехол для iPhone', amount: 4900, date: '2026-01-17', customer: 'Алматы' },
+      { id: 'ORD-2026-003', product: 'Зарядка MagSafe', amount: 12900, date: '2026-01-18', customer: 'Караганда' },
+      { id: 'ORD-2026-004', product: 'Apple Watch SE', amount: 8500, date: '2026-01-18', customer: 'Шымкент' },
+      { id: 'ORD-2026-005', product: 'Кабель USB-C', amount: 6000, date: '2026-01-18', customer: 'Алматы' },
     ]
   },
 
   dailyData: [
-    { date: '01.10', fullDate: new Date('2025-10-01'), day: 'Ср', orders: 6, revenue: 91278, cost: 58278, advertising: 3505, commissions: 7302, tax: 3651, delivery: 1369, profit: 17173 },
-    { date: '02.10', fullDate: new Date('2025-10-02'), day: 'Чт', orders: 10, revenue: 132060, cost: 76275, advertising: 5831, commissions: 10564, tax: 5282, delivery: 1980, profit: 32128 },
-    { date: '03.10', fullDate: new Date('2025-10-03'), day: 'Пт', orders: 5, revenue: 67450, cost: 38207, advertising: 2240, commissions: 5396, tax: 2698, delivery: 1011, profit: 17898 },
-    { date: '04.10', fullDate: new Date('2025-10-04'), day: 'Сб', orders: 6, revenue: 85620, cost: 51473, advertising: 2777, commissions: 6849, tax: 3424, delivery: 1284, profit: 19813 },
-    { date: '05.10', fullDate: new Date('2025-10-05'), day: 'Вс', orders: 4, revenue: 49920, cost: 31103, advertising: 1514, commissions: 3993, tax: 1996, delivery: 748, profit: 10566 },
-    { date: '06.10', fullDate: new Date('2025-10-06'), day: 'Пн', orders: 9, revenue: 147069, cost: 88130, advertising: 4578, commissions: 11765, tax: 5882, delivery: 2206, profit: 34508 },
-    { date: '07.10', fullDate: new Date('2025-10-07'), day: 'Вт', orders: 8, revenue: 115664, cost: 72093, advertising: 4472, commissions: 9253, tax: 4626, delivery: 1734, profit: 23486 },
-    { date: '08.10', fullDate: new Date('2025-10-08'), day: 'Ср', orders: 5, revenue: 65565, cost: 41231, advertising: 2588, commissions: 5245, tax: 2622, delivery: 983, profit: 12896 },
-    { date: '09.10', fullDate: new Date('2025-10-09'), day: 'Чт', orders: 9, revenue: 152496, cost: 93974, advertising: 8329, commissions: 12199, tax: 6099, delivery: 2287, profit: 29608 },
-    { date: '10.10', fullDate: new Date('2025-10-10'), day: 'Пт', orders: 5, revenue: 76785, cost: 46470, advertising: 3406, commissions: 6142, tax: 3071, delivery: 1151, profit: 16545 },
-    { date: '11.10', fullDate: new Date('2025-10-11'), day: 'Сб', orders: 3, revenue: 45975, cost: 28189, advertising: 2249, commissions: 3678, tax: 1839, delivery: 689, profit: 9331 },
-    { date: '12.10', fullDate: new Date('2025-10-12'), day: 'Вс', orders: 5, revenue: 67760, cost: 43751, advertising: 3117, commissions: 5420, tax: 2710, delivery: 1016, profit: 11746 },
-    { date: '13.10', fullDate: new Date('2025-10-13'), day: 'Пн', orders: 5, revenue: 66310, cost: 41138, advertising: 3737, commissions: 5304, tax: 2652, delivery: 994, profit: 12485 },
-    { date: '14.10', fullDate: new Date('2025-10-14'), day: 'Вт', orders: 5, revenue: 70570, cost: 38820, advertising: 2361, commissions: 5645, tax: 2822, delivery: 1058, profit: 19864 },
-    { date: '15.10', fullDate: new Date('2025-10-15'), day: 'Ср', orders: 7, revenue: 113099, cost: 67726, advertising: 3890, commissions: 9047, tax: 4523, delivery: 1696, profit: 26217 },
-    { date: '16.10', fullDate: new Date('2025-10-16'), day: 'Чт', orders: 7, revenue: 103250, cost: 61418, advertising: 4844, commissions: 8260, tax: 4130, delivery: 1548, profit: 23050 },
-    { date: '17.10', fullDate: new Date('2025-10-17'), day: 'Пт', orders: 6, revenue: 78384, cost: 45095, advertising: 4370, commissions: 6270, tax: 3135, delivery: 1175, profit: 18339 },
-    { date: '18.10', fullDate: new Date('2025-10-18'), day: 'Сб', orders: 4, revenue: 63096, cost: 35166, advertising: 2737, commissions: 5047, tax: 2523, delivery: 946, profit: 16677 },
-    { date: '19.10', fullDate: new Date('2025-10-19'), day: 'Вс', orders: 4, revenue: 64592, cost: 38317, advertising: 3512, commissions: 5167, tax: 2583, delivery: 968, profit: 14045 },
-    { date: '20.10', fullDate: new Date('2025-10-20'), day: 'Пн', orders: 6, revenue: 74808, cost: 46152, advertising: 4027, commissions: 5984, tax: 2992, delivery: 1122, profit: 14531 },
-    { date: '21.10', fullDate: new Date('2025-10-21'), day: 'Вт', orders: 5, revenue: 75855, cost: 47744, advertising: 3459, commissions: 6068, tax: 3034, delivery: 1137, profit: 14413 },
-    { date: '22.10', fullDate: new Date('2025-10-22'), day: 'Ср', orders: 5, revenue: 84115, cost: 53861, advertising: 4119, commissions: 6729, tax: 3364, delivery: 1261, profit: 14781 },
-    { date: '23.10', fullDate: new Date('2025-10-23'), day: 'Чт', orders: 5, revenue: 65925, cost: 39233, advertising: 3635, commissions: 5274, tax: 2637, delivery: 988, profit: 14158 },
-    { date: '24.10', fullDate: new Date('2025-10-24'), day: 'Пт', orders: 8, revenue: 133448, cost: 75156, advertising: 4996, commissions: 10675, tax: 5337, delivery: 2001, profit: 35283 },
-    { date: '25.10', fullDate: new Date('2025-10-25'), day: 'Сб', orders: 6, revenue: 95436, cost: 57446, advertising: 3161, commissions: 7634, tax: 3817, delivery: 1431, profit: 21947 },
-    { date: '26.10', fullDate: new Date('2025-10-26'), day: 'Вс', orders: 6, revenue: 74940, cost: 48275, advertising: 3696, commissions: 5995, tax: 2997, delivery: 1124, profit: 12853 },
-    { date: '27.10', fullDate: new Date('2025-10-27'), day: 'Пн', orders: 9, revenue: 139311, cost: 88917, advertising: 4191, commissions: 11144, tax: 5572, delivery: 2089, profit: 27398 },
-    { date: '28.10', fullDate: new Date('2025-10-28'), day: 'Вт', orders: 6, revenue: 92478, cost: 56883, advertising: 5439, commissions: 7398, tax: 3699, delivery: 1387, profit: 17672 },
-    { date: '29.10', fullDate: new Date('2025-10-29'), day: 'Ср', orders: 5, revenue: 60400, cost: 38397, advertising: 2185, commissions: 4832, tax: 2416, delivery: 906, profit: 11664 },
-    { date: '30.10', fullDate: new Date('2025-10-30'), day: 'Чт', orders: 9, revenue: 145890, cost: 86015, advertising: 5312, commissions: 11671, tax: 5835, delivery: 2188, profit: 34869 },
-    { date: '31.10', fullDate: new Date('2025-10-31'), day: 'Пт', orders: 10, revenue: 131050, cost: 72753, advertising: 6968, commissions: 10484, tax: 5242, delivery: 1965, profit: 33638 },
-    { date: '01.11', fullDate: new Date('2025-11-01'), day: 'Сб', orders: 4, revenue: 60416, cost: 35771, advertising: 2624, commissions: 4833, tax: 2416, delivery: 906, profit: 13866 },
-    { date: '02.11', fullDate: new Date('2025-11-02'), day: 'Вс', orders: 5, revenue: 80490, cost: 50194, advertising: 2748, commissions: 6439, tax: 3219, delivery: 1207, profit: 16683 },
-    { date: '03.11', fullDate: new Date('2025-11-03'), day: 'Пн', orders: 10, revenue: 150750, cost: 92943, advertising: 5837, commissions: 12060, tax: 6030, delivery: 2261, profit: 31619 },
-    { date: '04.11', fullDate: new Date('2025-11-04'), day: 'Вт', orders: 6, revenue: 81120, cost: 48515, advertising: 4359, commissions: 6489, tax: 3244, delivery: 1216, profit: 17297 },
-    { date: '05.11', fullDate: new Date('2025-11-05'), day: 'Ср', orders: 6, revenue: 91728, cost: 57025, advertising: 3228, commissions: 7338, tax: 3669, delivery: 1375, profit: 19093 },
-    { date: '06.11', fullDate: new Date('2025-11-06'), day: 'Чт', orders: 6, revenue: 74478, cost: 47314, advertising: 2757, commissions: 5958, tax: 2979, delivery: 1117, profit: 14353 },
-    { date: '07.11', fullDate: new Date('2025-11-07'), day: 'Пт', orders: 5, revenue: 61735, cost: 39694, advertising: 3090, commissions: 4938, tax: 2469, delivery: 926, profit: 10618 },
-    { date: '08.11', fullDate: new Date('2025-11-08'), day: 'Сб', orders: 6, revenue: 73692, cost: 43183, advertising: 2791, commissions: 5895, tax: 2947, delivery: 1105, profit: 17771 },
-    { date: '09.11', fullDate: new Date('2025-11-09'), day: 'Вс', orders: 3, revenue: 45735, cost: 25233, advertising: 2386, commissions: 3658, tax: 1829, delivery: 686, profit: 11943 },
-    { date: '10.11', fullDate: new Date('2025-11-10'), day: 'Пн', orders: 7, revenue: 116809, cost: 73580, advertising: 3929, commissions: 9344, tax: 4672, delivery: 1752, profit: 23532 },
-    { date: '11.11', fullDate: new Date('2025-11-11'), day: 'Вт', orders: 10, revenue: 134060, cost: 81433, advertising: 7655, commissions: 10724, tax: 5362, delivery: 2010, profit: 26876 },
-    { date: '12.11', fullDate: new Date('2025-11-12'), day: 'Ср', orders: 6, revenue: 87864, cost: 53822, advertising: 3628, commissions: 7029, tax: 3514, delivery: 1317, profit: 18554 },
-    { date: '13.11', fullDate: new Date('2025-11-13'), day: 'Чт', orders: 10, revenue: 167210, cost: 97354, advertising: 8112, commissions: 13376, tax: 6688, delivery: 2508, profit: 39172 },
-    { date: '14.11', fullDate: new Date('2025-11-14'), day: 'Пт', orders: 8, revenue: 124808, cost: 73253, advertising: 6948, commissions: 9984, tax: 4992, delivery: 1872, profit: 27759 },
-    { date: '15.11', fullDate: new Date('2025-11-15'), day: 'Сб', orders: 3, revenue: 38886, cost: 23735, advertising: 1623, commissions: 3110, tax: 1555, delivery: 583, profit: 8280 },
-    { date: '16.11', fullDate: new Date('2025-11-16'), day: 'Вс', orders: 6, revenue: 82854, cost: 53455, advertising: 3505, commissions: 6628, tax: 3314, delivery: 1242, profit: 14710 },
-    { date: '17.11', fullDate: new Date('2025-11-17'), day: 'Пн', orders: 9, revenue: 136602, cost: 75152, advertising: 8131, commissions: 10928, tax: 5464, delivery: 2049, profit: 34878 },
-    { date: '18.11', fullDate: new Date('2025-11-18'), day: 'Вт', orders: 5, revenue: 74105, cost: 45760, advertising: 3211, commissions: 5928, tax: 2964, delivery: 1111, profit: 15131 },
-    { date: '19.11', fullDate: new Date('2025-11-19'), day: 'Ср', orders: 8, revenue: 131664, cost: 72970, advertising: 6941, commissions: 10533, tax: 5266, delivery: 1974, profit: 33980 },
-    { date: '20.11', fullDate: new Date('2025-11-20'), day: 'Чт', orders: 9, revenue: 115281, cost: 69333, advertising: 6805, commissions: 9222, tax: 4611, delivery: 1729, profit: 23581 },
-    { date: '21.11', fullDate: new Date('2025-11-21'), day: 'Пт', orders: 7, revenue: 86366, cost: 54745, advertising: 3400, commissions: 6909, tax: 3454, delivery: 1295, profit: 16563 },
-    { date: '22.11', fullDate: new Date('2025-11-22'), day: 'Сб', orders: 3, revenue: 40794, cost: 24335, advertising: 1340, commissions: 3263, tax: 1631, delivery: 611, profit: 9614 },
-    { date: '23.11', fullDate: new Date('2025-11-23'), day: 'Вс', orders: 6, revenue: 101592, cost: 61070, advertising: 4177, commissions: 8127, tax: 4063, delivery: 1523, profit: 22632 },
-    { date: '24.11', fullDate: new Date('2025-11-24'), day: 'Пн', orders: 7, revenue: 110117, cost: 67299, advertising: 3672, commissions: 8809, tax: 4404, delivery: 1651, profit: 24282 },
-    { date: '25.11', fullDate: new Date('2025-11-25'), day: 'Вт', orders: 10, revenue: 167580, cost: 108180, advertising: 8882, commissions: 13406, tax: 6703, delivery: 2513, profit: 27896 },
-    { date: '26.11', fullDate: new Date('2025-11-26'), day: 'Ср', orders: 6, revenue: 79506, cost: 47465, advertising: 2601, commissions: 6360, tax: 3180, delivery: 1192, profit: 18708 },
-    { date: '27.11', fullDate: new Date('2025-11-27'), day: 'Чт', orders: 9, revenue: 127899, cost: 78904, advertising: 6550, commissions: 10231, tax: 5115, delivery: 1918, profit: 25181 },
-    { date: '28.11', fullDate: new Date('2025-11-28'), day: 'Пт', orders: 7, revenue: 97111, cost: 57030, advertising: 5035, commissions: 7768, tax: 3884, delivery: 1456, profit: 21938 },
-    { date: '29.11', fullDate: new Date('2025-11-29'), day: 'Сб', orders: 6, revenue: 84504, cost: 51225, advertising: 4126, commissions: 6760, tax: 3380, delivery: 1267, profit: 17746 },
-    { date: '30.11', fullDate: new Date('2025-11-30'), day: 'Вс', orders: 3, revenue: 50205, cost: 28213, advertising: 1791, commissions: 4016, tax: 2008, delivery: 753, profit: 13424 },
-    { date: '01.12', fullDate: new Date('2025-12-01'), day: 'Пн', orders: 9, revenue: 138771, cost: 88241, advertising: 5418, commissions: 11101, tax: 5550, delivery: 2081, profit: 26380 },
-    { date: '02.12', fullDate: new Date('2025-12-02'), day: 'Вт', orders: 10, revenue: 127980, cost: 74104, advertising: 5497, commissions: 10238, tax: 5119, delivery: 1919, profit: 31103 },
-    { date: '03.12', fullDate: new Date('2025-12-03'), day: 'Ср', orders: 9, revenue: 116829, cost: 66045, advertising: 5131, commissions: 9346, tax: 4673, delivery: 1752, profit: 29882 },
-    { date: '04.12', fullDate: new Date('2025-12-04'), day: 'Чт', orders: 6, revenue: 87210, cost: 55842, advertising: 2708, commissions: 6976, tax: 3488, delivery: 1308, profit: 16888 },
-    { date: '05.12', fullDate: new Date('2025-12-05'), day: 'Пт', orders: 8, revenue: 111640, cost: 70341, advertising: 3735, commissions: 8931, tax: 4465, delivery: 1674, profit: 22494 },
-    { date: '06.12', fullDate: new Date('2025-12-06'), day: 'Сб', orders: 3, revenue: 36954, cost: 21419, advertising: 1615, commissions: 2956, tax: 1478, delivery: 554, profit: 8932 },
-    { date: '07.12', fullDate: new Date('2025-12-07'), day: 'Вс', orders: 5, revenue: 65615, cost: 39496, advertising: 2332, commissions: 5249, tax: 2624, delivery: 984, profit: 14930 },
-    { date: '08.12', fullDate: new Date('2025-12-08'), day: 'Пн', orders: 8, revenue: 123544, cost: 69526, advertising: 6623, commissions: 9883, tax: 4941, delivery: 1853, profit: 30718 },
-    { date: '09.12', fullDate: new Date('2025-12-09'), day: 'Вт', orders: 9, revenue: 139068, cost: 88799, advertising: 6569, commissions: 11125, tax: 5562, delivery: 2086, profit: 24927 },
-    { date: '10.12', fullDate: new Date('2025-12-10'), day: 'Ср', orders: 5, revenue: 71440, cost: 42165, advertising: 2402, commissions: 5715, tax: 2857, delivery: 1071, profit: 17230 },
-    { date: '11.12', fullDate: new Date('2025-12-11'), day: 'Чт', orders: 7, revenue: 104720, cost: 59344, advertising: 6159, commissions: 8377, tax: 4188, delivery: 1570, profit: 25082 },
-    { date: '12.12', fullDate: new Date('2025-12-12'), day: 'Пт', orders: 10, revenue: 122070, cost: 78024, advertising: 4784, commissions: 9765, tax: 4882, delivery: 1831, profit: 22784 },
-    { date: '13.12', fullDate: new Date('2025-12-13'), day: 'Сб', orders: 6, revenue: 78828, cost: 50308, advertising: 3364, commissions: 6306, tax: 3153, delivery: 1182, profit: 14515 },
-    { date: '14.12', fullDate: new Date('2025-12-14'), day: 'Вс', orders: 5, revenue: 79225, cost: 50933, advertising: 2875, commissions: 6338, tax: 3169, delivery: 1188, profit: 14722 },
-    { date: '15.12', fullDate: new Date('2025-12-15'), day: 'Пн', orders: 8, revenue: 107728, cost: 60511, advertising: 3531, commissions: 8618, tax: 4309, delivery: 1615, profit: 29144 },
-    { date: '16.12', fullDate: new Date('2025-12-16'), day: 'Вт', orders: 7, revenue: 117166, cost: 70135, advertising: 6361, commissions: 9373, tax: 4686, delivery: 1757, profit: 24854 },
-    { date: '17.12', fullDate: new Date('2025-12-17'), day: 'Ср', orders: 10, revenue: 138090, cost: 89580, advertising: 8046, commissions: 11047, tax: 5523, delivery: 2071, profit: 21823 },
-    { date: '18.12', fullDate: new Date('2025-12-18'), day: 'Чт', orders: 10, revenue: 147400, cost: 90417, advertising: 7226, commissions: 11792, tax: 5896, delivery: 2211, profit: 29858 },
-    { date: '19.12', fullDate: new Date('2025-12-19'), day: 'Пт', orders: 9, revenue: 133614, cost: 76055, advertising: 5995, commissions: 10689, tax: 5344, delivery: 2004, profit: 33527 },
-    { date: '20.12', fullDate: new Date('2025-12-20'), day: 'Сб', orders: 5, revenue: 82255, cost: 49404, advertising: 3357, commissions: 6580, tax: 3290, delivery: 1233, profit: 18391 },
-    { date: '21.12', fullDate: new Date('2025-12-21'), day: 'Вс', orders: 6, revenue: 91464, cost: 53918, advertising: 3165, commissions: 7317, tax: 3658, delivery: 1371, profit: 22035 },
-    { date: '22.12', fullDate: new Date('2025-12-22'), day: 'Пн', orders: 8, revenue: 130232, cost: 74769, advertising: 5239, commissions: 10418, tax: 5209, delivery: 1953, profit: 32644 },
-    { date: '23.12', fullDate: new Date('2025-12-23'), day: 'Вт', orders: 6, revenue: 78132, cost: 45213, advertising: 2576, commissions: 6250, tax: 3125, delivery: 1171, profit: 19797 },
-    { date: '24.12', fullDate: new Date('2025-12-24'), day: 'Ср', orders: 10, revenue: 166100, cost: 104322, advertising: 9351, commissions: 13288, tax: 6644, delivery: 2491, profit: 30004 },
-    { date: '25.12', fullDate: new Date('2025-12-25'), day: 'Чт', orders: 8, revenue: 98320, cost: 63308, advertising: 4176, commissions: 7865, tax: 3932, delivery: 1474, profit: 17565 },
-    { date: '26.12', fullDate: new Date('2025-12-26'), day: 'Пт', orders: 10, revenue: 139380, cost: 85967, advertising: 5000, commissions: 11150, tax: 5575, delivery: 2090, profit: 29598 },
-    { date: '27.12', fullDate: new Date('2025-12-27'), day: 'Сб', orders: 3, revenue: 41886, cost: 23088, advertising: 1946, commissions: 3350, tax: 1675, delivery: 628, profit: 11199 },
-    { date: '28.12', fullDate: new Date('2025-12-28'), day: 'Вс', orders: 4, revenue: 63340, cost: 35102, advertising: 3375, commissions: 5067, tax: 2533, delivery: 950, profit: 16313 },
-    { date: '29.12', fullDate: new Date('2025-12-29'), day: 'Пн', orders: 8, revenue: 127800, cost: 81872, advertising: 4266, commissions: 10224, tax: 5112, delivery: 1917, profit: 24409 },
-    { date: '30.12', fullDate: new Date('2025-12-30'), day: 'Вт', orders: 7, revenue: 93940, cost: 57528, advertising: 3843, commissions: 7515, tax: 3757, delivery: 1409, profit: 19888 },
-    { date: '31.12', fullDate: new Date('2025-12-31'), day: 'Ср', orders: 7, revenue: 94248, cost: 57795, advertising: 5454, commissions: 7539, tax: 3769, delivery: 1413, profit: 18278 },
-    { date: '01.01', fullDate: new Date('2026-01-01'), day: 'Чт', orders: 6, revenue: 96648, cost: 56235, advertising: 5106, commissions: 7731, tax: 3865, delivery: 1449, profit: 22262 },
-    { date: '02.01', fullDate: new Date('2026-01-02'), day: 'Пт', orders: 6, revenue: 98496, cost: 57964, advertising: 3734, commissions: 7879, tax: 3939, delivery: 1477, profit: 23503 },
-    { date: '03.01', fullDate: new Date('2026-01-03'), day: 'Сб', orders: 6, revenue: 84336, cost: 52598, advertising: 3573, commissions: 6746, tax: 3373, delivery: 1265, profit: 16781 },
-    { date: '04.01', fullDate: new Date('2026-01-04'), day: 'Вс', orders: 3, revenue: 47598, cost: 30346, advertising: 1658, commissions: 3807, tax: 1903, delivery: 713, profit: 9171 },
-    { date: '05.01', fullDate: new Date('2026-01-05'), day: 'Пн', orders: 6, revenue: 83970, cost: 46366, advertising: 4438, commissions: 6717, tax: 3358, delivery: 1259, profit: 21832 },
-    { date: '06.01', fullDate: new Date('2026-01-06'), day: 'Вт', orders: 10, revenue: 120910, cost: 67715, advertising: 4415, commissions: 9672, tax: 4836, delivery: 1813, profit: 32459 },
-    { date: '07.01', fullDate: new Date('2026-01-07'), day: 'Ср', orders: 9, revenue: 110520, cost: 70451, advertising: 4778, commissions: 8841, tax: 4420, delivery: 1657, profit: 20373 },
-    { date: '08.01', fullDate: new Date('2026-01-08'), day: 'Чт', orders: 5, revenue: 66415, cost: 41477, advertising: 3352, commissions: 5313, tax: 2656, delivery: 996, profit: 12621 },
-    { date: '09.01', fullDate: new Date('2026-01-09'), day: 'Пт', orders: 5, revenue: 77420, cost: 42723, advertising: 3410, commissions: 6193, tax: 3096, delivery: 1161, profit: 20837 },
-    { date: '10.01', fullDate: new Date('2026-01-10'), day: 'Сб', orders: 5, revenue: 76740, cost: 45701, advertising: 4049, commissions: 6139, tax: 3069, delivery: 1151, profit: 16631 },
-    { date: '11.01', fullDate: new Date('2026-01-11'), day: 'Вс', orders: 3, revenue: 42747, cost: 27050, advertising: 2086, commissions: 3419, tax: 1709, delivery: 641, profit: 7842 },
-    { date: '12.01', fullDate: new Date('2026-01-12'), day: 'Пн', orders: 8, revenue: 99840, cost: 56160, advertising: 5256, commissions: 7987, tax: 3993, delivery: 1497, profit: 24947 },
-    { date: '13.01', fullDate: new Date('2026-01-13'), day: 'Вт', orders: 5, revenue: 61955, cost: 35617, advertising: 3021, commissions: 4956, tax: 2478, delivery: 929, profit: 14954 },
-    { date: '14.01', fullDate: new Date('2026-01-14'), day: 'Ср', orders: 10, revenue: 149080, cost: 93844, advertising: 6674, commissions: 11926, tax: 5963, delivery: 2236, profit: 28437 },
-    { date: '15.01', fullDate: new Date('2026-01-15'), day: 'Чт', orders: 8, revenue: 96400, cost: 56768, advertising: 5062, commissions: 7712, tax: 3856, delivery: 1446, profit: 21556 },
-    { date: '16.01', fullDate: new Date('2026-01-16'), day: 'Пт', orders: 8, revenue: 100440, cost: 62590, advertising: 4856, commissions: 8035, tax: 4017, delivery: 1506, profit: 19436 },
-    { date: '17.01', fullDate: new Date('2026-01-17'), day: 'Сб', orders: 5, revenue: 64920, cost: 37584, advertising: 2874, commissions: 5193, tax: 2596, delivery: 973, profit: 15700 },
-    { date: '18.01', fullDate: new Date('2026-01-18'), day: 'Вс', orders: 5, revenue: 81840, cost: 52239, advertising: 4386, commissions: 6547, tax: 3273, delivery: 1227, profit: 14168 },
-    { date: '19.01', fullDate: new Date('2026-01-19'), day: 'Пн', orders: 8, revenue: 110864, cost: 66251, advertising: 5774, commissions: 8869, tax: 4434, delivery: 1662, profit: 23874 },
-    { date: '20.01', fullDate: new Date('2026-01-20'), day: 'Вт', orders: 6, revenue: 89520, cost: 53712, advertising: 3580, commissions: 7161, tax: 3580, delivery: 1342, profit: 20145 },
-    { date: '21.01', fullDate: new Date('2026-01-21'), day: 'Ср', orders: 7, revenue: 102340, cost: 61404, advertising: 4093, commissions: 8187, tax: 4093, delivery: 1535, profit: 23028 },
-    { date: '22.01', fullDate: new Date('2026-01-22'), day: 'Чт', orders: 5, revenue: 73150, cost: 43890, advertising: 2926, commissions: 5852, tax: 2926, delivery: 1097, profit: 16459 },
-    { date: '23.01', fullDate: new Date('2026-01-23'), day: 'Пт', orders: 9, revenue: 131670, cost: 79002, advertising: 5266, commissions: 10533, tax: 5266, delivery: 1975, profit: 29628 },
-    { date: '24.01', fullDate: new Date('2026-01-24'), day: 'Сб', orders: 4, revenue: 58480, cost: 35088, advertising: 2339, commissions: 4678, tax: 2339, delivery: 877, profit: 13159 },
-    { date: '25.01', fullDate: new Date('2026-01-25'), day: 'Вс', orders: 3, revenue: 43860, cost: 26316, advertising: 1754, commissions: 3508, tax: 1754, delivery: 657, profit: 9871 },
-    { date: '26.01', fullDate: new Date('2026-01-26'), day: 'Пн', orders: 7, revenue: 102410, cost: 61446, advertising: 4096, commissions: 8192, tax: 4096, delivery: 1536, profit: 23044 },
-    { date: '27.01', fullDate: new Date('2026-01-27'), day: 'Вт', orders: 6, revenue: 87780, cost: 52668, advertising: 3511, commissions: 7022, tax: 3511, delivery: 1316, profit: 19752 }
+    { date: '01.10', fullDate: new Date('2025-10-01'), day: 'Ср', orders: 2, revenue: 30426, cost: 19426, advertising: 1168, commissions: 2434, tax: 1217, delivery: 456, profit: 5725 },
+    { date: '02.10', fullDate: new Date('2025-10-02'), day: 'Чт', orders: 3, revenue: 44020, cost: 25425, advertising: 1944, commissions: 3521, tax: 1761, delivery: 660, profit: 10709 },
+    { date: '03.10', fullDate: new Date('2025-10-03'), day: 'Пт', orders: 2, revenue: 22483, cost: 12736, advertising: 747, commissions: 1799, tax: 899, delivery: 337, profit: 5965 },
+    { date: '04.10', fullDate: new Date('2025-10-04'), day: 'Сб', orders: 2, revenue: 28540, cost: 17158, advertising: 926, commissions: 2283, tax: 1141, delivery: 428, profit: 6604 },
+    { date: '05.10', fullDate: new Date('2025-10-05'), day: 'Вс', orders: 1, revenue: 16640, cost: 10368, advertising: 505, commissions: 1331, tax: 665, delivery: 249, profit: 3522 },
+    { date: '06.10', fullDate: new Date('2025-10-06'), day: 'Пн', orders: 3, revenue: 49023, cost: 29377, advertising: 1526, commissions: 3922, tax: 1961, delivery: 735, profit: 11502 },
+    { date: '07.10', fullDate: new Date('2025-10-07'), day: 'Вт', orders: 3, revenue: 38555, cost: 24031, advertising: 1491, commissions: 3084, tax: 1542, delivery: 578, profit: 7829 },
+    { date: '08.10', fullDate: new Date('2025-10-08'), day: 'Ср', orders: 2, revenue: 21855, cost: 13744, advertising: 863, commissions: 1748, tax: 874, delivery: 328, profit: 4298 },
+    { date: '09.10', fullDate: new Date('2025-10-09'), day: 'Чт', orders: 3, revenue: 50832, cost: 31325, advertising: 2776, commissions: 4066, tax: 2033, delivery: 762, profit: 9870 },
+    { date: '10.10', fullDate: new Date('2025-10-10'), day: 'Пт', orders: 2, revenue: 25595, cost: 15490, advertising: 1135, commissions: 2047, tax: 1024, delivery: 384, profit: 5515 },
+    { date: '11.10', fullDate: new Date('2025-10-11'), day: 'Сб', orders: 1, revenue: 15325, cost: 9396, advertising: 750, commissions: 1226, tax: 613, delivery: 230, profit: 3110 },
+    { date: '12.10', fullDate: new Date('2025-10-12'), day: 'Вс', orders: 2, revenue: 22587, cost: 14584, advertising: 1039, commissions: 1807, tax: 903, delivery: 339, profit: 3915 },
+    { date: '13.10', fullDate: new Date('2025-10-13'), day: 'Пн', orders: 2, revenue: 22103, cost: 13713, advertising: 1246, commissions: 1768, tax: 884, delivery: 331, profit: 4161 },
+    { date: '14.10', fullDate: new Date('2025-10-14'), day: 'Вт', orders: 2, revenue: 23523, cost: 12940, advertising: 787, commissions: 1882, tax: 941, delivery: 353, profit: 6620 },
+    { date: '15.10', fullDate: new Date('2025-10-15'), day: 'Ср', orders: 2, revenue: 37700, cost: 22575, advertising: 1297, commissions: 3016, tax: 1508, delivery: 565, profit: 8739 },
+    { date: '16.10', fullDate: new Date('2025-10-16'), day: 'Чт', orders: 2, revenue: 34417, cost: 20473, advertising: 1615, commissions: 2753, tax: 1377, delivery: 516, profit: 7683 },
+    { date: '17.10', fullDate: new Date('2025-10-17'), day: 'Пт', orders: 2, revenue: 26128, cost: 15032, advertising: 1457, commissions: 2090, tax: 1045, delivery: 392, profit: 6112 },
+    { date: '18.10', fullDate: new Date('2025-10-18'), day: 'Сб', orders: 1, revenue: 21032, cost: 11722, advertising: 912, commissions: 1682, tax: 841, delivery: 315, profit: 5560 },
+    { date: '19.10', fullDate: new Date('2025-10-19'), day: 'Вс', orders: 1, revenue: 21531, cost: 12772, advertising: 1171, commissions: 1722, tax: 861, delivery: 323, profit: 4682 },
+    { date: '20.10', fullDate: new Date('2025-10-20'), day: 'Пн', orders: 2, revenue: 24936, cost: 15384, advertising: 1342, commissions: 1995, tax: 997, delivery: 374, profit: 4844 },
+    { date: '21.10', fullDate: new Date('2025-10-21'), day: 'Вт', orders: 2, revenue: 25285, cost: 15915, advertising: 1153, commissions: 2023, tax: 1011, delivery: 379, profit: 4804 },
+    { date: '22.10', fullDate: new Date('2025-10-22'), day: 'Ср', orders: 2, revenue: 28038, cost: 17954, advertising: 1373, commissions: 2243, tax: 1121, delivery: 420, profit: 4927 },
+    { date: '23.10', fullDate: new Date('2025-10-23'), day: 'Чт', orders: 2, revenue: 21975, cost: 13078, advertising: 1212, commissions: 1758, tax: 879, delivery: 329, profit: 4719 },
+    { date: '24.10', fullDate: new Date('2025-10-24'), day: 'Пт', orders: 3, revenue: 44483, cost: 25052, advertising: 1665, commissions: 3558, tax: 1779, delivery: 667, profit: 11762 },
+    { date: '25.10', fullDate: new Date('2025-10-25'), day: 'Сб', orders: 2, revenue: 31812, cost: 19149, advertising: 1054, commissions: 2545, tax: 1272, delivery: 477, profit: 7315 },
+    { date: '26.10', fullDate: new Date('2025-10-26'), day: 'Вс', orders: 2, revenue: 24980, cost: 16092, advertising: 1232, commissions: 1998, tax: 999, delivery: 375, profit: 4284 },
+    { date: '27.10', fullDate: new Date('2025-10-27'), day: 'Пн', orders: 3, revenue: 46437, cost: 29639, advertising: 1397, commissions: 3715, tax: 1857, delivery: 696, profit: 9133 },
+    { date: '28.10', fullDate: new Date('2025-10-28'), day: 'Вт', orders: 2, revenue: 30826, cost: 18961, advertising: 1813, commissions: 2466, tax: 1233, delivery: 462, profit: 5891 },
+    { date: '29.10', fullDate: new Date('2025-10-29'), day: 'Ср', orders: 2, revenue: 20133, cost: 12799, advertising: 728, commissions: 1611, tax: 805, delivery: 302, profit: 3888 },
+    { date: '30.10', fullDate: new Date('2025-10-30'), day: 'Чт', orders: 3, revenue: 48630, cost: 28672, advertising: 1771, commissions: 3890, tax: 1945, delivery: 729, profit: 11623 },
+    { date: '31.10', fullDate: new Date('2025-10-31'), day: 'Пт', orders: 3, revenue: 43683, cost: 24251, advertising: 2323, commissions: 3495, tax: 1747, delivery: 655, profit: 11212 },
+    { date: '01.11', fullDate: new Date('2025-11-01'), day: 'Сб', orders: 1, revenue: 20139, cost: 11924, advertising: 875, commissions: 1611, tax: 805, delivery: 302, profit: 4622 },
+    { date: '02.11', fullDate: new Date('2025-11-02'), day: 'Вс', orders: 2, revenue: 26830, cost: 16731, advertising: 916, commissions: 2146, tax: 1073, delivery: 402, profit: 5562 },
+    { date: '03.11', fullDate: new Date('2025-11-03'), day: 'Пн', orders: 3, revenue: 50250, cost: 30981, advertising: 1946, commissions: 4020, tax: 2010, delivery: 754, profit: 10539 },
+    { date: '04.11', fullDate: new Date('2025-11-04'), day: 'Вт', orders: 2, revenue: 27040, cost: 16172, advertising: 1453, commissions: 2163, tax: 1081, delivery: 405, profit: 5766 },
+    { date: '05.11', fullDate: new Date('2025-11-05'), day: 'Ср', orders: 2, revenue: 30576, cost: 19008, advertising: 1076, commissions: 2446, tax: 1223, delivery: 458, profit: 6365 },
+    { date: '06.11', fullDate: new Date('2025-11-06'), day: 'Чт', orders: 2, revenue: 24826, cost: 15771, advertising: 919, commissions: 1986, tax: 993, delivery: 372, profit: 4785 },
+    { date: '07.11', fullDate: new Date('2025-11-07'), day: 'Пт', orders: 2, revenue: 20578, cost: 13231, advertising: 1030, commissions: 1646, tax: 823, delivery: 309, profit: 3539 },
+    { date: '08.11', fullDate: new Date('2025-11-08'), day: 'Сб', orders: 2, revenue: 24564, cost: 14394, advertising: 930, commissions: 1965, tax: 982, delivery: 368, profit: 5925 },
+    { date: '09.11', fullDate: new Date('2025-11-09'), day: 'Вс', orders: 1, revenue: 15245, cost: 8411, advertising: 795, commissions: 1219, tax: 610, delivery: 229, profit: 3981 },
+    { date: '10.11', fullDate: new Date('2025-11-10'), day: 'Пн', orders: 2, revenue: 38936, cost: 24527, advertising: 1310, commissions: 3115, tax: 1557, delivery: 584, profit: 7843 },
+    { date: '11.11', fullDate: new Date('2025-11-11'), day: 'Вт', orders: 3, revenue: 44687, cost: 27144, advertising: 2552, commissions: 3575, tax: 1787, delivery: 670, profit: 8959 },
+    { date: '12.11', fullDate: new Date('2025-11-12'), day: 'Ср', orders: 2, revenue: 29288, cost: 17941, advertising: 1209, commissions: 2343, tax: 1171, delivery: 439, profit: 6185 },
+    { date: '13.11', fullDate: new Date('2025-11-13'), day: 'Чт', orders: 3, revenue: 55737, cost: 32451, advertising: 2704, commissions: 4459, tax: 2229, delivery: 836, profit: 13058 },
+    { date: '14.11', fullDate: new Date('2025-11-14'), day: 'Пт', orders: 3, revenue: 41603, cost: 24418, advertising: 2316, commissions: 3328, tax: 1664, delivery: 624, profit: 9253 },
+    { date: '15.11', fullDate: new Date('2025-11-15'), day: 'Сб', orders: 1, revenue: 12962, cost: 7912, advertising: 541, commissions: 1037, tax: 518, delivery: 194, profit: 2760 },
+    { date: '16.11', fullDate: new Date('2025-11-16'), day: 'Вс', orders: 2, revenue: 27618, cost: 17818, advertising: 1168, commissions: 2209, tax: 1105, delivery: 414, profit: 4904 },
+    { date: '17.11', fullDate: new Date('2025-11-17'), day: 'Пн', orders: 3, revenue: 45534, cost: 25051, advertising: 2710, commissions: 3643, tax: 1821, delivery: 683, profit: 11626 },
+    { date: '18.11', fullDate: new Date('2025-11-18'), day: 'Вт', orders: 2, revenue: 24702, cost: 15253, advertising: 1070, commissions: 1976, tax: 988, delivery: 370, profit: 5045 },
+    { date: '19.11', fullDate: new Date('2025-11-19'), day: 'Ср', orders: 3, revenue: 43888, cost: 24323, advertising: 2314, commissions: 3511, tax: 1755, delivery: 658, profit: 11327 },
+    { date: '20.11', fullDate: new Date('2025-11-20'), day: 'Чт', orders: 3, revenue: 38427, cost: 23111, advertising: 2268, commissions: 3074, tax: 1537, delivery: 576, profit: 7861 },
+    { date: '21.11', fullDate: new Date('2025-11-21'), day: 'Пт', orders: 2, revenue: 28789, cost: 18248, advertising: 1133, commissions: 2303, tax: 1151, delivery: 432, profit: 5522 },
+    { date: '22.11', fullDate: new Date('2025-11-22'), day: 'Сб', orders: 1, revenue: 13598, cost: 8112, advertising: 447, commissions: 1088, tax: 544, delivery: 204, profit: 3203 },
+    { date: '23.11', fullDate: new Date('2025-11-23'), day: 'Вс', orders: 2, revenue: 33864, cost: 20357, advertising: 1392, commissions: 2709, tax: 1354, delivery: 508, profit: 7544 },
+    { date: '24.11', fullDate: new Date('2025-11-24'), day: 'Пн', orders: 2, revenue: 36706, cost: 22433, advertising: 1224, commissions: 2936, tax: 1468, delivery: 550, profit: 8095 },
+    { date: '25.11', fullDate: new Date('2025-11-25'), day: 'Вт', orders: 3, revenue: 55860, cost: 36060, advertising: 2961, commissions: 4469, tax: 2234, delivery: 838, profit: 9298 },
+    { date: '26.11', fullDate: new Date('2025-11-26'), day: 'Ср', orders: 2, revenue: 26502, cost: 15822, advertising: 867, commissions: 2120, tax: 1060, delivery: 397, profit: 6236 },
+    { date: '27.11', fullDate: new Date('2025-11-27'), day: 'Чт', orders: 3, revenue: 42633, cost: 26301, advertising: 2183, commissions: 3410, tax: 1705, delivery: 639, profit: 8395 },
+    { date: '28.11', fullDate: new Date('2025-11-28'), day: 'Пт', orders: 2, revenue: 32370, cost: 19010, advertising: 1678, commissions: 2589, tax: 1295, delivery: 485, profit: 7313 },
+    { date: '29.11', fullDate: new Date('2025-11-29'), day: 'Сб', orders: 2, revenue: 28168, cost: 17075, advertising: 1375, commissions: 2253, tax: 1127, delivery: 422, profit: 5916 },
+    { date: '30.11', fullDate: new Date('2025-11-30'), day: 'Вс', orders: 1, revenue: 16735, cost: 9404, advertising: 597, commissions: 1339, tax: 669, delivery: 251, profit: 4475 },
+    { date: '01.12', fullDate: new Date('2025-12-01'), day: 'Пн', orders: 3, revenue: 46257, cost: 29414, advertising: 1806, commissions: 3700, tax: 1850, delivery: 694, profit: 8793 },
+    { date: '02.12', fullDate: new Date('2025-12-02'), day: 'Вт', orders: 3, revenue: 42660, cost: 24701, advertising: 1832, commissions: 3413, tax: 1706, delivery: 640, profit: 10368 },
+    { date: '03.12', fullDate: new Date('2025-12-03'), day: 'Ср', orders: 3, revenue: 38943, cost: 22015, advertising: 1710, commissions: 3115, tax: 1558, delivery: 584, profit: 9961 },
+    { date: '04.12', fullDate: new Date('2025-12-04'), day: 'Чт', orders: 2, revenue: 29070, cost: 18614, advertising: 903, commissions: 2325, tax: 1163, delivery: 436, profit: 5629 },
+    { date: '05.12', fullDate: new Date('2025-12-05'), day: 'Пт', orders: 3, revenue: 37213, cost: 23447, advertising: 1245, commissions: 2977, tax: 1488, delivery: 558, profit: 7498 },
+    { date: '06.12', fullDate: new Date('2025-12-06'), day: 'Сб', orders: 1, revenue: 12318, cost: 7140, advertising: 538, commissions: 985, tax: 493, delivery: 185, profit: 2977 },
+    { date: '07.12', fullDate: new Date('2025-12-07'), day: 'Вс', orders: 2, revenue: 21872, cost: 13165, advertising: 777, commissions: 1750, tax: 875, delivery: 328, profit: 4977 },
+    { date: '08.12', fullDate: new Date('2025-12-08'), day: 'Пн', orders: 3, revenue: 41181, cost: 23175, advertising: 2208, commissions: 3294, tax: 1647, delivery: 618, profit: 10239 },
+    { date: '09.12', fullDate: new Date('2025-12-09'), day: 'Вт', orders: 3, revenue: 46356, cost: 29600, advertising: 2190, commissions: 3708, tax: 1854, delivery: 695, profit: 8309 },
+    { date: '10.12', fullDate: new Date('2025-12-10'), day: 'Ср', orders: 2, revenue: 23813, cost: 14055, advertising: 801, commissions: 1905, tax: 952, delivery: 357, profit: 5743 },
+    { date: '11.12', fullDate: new Date('2025-12-11'), day: 'Чт', orders: 2, revenue: 34907, cost: 19781, advertising: 2053, commissions: 2792, tax: 1396, delivery: 523, profit: 8362 },
+    { date: '12.12', fullDate: new Date('2025-12-12'), day: 'Пт', orders: 3, revenue: 40690, cost: 26008, advertising: 1595, commissions: 3255, tax: 1627, delivery: 610, profit: 7595 },
+    { date: '13.12', fullDate: new Date('2025-12-13'), day: 'Сб', orders: 2, revenue: 26276, cost: 16769, advertising: 1121, commissions: 2102, tax: 1051, delivery: 394, profit: 4839 },
+    { date: '14.12', fullDate: new Date('2025-12-14'), day: 'Вс', orders: 2, revenue: 26408, cost: 16978, advertising: 958, commissions: 2113, tax: 1056, delivery: 396, profit: 4907 },
+    { date: '15.12', fullDate: new Date('2025-12-15'), day: 'Пн', orders: 3, revenue: 35909, cost: 20170, advertising: 1177, commissions: 2873, tax: 1436, delivery: 538, profit: 9715 },
+    { date: '16.12', fullDate: new Date('2025-12-16'), day: 'Вт', orders: 2, revenue: 39055, cost: 23378, advertising: 2120, commissions: 3124, tax: 1562, delivery: 586, profit: 8285 },
+    { date: '17.12', fullDate: new Date('2025-12-17'), day: 'Ср', orders: 3, revenue: 46030, cost: 29860, advertising: 2682, commissions: 3682, tax: 1841, delivery: 690, profit: 7275 },
+    { date: '18.12', fullDate: new Date('2025-12-18'), day: 'Чт', orders: 3, revenue: 49133, cost: 30139, advertising: 2409, commissions: 3931, tax: 1965, delivery: 737, profit: 9952 },
+    { date: '19.12', fullDate: new Date('2025-12-19'), day: 'Пт', orders: 3, revenue: 44538, cost: 25352, advertising: 1998, commissions: 3563, tax: 1781, delivery: 668, profit: 11176 },
+    { date: '20.12', fullDate: new Date('2025-12-20'), day: 'Сб', orders: 2, revenue: 27418, cost: 16468, advertising: 1119, commissions: 2193, tax: 1097, delivery: 411, profit: 6130 },
+    { date: '21.12', fullDate: new Date('2025-12-21'), day: 'Вс', orders: 2, revenue: 30488, cost: 17973, advertising: 1055, commissions: 2439, tax: 1219, delivery: 457, profit: 7345 },
+    { date: '22.12', fullDate: new Date('2025-12-22'), day: 'Пн', orders: 3, revenue: 43411, cost: 24923, advertising: 1746, commissions: 3473, tax: 1736, delivery: 651, profit: 10882 },
+    { date: '23.12', fullDate: new Date('2025-12-23'), day: 'Вт', orders: 2, revenue: 26044, cost: 15071, advertising: 859, commissions: 2083, tax: 1042, delivery: 390, profit: 6599 },
+    { date: '24.12', fullDate: new Date('2025-12-24'), day: 'Ср', orders: 3, revenue: 55367, cost: 34774, advertising: 3117, commissions: 4429, tax: 2215, delivery: 830, profit: 10002 },
+    { date: '25.12', fullDate: new Date('2025-12-25'), day: 'Чт', orders: 3, revenue: 32773, cost: 21103, advertising: 1392, commissions: 2622, tax: 1311, delivery: 491, profit: 5854 },
+    { date: '26.12', fullDate: new Date('2025-12-26'), day: 'Пт', orders: 3, revenue: 46460, cost: 28656, advertising: 1667, commissions: 3717, tax: 1858, delivery: 697, profit: 9865 },
+    { date: '27.12', fullDate: new Date('2025-12-27'), day: 'Сб', orders: 1, revenue: 13962, cost: 7696, advertising: 649, commissions: 1117, tax: 558, delivery: 209, profit: 3733 },
+    { date: '28.12', fullDate: new Date('2025-12-28'), day: 'Вс', orders: 1, revenue: 21113, cost: 11701, advertising: 1125, commissions: 1689, tax: 844, delivery: 317, profit: 5437 },
+    { date: '29.12', fullDate: new Date('2025-12-29'), day: 'Пн', orders: 3, revenue: 42600, cost: 27291, advertising: 1422, commissions: 3408, tax: 1704, delivery: 639, profit: 8136 },
+    { date: '30.12', fullDate: new Date('2025-12-30'), day: 'Вт', orders: 2, revenue: 31313, cost: 19176, advertising: 1281, commissions: 2505, tax: 1252, delivery: 470, profit: 6629 },
+    { date: '31.12', fullDate: new Date('2025-12-31'), day: 'Ср', orders: 2, revenue: 31416, cost: 19265, advertising: 1818, commissions: 2513, tax: 1256, delivery: 471, profit: 6093 },
+    { date: '01.01', fullDate: new Date('2026-01-01'), day: 'Чт', orders: 2, revenue: 32216, cost: 18745, advertising: 1702, commissions: 2577, tax: 1288, delivery: 483, profit: 7421 },
+    { date: '02.01', fullDate: new Date('2026-01-02'), day: 'Пт', orders: 2, revenue: 32832, cost: 19321, advertising: 1245, commissions: 2626, tax: 1313, delivery: 492, profit: 7835 },
+    { date: '03.01', fullDate: new Date('2026-01-03'), day: 'Сб', orders: 2, revenue: 28112, cost: 17533, advertising: 1191, commissions: 2249, tax: 1124, delivery: 422, profit: 5593 },
+    { date: '04.01', fullDate: new Date('2026-01-04'), day: 'Вс', orders: 1, revenue: 15866, cost: 10115, advertising: 553, commissions: 1269, tax: 634, delivery: 238, profit: 3057 },
+    { date: '05.01', fullDate: new Date('2026-01-05'), day: 'Пн', orders: 2, revenue: 27990, cost: 15455, advertising: 1479, commissions: 2239, tax: 1119, delivery: 420, profit: 7278 },
+    { date: '06.01', fullDate: new Date('2026-01-06'), day: 'Вт', orders: 3, revenue: 40303, cost: 22572, advertising: 1472, commissions: 3224, tax: 1612, delivery: 604, profit: 10819 },
+    { date: '07.01', fullDate: new Date('2026-01-07'), day: 'Ср', orders: 3, revenue: 36840, cost: 23484, advertising: 1593, commissions: 2947, tax: 1473, delivery: 552, profit: 6791 },
+    { date: '08.01', fullDate: new Date('2026-01-08'), day: 'Чт', orders: 2, revenue: 22138, cost: 13826, advertising: 1117, commissions: 1771, tax: 885, delivery: 332, profit: 4207 },
+    { date: '09.01', fullDate: new Date('2026-01-09'), day: 'Пт', orders: 2, revenue: 25807, cost: 14241, advertising: 1137, commissions: 2065, tax: 1032, delivery: 387, profit: 6945 },
+    { date: '10.01', fullDate: new Date('2026-01-10'), day: 'Сб', orders: 2, revenue: 25580, cost: 15234, advertising: 1350, commissions: 2046, tax: 1023, delivery: 384, profit: 5543 },
+    { date: '11.01', fullDate: new Date('2026-01-11'), day: 'Вс', orders: 1, revenue: 14249, cost: 9017, advertising: 695, commissions: 1140, tax: 570, delivery: 214, profit: 2613 },
+    { date: '12.01', fullDate: new Date('2026-01-12'), day: 'Пн', orders: 3, revenue: 33280, cost: 18720, advertising: 1752, commissions: 2662, tax: 1331, delivery: 499, profit: 8316 },
+    { date: '13.01', fullDate: new Date('2026-01-13'), day: 'Вт', orders: 2, revenue: 20652, cost: 11872, advertising: 1007, commissions: 1652, tax: 826, delivery: 310, profit: 4985 },
+    { date: '14.01', fullDate: new Date('2026-01-14'), day: 'Ср', orders: 3, revenue: 49693, cost: 31281, advertising: 2225, commissions: 3975, tax: 1988, delivery: 745, profit: 9479 },
+    { date: '15.01', fullDate: new Date('2026-01-15'), day: 'Чт', orders: 3, revenue: 32133, cost: 18923, advertising: 1687, commissions: 2571, tax: 1285, delivery: 482, profit: 7185 },
+    { date: '16.01', fullDate: new Date('2026-01-16'), day: 'Пт', orders: 3, revenue: 33480, cost: 20863, advertising: 1619, commissions: 2678, tax: 1339, delivery: 502, profit: 6479 },
+    { date: '17.01', fullDate: new Date('2026-01-17'), day: 'Сб', orders: 2, revenue: 21640, cost: 12528, advertising: 958, commissions: 1731, tax: 865, delivery: 324, profit: 5234 },
+    { date: '18.01', fullDate: new Date('2026-01-18'), day: 'Вс', orders: 2, revenue: 27280, cost: 17413, advertising: 1462, commissions: 2182, tax: 1091, delivery: 409, profit: 4723 },
+    { date: '19.01', fullDate: new Date('2026-01-19'), day: 'Пн', orders: 3, revenue: 36955, cost: 22084, advertising: 1925, commissions: 2956, tax: 1478, delivery: 554, profit: 7958 },
+    { date: '20.01', fullDate: new Date('2026-01-20'), day: 'Вт', orders: 2, revenue: 29840, cost: 17904, advertising: 1193, commissions: 2387, tax: 1193, delivery: 447, profit: 6716 },
+    { date: '21.01', fullDate: new Date('2026-01-21'), day: 'Ср', orders: 2, revenue: 34113, cost: 20468, advertising: 1364, commissions: 2729, tax: 1364, delivery: 512, profit: 7676 },
+    { date: '22.01', fullDate: new Date('2026-01-22'), day: 'Чт', orders: 2, revenue: 24383, cost: 14630, advertising: 975, commissions: 1951, tax: 975, delivery: 366, profit: 5486 },
+    { date: '23.01', fullDate: new Date('2026-01-23'), day: 'Пт', orders: 3, revenue: 43890, cost: 26334, advertising: 1755, commissions: 3511, tax: 1755, delivery: 658, profit: 9877 },
+    { date: '24.01', fullDate: new Date('2026-01-24'), day: 'Сб', orders: 1, revenue: 19493, cost: 11696, advertising: 780, commissions: 1559, tax: 780, delivery: 292, profit: 4386 },
+    { date: '25.01', fullDate: new Date('2026-01-25'), day: 'Вс', orders: 1, revenue: 14620, cost: 8772, advertising: 585, commissions: 1169, tax: 585, delivery: 219, profit: 3290 },
+    { date: '26.01', fullDate: new Date('2026-01-26'), day: 'Пн', orders: 2, revenue: 34137, cost: 20482, advertising: 1365, commissions: 2731, tax: 1365, delivery: 512, profit: 7682 },
+    { date: '27.01', fullDate: new Date('2026-01-27'), day: 'Вт', orders: 2, revenue: 29260, cost: 17556, advertising: 1170, commissions: 2341, tax: 1170, delivery: 439, profit: 6584 }
   ],
 
   topProducts: [
@@ -607,6 +600,10 @@ function AnalyticsPageContent() {
 
   // Toggle состояния для линий графика
   const [showPreviousPeriod, setShowPreviousPeriod] = useState(false);
+  const [showRevenueLine, setShowRevenueLine] = useState(true);
+  const [showExpensesLine, setShowExpensesLine] = useState(true);
+  const [showProfitLine, setShowProfitLine] = useState(true);
+  const [showChartHelp, setShowChartHelp] = useState(false);
 
   // Toggle для показа только рекламных заказов
   const [showAdsOnly, setShowAdsOnly] = useState(false);
@@ -838,7 +835,7 @@ function AnalyticsPageContent() {
     data.forEach(day => {
       // Формируем ключ как "YYYY-MM" для правильной сортировки
       const monthKey = format(day.fullDate, 'yyyy-MM');
-      const monthLabel = format(day.fullDate, 'MMM yyyy', { locale: ru });
+      const monthLabel = format(day.fullDate, 'MMM yy', { locale: ru });
 
       if (!monthMap.has(monthKey)) {
         // Берём первый день месяца для fullDate
@@ -1097,7 +1094,7 @@ function AnalyticsPageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <motion.div
@@ -1220,39 +1217,38 @@ function AnalyticsPageContent() {
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8"
+              className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8"
             >
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
+              <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-sky-50 rounded-xl flex items-center justify-center">
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-sky-100 rounded-lg sm:rounded-xl flex items-center justify-center">
                     <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600" />
                   </div>
                   <span className="text-xs sm:text-sm text-gray-600">Поступления</span>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-sky-600">{(data.totalRevenue / 1000).toFixed(0)}K ₸</div>
-                <div className="text-xs text-gray-500 mt-1">
+                <div className="text-lg sm:text-2xl font-bold text-gray-900">{(data.totalRevenue / 1000).toFixed(0)}K ₸</div>
+                <div className="text-[10px] sm:text-xs mt-1">
                   <span className="bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
                 </div>
               </motion.div>
 
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
+              <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-rose-50 rounded-xl flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-rose-400 rotate-180" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-rose-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 rotate-180" />
                   </div>
                   <span className="text-xs sm:text-sm text-gray-600">Расходы</span>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-rose-400">
+                <div className="text-lg sm:text-2xl font-bold text-gray-900">
                   {((data.totalCost + data.totalAdvertising + data.totalTax + data.totalCommissions + data.totalDelivery) / 1000).toFixed(0)}K ₸
                 </div>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="bg-rose-50 text-rose-500 px-1.5 py-0.5 rounded font-medium text-xs">{formatShortPeriod()}</span>
+                <div className="text-[10px] sm:text-xs mt-1">
                   <button
                     onClick={() => setShowExpenseDetails(!showExpenseDetails)}
-                    className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors cursor-pointer"
+                    className="flex items-center gap-0.5 bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded font-medium hover:bg-rose-100 transition-colors cursor-pointer"
                   >
                     <span>Детали</span>
-                    <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform ${showExpenseDetails ? 'rotate-180' : ''}`} />
+                    <ChevronDown className={`w-3 h-3 transition-transform ${showExpenseDetails ? 'rotate-180' : ''}`} />
                   </button>
                 </div>
 
@@ -1265,26 +1261,26 @@ function AnalyticsPageContent() {
                       transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
-                      <div className="space-y-1.5 text-xs mt-3 pt-3 border-t border-gray-200">
+                      <div className="space-y-1 sm:space-y-1.5 text-[10px] sm:text-xs mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200">
                         <div className="flex justify-between text-gray-600">
-                          <span>Себестоимость</span>
-                          <span className="font-medium">{(data.totalCost / 1000).toFixed(0)}K ₸</span>
+                          <span>Себест.</span>
+                          <span className="font-medium">{(data.totalCost / 1000).toFixed(0)}K</span>
                         </div>
                         <div className="flex justify-between text-gray-600">
                           <span>Реклама</span>
-                          <span className="font-medium">{(data.totalAdvertising / 1000).toFixed(0)}K ₸</span>
+                          <span className="font-medium">{(data.totalAdvertising / 1000).toFixed(0)}K</span>
                         </div>
                         <div className="flex justify-between text-gray-600">
                           <span>Налог</span>
-                          <span className="font-medium">{(data.totalTax / 1000).toFixed(0)}K ₸</span>
+                          <span className="font-medium">{(data.totalTax / 1000).toFixed(0)}K</span>
                         </div>
                         <div className="flex justify-between text-gray-600">
                           <span>Комиссия</span>
-                          <span className="font-medium">{(data.totalCommissions / 1000).toFixed(0)}K ₸</span>
+                          <span className="font-medium">{(data.totalCommissions / 1000).toFixed(0)}K</span>
                         </div>
                         <div className="flex justify-between text-gray-600">
                           <span>Доставка</span>
-                          <span className="font-medium">{(data.totalDelivery / 1000).toFixed(0)}K ₸</span>
+                          <span className="font-medium">{(data.totalDelivery / 1000).toFixed(0)}K</span>
                         </div>
                       </div>
                     </motion.div>
@@ -1292,17 +1288,16 @@ function AnalyticsPageContent() {
                 </AnimatePresence>
               </motion.div>
 
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
+              <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-teal-50 rounded-xl flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-teal-500" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
                   </div>
                   <span className="text-xs sm:text-sm text-gray-600">Прибыль</span>
                 </div>
-                <div className="text-xl sm:text-2xl font-bold text-teal-500">{(data.totalProfit / 1000).toFixed(0)}K ₸</div>
-                <div className="flex items-center justify-between mt-1">
-                  <span className="bg-teal-50 text-teal-600 px-1.5 py-0.5 rounded font-medium text-xs">{formatShortPeriod()}</span>
-                  <span className="text-xs text-gray-500">{profitMargin}%</span>
+                <div className="text-lg sm:text-2xl font-bold text-emerald-600">{(data.totalProfit / 1000).toFixed(0)}K ₸</div>
+                <div className="text-[10px] sm:text-xs mt-1">
+                  <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-medium">{profitMargin}% маржа</span>
                 </div>
               </motion.div>
             </motion.div>
@@ -1312,118 +1307,140 @@ function AnalyticsPageContent() {
           variants={containerVariants}
           initial="hidden"
           animate="visible"
-          className="grid grid-cols-1 gap-4 sm:gap-6 mb-6 sm:mb-8"
+          className="grid grid-cols-1 gap-3 sm:gap-6 mb-6 sm:mb-8"
         >
-          {/* Revenue Structure Chart - Stacked Bar */}
-          <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
-              <div className="flex items-center gap-2 sm:gap-3">
-                <h3 className="text-base sm:text-xl font-semibold text-gray-900">Структура выручки</h3>
-                <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
-              </div>
-            </div>
-
-            <ResponsiveContainer width="100%" height={280} className="sm:!h-[400px]">
-              <BarChart data={combinedChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                <XAxis dataKey="date" stroke="#6b7280" tick={{ fontSize: 12 }} />
-                <YAxis stroke="#6b7280" tick={{ fontSize: 12 }} tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid #e5e7eb',
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                  }}
-                  formatter={(value) => value !== undefined ? [`${value.toLocaleString('ru-RU')} ₸`] : ['']}
-                  labelFormatter={(label) => `Дата: ${label}`}
-                />
-                <Legend
-                  wrapperStyle={{ paddingTop: '20px' }}
-                  iconType="circle"
-                />
-                <Bar dataKey="cost" stackId="expenses" name="Закупочная стоимость" fill="#f5a3b0" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="commissions" stackId="expenses" name="Комиссия Kaspi" fill="#e88a7d" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="tax" stackId="expenses" name="Налоги" fill="#93c5fd" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="advertising" stackId="expenses" name="Реклама" fill="#a3e635" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="delivery" stackId="expenses" name="Стоимость доставки" fill="#d8b4fe" radius={[0, 0, 0, 0]} />
-                <Bar dataKey="profit" stackId="expenses" name="Прибыль" fill="#6ee7b7" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </motion.div>
-
           {/* Money Flow Chart - Line */}
-          <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 mb-4 sm:mb-6">
-              <div className="flex items-center gap-2 sm:gap-3">
+          <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-6 shadow-sm">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3 sm:mb-6">
+              <div className="flex items-center gap-2">
                 <h3 className="text-base sm:text-xl font-semibold text-gray-900">Движение денег</h3>
-                <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
+                <span className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-medium">{formatShortPeriod()}</span>
+                {/* Help Icon with Tooltip */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowChartHelp(!showChartHelp)}
+                    className="focus:outline-none"
+                  >
+                    <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                  </button>
+                </div>
               </div>
 
               {/* Previous Period Toggle */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs sm:text-sm text-gray-600">Прошлый период</span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] sm:text-sm text-gray-500">Прошлый период</span>
                 <button
                   onClick={() => setShowPreviousPeriod(!showPreviousPeriod)}
-                  className={`relative inline-flex h-5 w-9 sm:h-6 sm:w-11 items-center rounded-full transition-colors cursor-pointer ${
+                  className={`relative inline-flex h-4 w-7 sm:h-6 sm:w-11 items-center rounded-full transition-colors cursor-pointer ${
                     showPreviousPeriod ? 'bg-gray-500' : 'bg-gray-300'
                   }`}
                 >
                   <span
-                    className={`inline-block h-3.5 w-3.5 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform ${
-                      showPreviousPeriod ? 'translate-x-4 sm:translate-x-6' : 'translate-x-1'
+                    className={`inline-block h-3 w-3 sm:h-4 sm:w-4 transform rounded-full bg-white transition-transform ${
+                      showPreviousPeriod ? 'translate-x-3 sm:translate-x-6' : 'translate-x-0.5 sm:translate-x-1'
                     }`}
                   />
                 </button>
               </div>
             </div>
 
-            <ResponsiveContainer width="100%" height={280} className="sm:!h-[400px]">
+            {/* Line Toggle Buttons */}
+            <div className="flex flex-wrap gap-2 sm:gap-3 mb-3 sm:mb-4">
+              <button
+                onClick={() => setShowRevenueLine(!showRevenueLine)}
+                className={`flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all ${
+                  showRevenueLine
+                    ? 'bg-sky-100 text-sky-700 border border-sky-200'
+                    : 'bg-gray-100 text-gray-400 border border-gray-200'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${showRevenueLine ? 'bg-sky-500' : 'bg-gray-300'}`} />
+                Поступления
+              </button>
+              <button
+                onClick={() => setShowExpensesLine(!showExpensesLine)}
+                className={`flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all ${
+                  showExpensesLine
+                    ? 'bg-rose-100 text-rose-700 border border-rose-200'
+                    : 'bg-gray-100 text-gray-400 border border-gray-200'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${showExpensesLine ? 'bg-rose-400' : 'bg-gray-300'}`} />
+                Расходы
+              </button>
+              <button
+                onClick={() => setShowProfitLine(!showProfitLine)}
+                className={`flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all ${
+                  showProfitLine
+                    ? 'bg-teal-100 text-teal-700 border border-teal-200'
+                    : 'bg-gray-100 text-gray-400 border border-gray-200'
+                }`}
+              >
+                <span className={`w-2 h-2 rounded-full ${showProfitLine ? 'bg-teal-400' : 'bg-gray-300'}`} />
+                Прибыль
+              </button>
+            </div>
+
+            <ResponsiveContainer width="100%" height={280} className="sm:!h-[450px]">
               <LineChart data={combinedChartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                <XAxis dataKey="date" stroke="#6b7280" />
-                <YAxis stroke="#6b7280" />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                <XAxis dataKey="date" stroke="#6b7280" tick={{ fontSize: 12 }} />
+                <YAxis stroke="#6b7280" tick={{ fontSize: 12 }} tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                    backdropFilter: 'blur(10px)',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    borderRadius: '12px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                    border: '1px solid #e5e7eb',
+                    borderRadius: '10px',
+                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.1)',
+                    padding: '8px 12px',
+                    fontSize: '12px',
+                  }}
+                  formatter={(value, name) => value !== undefined ? [`${Number(value).toLocaleString('ru-RU')} ₸`, name] : ['']}
+                  labelFormatter={(label) => label}
+                  labelStyle={{ fontSize: '11px', color: '#6b7280', marginBottom: '4px' }}
+                  itemSorter={(item) => {
+                    const order: Record<string, number> = { 'revenue': 0, 'totalExpenses': 1, 'profit': 2, 'prevRevenue': 3, 'prevExpenses': 4, 'prevProfit': 5 };
+                    return order[item.dataKey as string] ?? 99;
                   }}
                 />
-                <Legend />
                 {/* Current Period Lines */}
-                <Line
-                  type="monotone"
-                  dataKey="revenue"
-                  name="Поступления (₸)"
-                  stroke="#0ea5e9"
-                  strokeWidth={3}
-                  dot={{ fill: '#0ea5e9', r: 4 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="totalExpenses"
-                  name="Расходы (₸)"
-                  stroke="#fb7185"
-                  strokeWidth={3}
-                  dot={{ fill: '#fb7185', r: 4 }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="profit"
-                  name="Прибыль (₸)"
-                  stroke="#2dd4bf"
-                  strokeWidth={3}
-                  dot={{ fill: '#2dd4bf', r: 4 }}
-                />
+                {showRevenueLine && (
+                  <Line
+                    type="monotone"
+                    dataKey="revenue"
+                    name="Поступления"
+                    stroke="#0ea5e9"
+                    strokeWidth={2}
+                    dot={{ fill: '#0ea5e9', r: 3 }}
+                  />
+                )}
+                {showExpensesLine && (
+                  <Line
+                    type="monotone"
+                    dataKey="totalExpenses"
+                    name="Расходы"
+                    stroke="#fb7185"
+                    strokeWidth={2}
+                    dot={{ fill: '#fb7185', r: 3 }}
+                  />
+                )}
+                {showProfitLine && (
+                  <Line
+                    type="monotone"
+                    dataKey="profit"
+                    name="Прибыль"
+                    stroke="#2dd4bf"
+                    strokeWidth={2}
+                    dot={{ fill: '#2dd4bf', r: 3 }}
+                  />
+                )}
                 {/* Previous Period Lines (Dashed) */}
-                {showPreviousPeriod && (
+                {showPreviousPeriod && showRevenueLine && (
                   <Line
                     type="monotone"
                     dataKey="prevRevenue"
-                    name="Поступления прошл. (₸)"
+                    name="Пост. прошл."
                     stroke="#0ea5e9"
                     strokeWidth={2}
                     strokeDasharray="5 5"
@@ -1431,11 +1448,11 @@ function AnalyticsPageContent() {
                     opacity={0.5}
                   />
                 )}
-                {showPreviousPeriod && (
+                {showPreviousPeriod && showExpensesLine && (
                   <Line
                     type="monotone"
                     dataKey="prevExpenses"
-                    name="Расходы прошл. (₸)"
+                    name="Расх. прошл."
                     stroke="#fb7185"
                     strokeWidth={2}
                     strokeDasharray="5 5"
@@ -1443,11 +1460,11 @@ function AnalyticsPageContent() {
                     opacity={0.5}
                   />
                 )}
-                {showPreviousPeriod && (
+                {showPreviousPeriod && showProfitLine && (
                   <Line
                     type="monotone"
                     dataKey="prevProfit"
-                    name="Прибыль прошл. (₸)"
+                    name="Приб. прошл."
                     stroke="#2dd4bf"
                     strokeWidth={2}
                     strokeDasharray="5 5"
@@ -1460,19 +1477,19 @@ function AnalyticsPageContent() {
           </motion.div>
 
           {/* Детализация данных графика */}
-          <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm">
-            <div className="flex items-center gap-2 sm:gap-3 mb-4">
+          <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-6 shadow-sm">
+            <div className="flex items-center gap-2 mb-3 sm:mb-4">
               <h3 className="text-sm sm:text-lg font-semibold text-gray-900">Детализация по дням</h3>
-              <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
+              <span className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-medium">{formatShortPeriod()}</span>
             </div>
-            <div className="overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0">
-              <table className="w-full text-xs sm:text-sm min-w-[400px]">
+            <div>
+              <table className="w-full text-xs sm:text-sm">
                 <thead>
                   <tr className="border-b border-gray-200">
-                    <th className="py-2 sm:py-3 px-2 sm:px-4 font-medium text-gray-500 text-left">Дата</th>
-                    <th className="py-2 sm:py-3 px-2 sm:px-4 font-medium text-sky-600 text-right">Поступления</th>
-                    <th className="py-2 sm:py-3 px-2 sm:px-4 font-medium text-rose-400 text-right">Расходы</th>
-                    <th className="py-2 sm:py-3 px-2 sm:px-4 font-medium text-teal-500 text-right">Прибыль</th>
+                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 text-left">Дата</th>
+                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 text-right">Поступ.</th>
+                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 text-right">Расходы</th>
+                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 text-right">Прибыль</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1487,14 +1504,14 @@ function AnalyticsPageContent() {
                           setShowTableDayPopup(true);
                         }}
                       >
-                        <td className="py-2 sm:py-3 px-2 sm:px-4 text-gray-900 text-left whitespace-nowrap">{day.date} ({day.day})</td>
-                        <td className="py-2 sm:py-3 px-2 sm:px-4 text-sky-600 font-medium text-right whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 text-left whitespace-nowrap">{day.date}{day.day ? ` (${day.day})` : ''}</td>
+                        <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-700 font-medium text-right whitespace-nowrap">
                           {day.revenue.toLocaleString('ru-RU')} ₸
                         </td>
-                        <td className="py-2 sm:py-3 px-2 sm:px-4 text-rose-400 font-medium text-right whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-700 font-medium text-right whitespace-nowrap">
                           {dayExpenses.toLocaleString('ru-RU')} ₸
                         </td>
-                        <td className="py-2 sm:py-3 px-2 sm:px-4 text-teal-500 font-medium text-right whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1 sm:px-2 text-emerald-600 font-medium text-right whitespace-nowrap">
                           {day.profit.toLocaleString('ru-RU')} ₸
                         </td>
                       </tr>
@@ -1506,14 +1523,14 @@ function AnalyticsPageContent() {
                     className="bg-gray-50 font-semibold hover:bg-gray-100 cursor-pointer transition-colors"
                     onClick={() => setShowTotalPopup(true)}
                   >
-                    <td className="py-2 sm:py-3 px-2 sm:px-4 text-gray-900 text-left">Итого</td>
-                    <td className="py-2 sm:py-3 px-2 sm:px-4 text-sky-600 text-right whitespace-nowrap">
+                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 text-left whitespace-nowrap">Итого</td>
+                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 text-right whitespace-nowrap">
                       {data.totalRevenue.toLocaleString('ru-RU')} ₸
                     </td>
-                    <td className="py-2 sm:py-3 px-2 sm:px-4 text-rose-400 text-right whitespace-nowrap">
+                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 text-right whitespace-nowrap">
                       {(data.totalCost + data.totalAdvertising + data.totalCommissions + data.totalTax + data.totalDelivery).toLocaleString('ru-RU')} ₸
                     </td>
-                    <td className="py-2 sm:py-3 px-2 sm:px-4 text-teal-500 text-right whitespace-nowrap">
+                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-emerald-600 text-right whitespace-nowrap">
                       {data.totalProfit.toLocaleString('ru-RU')} ₸
                     </td>
                   </tr>
@@ -1541,7 +1558,7 @@ function AnalyticsPageContent() {
                 className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl text-sm font-medium transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
               >
                 <Plus className="w-4 h-4" />
-                Добавить опер. расходы
+                Операционные расходы
               </button>
             </div>
 
@@ -3251,40 +3268,6 @@ function AnalyticsPageContent() {
                     </div>
                   </div>
 
-                  {/* Orders */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Заказы ({selectedTableDay.orders})</h3>
-                    <div className="space-y-2">
-                      {Array.from({ length: Math.min(selectedTableDay.orders, 5) }).map((_, i) => {
-                        const orderNum = 100000 + (i + 1) * 12345;
-                        const orderAmount = Math.round(selectedTableDay.revenue / selectedTableDay.orders * (0.8 + (i * 0.1)));
-                        const productIndex = i % data.topProducts.length;
-                        const product = data.topProducts[productIndex];
-                        const isOrganic = i % 3 !== 0;
-                        return (
-                          <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div className="flex-1 min-w-0 pr-3">
-                              <div className="font-medium text-gray-900">Заказ #{orderNum}</div>
-                              <div className="text-sm text-gray-700 truncate">{product.name}</div>
-                              <div className={`text-xs ${isOrganic ? 'text-blue-500' : 'text-orange-500'}`}>
-                                {isOrganic ? 'Органика' : 'Реклама'}
-                              </div>
-                            </div>
-                            <div className="text-right flex-shrink-0">
-                              <div className="font-semibold text-gray-900">{orderAmount.toLocaleString('ru-RU')} ₸</div>
-                              <div className="text-xs text-emerald-600">Доставлен</div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                      {selectedTableDay.orders > 5 && (
-                        <div className="text-center text-sm text-gray-500 py-2">
-                          ... и ещё {selectedTableDay.orders - 5} заказов
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
                   {/* Expense Breakdown */}
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Детализация расходов</h3>
@@ -4274,6 +4257,48 @@ function AnalyticsPageContent() {
                     Закрыть
                   </button>
                 </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Chart Help Popup */}
+        <AnimatePresence>
+          {showChartHelp && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowChartHelp(false)}
+                className="fixed inset-0 bg-black/30 z-50"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="fixed left-4 right-4 top-1/2 -translate-y-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:w-72 bg-white rounded-xl shadow-xl z-50 p-4"
+              >
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-sm font-medium text-gray-900">Что учитывается:</p>
+                  <button onClick={() => setShowChartHelp(false)} className="text-gray-400 hover:text-gray-600">
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+                <ul className="text-xs text-gray-600 space-y-1.5">
+                  <li className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-sky-500 flex-shrink-0" />
+                    <span><b>Поступления</b> — выручка</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-rose-400 flex-shrink-0" />
+                    <span><b>Расходы</b> — закуп + комиссия + налог + доставка + реклама</span>
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-teal-400 flex-shrink-0" />
+                    <span><b>Прибыль</b> — поступления − расходы</span>
+                  </li>
+                </ul>
               </motion.div>
             </>
           )}

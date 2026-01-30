@@ -1143,16 +1143,14 @@ export default function DashboardPage() {
                 <div className="flex-1 min-w-0">
                   <span className="text-gray-700 truncate block">{product.name}</span>
                 </div>
-                <div className="text-right flex-shrink-0 flex items-center gap-3">
-                  <div className={`text-[10px] px-1.5 py-0.5 rounded ${
+                <div className="text-right flex-shrink-0 flex items-center gap-2">
+                  <div className={`text-[10px] px-1.5 py-0.5 rounded min-w-[58px] text-center ${
                     product.stock < 10 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'
                   }`}>
                     <span className="opacity-70">склад:</span> {product.stock}
                   </div>
-                  <div>
-                    <span className="font-medium text-gray-900">{product.sold} шт</span>
-                    <span className="text-gray-400 ml-1">· {(product.revenue / 1000000).toFixed(1)}M ₸</span>
-                  </div>
+                  <span className="font-medium text-gray-900 min-w-[40px] text-right">{product.sold} шт</span>
+                  <span className="text-gray-400 min-w-[50px] text-right">· {(product.revenue / 1000000).toFixed(1)}M ₸</span>
                 </div>
               </div>
             ))}
