@@ -148,7 +148,11 @@ export default function DashboardPage() {
       total: 47,
       positive: 38,   // 5 звёзд
       good: 6,        // 4 звезды
-      negative: 3     // 1-3 звезды
+      negative: 3,    // 1-3 звезды
+      // Отзывы по дням (Пн-Вс)
+      weeklyReviews: [5, 8, 4, 9, 7, 8, 6],
+      weeklyPositive: [4, 6, 3, 7, 6, 7, 5],
+      weeklyNegative: [0, 1, 0, 1, 0, 0, 1]
     },
     // Топ товаров за неделю (топ 3)
     topProducts: [
@@ -794,7 +798,7 @@ export default function DashboardPage() {
         {/* Отзывы за неделю */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-xl p-4 shadow-sm"
+          className="bg-white rounded-xl p-4 shadow-sm overflow-hidden"
         >
           <div
             className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
@@ -811,7 +815,7 @@ export default function DashboardPage() {
             </div>
           </div>
           {/* Распределение отзывов */}
-          <div className="space-y-1.5 text-xs">
+          <div className="space-y-1.5 text-xs mb-3">
             <div className="flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
@@ -834,6 +838,110 @@ export default function DashboardPage() {
               <span className="font-medium text-red-600">{dashboardData.reviews.negative}</span>
             </div>
           </div>
+
+          {/* График отзывов за неделю */}
+          <div className="text-[10px] text-gray-400 mb-1">Динамика отзывов</div>
+          {(() => {
+            const reviews = dashboardData.reviews.weeklyReviews;
+            const maxVal = Math.max(...reviews);
+            const minVal = Math.min(...reviews);
+            const chartH = 50;
+            const pad = 6;
+            const pointsCount = reviews.length;
+
+            const getY = (val: number) => {
+              const range = maxVal - minVal || 1;
+              const norm = (val - minVal) / range;
+              return pad + (1 - norm) * (chartH - pad * 2);
+            };
+
+            return (
+              <div>
+                <div className="relative h-[60px]">
+                  <svg className="w-full h-full" viewBox="0 0 100 50" preserveAspectRatio="none">
+                    {/* Горизонтальные линии */}
+                    {[0, 0.5, 1].map((ratio, i) => (
+                      <line
+                        key={`grid-${i}`}
+                        x1="0"
+                        y1={pad + ratio * (chartH - pad * 2)}
+                        x2="100"
+                        y2={pad + ratio * (chartH - pad * 2)}
+                        stroke="#e5e7eb"
+                        strokeWidth="1"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    ))}
+                    {/* Градиент */}
+                    <defs>
+                      <linearGradient id="reviewsGradient" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.3" />
+                        <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.05" />
+                      </linearGradient>
+                    </defs>
+                    {/* Заливка */}
+                    <path
+                      d={`M 2,${getY(reviews[0])} ${reviews.map((val, i) => {
+                        const x = 2 + (i / (pointsCount - 1)) * 96;
+                        return `L ${x},${getY(val)}`;
+                      }).join(' ')} L 98,${chartH} L 2,${chartH} Z`}
+                      fill="url(#reviewsGradient)"
+                    />
+                    {/* Линия */}
+                    <polyline
+                      points={reviews.map((val, i) => {
+                        const x = 2 + (i / (pointsCount - 1)) * 96;
+                        return `${x},${getY(val)}`;
+                      }).join(' ')}
+                      fill="none"
+                      stroke="#f59e0b"
+                      strokeWidth="2"
+                      vectorEffect="non-scaling-stroke"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                  {/* Точки */}
+                  {reviews.map((val, i) => {
+                    const xPercent = 2 + (i / (pointsCount - 1)) * 96;
+                    const y = getY(val);
+                    const isToday = i === pointsCount - 1;
+                    return (
+                      <div
+                        key={`review-dot-${i}`}
+                        className="absolute transition-all pointer-events-none"
+                        style={{
+                          left: `${xPercent}%`,
+                          top: `${(y / 50) * 100}%`,
+                          transform: 'translate(-50%, -50%)',
+                          width: isToday ? 8 : 5,
+                          height: isToday ? 8 : 5,
+                          borderRadius: '50%',
+                          backgroundColor: '#f59e0b',
+                        }}
+                      />
+                    );
+                  })}
+                </div>
+                {/* Подписи */}
+                <div className="flex justify-between mt-1" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
+                  {reviews.map((val, idx) => {
+                    const date = new Date();
+                    date.setDate(date.getDate() - (6 - idx));
+                    const isToday = idx === reviews.length - 1;
+                    return (
+                      <div key={idx} className="flex flex-col items-center">
+                        <span className="text-[9px] text-amber-600">{val}</span>
+                        <span className={`text-[10px] ${isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
+                          {date.getDate()}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
         </motion.div>
 
         {/* Топ товаров за неделю */}
