@@ -331,9 +331,11 @@ export default function DashboardPage() {
             };
 
             return (
-              <div className="relative" ref={chartRef} onMouseLeave={() => setChartTooltip(null)}>
+              <div ref={chartRef} onMouseLeave={() => setChartTooltip(null)}>
+                {/* Контейнер графика с фиксированной высотой */}
+                <div className="relative h-[60px]">
                 {/* SVG график */}
-                <svg className="w-full h-[60px]" viewBox="0 0 100 60" preserveAspectRatio="none">
+                <svg className="w-full h-full" viewBox="0 0 100 60" preserveAspectRatio="none">
                   {/* Линия прошлой недели (синяя, снизу) */}
                   <polyline
                     points={prevWeekData.map((val, i) => {
@@ -487,6 +489,7 @@ export default function DashboardPage() {
                     <div className="absolute left-1/2 -translate-x-1/2 bottom-[-6px] w-3 h-3 bg-gray-900 rotate-45"></div>
                   </div>
                 )}
+                </div>
 
                 {/* Подписи дат и значений */}
                 <div className="flex justify-between mt-1">
