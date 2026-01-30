@@ -593,11 +593,10 @@ export default function DashboardPage() {
                       : dashboardData.awaitingPayment.totalAmount.toLocaleString('ru-RU')
                     } ₸
                   </div>
-                  {/* Выдано и заказы при выборе дня */}
+                  {/* Выдано при выборе дня */}
                   {isShowingPayment && (
-                    <div className="flex items-center gap-3 mt-1 text-xs text-gray-500">
-                      <span>Выдано: <span className="font-medium text-gray-700">{issuedCount[selectedPaymentDayIdx!]}</span></span>
-                      <span>Заказов: <span className="font-medium text-gray-700">{orders[selectedPaymentDayIdx!]}</span></span>
+                    <div className="mt-1 text-xs text-gray-500">
+                      Выдано: <span className="font-medium text-gray-700">{issuedCount[selectedPaymentDayIdx!]}</span>
                     </div>
                   )}
                 </div>
