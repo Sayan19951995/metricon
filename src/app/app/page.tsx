@@ -25,6 +25,7 @@ export default function DashboardPage() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [showGrowthTooltip, setShowGrowthTooltip] = useState(false);
   const [chartTooltip, setChartTooltip] = useState<{ idx: number; x: number; y: number } | null>(null);
+  const [selectedDayIdx, setSelectedDayIdx] = useState(6); // По умолчанию сегодня (последний день)
   const notificationsRef = useRef<HTMLDivElement>(null);
   const growthTooltipRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -62,7 +63,9 @@ export default function DashboardPage() {
       // Данные за текущую неделю (Пн-Вс)
       weekData: [980000, 1250000, 1120000, 1450000, 1680000, 1890000, 1547800],
       // Данные за прошлую неделю (для сравнения)
-      prevWeekData: [870000, 1180000, 1050000, 1320000, 1490000, 1680000, 1375000]
+      prevWeekData: [870000, 1180000, 1050000, 1320000, 1490000, 1680000, 1375000],
+      // Заказы по дням текущей недели
+      ordersPerDay: [12, 15, 14, 19, 22, 25, 18]
     },
     // Стоимость склада
     warehouse: {
@@ -243,64 +246,80 @@ export default function DashboardPage() {
         initial="hidden"
         animate="visible"
       >
-        {/* Продажи сегодня - объединённый блок */}
+        {/* Продажи - объединённый блок */}
         <motion.div
           variants={itemVariants}
           className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
           onClick={() => router.push('/app/analytics')}
         >
           {/* Заголовок с суммой и количеством */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                <TrendingUp className="w-5 h-5 text-emerald-600" />
-              </div>
-              <div>
-                <h3 className="text-gray-500 text-xs">Продажи сегодня</h3>
-                <div className="text-xl font-bold text-gray-900">
-                  {dashboardData.yesterdaySales.revenue.toLocaleString('ru-RU')} ₸
-                </div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="flex items-center gap-1.5">
-                <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium ${
-                  dashboardData.yesterdaySales.growth >= 0
-                    ? 'bg-emerald-100 text-emerald-700'
-                    : 'bg-red-100 text-red-700'
-                }`}>
-                  {dashboardData.yesterdaySales.growth >= 0 ? (
-                    <ArrowUpRight className="w-3 h-3" />
-                  ) : (
-                    <ArrowDownRight className="w-3 h-3" />
-                  )}
-                  {Math.abs(dashboardData.yesterdaySales.growth)}%
-                </div>
-                <div className="relative" ref={growthTooltipRef}>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setShowGrowthTooltip(!showGrowthTooltip);
-                    }}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
-                  >
-                    <HelpCircle className="w-3.5 h-3.5" />
-                  </button>
-                  {showGrowthTooltip && (
-                    <div className="absolute right-0 top-6 z-50 w-52 p-2.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
-                      <p>Изменение продаж по сравнению с тем же днём прошлой недели</p>
-                      <div className="absolute -top-1.5 right-2 w-3 h-3 bg-gray-900 rotate-45"></div>
+          {(() => {
+            const selectedRevenue = dashboardData.yesterdaySales.weekData[selectedDayIdx];
+            const prevWeekRevenue = dashboardData.yesterdaySales.prevWeekData[selectedDayIdx];
+            const selectedOrders = dashboardData.yesterdaySales.ordersPerDay[selectedDayIdx];
+            const growth = prevWeekRevenue > 0 ? ((selectedRevenue - prevWeekRevenue) / prevWeekRevenue * 100) : 0;
+            const isToday = selectedDayIdx === 6;
+
+            // Получаем дату для выбранного дня
+            const selectedDate = new Date();
+            selectedDate.setDate(selectedDate.getDate() - (6 - selectedDayIdx));
+            const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+            const dayLabel = isToday ? 'Продажи сегодня' : `Продажи за ${dayNames[selectedDate.getDay()]}, ${selectedDate.getDate()}.${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
+
+            return (
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-gray-500 text-xs">{dayLabel}</h3>
+                    <div className="text-xl font-bold text-gray-900">
+                      {selectedRevenue.toLocaleString('ru-RU')} ₸
                     </div>
-                  )}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="flex items-center gap-1.5">
+                    <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium ${
+                      growth >= 0
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-red-100 text-red-700'
+                    }`}>
+                      {growth >= 0 ? (
+                        <ArrowUpRight className="w-3 h-3" />
+                      ) : (
+                        <ArrowDownRight className="w-3 h-3" />
+                      )}
+                      {Math.abs(growth).toFixed(1)}%
+                    </div>
+                    <div className="relative" ref={growthTooltipRef}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowGrowthTooltip(!showGrowthTooltip);
+                        }}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        <HelpCircle className="w-3.5 h-3.5" />
+                      </button>
+                      {showGrowthTooltip && (
+                        <div className="absolute right-0 top-6 z-50 w-52 p-2.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
+                          <p>Изменение продаж по сравнению с тем же днём прошлой недели</p>
+                          <div className="absolute -top-1.5 right-2 w-3 h-3 bg-gray-900 rotate-45"></div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 mt-1">
+                    <ShoppingCart className="w-3.5 h-3.5 text-blue-500" />
+                    <span className="text-sm font-semibold text-gray-700">{selectedOrders}</span>
+                    <span className="text-xs text-gray-400">заказов</span>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-1 mt-1">
-                <ShoppingCart className="w-3.5 h-3.5 text-blue-500" />
-                <span className="text-sm font-semibold text-gray-700">{dashboardData.todayOrders.total}</span>
-                <span className="text-xs text-gray-400">заказов</span>
-              </div>
-            </div>
-          </div>
+            );
+          })()}
 
           {/* Линейный график - текущая vs прошлая неделя */}
           <div className="text-[10px] text-gray-400 mb-2 flex items-center gap-4">
@@ -502,29 +521,41 @@ export default function DashboardPage() {
                 </div>
                 </div>
 
-                {/* Подписи дат и значений */}
-                <div className="flex justify-between mt-1">
+                {/* Подписи дат и значений - кликабельные */}
+                <div className="flex justify-between mt-2">
                   {currentWeekData.map((currentValue, idx) => {
                     const prevValue = prevWeekData[idx];
                     const isToday = idx === currentWeekData.length - 1;
+                    const isSelected = idx === selectedDayIdx;
                     const date = new Date();
                     date.setDate(date.getDate() - (6 - idx));
                     const dayNum = date.getDate();
                     return (
-                      <div key={idx} className="flex flex-col items-center">
+                      <button
+                        key={idx}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedDayIdx(idx);
+                        }}
+                        className={`flex flex-col items-center px-1.5 py-1 rounded-lg transition-all ${
+                          isSelected
+                            ? 'bg-emerald-100 shadow-sm'
+                            : 'hover:bg-gray-100'
+                        }`}
+                      >
                         <div className="flex gap-0.5">
-                          <span className={`text-[10px] text-emerald-600 ${isToday ? 'font-semibold' : ''}`}>
+                          <span className={`text-[10px] ${isSelected ? 'text-emerald-700 font-semibold' : 'text-emerald-600'}`}>
                             {Math.round(currentValue / 1000)}
                           </span>
                           <span className="text-[10px] text-gray-300">/</span>
-                          <span className={`text-[10px] text-blue-600 ${isToday ? 'font-semibold' : ''}`}>
+                          <span className={`text-[10px] ${isSelected ? 'text-blue-700 font-semibold' : 'text-blue-600'}`}>
                             {Math.round(prevValue / 1000)}
                           </span>
                         </div>
-                        <span className={`text-xs ${isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
+                        <span className={`text-xs ${isSelected ? 'text-emerald-700 font-semibold' : isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
                           {dayNum}
                         </span>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
