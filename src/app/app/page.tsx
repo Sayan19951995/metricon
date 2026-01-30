@@ -251,10 +251,9 @@ export default function DashboardPage() {
         {/* Продажи - объединённый блок */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-          onClick={() => router.push('/app/analytics')}
+          className="bg-white rounded-xl p-4 shadow-sm"
         >
-          {/* Заголовок с суммой и количеством */}
+          {/* Заголовок с суммой и количеством - кликабельный */}
           {(() => {
             const selectedRevenue = dashboardData.yesterdaySales.weekData[selectedDayIdx];
             const prevWeekRevenue = dashboardData.yesterdaySales.prevWeekData[selectedDayIdx];
@@ -269,7 +268,10 @@ export default function DashboardPage() {
             const dayLabel = isToday ? 'Продажи сегодня' : `Продажи за ${dayNames[selectedDate.getDay()]}, ${selectedDate.getDate()}.${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
 
             return (
-              <div className="flex items-center justify-between mb-4">
+              <div
+                className="flex items-center justify-between mb-4 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
+                onClick={() => router.push('/app/analytics')}
+              >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
                     <TrendingUp className="w-5 h-5 text-emerald-600" />
@@ -539,7 +541,7 @@ export default function DashboardPage() {
                           e.stopPropagation();
                           setSelectedDayIdx(idx);
                         }}
-                        className={`flex flex-col items-center px-1.5 py-1 rounded-lg transition-all ${
+                        className={`flex flex-col items-center px-1.5 py-1 rounded-lg transition-all cursor-pointer ${
                           isSelected
                             ? 'bg-emerald-100 shadow-sm'
                             : 'hover:bg-gray-100'
@@ -569,10 +571,12 @@ export default function DashboardPage() {
         {/* Ожидаем платежа */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-          onClick={() => router.push('/app/orders')}
+          className="bg-white rounded-xl p-4 shadow-sm"
         >
-          <div className="flex items-center gap-3 mb-3">
+          <div
+            className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
+            onClick={() => router.push('/app/orders')}
+          >
             <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
               <Truck className="w-5 h-5 text-indigo-600" />
             </div>
@@ -668,10 +672,12 @@ export default function DashboardPage() {
         {/* Отзывы за неделю */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-          onClick={() => router.push('/app/analytics?tab=reviews')}
+          className="bg-white rounded-xl p-4 shadow-sm"
         >
-          <div className="flex items-center gap-3 mb-3">
+          <div
+            className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
+            onClick={() => router.push('/app/analytics?tab=reviews')}
+          >
             <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
               <Star className="w-5 h-5 text-amber-500" />
             </div>
@@ -711,10 +717,12 @@ export default function DashboardPage() {
         {/* Топ товаров за неделю */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-          onClick={() => router.push('/app/products')}
+          className="bg-white rounded-xl p-4 shadow-sm"
         >
-          <div className="flex items-center gap-3 mb-3">
+          <div
+            className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
+            onClick={() => router.push('/app/products')}
+          >
             <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
               <Trophy className="w-5 h-5 text-purple-600" />
             </div>
