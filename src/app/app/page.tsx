@@ -319,7 +319,7 @@ export default function DashboardPage() {
             const allData = [...currentWeekData, ...prevWeekData];
             const maxValue = Math.max(...allData);
             const minValue = Math.min(...allData);
-            const chartHeight = 50;
+            const chartHeight = 80;
             const padding = 8;
             const pointsCount = currentWeekData.length;
 
@@ -330,12 +330,22 @@ export default function DashboardPage() {
               return padding + (1 - normalized) * (chartHeight - padding * 2);
             };
 
+            // Значения для Y-оси (3 уровня)
+            const yAxisValues = [maxValue, (maxValue + minValue) / 2, minValue];
+
             return (
               <div ref={chartRef} onMouseLeave={() => setChartTooltip(null)}>
                 {/* Контейнер графика с фиксированной высотой */}
-                <div className="relative h-[60px]">
-                {/* SVG график */}
-                <svg className="w-full h-full" viewBox="0 0 100 60" preserveAspectRatio="none">
+                <div className="relative h-[100px] flex">
+                {/* Y-ось слева */}
+                <div className="flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '32px' }}>
+                  {yAxisValues.map((val, i) => (
+                    <span key={i} className="text-right">{Math.round(val / 1000)}k</span>
+                  ))}
+                </div>
+                {/* Область графика */}
+                <div className="flex-1 relative">
+                <svg className="w-full h-full" viewBox="0 0 100 80" preserveAspectRatio="none">
                   {/* Линия прошлой недели (синяя, снизу) */}
                   <polyline
                     points={prevWeekData.map((val, i) => {
@@ -371,7 +381,7 @@ export default function DashboardPage() {
                       x1={2 + (chartTooltip.idx / (pointsCount - 1)) * 96}
                       y1={0}
                       x2={2 + (chartTooltip.idx / (pointsCount - 1)) * 96}
-                      y2={60}
+                      y2={80}
                       stroke="#9ca3af"
                       strokeWidth="1"
                       vectorEffect="non-scaling-stroke"
@@ -391,7 +401,7 @@ export default function DashboardPage() {
                       className="absolute cursor-pointer transition-all"
                       style={{
                         left: `${xPercent}%`,
-                        top: `${(y / 60) * 100}%`,
+                        top: `${(y / 80) * 100}%`,
                         transform: 'translate(-50%, -50%)',
                         width: isHovered ? 12 : isToday ? 8 : 6,
                         height: isHovered ? 12 : isToday ? 8 : 6,
@@ -423,7 +433,7 @@ export default function DashboardPage() {
                       className="absolute cursor-pointer transition-all"
                       style={{
                         left: `${xPercent}%`,
-                        top: `${(y / 60) * 100}%`,
+                        top: `${(y / 80) * 100}%`,
                         transform: 'translate(-50%, -50%)',
                         width: isHovered ? 10 : isToday ? 6 : 5,
                         height: isHovered ? 10 : isToday ? 6 : 5,
@@ -489,6 +499,7 @@ export default function DashboardPage() {
                     <div className="absolute left-1/2 -translate-x-1/2 bottom-[-6px] w-3 h-3 bg-gray-900 rotate-45"></div>
                   </div>
                 )}
+                </div>
                 </div>
 
                 {/* Подписи дат и значений */}
