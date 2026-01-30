@@ -446,19 +446,33 @@ export default function DashboardPage() {
                   const isToday = i === pointsCount - 1;
                   const isSelected = i === selectedDayIdx;
                   return (
-                    <div
-                      key={`current-dot-${i}`}
-                      className="absolute transition-all pointer-events-none"
-                      style={{
-                        left: `${xPercent}%`,
-                        top: `${(y / 80) * 100}%`,
-                        transform: 'translate(-50%, -50%)',
-                        width: isSelected ? 10 : isToday ? 8 : 6,
-                        height: isSelected ? 10 : isToday ? 8 : 6,
-                        borderRadius: '50%',
-                        backgroundColor: isSelected ? '#047857' : isToday ? '#059669' : '#10b981',
-                      }}
-                    />
+                    <div key={`current-dot-${i}`}>
+                      <div
+                        className="absolute transition-all pointer-events-none"
+                        style={{
+                          left: `${xPercent}%`,
+                          top: `${(y / 80) * 100}%`,
+                          transform: 'translate(-50%, -50%)',
+                          width: isSelected ? 10 : isToday ? 8 : 6,
+                          height: isSelected ? 10 : isToday ? 8 : 6,
+                          borderRadius: '50%',
+                          backgroundColor: isSelected ? '#047857' : isToday ? '#059669' : '#10b981',
+                        }}
+                      />
+                      {/* Лейбл при выборе */}
+                      {isSelected && (
+                        <div
+                          className="absolute pointer-events-none text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1 rounded"
+                          style={{
+                            left: `${xPercent}%`,
+                            top: `${(y / 80) * 100 - 12}%`,
+                            transform: 'translate(-50%, -50%)',
+                          }}
+                        >
+                          {(val / 1000).toFixed(0)}k
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
                 {/* Точки прошлой недели */}
@@ -468,20 +482,34 @@ export default function DashboardPage() {
                   const isToday = i === pointsCount - 1;
                   const isSelected = i === selectedDayIdx;
                   return (
-                    <div
-                      key={`prev-dot-${i}`}
-                      className="absolute transition-all pointer-events-none"
-                      style={{
-                        left: `${xPercent}%`,
-                        top: `${(y / 80) * 100}%`,
-                        transform: 'translate(-50%, -50%)',
-                        width: isSelected ? 8 : isToday ? 6 : 5,
-                        height: isSelected ? 8 : isToday ? 6 : 5,
-                        borderRadius: '50%',
-                        backgroundColor: isSelected ? '#1d4ed8' : '#3b82f6',
-                        opacity: 0.7,
-                      }}
-                    />
+                    <div key={`prev-dot-${i}`}>
+                      <div
+                        className="absolute transition-all pointer-events-none"
+                        style={{
+                          left: `${xPercent}%`,
+                          top: `${(y / 80) * 100}%`,
+                          transform: 'translate(-50%, -50%)',
+                          width: isSelected ? 8 : isToday ? 6 : 5,
+                          height: isSelected ? 8 : isToday ? 6 : 5,
+                          borderRadius: '50%',
+                          backgroundColor: isSelected ? '#1d4ed8' : '#3b82f6',
+                          opacity: isSelected ? 1 : 0.7,
+                        }}
+                      />
+                      {/* Лейбл при выборе */}
+                      {isSelected && (
+                        <div
+                          className="absolute pointer-events-none text-[10px] font-semibold text-blue-700 bg-blue-50 px-1 rounded"
+                          style={{
+                            left: `${xPercent}%`,
+                            top: `${(y / 80) * 100 + 12}%`,
+                            transform: 'translate(-50%, -50%)',
+                          }}
+                        >
+                          {(val / 1000).toFixed(0)}k
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
                 </div>
@@ -684,19 +712,33 @@ export default function DashboardPage() {
                       const isSelected = selectedPaymentDayIdx === i;
                       const isToday = i === pointsCount - 1;
                       return (
-                        <div
-                          key={`payment-dot-${i}`}
-                          className="absolute transition-all pointer-events-none"
-                          style={{
-                            left: `${xPercent}%`,
-                            top: `${(y / 80) * 100}%`,
-                            transform: 'translate(-50%, -50%)',
-                            width: isSelected ? 10 : isToday ? 8 : 6,
-                            height: isSelected ? 10 : isToday ? 8 : 6,
-                            borderRadius: '50%',
-                            backgroundColor: isSelected ? '#059669' : '#6366f1',
-                          }}
-                        />
+                        <div key={`payment-dot-${i}`}>
+                          <div
+                            className="absolute transition-all pointer-events-none"
+                            style={{
+                              left: `${xPercent}%`,
+                              top: `${(y / 80) * 100}%`,
+                              transform: 'translate(-50%, -50%)',
+                              width: isSelected ? 10 : isToday ? 8 : 6,
+                              height: isSelected ? 10 : isToday ? 8 : 6,
+                              borderRadius: '50%',
+                              backgroundColor: isSelected ? '#059669' : '#6366f1',
+                            }}
+                          />
+                          {/* Лейбл при выборе */}
+                          {isSelected && (
+                            <div
+                              className="absolute pointer-events-none text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-1 rounded"
+                              style={{
+                                left: `${xPercent}%`,
+                                top: `${(y / 80) * 100 - 12}%`,
+                                transform: 'translate(-50%, -50%)',
+                              }}
+                            >
+                              {(val / 1000).toFixed(0)}k
+                            </div>
+                          )}
+                        </div>
                       );
                     })}
                   </div>
