@@ -366,7 +366,7 @@ export default function DashboardPage() {
             const yAxisValues = [maxValue, (maxValue + minValue) / 2, minValue];
 
             return (
-              <div ref={chartRef} onMouseLeave={() => setChartTooltip(null)}>
+              <div ref={chartRef} onMouseLeave={() => setChartTooltip(null)} onClick={() => setChartTooltip(null)}>
                 {/* Контейнер графика с фиксированной высотой */}
                 <div className="relative h-[100px] flex">
                 {/* Y-ось слева */}
@@ -549,6 +549,7 @@ export default function DashboardPage() {
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedDayIdx(idx);
+                          setChartTooltip(null);
                         }}
                         className={`flex flex-col items-center px-1 sm:px-1.5 py-1 rounded-lg transition-all cursor-pointer flex-shrink-0 ${
                           isSelected
@@ -666,7 +667,7 @@ export default function DashboardPage() {
             };
 
             return (
-              <div ref={paymentChartRef} onMouseLeave={() => setPaymentTooltip(null)}>
+              <div ref={paymentChartRef} onMouseLeave={() => setPaymentTooltip(null)} onClick={() => setPaymentTooltip(null)}>
                 {/* Контейнер графика */}
                 <div className="relative h-[80px] flex">
                   {/* Y-ось слева - скрыта на мобильных */}
@@ -796,6 +797,7 @@ export default function DashboardPage() {
                         onClick={(e) => {
                           e.stopPropagation();
                           setSelectedPaymentDayIdx(isSelected ? null : idx);
+                          setPaymentTooltip(null);
                         }}
                         className={`flex flex-col items-center px-1 sm:px-1.5 py-1 rounded-lg transition-all cursor-pointer flex-shrink-0 ${
                           isSelected
