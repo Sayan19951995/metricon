@@ -378,6 +378,22 @@ export default function DashboardPage() {
                 {/* Область графика */}
                 <div className="flex-1 relative">
                 <svg className="w-full h-full" viewBox="0 0 100 80" preserveAspectRatio="none">
+                  {/* Горизонтальные вспомогательные линии */}
+                  {[0, 0.5, 1].map((ratio, i) => {
+                    const y = padding + ratio * (chartHeight - padding * 2);
+                    return (
+                      <line
+                        key={`grid-${i}`}
+                        x1="0"
+                        y1={y}
+                        x2="100"
+                        y2={y}
+                        stroke="#e5e7eb"
+                        strokeWidth="1"
+                        vectorEffect="non-scaling-stroke"
+                      />
+                    );
+                  })}
                   {/* Линия прошлой недели (синяя, снизу) */}
                   <polyline
                     points={prevWeekData.map((val, i) => {
@@ -614,6 +630,22 @@ export default function DashboardPage() {
                   {/* Область графика */}
                   <div className="flex-1 relative">
                     <svg className="w-full h-full" viewBox="0 0 100 60" preserveAspectRatio="none">
+                      {/* Горизонтальные вспомогательные линии */}
+                      {[0, 0.5, 1].map((ratio, i) => {
+                        const y = pad + ratio * (chartH - pad * 2);
+                        return (
+                          <line
+                            key={`grid-${i}`}
+                            x1="0"
+                            y1={y}
+                            x2="100"
+                            y2={y}
+                            stroke="#e5e7eb"
+                            strokeWidth="1"
+                            vectorEffect="non-scaling-stroke"
+                          />
+                        );
+                      })}
                       {/* Градиент заливки */}
                       <defs>
                         <linearGradient id="paymentGradient" x1="0" y1="0" x2="0" y2="1">
