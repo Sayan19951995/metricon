@@ -26,9 +26,12 @@ export default function DashboardPage() {
   const [showGrowthTooltip, setShowGrowthTooltip] = useState(false);
   const [chartTooltip, setChartTooltip] = useState<{ idx: number; x: number; y: number } | null>(null);
   const [selectedDayIdx, setSelectedDayIdx] = useState(6); // По умолчанию сегодня (последний день)
+  const [selectedPaymentDayIdx, setSelectedPaymentDayIdx] = useState<number | null>(null); // null = показать "Ожидаем платежа"
+  const [paymentTooltip, setPaymentTooltip] = useState<{ idx: number; x: number; y: number } | null>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const growthTooltipRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
+  const paymentChartRef = useRef<HTMLDivElement>(null);
 
   // Закрытие окна уведомлений и тултипа при клике вне их области
   useEffect(() => {
@@ -568,39 +571,76 @@ export default function DashboardPage() {
           })()}
         </motion.div>
 
-        {/* Ожидаем платежа */}
+        {/* Ожидаем платежа / Поступления */}
         <motion.div
           variants={itemVariants}
           className="bg-white rounded-xl p-4 shadow-sm"
         >
-          <div
-            className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
-            onClick={() => router.push('/app/orders')}
-          >
-            <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
-              <Truck className="w-5 h-5 text-indigo-600" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-gray-500 text-xs">Ожидаем платежа</h3>
-              <div className="text-xl font-bold text-gray-900">
-                {dashboardData.awaitingPayment.totalAmount.toLocaleString('ru-RU')} ₸
+          {/* Динамический заголовок */}
+          {(() => {
+            const payments = dashboardData.awaitingPayment.weeklyPayments;
+            const isShowingPayment = selectedPaymentDayIdx !== null;
+            const selectedDate = new Date();
+            if (isShowingPayment) {
+              selectedDate.setDate(selectedDate.getDate() - (6 - selectedPaymentDayIdx));
+            }
+            const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+
+            return (
+              <div
+                className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
+                onClick={() => router.push('/app/orders')}
+              >
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isShowingPayment ? 'bg-emerald-100' : 'bg-indigo-100'}`}>
+                  <Truck className={`w-5 h-5 ${isShowingPayment ? 'text-emerald-600' : 'text-indigo-600'}`} />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-gray-500 text-xs">
+                    {isShowingPayment
+                      ? `Поступило ${dayNames[selectedDate.getDay()]}, ${selectedDate.getDate()}.${String(selectedDate.getMonth() + 1).padStart(2, '0')}`
+                      : 'Ожидаем платежа'
+                    }
+                  </h3>
+                  <div className={`text-xl font-bold ${isShowingPayment ? 'text-emerald-600' : 'text-gray-900'}`}>
+                    {isShowingPayment
+                      ? payments[selectedPaymentDayIdx!].toLocaleString('ru-RU')
+                      : dashboardData.awaitingPayment.totalAmount.toLocaleString('ru-RU')
+                    } ₸
+                  </div>
+                </div>
+                {!isShowingPayment && (
+                  <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
+                    {dashboardData.awaitingPayment.ordersCount} заказов
+                  </div>
+                )}
+                {isShowingPayment && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedPaymentDayIdx(null);
+                    }}
+                    className="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg hover:bg-indigo-100"
+                  >
+                    Сбросить
+                  </button>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Список статусов - показываем только когда не выбран день */}
+          {selectedPaymentDayIdx === null && (
+            <div className="space-y-1.5 text-xs mb-3">
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Не отправлено</span>
+                <span className="font-medium text-gray-700">{dashboardData.awaitingPayment.notSentCount} шт · {dashboardData.awaitingPayment.notSent.toLocaleString('ru-RU')} ₸</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Передано на доставку</span>
+                <span className="font-medium text-gray-700">{dashboardData.awaitingPayment.inDeliveryCount} шт · {dashboardData.awaitingPayment.inDelivery.toLocaleString('ru-RU')} ₸</span>
               </div>
             </div>
-            <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
-              {dashboardData.awaitingPayment.ordersCount} заказов
-            </div>
-          </div>
-          {/* Список статусов */}
-          <div className="space-y-1.5 text-xs mb-3">
-            <div className="flex items-center justify-between">
-              <span className="text-gray-500">Не отправлено</span>
-              <span className="font-medium text-gray-700">{dashboardData.awaitingPayment.notSentCount} шт · {dashboardData.awaitingPayment.notSent.toLocaleString('ru-RU')} ₸</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="text-gray-500">Передано на доставку</span>
-              <span className="font-medium text-gray-700">{dashboardData.awaitingPayment.inDeliveryCount} шт · {dashboardData.awaitingPayment.inDelivery.toLocaleString('ru-RU')} ₸</span>
-            </div>
-          </div>
+          )}
 
           {/* График поступлений за неделю */}
           <div className="text-[10px] text-gray-400 mb-1">Поступления за неделю</div>
@@ -608,8 +648,10 @@ export default function DashboardPage() {
             const payments = dashboardData.awaitingPayment.weeklyPayments;
             const maxVal = Math.max(...payments);
             const minVal = Math.min(...payments);
-            const chartH = 50;
+            const midVal = (maxVal + minVal) / 2;
+            const chartH = 60;
             const pad = 6;
+            const pointsCount = payments.length;
 
             const getY = (val: number) => {
               const range = maxVal - minVal || 1;
@@ -618,49 +660,150 @@ export default function DashboardPage() {
             };
 
             return (
-              <div className="relative h-[60px]">
-                <svg className="w-full h-full" viewBox="0 0 100 50" preserveAspectRatio="none">
-                  {/* Градиент заливки */}
-                  <defs>
-                    <linearGradient id="paymentGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#6366f1" stopOpacity="0.3" />
-                      <stop offset="100%" stopColor="#6366f1" stopOpacity="0.05" />
-                    </linearGradient>
-                  </defs>
-                  {/* Заливка под линией */}
-                  <path
-                    d={`M 2,${getY(payments[0])} ${payments.map((val, i) => {
-                      const x = 2 + (i / (payments.length - 1)) * 96;
+              <div ref={paymentChartRef} onMouseLeave={() => setPaymentTooltip(null)}>
+                {/* Контейнер графика */}
+                <div className="relative h-[80px] flex">
+                  {/* Y-ось слева */}
+                  <div className="flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '32px' }}>
+                    <span className="text-right">{Math.round(maxVal / 1000)}k</span>
+                    <span className="text-right">{Math.round(midVal / 1000)}k</span>
+                    <span className="text-right">{Math.round(minVal / 1000)}k</span>
+                  </div>
+
+                  {/* Область графика */}
+                  <div className="flex-1 relative">
+                    <svg className="w-full h-full" viewBox="0 0 100 60" preserveAspectRatio="none">
+                      {/* Градиент заливки */}
+                      <defs>
+                        <linearGradient id="paymentGradient" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#6366f1" stopOpacity="0.3" />
+                          <stop offset="100%" stopColor="#6366f1" stopOpacity="0.05" />
+                        </linearGradient>
+                      </defs>
+                      {/* Заливка под линией */}
+                      <path
+                        d={`M 2,${getY(payments[0])} ${payments.map((val, i) => {
+                          const x = 2 + (i / (pointsCount - 1)) * 96;
+                          const y = getY(val);
+                          return `L ${x},${y}`;
+                        }).join(' ')} L 98,${chartH} L 2,${chartH} Z`}
+                        fill="url(#paymentGradient)"
+                      />
+                      {/* Линия */}
+                      <polyline
+                        points={payments.map((val, i) => {
+                          const x = 2 + (i / (pointsCount - 1)) * 96;
+                          const y = getY(val);
+                          return `${x},${y}`;
+                        }).join(' ')}
+                        fill="none"
+                        stroke="#6366f1"
+                        strokeWidth="2"
+                        vectorEffect="non-scaling-stroke"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                      {/* Вертикальная линия при наведении */}
+                      {paymentTooltip && (
+                        <line
+                          x1={2 + (paymentTooltip.idx / (pointsCount - 1)) * 96}
+                          y1={0}
+                          x2={2 + (paymentTooltip.idx / (pointsCount - 1)) * 96}
+                          y2={60}
+                          stroke="#9ca3af"
+                          strokeWidth="1"
+                          vectorEffect="non-scaling-stroke"
+                          strokeDasharray="3,3"
+                        />
+                      )}
+                    </svg>
+
+                    {/* Точки */}
+                    {payments.map((val, i) => {
+                      const xPercent = 2 + (i / (pointsCount - 1)) * 96;
                       const y = getY(val);
-                      return `L ${x},${y}`;
-                    }).join(' ')} L 98,${chartH} L 2,${chartH} Z`}
-                    fill="url(#paymentGradient)"
-                  />
-                  {/* Линия */}
-                  <polyline
-                    points={payments.map((val, i) => {
-                      const x = 2 + (i / (payments.length - 1)) * 96;
-                      const y = getY(val);
-                      return `${x},${y}`;
-                    }).join(' ')}
-                    fill="none"
-                    stroke="#6366f1"
-                    strokeWidth="2"
-                    vectorEffect="non-scaling-stroke"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-                {/* Подписи дней */}
-                <div className="flex justify-between mt-1">
+                      const isSelected = selectedPaymentDayIdx === i;
+                      const isHovered = paymentTooltip?.idx === i;
+                      return (
+                        <div
+                          key={`payment-dot-${i}`}
+                          className="absolute cursor-pointer transition-all"
+                          style={{
+                            left: `${xPercent}%`,
+                            top: `${(y / 60) * 100}%`,
+                            transform: 'translate(-50%, -50%)',
+                            width: isHovered || isSelected ? 12 : 6,
+                            height: isHovered || isSelected ? 12 : 6,
+                            borderRadius: '50%',
+                            backgroundColor: isSelected ? '#059669' : isHovered ? '#4338ca' : '#6366f1',
+                          }}
+                          onMouseEnter={() => setPaymentTooltip({ idx: i, x: xPercent, y })}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedPaymentDayIdx(selectedPaymentDayIdx === i ? null : i);
+                          }}
+                        />
+                      );
+                    })}
+
+                    {/* Тултип */}
+                    {paymentTooltip && (
+                      <div
+                        className="absolute z-50 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg pointer-events-none"
+                        style={{
+                          left: Math.min(Math.max(paymentTooltip.x, 15), 85) + '%',
+                          top: -45,
+                          transform: 'translateX(-50%)'
+                        }}
+                      >
+                        {(() => {
+                          const date = new Date();
+                          date.setDate(date.getDate() - (6 - paymentTooltip.idx));
+                          const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+                          return (
+                            <div className="text-center">
+                              <div className="font-medium mb-1">
+                                {dayNames[date.getDay()]}, {date.getDate()}.{String(date.getMonth() + 1).padStart(2, '0')}
+                              </div>
+                              <div className="text-indigo-300">
+                                {payments[paymentTooltip.idx].toLocaleString('ru-RU')} ₸
+                              </div>
+                            </div>
+                          );
+                        })()}
+                        <div className="absolute left-1/2 -translate-x-1/2 bottom-[-6px] w-3 h-3 bg-gray-900 rotate-45"></div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Подписи дней - кликабельные */}
+                <div className="flex justify-between mt-2 ml-8">
                   {payments.map((val, idx) => {
                     const date = new Date();
                     date.setDate(date.getDate() - (6 - idx));
+                    const isSelected = selectedPaymentDayIdx === idx;
+                    const isToday = idx === payments.length - 1;
                     return (
-                      <div key={idx} className="flex flex-col items-center">
-                        <span className="text-[9px] text-indigo-600">{Math.round(val / 1000)}k</span>
-                        <span className="text-[10px] text-gray-400">{date.getDate()}</span>
-                      </div>
+                      <button
+                        key={idx}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPaymentDayIdx(isSelected ? null : idx);
+                        }}
+                        className={`flex flex-col items-center px-1.5 py-1 rounded-lg transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-indigo-100 shadow-sm'
+                            : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        <span className={`text-[9px] ${isSelected ? 'text-indigo-700 font-semibold' : 'text-indigo-600'}`}>
+                          {Math.round(val / 1000)}k
+                        </span>
+                        <span className={`text-[10px] ${isSelected ? 'text-indigo-700 font-semibold' : isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
+                          {date.getDate()}
+                        </span>
+                      </button>
                     );
                   })}
                 </div>
