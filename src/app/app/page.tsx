@@ -24,8 +24,10 @@ export default function DashboardPage() {
   const router = useRouter();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showGrowthTooltip, setShowGrowthTooltip] = useState(false);
+  const [chartTooltip, setChartTooltip] = useState<{ idx: number; x: number; y: number } | null>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const growthTooltipRef = useRef<HTMLDivElement>(null);
+  const chartRef = useRef<HTMLDivElement>(null);
 
   // Закрытие окна уведомлений и тултипа при клике вне их области
   useEffect(() => {
@@ -57,8 +59,10 @@ export default function DashboardPage() {
       growth: 12.5,
       profit: 245000,
       profitMargin: 15.8,
-      // Данные за неделю (Пн-Вс)
-      weekData: [980000, 1250000, 1120000, 1450000, 1680000, 1890000, 1547800]
+      // Данные за текущую неделю (Пн-Вс)
+      weekData: [980000, 1250000, 1120000, 1450000, 1680000, 1890000, 1547800],
+      // Данные за прошлую неделю (для сравнения)
+      prevWeekData: [870000, 1180000, 1050000, 1320000, 1490000, 1680000, 1375000]
     },
     // Стоимость склада
     warehouse: {
@@ -298,59 +302,221 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Двойной график - продажи и заказы */}
+          {/* Линейный график - текущая vs прошлая неделя */}
           <div className="text-[10px] text-gray-400 mb-2 flex items-center gap-4">
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 bg-emerald-400 rounded-sm"></span>
-              Продажи (тыс. ₸)
+              <span className="w-3 h-0.5 bg-emerald-500 rounded-full"></span>
+              Эта неделя
             </span>
             <span className="flex items-center gap-1">
-              <span className="w-2 h-2 bg-blue-400 rounded-sm"></span>
-              Заказы
+              <span className="w-3 h-0.5 bg-blue-500 rounded-full"></span>
+              Прошлая неделя
             </span>
           </div>
-          <div className="flex items-end gap-1.5">
-            {dashboardData.yesterdaySales.weekData.map((salesValue, idx) => {
-              const ordersValue = dashboardData.todayOrders.weekData[idx];
-              const maxSales = Math.max(...dashboardData.yesterdaySales.weekData);
-              const maxOrders = Math.max(...dashboardData.todayOrders.weekData);
-              const salesHeight = Math.round((salesValue / maxSales) * 100);
-              const ordersHeight = Math.round((ordersValue / maxOrders) * 100);
-              const isToday = idx === dashboardData.yesterdaySales.weekData.length - 1;
-              const date = new Date();
-              date.setDate(date.getDate() - (6 - idx));
-              const dayNum = date.getDate();
-              return (
-                <div key={idx} className="flex-1 flex flex-col items-center">
-                  {/* Значения */}
-                  <div className="flex gap-0.5 mb-1">
-                    <span className={`text-[10px] text-emerald-600 ${isToday ? 'font-semibold' : ''}`}>
-                      {Math.round(salesValue / 1000)}
-                    </span>
-                    <span className="text-[10px] text-gray-300">/</span>
-                    <span className={`text-[10px] text-blue-600 ${isToday ? 'font-semibold' : ''}`}>
-                      {ordersValue}
-                    </span>
-                  </div>
-                  {/* Двойные столбики - выровнены по низу */}
-                  <div className="flex gap-0.5 w-full justify-center items-end h-[40px]">
-                    <div
-                      className="w-[45%] rounded-sm bg-emerald-400"
-                      style={{ height: `${Math.max(salesHeight * 0.4, 4)}px` }}
+          {(() => {
+            const currentWeekData = dashboardData.yesterdaySales.weekData;
+            const prevWeekData = dashboardData.yesterdaySales.prevWeekData;
+            const allData = [...currentWeekData, ...prevWeekData];
+            const maxValue = Math.max(...allData);
+            const minValue = Math.min(...allData);
+            const chartHeight = 50;
+            const padding = 8;
+            const pointsCount = currentWeekData.length;
+
+            // Единая функция для расчёта Y (обе линии на одной шкале)
+            const getY = (val: number) => {
+              const range = maxValue - minValue || 1;
+              const normalized = (val - minValue) / range;
+              return padding + (1 - normalized) * (chartHeight - padding * 2);
+            };
+
+            return (
+              <div className="relative" ref={chartRef} onMouseLeave={() => setChartTooltip(null)}>
+                {/* SVG график */}
+                <svg className="w-full h-[60px]" viewBox="0 0 100 60" preserveAspectRatio="none">
+                  {/* Линия прошлой недели (синяя, снизу) */}
+                  <polyline
+                    points={prevWeekData.map((val, i) => {
+                      const x = 2 + (i / (pointsCount - 1)) * 96;
+                      const y = getY(val);
+                      return `${x},${y}`;
+                    }).join(' ')}
+                    fill="none"
+                    stroke="#3b82f6"
+                    strokeWidth="2"
+                    vectorEffect="non-scaling-stroke"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    opacity="0.7"
+                  />
+                  {/* Линия текущей недели (зелёная, сверху) */}
+                  <polyline
+                    points={currentWeekData.map((val, i) => {
+                      const x = 2 + (i / (pointsCount - 1)) * 96;
+                      const y = getY(val);
+                      return `${x},${y}`;
+                    }).join(' ')}
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth="2"
+                    vectorEffect="non-scaling-stroke"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                  {/* Вертикальная линия при наведении */}
+                  {chartTooltip && (
+                    <line
+                      x1={2 + (chartTooltip.idx / (pointsCount - 1)) * 96}
+                      y1={0}
+                      x2={2 + (chartTooltip.idx / (pointsCount - 1)) * 96}
+                      y2={60}
+                      stroke="#9ca3af"
+                      strokeWidth="1"
+                      vectorEffect="non-scaling-stroke"
+                      strokeDasharray="3,3"
                     />
+                  )}
+                </svg>
+                {/* Точки текущей недели */}
+                {currentWeekData.map((val, i) => {
+                  const xPercent = 2 + (i / (pointsCount - 1)) * 96;
+                  const y = getY(val);
+                  const isToday = i === pointsCount - 1;
+                  const isHovered = chartTooltip?.idx === i;
+                  return (
                     <div
-                      className="w-[45%] rounded-sm bg-blue-400"
-                      style={{ height: `${Math.max(ordersHeight * 0.4, 4)}px` }}
+                      key={`current-dot-${i}`}
+                      className="absolute cursor-pointer transition-all"
+                      style={{
+                        left: `${xPercent}%`,
+                        top: `${(y / 60) * 100}%`,
+                        transform: 'translate(-50%, -50%)',
+                        width: isHovered ? 12 : isToday ? 8 : 6,
+                        height: isHovered ? 12 : isToday ? 8 : 6,
+                        borderRadius: '50%',
+                        backgroundColor: isHovered ? '#047857' : isToday ? '#059669' : '#10b981',
+                      }}
+                      onMouseEnter={(e) => {
+                        const rect = chartRef.current?.getBoundingClientRect();
+                        if (rect) {
+                          setChartTooltip({ idx: i, x: e.clientX - rect.left, y: e.clientY - rect.top });
+                        }
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setChartTooltip(chartTooltip?.idx === i ? null : { idx: i, x: xPercent, y });
+                      }}
                     />
+                  );
+                })}
+                {/* Точки прошлой недели */}
+                {prevWeekData.map((val, i) => {
+                  const xPercent = 2 + (i / (pointsCount - 1)) * 96;
+                  const y = getY(val);
+                  const isToday = i === pointsCount - 1;
+                  const isHovered = chartTooltip?.idx === i;
+                  return (
+                    <div
+                      key={`prev-dot-${i}`}
+                      className="absolute cursor-pointer transition-all"
+                      style={{
+                        left: `${xPercent}%`,
+                        top: `${(y / 60) * 100}%`,
+                        transform: 'translate(-50%, -50%)',
+                        width: isHovered ? 10 : isToday ? 6 : 5,
+                        height: isHovered ? 10 : isToday ? 6 : 5,
+                        borderRadius: '50%',
+                        backgroundColor: isHovered ? '#1d4ed8' : '#3b82f6',
+                        opacity: 0.7,
+                      }}
+                      onMouseEnter={(e) => {
+                        const rect = chartRef.current?.getBoundingClientRect();
+                        if (rect) {
+                          setChartTooltip({ idx: i, x: e.clientX - rect.left, y: e.clientY - rect.top });
+                        }
+                      }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setChartTooltip(chartTooltip?.idx === i ? null : { idx: i, x: xPercent, y });
+                      }}
+                    />
+                  );
+                })}
+
+                {/* Тултип при наведении */}
+                {chartTooltip && (
+                  <div
+                    className="absolute z-50 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg pointer-events-none"
+                    style={{
+                      left: Math.min(chartTooltip.x, 200),
+                      top: -50,
+                      transform: 'translateX(-50%)'
+                    }}
+                  >
+                    {(() => {
+                      const date = new Date();
+                      date.setDate(date.getDate() - (6 - chartTooltip.idx));
+                      const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+                      return (
+                        <div className="text-center">
+                          <div className="font-medium mb-1">
+                            {dayNames[date.getDay()]}, {date.getDate()}.{String(date.getMonth() + 1).padStart(2, '0')}
+                          </div>
+                          <div className="flex items-center gap-2 text-emerald-400">
+                            <span className="w-2 h-2 bg-emerald-400 rounded-full"></span>
+                            Эта: {currentWeekData[chartTooltip.idx].toLocaleString('ru-RU')} ₸
+                          </div>
+                          <div className="flex items-center gap-2 text-blue-400">
+                            <span className="w-2 h-2 bg-blue-400 rounded-full"></span>
+                            Прошлая: {prevWeekData[chartTooltip.idx].toLocaleString('ru-RU')} ₸
+                          </div>
+                          {(() => {
+                            const current = currentWeekData[chartTooltip.idx];
+                            const prev = prevWeekData[chartTooltip.idx];
+                            const diff = prev > 0 ? ((current - prev) / prev * 100).toFixed(0) : 0;
+                            const isPositive = current >= prev;
+                            return (
+                              <div className={`text-center mt-1 ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+                                {isPositive ? '+' : ''}{diff}%
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      );
+                    })()}
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-[-6px] w-3 h-3 bg-gray-900 rotate-45"></div>
                   </div>
-                  {/* Дата */}
-                  <span className={`text-xs mt-1 ${isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
-                    {dayNum}
-                  </span>
+                )}
+
+                {/* Подписи дат и значений */}
+                <div className="flex justify-between mt-1">
+                  {currentWeekData.map((currentValue, idx) => {
+                    const prevValue = prevWeekData[idx];
+                    const isToday = idx === currentWeekData.length - 1;
+                    const date = new Date();
+                    date.setDate(date.getDate() - (6 - idx));
+                    const dayNum = date.getDate();
+                    return (
+                      <div key={idx} className="flex flex-col items-center">
+                        <div className="flex gap-0.5">
+                          <span className={`text-[10px] text-emerald-600 ${isToday ? 'font-semibold' : ''}`}>
+                            {Math.round(currentValue / 1000)}
+                          </span>
+                          <span className="text-[10px] text-gray-300">/</span>
+                          <span className={`text-[10px] text-blue-600 ${isToday ? 'font-semibold' : ''}`}>
+                            {Math.round(prevValue / 1000)}
+                          </span>
+                        </div>
+                        <span className={`text-xs ${isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
+                          {dayNum}
+                        </span>
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
-          </div>
+              </div>
+            );
+          })()}
         </motion.div>
 
         {/* Ожидаем платежа */}
