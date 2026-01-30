@@ -470,7 +470,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Подписи дат и значений - кликабельные */}
-                <div className="flex justify-between mt-2 overflow-x-auto">
+                <div className="flex justify-between mt-2 sm:ml-7" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
                   {currentWeekData.map((currentValue, idx) => {
                     const prevValue = prevWeekData[idx];
                     const isToday = idx === currentWeekData.length - 1;
@@ -485,9 +485,9 @@ export default function DashboardPage() {
                           e.stopPropagation();
                           setSelectedDayIdx(idx);
                         }}
-                        className={`flex flex-col items-center px-1 sm:px-1.5 py-1 rounded-lg transition-all cursor-pointer flex-shrink-0 ${
+                        className={`flex flex-col items-center py-1 rounded-lg transition-all cursor-pointer ${
                           isSelected
-                            ? 'bg-emerald-100 shadow-sm'
+                            ? 'bg-emerald-100 shadow-sm px-1'
                             : 'hover:bg-gray-100'
                         }`}
                       >
@@ -672,7 +672,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Подписи дней - кликабельные */}
-                <div className="flex justify-between mt-2 sm:ml-7 overflow-x-auto">
+                <div className="flex justify-between mt-2 sm:ml-7" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
                   {payments.map((val, idx) => {
                     const date = new Date();
                     date.setDate(date.getDate() - (6 - idx));
@@ -685,9 +685,9 @@ export default function DashboardPage() {
                           e.stopPropagation();
                           setSelectedPaymentDayIdx(isSelected ? null : idx);
                         }}
-                        className={`flex flex-col items-center px-1 sm:px-1.5 py-1 rounded-lg transition-all cursor-pointer flex-shrink-0 ${
+                        className={`flex flex-col items-center py-1 rounded-lg transition-all cursor-pointer ${
                           isSelected
-                            ? 'bg-indigo-100 shadow-sm'
+                            ? 'bg-indigo-100 shadow-sm px-1'
                             : 'hover:bg-gray-100'
                         }`}
                       >
