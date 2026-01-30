@@ -362,15 +362,17 @@ export default function DashboardPage() {
               return padding + (1 - normalized) * (chartHeight - padding * 2);
             };
 
-            // Значения для Y-оси (3 уровня)
-            const yAxisValues = [maxValue, (maxValue + minValue) / 2, minValue];
+            // Значения для Y-оси (5 уровней)
+            const yAxisValues = [0, 0.25, 0.5, 0.75, 1].map(ratio =>
+              maxValue - ratio * (maxValue - minValue)
+            );
 
             return (
               <div>
                 {/* Контейнер графика с фиксированной высотой */}
-                <div className="relative h-[100px] flex">
+                <div className="relative h-[140px] flex">
                 {/* Y-ось слева */}
-                <div className="hidden sm:flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '28px' }}>
+                <div className="hidden sm:flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '32px' }}>
                   {yAxisValues.map((val, i) => (
                     <span key={i} className="text-right">{Math.round(val / 1000)}k</span>
                   ))}
@@ -379,7 +381,7 @@ export default function DashboardPage() {
                 <div className="flex-1 relative">
                 <svg className="w-full h-full" viewBox="0 0 100 80" preserveAspectRatio="none">
                   {/* Горизонтальные вспомогательные линии */}
-                  {[0, 0.5, 1].map((ratio, i) => {
+                  {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
                     const y = padding + ratio * (chartHeight - padding * 2);
                     return (
                       <line
@@ -486,7 +488,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Подписи дат и значений - кликабельные */}
-                <div className="flex justify-between mt-2 sm:ml-7" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
+                <div className="flex justify-between mt-2 sm:ml-8" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
                   {currentWeekData.map((currentValue, idx) => {
                     const prevValue = prevWeekData[idx];
                     const isToday = idx === currentWeekData.length - 1;
@@ -605,8 +607,7 @@ export default function DashboardPage() {
             const payments = dashboardData.awaitingPayment.weeklyPayments;
             const maxVal = Math.max(...payments);
             const minVal = Math.min(...payments);
-            const midVal = (maxVal + minVal) / 2;
-            const chartH = 60;
+            const chartH = 80;
             const pad = 6;
             const pointsCount = payments.length;
 
@@ -616,22 +617,27 @@ export default function DashboardPage() {
               return pad + (1 - norm) * (chartH - pad * 2);
             };
 
+            // Значения для Y-оси (5 уровней)
+            const yAxisValues = [0, 0.25, 0.5, 0.75, 1].map(ratio =>
+              maxVal - ratio * (maxVal - minVal)
+            );
+
             return (
               <div>
                 {/* Контейнер графика */}
-                <div className="relative h-[80px] flex">
+                <div className="relative h-[120px] flex">
                   {/* Y-ось слева - скрыта на мобильных */}
-                  <div className="hidden sm:flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '28px' }}>
-                    <span className="text-right">{Math.round(maxVal / 1000)}k</span>
-                    <span className="text-right">{Math.round(midVal / 1000)}k</span>
-                    <span className="text-right">{Math.round(minVal / 1000)}k</span>
+                  <div className="hidden sm:flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '32px' }}>
+                    {yAxisValues.map((val, i) => (
+                      <span key={i} className="text-right">{Math.round(val / 1000)}k</span>
+                    ))}
                   </div>
 
                   {/* Область графика */}
                   <div className="flex-1 relative">
-                    <svg className="w-full h-full" viewBox="0 0 100 60" preserveAspectRatio="none">
+                    <svg className="w-full h-full" viewBox="0 0 100 80" preserveAspectRatio="none">
                       {/* Горизонтальные вспомогательные линии */}
-                      {[0, 0.5, 1].map((ratio, i) => {
+                      {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
                         const y = pad + ratio * (chartH - pad * 2);
                         return (
                           <line
@@ -690,7 +696,7 @@ export default function DashboardPage() {
                           className="absolute transition-all pointer-events-none"
                           style={{
                             left: `${xPercent}%`,
-                            top: `${(y / 60) * 100}%`,
+                            top: `${(y / 80) * 100}%`,
                             transform: 'translate(-50%, -50%)',
                             width: isSelected ? 10 : isToday ? 8 : 6,
                             height: isSelected ? 10 : isToday ? 8 : 6,
@@ -704,7 +710,7 @@ export default function DashboardPage() {
                 </div>
 
                 {/* Подписи дней - кликабельные */}
-                <div className="flex justify-between mt-2 sm:ml-7" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
+                <div className="flex justify-between mt-2 sm:ml-8" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
                   {payments.map((val, idx) => {
                     const date = new Date();
                     date.setDate(date.getDate() - (6 - idx));
