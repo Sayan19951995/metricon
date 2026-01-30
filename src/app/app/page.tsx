@@ -152,6 +152,7 @@ export default function DashboardPage() {
       // Отзывы по дням (Пн-Вс)
       weeklyReviews: [5, 8, 4, 9, 7, 8, 6],
       weeklyPositive: [4, 6, 3, 7, 6, 7, 5],
+      weeklyGood: [1, 1, 1, 1, 1, 1, 0],
       weeklyNegative: [0, 1, 0, 1, 0, 0, 1]
     },
     // Топ товаров за неделю (топ 3)
@@ -842,12 +843,15 @@ export default function DashboardPage() {
           {/* График отзывов за неделю */}
           <div className="text-[10px] text-gray-400 mb-1">Динамика отзывов</div>
           {(() => {
-            const reviews = dashboardData.reviews.weeklyReviews;
-            const maxVal = Math.max(...reviews);
-            const minVal = Math.min(...reviews);
+            const positive = dashboardData.reviews.weeklyPositive;
+            const good = dashboardData.reviews.weeklyGood;
+            const negative = dashboardData.reviews.weeklyNegative;
+            const allData = [...positive, ...good, ...negative];
+            const maxVal = Math.max(...allData);
+            const minVal = 0;
             const chartH = 50;
             const pad = 6;
-            const pointsCount = reviews.length;
+            const pointsCount = positive.length;
 
             const getY = (val: number) => {
               const range = maxVal - minVal || 1;
@@ -872,24 +876,22 @@ export default function DashboardPage() {
                         vectorEffect="non-scaling-stroke"
                       />
                     ))}
-                    {/* Градиент */}
-                    <defs>
-                      <linearGradient id="reviewsGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="#f59e0b" stopOpacity="0.3" />
-                        <stop offset="100%" stopColor="#f59e0b" stopOpacity="0.05" />
-                      </linearGradient>
-                    </defs>
-                    {/* Заливка */}
-                    <path
-                      d={`M 2,${getY(reviews[0])} ${reviews.map((val, i) => {
-                        const x = 2 + (i / (pointsCount - 1)) * 96;
-                        return `L ${x},${getY(val)}`;
-                      }).join(' ')} L 98,${chartH} L 2,${chartH} Z`}
-                      fill="url(#reviewsGradient)"
-                    />
-                    {/* Линия */}
+                    {/* Линия отрицательных (красная) */}
                     <polyline
-                      points={reviews.map((val, i) => {
+                      points={negative.map((val, i) => {
+                        const x = 2 + (i / (pointsCount - 1)) * 96;
+                        return `${x},${getY(val)}`;
+                      }).join(' ')}
+                      fill="none"
+                      stroke="#ef4444"
+                      strokeWidth="2"
+                      vectorEffect="non-scaling-stroke"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    {/* Линия хороших (янтарная) */}
+                    <polyline
+                      points={good.map((val, i) => {
                         const x = 2 + (i / (pointsCount - 1)) * 96;
                         return `${x},${getY(val)}`;
                       }).join(' ')}
@@ -900,24 +902,79 @@ export default function DashboardPage() {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                     />
+                    {/* Линия положительных (зелёная) */}
+                    <polyline
+                      points={positive.map((val, i) => {
+                        const x = 2 + (i / (pointsCount - 1)) * 96;
+                        return `${x},${getY(val)}`;
+                      }).join(' ')}
+                      fill="none"
+                      stroke="#10b981"
+                      strokeWidth="2"
+                      vectorEffect="non-scaling-stroke"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
                   </svg>
-                  {/* Точки */}
-                  {reviews.map((val, i) => {
+                  {/* Точки положительных */}
+                  {positive.map((val, i) => {
                     const xPercent = 2 + (i / (pointsCount - 1)) * 96;
                     const y = getY(val);
                     const isToday = i === pointsCount - 1;
                     return (
                       <div
-                        key={`review-dot-${i}`}
+                        key={`pos-dot-${i}`}
                         className="absolute transition-all pointer-events-none"
                         style={{
                           left: `${xPercent}%`,
                           top: `${(y / 50) * 100}%`,
                           transform: 'translate(-50%, -50%)',
-                          width: isToday ? 8 : 5,
-                          height: isToday ? 8 : 5,
+                          width: isToday ? 7 : 4,
+                          height: isToday ? 7 : 4,
+                          borderRadius: '50%',
+                          backgroundColor: '#10b981',
+                        }}
+                      />
+                    );
+                  })}
+                  {/* Точки хороших */}
+                  {good.map((val, i) => {
+                    const xPercent = 2 + (i / (pointsCount - 1)) * 96;
+                    const y = getY(val);
+                    const isToday = i === pointsCount - 1;
+                    return (
+                      <div
+                        key={`good-dot-${i}`}
+                        className="absolute transition-all pointer-events-none"
+                        style={{
+                          left: `${xPercent}%`,
+                          top: `${(y / 50) * 100}%`,
+                          transform: 'translate(-50%, -50%)',
+                          width: isToday ? 7 : 4,
+                          height: isToday ? 7 : 4,
                           borderRadius: '50%',
                           backgroundColor: '#f59e0b',
+                        }}
+                      />
+                    );
+                  })}
+                  {/* Точки отрицательных */}
+                  {negative.map((val, i) => {
+                    const xPercent = 2 + (i / (pointsCount - 1)) * 96;
+                    const y = getY(val);
+                    const isToday = i === pointsCount - 1;
+                    return (
+                      <div
+                        key={`neg-dot-${i}`}
+                        className="absolute transition-all pointer-events-none"
+                        style={{
+                          left: `${xPercent}%`,
+                          top: `${(y / 50) * 100}%`,
+                          transform: 'translate(-50%, -50%)',
+                          width: isToday ? 7 : 4,
+                          height: isToday ? 7 : 4,
+                          borderRadius: '50%',
+                          backgroundColor: '#ef4444',
                         }}
                       />
                     );
@@ -925,13 +982,14 @@ export default function DashboardPage() {
                 </div>
                 {/* Подписи */}
                 <div className="flex justify-between mt-1" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
-                  {reviews.map((val, idx) => {
+                  {positive.map((posVal, idx) => {
+                    const total = posVal + good[idx] + negative[idx];
                     const date = new Date();
                     date.setDate(date.getDate() - (6 - idx));
-                    const isToday = idx === reviews.length - 1;
+                    const isToday = idx === positive.length - 1;
                     return (
                       <div key={idx} className="flex flex-col items-center">
-                        <span className="text-[9px] text-amber-600">{val}</span>
+                        <span className="text-[9px] text-gray-600">{total}</span>
                         <span className={`text-[10px] ${isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
                           {date.getDate()}
                         </span>
