@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const [selectedDayIdx, setSelectedDayIdx] = useState(6); // По умолчанию сегодня (последний день)
   const [selectedPaymentDayIdx, setSelectedPaymentDayIdx] = useState<number | null>(null); // null = показать "Ожидаем платежа"
   const [paymentTooltip, setPaymentTooltip] = useState<{ idx: number; x: number; y: number } | null>(null);
+  const [selectedReviewDayIdx, setSelectedReviewDayIdx] = useState<number | null>(null); // null = показать общее
   const notificationsRef = useRef<HTMLDivElement>(null);
   const growthTooltipRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -801,44 +802,86 @@ export default function DashboardPage() {
           variants={itemVariants}
           className="bg-white rounded-xl p-4 shadow-sm overflow-hidden"
         >
-          <div
-            className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
-            onClick={() => router.push('/app/analytics?tab=reviews')}
-          >
-            <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-              <Star className="w-5 h-5 text-amber-500" />
-            </div>
-            <div className="flex-1">
-              <h3 className="text-gray-500 text-xs">Отзывы за неделю</h3>
-              <div className="text-xl font-bold text-gray-900">
-                {dashboardData.reviews.total}
+          {/* Динамический заголовок */}
+          {(() => {
+            const isShowingDay = selectedReviewDayIdx !== null;
+            const selectedDate = new Date();
+            if (isShowingDay) {
+              selectedDate.setDate(selectedDate.getDate() - (6 - selectedReviewDayIdx));
+            }
+            const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+            const dayPositive = isShowingDay ? dashboardData.reviews.weeklyPositive[selectedReviewDayIdx!] : 0;
+            const dayGood = isShowingDay ? dashboardData.reviews.weeklyGood[selectedReviewDayIdx!] : 0;
+            const dayNegative = isShowingDay ? dashboardData.reviews.weeklyNegative[selectedReviewDayIdx!] : 0;
+            const dayTotal = dayPositive + dayGood + dayNegative;
+
+            return (
+              <div
+                className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
+                onClick={() => router.push('/app/analytics?tab=reviews')}
+              >
+                <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                  <Star className="w-5 h-5 text-amber-500" />
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-gray-500 text-xs">
+                    {isShowingDay
+                      ? `Отзывы за ${dayNames[selectedDate.getDay()]}, ${selectedDate.getDate()}.${String(selectedDate.getMonth() + 1).padStart(2, '0')}`
+                      : 'Отзывы за неделю'
+                    }
+                  </h3>
+                  <div className="text-xl font-bold text-gray-900">
+                    {isShowingDay ? dayTotal : dashboardData.reviews.total}
+                  </div>
+                  {isShowingDay && (
+                    <div className="flex items-center gap-2 mt-1 text-xs">
+                      <span className="text-emerald-600">+{dayPositive}</span>
+                      <span className="text-amber-600">{dayGood}</span>
+                      <span className="text-red-600">-{dayNegative}</span>
+                    </div>
+                  )}
+                </div>
+                {isShowingDay && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedReviewDayIdx(null);
+                    }}
+                    className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-lg hover:bg-amber-100"
+                  >
+                    Сбросить
+                  </button>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Распределение отзывов - показываем только когда не выбран день */}
+          {selectedReviewDayIdx === null && (
+            <div className="space-y-1.5 text-xs mb-3">
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span className="text-gray-500">Положительные</span>
+                </span>
+                <span className="font-medium text-emerald-600">{dashboardData.reviews.positive}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                  <span className="text-gray-500">Хорошие</span>
+                </span>
+                <span className="font-medium text-amber-600">{dashboardData.reviews.good}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                  <span className="text-gray-500">Отрицательные</span>
+                </span>
+                <span className="font-medium text-red-600">{dashboardData.reviews.negative}</span>
               </div>
             </div>
-          </div>
-          {/* Распределение отзывов */}
-          <div className="space-y-1.5 text-xs mb-3">
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                <span className="text-gray-500">Положительные</span>
-              </span>
-              <span className="font-medium text-emerald-600">{dashboardData.reviews.positive}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                <span className="text-gray-500">Хорошие</span>
-              </span>
-              <span className="font-medium text-amber-600">{dashboardData.reviews.good}</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <span className="flex items-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                <span className="text-gray-500">Отрицательные</span>
-              </span>
-              <span className="font-medium text-red-600">{dashboardData.reviews.negative}</span>
-            </div>
-          </div>
+          )}
 
           {/* График отзывов за неделю */}
           <div className="text-[10px] text-gray-400 mb-1">Динамика отзывов</div>
@@ -921,20 +964,35 @@ export default function DashboardPage() {
                     const xPercent = 2 + (i / (pointsCount - 1)) * 96;
                     const y = getY(val);
                     const isToday = i === pointsCount - 1;
+                    const isSelected = selectedReviewDayIdx === i;
                     return (
-                      <div
-                        key={`pos-dot-${i}`}
-                        className="absolute transition-all pointer-events-none"
-                        style={{
-                          left: `${xPercent}%`,
-                          top: `${(y / 50) * 100}%`,
-                          transform: 'translate(-50%, -50%)',
-                          width: isToday ? 7 : 4,
-                          height: isToday ? 7 : 4,
-                          borderRadius: '50%',
-                          backgroundColor: '#10b981',
-                        }}
-                      />
+                      <div key={`pos-dot-${i}`}>
+                        <div
+                          className="absolute transition-all pointer-events-none"
+                          style={{
+                            left: `${xPercent}%`,
+                            top: `${(y / 50) * 100}%`,
+                            transform: 'translate(-50%, -50%)',
+                            width: isSelected ? 9 : isToday ? 7 : 4,
+                            height: isSelected ? 9 : isToday ? 7 : 4,
+                            borderRadius: '50%',
+                            backgroundColor: isSelected ? '#047857' : '#10b981',
+                          }}
+                        />
+                        {/* Лейбл при выборе */}
+                        {isSelected && (
+                          <div
+                            className="absolute pointer-events-none text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1 rounded"
+                            style={{
+                              left: `${xPercent}%`,
+                              top: `${(y / 50) * 100 - 16}%`,
+                              transform: 'translate(-50%, -50%)',
+                            }}
+                          >
+                            +{val}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                   {/* Точки хороших */}
@@ -942,20 +1000,35 @@ export default function DashboardPage() {
                     const xPercent = 2 + (i / (pointsCount - 1)) * 96;
                     const y = getY(val);
                     const isToday = i === pointsCount - 1;
+                    const isSelected = selectedReviewDayIdx === i;
                     return (
-                      <div
-                        key={`good-dot-${i}`}
-                        className="absolute transition-all pointer-events-none"
-                        style={{
-                          left: `${xPercent}%`,
-                          top: `${(y / 50) * 100}%`,
-                          transform: 'translate(-50%, -50%)',
-                          width: isToday ? 7 : 4,
-                          height: isToday ? 7 : 4,
-                          borderRadius: '50%',
-                          backgroundColor: '#f59e0b',
-                        }}
-                      />
+                      <div key={`good-dot-${i}`}>
+                        <div
+                          className="absolute transition-all pointer-events-none"
+                          style={{
+                            left: `${xPercent}%`,
+                            top: `${(y / 50) * 100}%`,
+                            transform: 'translate(-50%, -50%)',
+                            width: isSelected ? 9 : isToday ? 7 : 4,
+                            height: isSelected ? 9 : isToday ? 7 : 4,
+                            borderRadius: '50%',
+                            backgroundColor: isSelected ? '#d97706' : '#f59e0b',
+                          }}
+                        />
+                        {/* Лейбл при выборе */}
+                        {isSelected && (
+                          <div
+                            className="absolute pointer-events-none text-[9px] font-semibold text-amber-700 bg-amber-50 px-1 rounded"
+                            style={{
+                              left: `${xPercent}%`,
+                              top: `${(y / 50) * 100 + 16}%`,
+                              transform: 'translate(-50%, -50%)',
+                            }}
+                          >
+                            {val}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                   {/* Точки отрицательных */}
@@ -963,37 +1036,66 @@ export default function DashboardPage() {
                     const xPercent = 2 + (i / (pointsCount - 1)) * 96;
                     const y = getY(val);
                     const isToday = i === pointsCount - 1;
+                    const isSelected = selectedReviewDayIdx === i;
+                    // Используем позицию хороших для размещения лейбла отрицательных
+                    const goodY = getY(good[i]);
                     return (
-                      <div
-                        key={`neg-dot-${i}`}
-                        className="absolute transition-all pointer-events-none"
-                        style={{
-                          left: `${xPercent}%`,
-                          top: `${(y / 50) * 100}%`,
-                          transform: 'translate(-50%, -50%)',
-                          width: isToday ? 7 : 4,
-                          height: isToday ? 7 : 4,
-                          borderRadius: '50%',
-                          backgroundColor: '#ef4444',
-                        }}
-                      />
+                      <div key={`neg-dot-${i}`}>
+                        <div
+                          className="absolute transition-all pointer-events-none"
+                          style={{
+                            left: `${xPercent}%`,
+                            top: `${(y / 50) * 100}%`,
+                            transform: 'translate(-50%, -50%)',
+                            width: isSelected ? 9 : isToday ? 7 : 4,
+                            height: isSelected ? 9 : isToday ? 7 : 4,
+                            borderRadius: '50%',
+                            backgroundColor: isSelected ? '#b91c1c' : '#ef4444',
+                          }}
+                        />
+                        {/* Лейбл при выборе - под хорошими */}
+                        {isSelected && val > 0 && (
+                          <div
+                            className="absolute pointer-events-none text-[9px] font-semibold text-red-700 bg-red-50 px-1 rounded"
+                            style={{
+                              left: `${xPercent}%`,
+                              top: `${(goodY / 50) * 100 + 30}%`,
+                              transform: 'translate(-50%, -50%)',
+                            }}
+                          >
+                            -{val}
+                          </div>
+                        )}
+                      </div>
                     );
                   })}
                 </div>
-                {/* Подписи */}
+                {/* Подписи - кликабельные */}
                 <div className="flex justify-between mt-1" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
                   {positive.map((posVal, idx) => {
                     const total = posVal + good[idx] + negative[idx];
                     const date = new Date();
                     date.setDate(date.getDate() - (6 - idx));
                     const isToday = idx === positive.length - 1;
+                    const isSelected = selectedReviewDayIdx === idx;
                     return (
-                      <div key={idx} className="flex flex-col items-center">
-                        <span className="text-[9px] text-gray-600">{total}</span>
-                        <span className={`text-[10px] ${isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
+                      <button
+                        key={idx}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedReviewDayIdx(isSelected ? null : idx);
+                        }}
+                        className={`flex flex-col items-center py-1 rounded-lg transition-all cursor-pointer ${
+                          isSelected
+                            ? 'bg-amber-100 shadow-sm px-1'
+                            : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        <span className={`text-[9px] ${isSelected ? 'text-amber-700 font-semibold' : 'text-gray-600'}`}>{total}</span>
+                        <span className={`text-[10px] ${isSelected ? 'text-amber-700 font-semibold' : isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
                           {date.getDate()}
                         </span>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>
