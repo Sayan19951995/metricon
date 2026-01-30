@@ -132,12 +132,16 @@ export default function DashboardPage() {
     awaitingPayment: {
       totalAmount: 4978800,
       ordersCount: 12,
-      notSent: 2150000,        // Не отправлено
-      notSentCount: 5,         // Кол-во не отправленных
+      notSent: 2150000,        // Не выдано
+      notSentCount: 5,         // Кол-во не выданных
       inDelivery: 2828800,     // Передано на доставку
       inDeliveryCount: 7,      // Кол-во в доставке
       // Поступления за неделю (Пн-Вс)
-      weeklyPayments: [850000, 1120000, 780000, 1450000, 920000, 1680000, 1178800]
+      weeklyPayments: [850000, 1120000, 780000, 1450000, 920000, 1680000, 1178800],
+      // Выдано за неделю (Пн-Вс)
+      weeklyIssued: [620000, 890000, 540000, 1120000, 780000, 1450000, 950000],
+      // Кол-во заказов за неделю (Пн-Вс)
+      weeklyOrders: [3, 4, 2, 5, 3, 6, 4]
     },
     // Отзывы за неделю
     reviews: {
@@ -559,6 +563,8 @@ export default function DashboardPage() {
           {/* Динамический заголовок */}
           {(() => {
             const payments = dashboardData.awaitingPayment.weeklyPayments;
+            const issued = dashboardData.awaitingPayment.weeklyIssued;
+            const orders = dashboardData.awaitingPayment.weeklyOrders;
             const isShowingPayment = selectedPaymentDayIdx !== null;
             const selectedDate = new Date();
             if (isShowingPayment) {
@@ -587,6 +593,17 @@ export default function DashboardPage() {
                       : dashboardData.awaitingPayment.totalAmount.toLocaleString('ru-RU')
                     } ₸
                   </div>
+                  {/* Выдано и заказы при выборе дня */}
+                  {isShowingPayment && (
+                    <div className="flex items-center gap-3 mt-1 text-xs">
+                      <span className="text-gray-500">
+                        Выдано: <span className="font-medium text-gray-700">{issued[selectedPaymentDayIdx!].toLocaleString('ru-RU')} ₸</span>
+                      </span>
+                      <span className="text-gray-500">
+                        Заказов: <span className="font-medium text-gray-700">{orders[selectedPaymentDayIdx!]}</span>
+                      </span>
+                    </div>
+                  )}
                 </div>
                 {!isShowingPayment && (
                   <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
