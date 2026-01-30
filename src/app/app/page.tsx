@@ -156,11 +156,13 @@ export default function DashboardPage() {
       weeklyGood: [1, 1, 1, 1, 1, 1, 0],
       weeklyNegative: [0, 1, 0, 1, 0, 0, 1]
     },
-    // Топ товаров за неделю (топ 3)
+    // Топ товаров за неделю (топ 5)
     topProducts: [
-      { name: 'iPhone 14 Pro 256GB', sold: 45, revenue: 44955000 },
-      { name: 'AirPods Pro 2', sold: 38, revenue: 3420000 },
-      { name: 'MacBook Air M2', sold: 12, revenue: 17988000 }
+      { name: 'iPhone 14 Pro 256GB', sold: 45, revenue: 44955000, stock: 15 },
+      { name: 'AirPods Pro 2', sold: 38, revenue: 3420000, stock: 32 },
+      { name: 'MacBook Air M2', sold: 12, revenue: 17988000, stock: 5 },
+      { name: 'Apple Watch Ultra', sold: 9, revenue: 4491000, stock: 18 },
+      { name: 'iPad Pro 12.9"', sold: 7, revenue: 6993000, stock: 3 }
     ]
   };
 
@@ -180,7 +182,7 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen lg:max-h-screen lg:overflow-hidden">
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
         <div>
@@ -262,7 +264,7 @@ export default function DashboardPage() {
 
       {/* Main Grid */}
       <motion.div
-        className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-6"
+        className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-4"
         variants={containerVariants}
         initial="hidden"
         animate="visible"
@@ -380,7 +382,7 @@ export default function DashboardPage() {
             return (
               <div>
                 {/* Контейнер графика с фиксированной высотой */}
-                <div className="relative h-[140px] flex">
+                <div className="relative h-[140px] lg:h-[180px] flex">
                 {/* Y-ось слева */}
                 <div className="hidden sm:flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '32px' }}>
                   {yAxisValues.map((val, i) => (
@@ -664,7 +666,7 @@ export default function DashboardPage() {
             return (
               <div>
                 {/* Контейнер графика */}
-                <div className="relative h-[120px] flex">
+                <div className="relative h-[120px] lg:h-[160px] flex">
                   {/* Y-ось слева - скрыта на мобильных */}
                   <div className="hidden sm:flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '32px' }}>
                     {yAxisValues.map((val, i) => (
@@ -892,8 +894,8 @@ export default function DashboardPage() {
             const allData = [...positive, ...good, ...negative];
             const maxVal = Math.max(...allData);
             const minVal = 0;
-            const chartH = 50;
-            const pad = 6;
+            const chartH = 80;
+            const pad = 8;
             const pointsCount = positive.length;
 
             const getY = (val: number) => {
@@ -904,10 +906,10 @@ export default function DashboardPage() {
 
             return (
               <div>
-                <div className="relative h-[60px]">
-                  <svg className="w-full h-full" viewBox="0 0 100 50" preserveAspectRatio="none">
+                <div className="relative h-[120px] lg:h-[160px]">
+                  <svg className="w-full h-full" viewBox="0 0 100 80" preserveAspectRatio="none">
                     {/* Горизонтальные линии */}
-                    {[0, 0.5, 1].map((ratio, i) => (
+                    {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
                       <line
                         key={`grid-${i}`}
                         x1="0"
@@ -971,7 +973,7 @@ export default function DashboardPage() {
                           className="absolute transition-all pointer-events-none"
                           style={{
                             left: `${xPercent}%`,
-                            top: `${(y / 50) * 100}%`,
+                            top: `${(y / 80) * 100}%`,
                             transform: 'translate(-50%, -50%)',
                             width: isSelected ? 9 : isToday ? 7 : 4,
                             height: isSelected ? 9 : isToday ? 7 : 4,
@@ -985,7 +987,7 @@ export default function DashboardPage() {
                             className="absolute pointer-events-none text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1 rounded"
                             style={{
                               left: `${xPercent}%`,
-                              top: `${(y / 50) * 100 - 16}%`,
+                              top: `${(y / 80) * 100 - 10}%`,
                               transform: 'translate(-50%, -50%)',
                             }}
                           >
@@ -1007,7 +1009,7 @@ export default function DashboardPage() {
                           className="absolute transition-all pointer-events-none"
                           style={{
                             left: `${xPercent}%`,
-                            top: `${(y / 50) * 100}%`,
+                            top: `${(y / 80) * 100}%`,
                             transform: 'translate(-50%, -50%)',
                             width: isSelected ? 9 : isToday ? 7 : 4,
                             height: isSelected ? 9 : isToday ? 7 : 4,
@@ -1021,7 +1023,7 @@ export default function DashboardPage() {
                             className="absolute pointer-events-none text-[9px] font-semibold text-amber-700 bg-amber-50 px-1 rounded"
                             style={{
                               left: `${xPercent}%`,
-                              top: `${(y / 50) * 100 + 16}%`,
+                              top: `${(y / 80) * 100 + 10}%`,
                               transform: 'translate(-50%, -50%)',
                             }}
                           >
@@ -1045,7 +1047,7 @@ export default function DashboardPage() {
                           className="absolute transition-all pointer-events-none"
                           style={{
                             left: `${xPercent}%`,
-                            top: `${(y / 50) * 100}%`,
+                            top: `${(y / 80) * 100}%`,
                             transform: 'translate(-50%, -50%)',
                             width: isSelected ? 9 : isToday ? 7 : 4,
                             height: isSelected ? 9 : isToday ? 7 : 4,
@@ -1059,7 +1061,7 @@ export default function DashboardPage() {
                             className="absolute pointer-events-none text-[9px] font-semibold text-red-700 bg-red-50 px-1 rounded"
                             style={{
                               left: `${xPercent}%`,
-                              top: `${(goodY / 50) * 100 + 30}%`,
+                              top: `${(goodY / 80) * 100 + 18}%`,
                               transform: 'translate(-50%, -50%)',
                             }}
                           >
@@ -1133,16 +1135,24 @@ export default function DashboardPage() {
                 <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
                   index === 0 ? 'bg-amber-100 text-amber-700' :
                   index === 1 ? 'bg-gray-200 text-gray-600' :
-                  'bg-orange-100 text-orange-700'
+                  index === 2 ? 'bg-orange-100 text-orange-700' :
+                  'bg-gray-100 text-gray-500'
                 }`}>
                   {index + 1}
                 </div>
                 <div className="flex-1 min-w-0">
                   <span className="text-gray-700 truncate block">{product.name}</span>
                 </div>
-                <div className="text-right flex-shrink-0">
-                  <span className="font-medium text-gray-900">{product.sold} шт</span>
-                  <span className="text-gray-400 ml-1">· {(product.revenue / 1000000).toFixed(1)}M ₸</span>
+                <div className="text-right flex-shrink-0 flex items-center gap-3">
+                  <div className={`text-[10px] px-1.5 py-0.5 rounded ${
+                    product.stock < 10 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'
+                  }`}>
+                    <span className="opacity-70">склад:</span> {product.stock}
+                  </div>
+                  <div>
+                    <span className="font-medium text-gray-900">{product.sold} шт</span>
+                    <span className="text-gray-400 ml-1">· {(product.revenue / 1000000).toFixed(1)}M ₸</span>
+                  </div>
                 </div>
               </div>
             ))}
@@ -1152,7 +1162,7 @@ export default function DashboardPage() {
 
       {/* Quick Actions */}
       <motion.div
-        className="mt-6 lg:mt-8 grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4"
+        className="mt-4 lg:mt-6 grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}

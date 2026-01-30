@@ -533,7 +533,7 @@ const mockAnalyticsData = {
   }
 };
 
-type TabType = 'finances' | 'sales' | 'warehouse' | 'reviews';
+type TabType = 'finances' | 'sales' | 'reviews';
 
 // Компонент-обёртка для Suspense
 export default function AnalyticsPage() {
@@ -567,7 +567,7 @@ function AnalyticsPageSkeleton() {
 function AnalyticsPageContent() {
   const searchParams = useSearchParams();
   const tabFromUrl = searchParams.get('tab') as TabType | null;
-  const validTabs: TabType[] = ['finances', 'sales', 'warehouse', 'reviews'];
+  const validTabs: TabType[] = ['finances', 'sales', 'reviews'];
   const initialTab = tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : 'finances';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
@@ -626,14 +626,12 @@ function AnalyticsPageContent() {
   // Попап для отзывов по дню
   const [showReviewsDayPopup, setShowReviewsDayPopup] = useState(false);
   const [selectedReviewsDay, setSelectedReviewsDay] = useState<string | null>(null);
+  const [selectedReviewDayIdx, setSelectedReviewDayIdx] = useState<number | null>(null);
 
   // Попапы для способов доставки
   const [showMyDeliveryPopup, setShowMyDeliveryPopup] = useState(false);
   const [showExpressPopup, setShowExpressPopup] = useState(false);
   const [showPickupPopup, setShowPickupPopup] = useState(false);
-
-  // Выбранный склад для вкладки warehouse
-  const [selectedWarehouse, setSelectedWarehouse] = useState<string>('all');
   const [showOfflineDeliveryPopup, setShowOfflineDeliveryPopup] = useState(false);
   const [selectedCityPopup, setSelectedCityPopup] = useState<string | null>(null);
 
@@ -1116,16 +1114,6 @@ function AnalyticsPageContent() {
                   Заказы и реклама
                 </button>
                 <button
-                  onClick={() => setActiveTab('warehouse')}
-                  className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
-                    activeTab === 'warehouse'
-                      ? 'bg-emerald-500 text-white shadow-sm'
-                      : 'bg-white text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  Склад
-                </button>
-                <button
                   onClick={() => setActiveTab('reviews')}
                   className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === 'reviews'
@@ -1138,8 +1126,7 @@ function AnalyticsPageContent() {
               </div>
             </div>
 
-            {/* Date Range Selector - скрыт для вкладки Отзывы */}
-            {activeTab !== 'reviews' && (
+            {/* Date Range Selector */}
             <div className="bg-white p-3 sm:p-4 rounded-xl shadow-sm relative w-full lg:w-auto" ref={calendarRef}>
               <div className="mb-2 sm:mb-3">
                 <button
@@ -1193,20 +1180,8 @@ function AnalyticsPageContent() {
                 )}
               </AnimatePresence>
             </div>
-            )}
           </div>
         </motion.div>
-
-        {/* Кнопка операционных расходов - вне блока */}
-        <div className="mt-4">
-          <button
-            onClick={() => setShowExpensesPopup(true)}
-            className="px-4 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer flex items-center gap-2 shadow-sm"
-          >
-            <Plus className="w-4 h-4" />
-            Добавить опер. расходы
-          </button>
-        </div>
 
         {/* Tab Content */}
         {activeTab === 'finances' && (
@@ -1532,12 +1507,21 @@ function AnalyticsPageContent() {
         {/* Sales Tab */}
         {activeTab === 'sales' && (
           <>
-            {/* Period Info */}
-            <div className="mb-4 sm:mb-6 flex items-center gap-2 text-xs sm:text-sm text-gray-400">
-              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>Период: <span className="text-gray-500">{formatShortPeriod()}</span></span>
-              <span className="text-gray-300">|</span>
-              <span>{data.totalOrders} заказов</span>
+            {/* Period Info + кнопка расходов */}
+            <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                <span>Период: <span className="text-gray-500">{formatShortPeriod()}</span></span>
+                <span className="text-gray-300">|</span>
+                <span>{data.totalOrders} заказов</span>
+              </div>
+              <button
+                onClick={() => setShowExpensesPopup(true)}
+                className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl text-sm font-medium transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
+              >
+                <Plus className="w-4 h-4" />
+                Добавить опер. расходы
+              </button>
             </div>
 
             {/* Sales Stats Cards */}
@@ -1615,46 +1599,44 @@ function AnalyticsPageContent() {
               animate="visible"
               className="mb-6 sm:mb-8"
             >
-              <motion.div variants={itemVariants} className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl shadow-sm overflow-hidden">
-                {/* Заголовок */}
-                <div className="flex items-center justify-between p-4 sm:p-6">
-                  <div
-                    className="flex items-center gap-2 sm:gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-                    onClick={() => toggleSection('adProducts')}
-                  >
-                    <div className={`p-1.5 rounded-lg transition-transform ${collapsedSections.adProducts ? 'rotate-180' : ''}`}>
-                      <ChevronUp className="w-4 h-4 text-indigo-600" />
+              <motion.div variants={itemVariants} className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl overflow-hidden">
+                {/* Заголовок - кликабельный для сворачивания */}
+                <button
+                  onClick={() => toggleSection('adProducts')}
+                  className="w-full flex items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-white/30 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center">
+                      <TrendingUp className="w-5 h-5 text-white" />
                     </div>
-                    <div className="p-2 bg-indigo-100 rounded-xl">
-                      <TrendingUp className="w-5 h-5 text-indigo-600" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Рентабельность по товарам</h3>
-                      <p className="text-xs sm:text-sm text-gray-500">
-                        {showAdsOnlyROI ? 'ROI каждого товара от рекламы' : 'Маржинальность всех продаж'}
-                      </p>
+                    <div className="text-left">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">Рентабельность по товарам</h3>
+                      <p className="text-xs text-gray-500">{showAdsOnlyROI ? 'ROI рекламных продаж' : 'Маржинальность всех продаж'}</p>
                     </div>
                   </div>
-                  {/* Toggle только реклама */}
-                  <div
-                    className="flex items-center gap-2"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <span className="text-xs text-gray-500">Только реклама</span>
-                    <button
-                      onClick={() => setShowAdsOnlyROI(!showAdsOnlyROI)}
-                      className={`relative w-11 h-6 rounded-full transition-colors ${
-                        showAdsOnlyROI ? 'bg-indigo-500' : 'bg-gray-300'
-                      }`}
+                  <div className="flex items-center gap-3">
+                    {/* Toggle */}
+                    <div
+                      className="flex items-center gap-2"
+                      onClick={(e) => e.stopPropagation()}
                     >
-                      <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                        showAdsOnlyROI ? 'translate-x-6' : 'translate-x-1'
-                      }`} />
-                    </button>
+                      <span className="text-xs text-gray-500 hidden sm:block">Только реклама</span>
+                      <button
+                        onClick={() => setShowAdsOnlyROI(!showAdsOnlyROI)}
+                        className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
+                          showAdsOnlyROI ? 'bg-indigo-500' : 'bg-gray-300'
+                        }`}
+                      >
+                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-md transition-transform ${
+                          showAdsOnlyROI ? 'translate-x-5' : 'translate-x-0'
+                        }`} />
+                      </button>
+                    </div>
+                    <ChevronUp className={`w-5 h-5 text-gray-400 transition-transform ${collapsedSections.adProducts ? 'rotate-180' : ''}`} />
                   </div>
-                </div>
+                </button>
 
-                {/* Содержимое */}
+                {/* Содержимое - сворачиваемое */}
                 <AnimatePresence>
                   {!collapsedSections.adProducts && (
                     <motion.div
@@ -1662,8 +1644,9 @@ function AnalyticsPageContent() {
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3 }}
-                      className="px-4 sm:px-6 pb-4 sm:pb-6"
+                      className="overflow-hidden"
                     >
+                      <div className="p-4 sm:p-5 bg-white/50">
                 {(() => {
                   // Расчёт данных для каждого товара
                   const totalAdSales = data.topProducts.reduce((sum, p) => sum + (p.adSales || 0), 0);
@@ -1709,85 +1692,45 @@ function AnalyticsPageContent() {
 
                   return (
                     <>
-                      {/* Таблица */}
-                      <div className="mb-6" style={{ overflow: 'visible' }}>
-                        <table className="w-full min-w-[600px]">
-                          <thead>
-                            <tr className="border-b border-gray-200">
-                              <th className="text-left py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">Товар</th>
-                              <th className="text-center py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
-                                <div className="flex items-center justify-center gap-1">
-                                  Продажи
-                                  <HelpTooltip text={showAdsOnlyROI ? "Продажи из рекламы / всего" : "Всего продаж товара"} />
-                                </div>
-                              </th>
-                              <th className="text-right py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
-                                <div className="flex items-center justify-end gap-1">
-                                  Выручка
-                                  <HelpTooltip text={showAdsOnlyROI ? "Выручка от рекламных продаж" : "Общая выручка от товара"} />
-                                </div>
-                              </th>
-                              <th className="text-right py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
-                                <div className="flex items-center justify-end gap-1">
-                                  {showAdsOnlyROI ? 'Расход' : 'Себест.'}
-                                  <HelpTooltip text={showAdsOnlyROI ? "Расход на рекламу товара" : "Себестоимость товара"} />
-                                </div>
-                              </th>
-                              <th className="text-right py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
-                                <div className="flex items-center justify-end gap-1">
-                                  Прибыль
-                                  <HelpTooltip text={showAdsOnlyROI ? "Прибыль от рекламы: выручка − себест. − реклама" : "Чистая прибыль: выручка − себестоимость"} />
-                                </div>
-                              </th>
-                              <th className="text-center py-3 px-2 text-xs sm:text-sm font-medium text-gray-500">
-                                <div className="flex items-center justify-center gap-1">
-                                  {showAdsOnlyROI ? 'ROI' : 'Маржа'}
-                                  <HelpTooltip text={showAdsOnlyROI ? "ROI: прибыль ÷ расход × 100%" : "Маржинальность: прибыль ÷ выручка × 100%"} />
-                                </div>
-                              </th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {productsWithROI.map((product) => (
-                              <tr key={product.id} className="border-b border-gray-100 hover:bg-white/50 transition-colors">
-                                <td className="py-3 px-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-lg">{product.image}</span>
-                                    <div>
-                                      <div className="font-medium text-gray-900 text-sm">{product.name.length > 25 ? product.name.substring(0, 25) + '...' : product.name}</div>
-                                      <div className="text-xs text-gray-500">{product.sku}</div>
-                                    </div>
-                                  </div>
-                                </td>
-                                <td className="py-3 px-2 text-center">
-                                  <span className="font-medium text-gray-900">{product.displaySales}</span>
-                                  {showAdsOnlyROI && (
-                                    <span className="text-gray-400 text-xs ml-1">из {product.totalSales}</span>
-                                  )}
-                                </td>
-                                <td className="py-3 px-2 text-right font-medium text-gray-900">
-                                  {product.displayRevenue.toLocaleString('ru-RU')} ₸
-                                </td>
-                                <td className="py-3 px-2 text-right font-medium text-red-500">
-                                  -{product.displayExpense.toLocaleString('ru-RU')} ₸
-                                </td>
-                                <td className={`py-3 px-2 text-right font-medium ${product.displayProfit >= 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                                  {product.displayProfit >= 0 ? '+' : ''}{product.displayProfit.toLocaleString('ru-RU')} ₸
-                                </td>
-                                <td className="py-3 px-2 text-center">
-                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-bold ${
-                                    product.displayROI >= 100 ? 'bg-emerald-100 text-emerald-700' :
-                                    product.displayROI >= 50 ? 'bg-amber-100 text-amber-700' :
-                                    product.displayROI >= 0 ? 'bg-orange-100 text-orange-700' :
-                                    'bg-red-100 text-red-700'
-                                  }`}>
-                                    {product.displayROI}%
-                                  </span>
-                                </td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                      {/* Карточки товаров */}
+                      <div className="space-y-3 mb-6">
+                        {productsWithROI.map((product) => (
+                          <div key={product.id} className="bg-white rounded-xl p-4 shadow-sm">
+                            <div className="flex items-start justify-between mb-3">
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-sm text-gray-900 truncate">{product.name}</p>
+                                <p className="text-xs text-gray-500">{product.sku}</p>
+                              </div>
+                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ml-2 ${
+                                product.displayROI >= 100 ? 'bg-emerald-100 text-emerald-700' :
+                                product.displayROI >= 50 ? 'bg-amber-100 text-amber-700' :
+                                product.displayROI >= 0 ? 'bg-orange-100 text-orange-700' :
+                                'bg-red-100 text-red-700'
+                              }`}>
+                                {showAdsOnlyROI ? 'ROI' : 'Маржа'} {product.displayROI}%
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between text-sm">
+                              <div className="flex items-center gap-4">
+                                <span className="font-medium text-gray-900">
+                                  {product.displaySales} шт
+                                  {showAdsOnlyROI && <span className="text-gray-400 text-xs ml-1">из {product.totalSales}</span>}
+                                </span>
+                                <span className="text-gray-500">
+                                  <span className="text-[10px] opacity-60">{showAdsOnlyROI ? 'расх.' : 'себ.'}</span> {(product.displayExpense / 1000).toFixed(0)}K ₸
+                                </span>
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-gray-600">
+                                  <span className="text-[10px] opacity-60">выр.</span> {(product.displayRevenue / 1000).toFixed(0)}K ₸
+                                </span>
+                                <span className={product.displayProfit >= 0 ? 'text-emerald-600 font-semibold' : 'text-red-500 font-semibold'}>
+                                  <span className="text-[10px] opacity-60 font-normal">приб.</span> {product.displayProfit >= 0 ? '+' : ''}{(product.displayProfit / 1000).toFixed(0)}K ₸
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
                       </div>
 
                       {/* График */}
@@ -1856,6 +1799,7 @@ function AnalyticsPageContent() {
                     </>
                   );
                 })()}
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -2496,292 +2440,6 @@ function AnalyticsPageContent() {
           </>
         )}
 
-        {/* Warehouse Tab - Движение склада */}
-        {activeTab === 'warehouse' && (() => {
-          // Данные товаров с привязкой к складам
-          const warehouseProducts = [
-            { id: 1, name: 'iPhone 14 Pro 256GB', sku: 'APL-IP14P-256', image: '📱', stock: 45, minStock: 10, costPerUnit: 352500, salePrice: 449900, profit: 52410, inTransit: false, warehouse: 'almaty_main' },
-            { id: 2, name: 'Samsung Galaxy S23 Ultra', sku: 'SAM-S23U-256', image: '📱', stock: 12, minStock: 10, costPerUnit: 297300, salePrice: 389900, profit: 53610, inTransit: false, warehouse: 'almaty_main' },
-            { id: 3, name: 'AirPods Pro 2', sku: 'APL-APP2', image: '🎧', stock: 8, minStock: 15, costPerUnit: 58800, salePrice: 89900, profit: 22110, inTransit: true, inTransitQty: 20, warehouse: 'almaty_taugul' },
-            { id: 4, name: 'MacBook Pro 14" M2', sku: 'APL-MBP14-M2', image: '💻', stock: 3, minStock: 5, costPerUnit: 688000, salePrice: 849900, profit: 76910, inTransit: true, inTransitQty: 10, warehouse: 'almaty_taugul' },
-            { id: 5, name: 'iPad Air 5th Gen', sku: 'APL-IPA5', image: '📲', stock: 0, minStock: 8, costPerUnit: 213000, salePrice: 289900, profit: 47910, inTransit: true, inTransitQty: 15, warehouse: 'osipenko' },
-            { id: 6, name: 'Apple Watch Ultra', sku: 'APL-AWU', image: '⌚', stock: 28, minStock: 10, costPerUnit: 286200, salePrice: 379900, profit: 55710, inTransit: false, warehouse: 'almaty_main' },
-            { id: 7, name: 'Sony WH-1000XM5', sku: 'SNY-WH1000', image: '🎧', stock: 15, minStock: 10, costPerUnit: 96500, salePrice: 149900, profit: 38410, inTransit: false, warehouse: 'osipenko' },
-            { id: 8, name: 'Samsung Galaxy Tab S9', sku: 'SAM-GTS9', image: '📲', stock: 52, minStock: 15, costPerUnit: 237800, salePrice: 329900, profit: 59110, inTransit: false, warehouse: 'almaty_main' },
-            { id: 9, name: 'Google Pixel 8 Pro', sku: 'GGL-PX8P', image: '📱', stock: 6, minStock: 10, costPerUnit: 257200, salePrice: 349900, profit: 57710, inTransit: false, warehouse: 'astana' },
-            { id: 10, name: 'Nintendo Switch OLED', sku: 'NTD-SWOLED', image: '🎮', stock: 19, minStock: 10, costPerUnit: 112500, salePrice: 159900, profit: 31410, inTransit: false, warehouse: 'osipenko' },
-            { id: 11, name: 'DJI Mini 3 Pro', sku: 'DJI-M3P', image: '🚁', stock: 4, minStock: 5, costPerUnit: 278500, salePrice: 379900, profit: 63410, inTransit: false, warehouse: 'astana' },
-            { id: 12, name: 'Bose QuietComfort 45', sku: 'BOS-QC45', image: '🎧', stock: 0, minStock: 8, costPerUnit: 83400, salePrice: 129900, profit: 33510, inTransit: false, warehouse: 'almaty_taugul' },
-          ];
-
-          // Фильтруем товары по выбранному складу
-          const filteredProducts = selectedWarehouse === 'all'
-            ? warehouseProducts
-            : warehouseProducts.filter(p => p.warehouse === selectedWarehouse);
-
-          // Статистика по выбранному складу
-          const warehouseStats = {
-            total: filteredProducts.length,
-            totalUnits: filteredProducts.reduce((sum, p) => sum + p.stock, 0),
-            totalValue: filteredProducts.reduce((sum, p) => sum + (p.stock * p.costPerUnit), 0),
-            inStock: filteredProducts.filter(p => p.stock >= p.minStock).length,
-            inTransit: filteredProducts.filter(p => p.inTransit).length,
-            inTransitUnits: filteredProducts.filter(p => p.inTransit).reduce((sum, p) => sum + (p.inTransitQty || 0), 0),
-            lowStock: filteredProducts.filter(p => p.stock > 0 && p.stock < p.minStock).length,
-            outOfStock: filteredProducts.filter(p => p.stock === 0).length,
-          };
-
-          return (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {/* Warehouse Tabs */}
-            <div className="mb-4 sm:mb-6">
-              <div className="flex flex-wrap gap-2">
-                {[
-                  { id: 'all', label: 'Все склады' },
-                  { id: 'almaty_main', label: 'Основной Алматы' },
-                  { id: 'almaty_taugul', label: 'Алматы Таугуль 13' },
-                  { id: 'osipenko', label: 'Осипенко 35А' },
-                  { id: 'astana', label: 'Астана' },
-                ].map((warehouse) => (
-                  <button
-                    key={warehouse.id}
-                    onClick={() => setSelectedWarehouse(warehouse.id)}
-                    className={`px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-all ${
-                      selectedWarehouse === warehouse.id
-                        ? 'bg-gray-900 text-white'
-                        : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
-                    }`}
-                  >
-                    {warehouse.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Period Info */}
-            <div className="mb-4 sm:mb-6 flex items-center gap-2 text-xs sm:text-sm text-gray-400">
-              <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>Период: <span className="text-gray-500">{formatShortPeriod()}</span></span>
-              <span className="text-gray-300">|</span>
-              <span>{warehouseStats.totalUnits} единиц{selectedWarehouse === 'all' ? ' на всех складах' : ''}</span>
-            </div>
-
-            {/* Warehouse Stats Cards */}
-            <motion.div variants={itemVariants} className="grid grid-cols-2 md:grid-cols-5 gap-3 sm:gap-4 mb-6">
-              <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
-                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                    <Package className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                  </div>
-                  <span className="text-gray-600 text-xs sm:text-sm">Всего</span>
-                </div>
-                <div className="text-xl sm:text-2xl font-bold text-gray-900">{warehouseStats.total}</div>
-                <div className="text-[10px] sm:text-xs text-gray-500 mt-1">{warehouseStats.totalUnits} ед. на {(warehouseStats.totalValue / 1000000).toFixed(1)}M ₸</div>
-              </div>
-
-              <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
-                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
-                  </div>
-                  <span className="text-gray-600 text-xs sm:text-sm">В наличии</span>
-                </div>
-                <div className="text-xl sm:text-2xl font-bold text-emerald-600">{warehouseStats.inStock}</div>
-                <div className="text-[10px] sm:text-xs text-gray-500 mt-1">позиций</div>
-              </div>
-
-              <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
-                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                    <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
-                  </div>
-                  <span className="text-gray-600 text-xs sm:text-sm">В пути</span>
-                </div>
-                <div className="text-xl sm:text-2xl font-bold text-purple-600">{warehouseStats.inTransit}</div>
-                <div className="text-[10px] sm:text-xs text-gray-500 mt-1">{warehouseStats.inTransitUnits} единиц</div>
-              </div>
-
-              <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
-                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                    <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
-                  </div>
-                  <span className="text-gray-600 text-xs sm:text-sm">Мало</span>
-                </div>
-                <div className="text-xl sm:text-2xl font-bold text-amber-600">{warehouseStats.lowStock}</div>
-                <div className="text-[10px] sm:text-xs text-gray-500 mt-1">позиций</div>
-              </div>
-
-              <div className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
-                <div className="flex items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                    <XCircle className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
-                  </div>
-                  <span className="text-gray-600 text-xs sm:text-sm">Нет</span>
-                </div>
-                <div className="text-xl sm:text-2xl font-bold text-red-600">{warehouseStats.outOfStock}</div>
-                <div className="text-[10px] sm:text-xs text-gray-500 mt-1">позиций</div>
-              </div>
-            </motion.div>
-
-            {/* Products Table */}
-            <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-3 sm:p-6 border-b border-gray-200">
-                <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 mb-1">
-                  <h3 className="text-lg sm:text-2xl font-semibold text-gray-900">Аналитика склада</h3>
-                  <span className="bg-blue-100 text-blue-700 px-2 py-0.5 sm:px-2.5 sm:py-1 rounded-lg text-xs sm:text-sm font-medium w-fit">{formatShortPeriod()}</span>
-                </div>
-                <p className="text-xs sm:text-sm text-gray-500">Детальная информация по остаткам и прибыльности</p>
-              </div>
-
-              {/* Mobile Cards */}
-              <div className="sm:hidden divide-y divide-gray-100">
-                {filteredProducts.map((product) => {
-                  const roi = (product.profit / product.costPerUnit) * 100;
-                  const status = product.stock === 0 ? 'out' : product.stock < product.minStock ? 'low' : 'in_stock';
-                  return (
-                    <div key={product.id} className="p-3 hover:bg-gray-50 transition-colors">
-                      <div className="flex items-start gap-2.5">
-                        <div className="w-8 h-8 bg-gray-100 rounded-lg flex items-center justify-center text-base flex-shrink-0">
-                          {product.image}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium text-gray-900 text-sm truncate">{product.name}</div>
-                          <div className="text-[10px] text-gray-500 font-mono">{product.sku}</div>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <div className="text-sm font-semibold text-gray-900">{product.stock} шт</div>
-                          <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[10px] font-medium ${
-                            status === 'out' ? 'bg-red-100 text-red-700' :
-                            status === 'low' ? 'bg-amber-100 text-amber-700' :
-                            'bg-emerald-100 text-emerald-700'
-                          }`}>
-                            {status === 'out' ? 'Нет' : status === 'low' ? 'Мало' : 'Есть'}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100">
-                        <div className="text-xs">
-                          <span className="text-gray-500">Себест: </span>
-                          <span className="font-medium text-gray-900">{(product.costPerUnit / 1000).toFixed(0)}к ₸</span>
-                        </div>
-                        <div className="text-xs">
-                          <span className="text-gray-500">Прибыль: </span>
-                          <span className="font-medium text-emerald-600">{(product.profit / 1000).toFixed(0)}к ₸</span>
-                        </div>
-                        <div className="text-xs">
-                          <span className={`font-medium ${roi >= 15 ? 'text-emerald-600' : roi >= 10 ? 'text-blue-600' : 'text-amber-600'}`}>
-                            ROI {roi.toFixed(0)}%
-                          </span>
-                        </div>
-                      </div>
-                      {product.inTransit && (
-                        <div className="mt-1.5 flex items-center gap-1 text-xs text-purple-600">
-                          <Truck className="w-3 h-3" />
-                          <span>В пути: {product.inTransitQty} шт</span>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Desktop Table */}
-              <div className="hidden sm:block overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50 border-b border-gray-200">
-                    <tr>
-                      <th className="px-4 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Товар</th>
-                      <th className="px-4 lg:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Остаток</th>
-                      <th className="px-4 lg:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">В пути</th>
-                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Себестоимость</th>
-                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Цена продажи</th>
-                      <th className="px-4 lg:px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Прибыль</th>
-                      <th className="px-4 lg:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">ROI</th>
-                      <th className="px-4 lg:px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Статус</th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredProducts.map((product) => {
-                      const roi = (product.profit / product.costPerUnit) * 100;
-                      const status = product.stock === 0 ? 'out' : product.stock < product.minStock ? 'low' : 'in_stock';
-                      return (
-                        <tr key={product.id} className="hover:bg-gray-50 transition-colors">
-                          <td className="px-4 lg:px-6 py-3">
-                            <div className="flex items-center gap-2 lg:gap-3">
-                              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gray-100 rounded-lg flex items-center justify-center text-lg lg:text-xl flex-shrink-0">
-                                {product.image}
-                              </div>
-                              <div className="min-w-0">
-                                <div className="font-medium text-gray-900 text-sm truncate max-w-[120px] lg:max-w-none">{product.name}</div>
-                                <div className="text-xs text-gray-500">{product.sku}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-center">
-                            <div className="text-sm font-medium text-gray-900">{product.stock} шт</div>
-                          </td>
-                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-center hidden lg:table-cell">
-                            {product.inTransit ? (
-                              <div className="flex items-center justify-center gap-1 text-sm text-purple-600">
-                                <Truck className="w-3.5 h-3.5" />
-                                {product.inTransitQty} шт
-                              </div>
-                            ) : (
-                              <span className="text-gray-400">—</span>
-                            )}
-                          </td>
-                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-right">
-                            <div className="text-sm font-medium text-gray-900">{product.costPerUnit.toLocaleString('ru-RU')} ₸</div>
-                          </td>
-                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-right hidden lg:table-cell">
-                            <div className="text-sm font-medium text-blue-600">{product.salePrice.toLocaleString('ru-RU')} ₸</div>
-                          </td>
-                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-right">
-                            <div className="text-sm font-bold text-emerald-600">{product.profit.toLocaleString('ru-RU')} ₸</div>
-                          </td>
-                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-center">
-                            <span className={`text-sm font-medium ${roi >= 15 ? 'text-emerald-600' : roi >= 10 ? 'text-blue-600' : 'text-amber-600'}`}>
-                              {roi.toFixed(1)}%
-                            </span>
-                          </td>
-                          <td className="px-4 lg:px-6 py-3 whitespace-nowrap text-center">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
-                              status === 'out' ? 'bg-red-100 text-red-700' :
-                              status === 'low' ? 'bg-amber-100 text-amber-700' :
-                              'bg-emerald-100 text-emerald-700'
-                            }`}>
-                              {status === 'out' && <><XCircle className="w-3 h-3" /> Нет</>}
-                              {status === 'low' && <><AlertTriangle className="w-3 h-3" /> Мало</>}
-                              {status === 'in_stock' && <><CheckCircle className="w-3 h-3" /> Есть</>}
-                            </span>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-
-              {/* Footer */}
-              <div className="p-3 sm:p-4 border-t border-gray-200 bg-gray-50">
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-sm">
-                  <span className="text-gray-500">Показано {filteredProducts.length} товаров</span>
-                  <div className="flex items-center gap-2">
-                    <span className="text-gray-500">Общая стоимость остатков:</span>
-                    <span className="font-bold text-gray-900">{warehouseStats.totalValue.toLocaleString('ru-RU')} ₸</span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-          );
-        })()}
-
         {/* Reviews Tab */}
         {activeTab === 'reviews' && (
           <motion.div
@@ -2790,163 +2448,419 @@ function AnalyticsPageContent() {
             animate="visible"
             className="mt-6"
           >
-            {/* Метрики отзывов */}
-            <motion.div variants={itemVariants} className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-                    <Star className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <span className="text-gray-600 text-sm">Средний рейтинг</span>
-                </div>
-                <div className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                  {mockAnalyticsData.reviewsData.averageRating}
-                  <div className="flex">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <Star
-                        key={star}
-                        className={`w-4 h-4 ${star <= Math.round(mockAnalyticsData.reviewsData.averageRating) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
-                      />
-                    ))}
-                  </div>
-                </div>
-                <div className="text-xs text-emerald-500 mt-1">+0.2 vs прошлый период</div>
-              </div>
+            {/* Метрики отзывов - горизонтальный скролл на мобильных */}
+            <motion.div variants={itemVariants} className="mb-4 sm:mb-6">
+              {(() => {
+                // Вычисляем данные на основе периода
+                const getDaysInPeriod = () => {
+                  if (!startDate || !endDate) return 7;
+                  const start = new Date(startDate);
+                  const end = new Date(endDate);
+                  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+                };
 
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center">
-                    <MessageCircle className="w-5 h-5 text-blue-600" />
-                  </div>
-                  <span className="text-gray-600 text-sm">Всего отзывов</span>
-                </div>
-                <div className="text-2xl font-bold text-gray-900">{mockAnalyticsData.reviewsData.totalReviews}</div>
-                <div className="text-xs text-emerald-500 mt-1">+18 за период</div>
-              </div>
+                const days = getDaysInPeriod();
+                // Генерируем числа на основе периода (для демо)
+                const basePositive = Math.round(days * 4.5);
+                const baseNeutral = Math.round(days * 0.8);
+                const baseNegative = Math.round(days * 0.4);
+                const totalReviews = basePositive + baseNeutral + baseNegative;
+                const avgRating = 4.5 + (days % 10) * 0.03;
 
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
-                    <ThumbsUp className="w-5 h-5 text-emerald-600" />
-                  </div>
-                  <span className="text-gray-600 text-sm">Положительные</span>
-                </div>
-                <div className="text-2xl font-bold text-emerald-600">{mockAnalyticsData.reviewsData.positiveReviews}</div>
-                <div className="text-xs text-gray-500 mt-1">{((mockAnalyticsData.reviewsData.positiveReviews / mockAnalyticsData.reviewsData.totalReviews) * 100).toFixed(0)}% от всех</div>
-              </div>
-
-              <div className="bg-white rounded-2xl p-5 shadow-sm">
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <span className="text-gray-600 text-sm">За неделю</span>
-                </div>
-                <div className="text-2xl font-bold text-purple-600">23</div>
-                <div className="text-xs text-emerald-500 mt-1">+5 vs прошлая неделя</div>
-              </div>
-            </motion.div>
-
-            {/* Распределение по звездам и график динамики */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-              {/* Распределение по рейтингу */}
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">Распределение по рейтингу</h3>
-                <div className="space-y-3">
-                  {mockAnalyticsData.reviewsData.ratingDistribution.map((item) => {
-                    const percentage = (item.count / mockAnalyticsData.reviewsData.totalReviews) * 100;
-                    return (
-                      <div key={item.stars} className="flex items-center gap-3">
-                        <div className="flex items-center gap-1 w-20">
-                          <span className="text-sm font-medium text-gray-700">{item.stars}</span>
-                          <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                return (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
+                    <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                          <Star className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
                         </div>
-                        <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all ${
-                              item.stars >= 4 ? 'bg-emerald-500' :
-                              item.stars === 3 ? 'bg-amber-500' :
-                              'bg-red-500'
-                            }`}
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                        <div className="w-16 text-right">
-                          <span className="text-sm font-medium text-gray-700">{item.count}</span>
-                          <span className="text-xs text-gray-500 ml-1">({percentage.toFixed(0)}%)</span>
+                        <span className="text-gray-600 text-xs sm:text-sm">Средний рейтинг</span>
+                      </div>
+                      <div className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-1.5">
+                        {avgRating.toFixed(1)}
+                        <div className="flex">
+                          {[1, 2, 3, 4, 5].map((star) => (
+                            <Star
+                              key={star}
+                              className={`w-3 h-3 sm:w-4 sm:h-4 ${star <= Math.round(avgRating) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                            />
+                          ))}
                         </div>
                       </div>
-                    );
-                  })}
-                </div>
-              </motion.div>
+                      <div className="text-[10px] sm:text-xs text-emerald-500 mt-1">+0.2 vs прошлый период</div>
+                    </div>
 
-              {/* График динамики отзывов */}
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">Динамика отзывов</h3>
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={mockAnalyticsData.reviewsData.dailyReviews}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                      <XAxis dataKey="date" tick={{ fontSize: 12 }} stroke="#9ca3af" />
-                      <YAxis tick={{ fontSize: 12 }} stroke="#9ca3af" />
-                      <Tooltip
-                        contentStyle={{
-                          backgroundColor: 'white',
-                          border: '1px solid #e5e7eb',
-                          borderRadius: '12px',
-                          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                        }}
-                      />
-                      <Legend />
-                      <Bar
-                        dataKey="positive"
-                        name="Положительные"
-                        fill="#10b981"
-                        stackId="a"
-                        cursor="pointer"
-                        onClick={(_data, _index, e) => {
-                          const payload = (e as unknown as { payload?: { date?: string } })?.payload;
-                          if (payload?.date) {
-                            setSelectedReviewsDay(payload.date);
-                            setShowReviewsDayPopup(true);
-                          }
-                        }}
-                      />
-                      <Bar
-                        dataKey="neutral"
-                        name="Нейтральные"
-                        fill="#f59e0b"
-                        stackId="a"
-                        cursor="pointer"
-                        onClick={(_data, _index, e) => {
-                          const payload = (e as unknown as { payload?: { date?: string } })?.payload;
-                          if (payload?.date) {
-                            setSelectedReviewsDay(payload.date);
-                            setShowReviewsDayPopup(true);
-                          }
-                        }}
-                      />
-                      <Bar
-                        dataKey="negative"
-                        name="Негативные"
-                        fill="#ef4444"
-                        stackId="a"
-                        radius={[4, 4, 0, 0]}
-                        cursor="pointer"
-                        onClick={(_data, _index, e) => {
-                          const payload = (e as unknown as { payload?: { date?: string } })?.payload;
-                          if (payload?.date) {
-                            setSelectedReviewsDay(payload.date);
-                            setShowReviewsDayPopup(true);
-                          }
-                        }}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              </motion.div>
-            </div>
+                    <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                          <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                        </div>
+                        <span className="text-gray-600 text-xs sm:text-sm">Всего отзывов</span>
+                      </div>
+                      <div className="text-xl sm:text-2xl font-bold text-gray-900">{totalReviews}</div>
+                      <div className="text-[10px] sm:text-xs text-emerald-500 mt-1">+{Math.round(totalReviews * 0.12)} за период</div>
+                    </div>
+
+                    <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                          <ThumbsUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+                        </div>
+                        <span className="text-gray-600 text-xs sm:text-sm">Положительные</span>
+                      </div>
+                      <div className="text-xl sm:text-2xl font-bold text-emerald-600">{basePositive}</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500 mt-1">{Math.round((basePositive / totalReviews) * 100)}% от всех</div>
+                    </div>
+
+                    <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm">
+                      <div className="flex items-center gap-2 mb-2">
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                          <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+                        </div>
+                        <span className="text-gray-600 text-xs sm:text-sm">За период</span>
+                      </div>
+                      <div className="text-xl sm:text-2xl font-bold text-purple-600">{totalReviews}</div>
+                      <div className="text-[10px] sm:text-xs text-emerald-500 mt-1">+{Math.round(totalReviews * 0.1)} vs прошлый</div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </motion.div>
+
+            {/* Блок сводки отзывов с графиком */}
+            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm mb-6">
+              {(() => {
+                // Генерируем данные на основе выбранного периода
+                const generateReviewsDataForPeriod = () => {
+                  if (!startDate || !endDate) return mockAnalyticsData.reviewsData.dailyReviews;
+
+                  const start = new Date(startDate);
+                  const end = new Date(endDate);
+                  const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+
+                  const data: { date: string; positive: number; neutral: number; negative: number }[] = [];
+
+                  // Ограничиваем количество точек для читаемости
+                  const maxPoints = 15;
+                  const step = diffDays > maxPoints ? Math.ceil(diffDays / maxPoints) : 1;
+
+                  for (let i = 0; i < diffDays; i += step) {
+                    const currentDate = new Date(start);
+                    currentDate.setDate(start.getDate() + i);
+
+                    // Генерируем случайные данные на основе даты (для демо)
+                    const seed = currentDate.getDate() + currentDate.getMonth() * 31;
+                    const positive = 3 + (seed % 5);
+                    const neutral = (seed % 3);
+                    const negative = (seed % 2);
+
+                    data.push({
+                      date: `${currentDate.getDate().toString().padStart(2, '0')}.${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`,
+                      positive,
+                      neutral,
+                      negative
+                    });
+                  }
+
+                  return data;
+                };
+
+                const reviewsData = generateReviewsDataForPeriod();
+                const totalPositive = reviewsData.reduce((sum, d) => sum + d.positive, 0);
+                const totalNeutral = reviewsData.reduce((sum, d) => sum + d.neutral, 0);
+                const totalNegative = reviewsData.reduce((sum, d) => sum + d.negative, 0);
+                const totalReviews = totalPositive + totalNeutral + totalNegative;
+
+                // Данные для графика
+                const positiveData = reviewsData.map(d => d.positive);
+                const neutralData = reviewsData.map(d => d.neutral);
+                const negativeData = reviewsData.map(d => d.negative);
+                const allData = [...positiveData, ...neutralData, ...negativeData];
+                const maxVal = Math.max(...allData, 1);
+                // Широкий viewBox для правильных пропорций (3:1)
+                const viewW = 300;
+                const viewH = 100;
+                const padX = 10;
+                const padY = 15;
+                const pointsCount = positiveData.length;
+
+                const getY = (val: number) => {
+                  const range = maxVal || 1;
+                  const norm = val / range;
+                  return padY + (1 - norm) * (viewH - padY * 2);
+                };
+
+                const getX = (i: number) => {
+                  return padX + (i / Math.max(pointsCount - 1, 1)) * (viewW - padX * 2);
+                };
+
+                // Простая линия
+                const generatePath = (data: number[]) => {
+                  return data.map((val, i) => {
+                    const x = getX(i);
+                    const y = getY(val);
+                    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
+                  }).join(' ');
+                };
+
+                return (
+                  <div className="flex flex-col lg:flex-row gap-6">
+                    {/* Левая часть - статистика */}
+                    <div className="lg:w-1/3">
+                      <div className="flex items-center gap-3 mb-4">
+                        <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                          <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-500">Отзывы за период</p>
+                          <p className="text-3xl font-bold text-gray-900">{totalReviews}</p>
+                        </div>
+                      </div>
+
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                            <span className="text-sm text-gray-600">Положительные</span>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-900">{totalPositive}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                            <span className="text-sm text-gray-600">Хорошие</span>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-900">{totalNeutral}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
+                            <span className="text-sm text-gray-600">Отрицательные</span>
+                          </div>
+                          <span className="text-sm font-semibold text-gray-900">{totalNegative}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Правая часть - график */}
+                    <div className="lg:w-2/3">
+                      <p className="text-xs text-gray-400 mb-2">Динамика отзывов</p>
+                      <div className="relative h-[120px] sm:h-[140px]">
+                        <svg className="w-full h-full" viewBox={`0 0 ${viewW} ${viewH}`} preserveAspectRatio="none">
+                          {/* Горизонтальные линии */}
+                          {[0, 0.5, 1].map((ratio, i) => (
+                            <line
+                              key={`grid-${i}`}
+                              x1={padX}
+                              y1={padY + ratio * (viewH - padY * 2)}
+                              x2={viewW - padX}
+                              y2={padY + ratio * (viewH - padY * 2)}
+                              stroke="#f3f4f6"
+                              strokeWidth="1"
+                            />
+                          ))}
+
+                          {/* Линия положительных */}
+                          <path
+                            d={generatePath(positiveData)}
+                            fill="none"
+                            stroke="#10b981"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+
+                          {/* Линия хороших */}
+                          <path
+                            d={generatePath(neutralData)}
+                            fill="none"
+                            stroke="#f59e0b"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+
+                          {/* Линия отрицательных */}
+                          <path
+                            d={generatePath(negativeData)}
+                            fill="none"
+                            stroke="#ef4444"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                          />
+
+                        </svg>
+
+                        {/* Точки на графике - HTML для интерактивности */}
+                        {positiveData.map((val, i) => {
+                          const xPercent = (getX(i) / viewW) * 100;
+                          const yPercent = (getY(val) / viewH) * 100;
+                          const isLast = i === pointsCount - 1;
+                          const isSelected = selectedReviewDayIdx === i;
+                          return (
+                            <div key={`pos-${i}`}>
+                              <div
+                                className="absolute transition-all pointer-events-none"
+                                style={{
+                                  left: `${xPercent}%`,
+                                  top: `${yPercent}%`,
+                                  transform: 'translate(-50%, -50%)',
+                                  width: isSelected ? 10 : isLast ? 8 : 5,
+                                  height: isSelected ? 10 : isLast ? 8 : 5,
+                                  borderRadius: '50%',
+                                  backgroundColor: isSelected ? '#047857' : '#10b981',
+                                }}
+                              />
+                              {isSelected && (
+                                <div
+                                  className="absolute pointer-events-none text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1 rounded"
+                                  style={{
+                                    left: `${xPercent}%`,
+                                    top: `${yPercent - 12}%`,
+                                    transform: 'translate(-50%, -50%)',
+                                  }}
+                                >
+                                  +{val}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {neutralData.map((val, i) => {
+                          const xPercent = (getX(i) / viewW) * 100;
+                          const yPercent = (getY(val) / viewH) * 100;
+                          const isLast = i === pointsCount - 1;
+                          const isSelected = selectedReviewDayIdx === i;
+                          return (
+                            <div key={`neut-${i}`}>
+                              <div
+                                className="absolute transition-all pointer-events-none"
+                                style={{
+                                  left: `${xPercent}%`,
+                                  top: `${yPercent}%`,
+                                  transform: 'translate(-50%, -50%)',
+                                  width: isSelected ? 10 : isLast ? 8 : 5,
+                                  height: isSelected ? 10 : isLast ? 8 : 5,
+                                  borderRadius: '50%',
+                                  backgroundColor: isSelected ? '#d97706' : '#f59e0b',
+                                }}
+                              />
+                              {isSelected && (
+                                <div
+                                  className="absolute pointer-events-none text-[9px] font-semibold text-amber-700 bg-amber-50 px-1 rounded"
+                                  style={{
+                                    left: `${xPercent}%`,
+                                    top: `${yPercent + 12}%`,
+                                    transform: 'translate(-50%, -50%)',
+                                  }}
+                                >
+                                  {val}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {negativeData.map((val, i) => {
+                          const xPercent = (getX(i) / viewW) * 100;
+                          const yPercent = (getY(val) / viewH) * 100;
+                          const isLast = i === pointsCount - 1;
+                          const isSelected = selectedReviewDayIdx === i;
+                          return (
+                            <div key={`neg-${i}`}>
+                              <div
+                                className="absolute transition-all pointer-events-none"
+                                style={{
+                                  left: `${xPercent}%`,
+                                  top: `${yPercent}%`,
+                                  transform: 'translate(-50%, -50%)',
+                                  width: isSelected ? 10 : isLast ? 8 : 5,
+                                  height: isSelected ? 10 : isLast ? 8 : 5,
+                                  borderRadius: '50%',
+                                  backgroundColor: isSelected ? '#b91c1c' : '#ef4444',
+                                }}
+                              />
+                              {isSelected && val > 0 && (
+                                <div
+                                  className="absolute pointer-events-none text-[9px] font-semibold text-red-700 bg-red-50 px-1 rounded"
+                                  style={{
+                                    left: `${xPercent}%`,
+                                    top: `${yPercent + 20}%`,
+                                    transform: 'translate(-50%, -50%)',
+                                  }}
+                                >
+                                  -{val}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Подписи дат - кликабельные */}
+                      <div className="flex justify-between mt-1" style={{ paddingLeft: '3%', paddingRight: '3%' }}>
+                        {reviewsData.map((day, idx) => {
+                          const total = day.positive + day.neutral + day.negative;
+                          const isLast = idx === reviewsData.length - 1;
+                          const isSelected = selectedReviewDayIdx === idx;
+                          // Показываем не все подписи если их много
+                          const showLabel = reviewsData.length <= 10 || idx % Math.ceil(reviewsData.length / 10) === 0 || isLast;
+                          if (!showLabel) return <div key={idx} className="w-0" />;
+                          return (
+                            <button
+                              key={idx}
+                              onClick={() => setSelectedReviewDayIdx(isSelected ? null : idx)}
+                              className={`flex flex-col items-center py-1 px-1 rounded-lg transition-all cursor-pointer ${
+                                isSelected
+                                  ? 'bg-amber-100 shadow-sm'
+                                  : 'hover:bg-gray-100'
+                              }`}
+                            >
+                              <span className={`text-[9px] ${isSelected ? 'text-amber-700 font-semibold' : 'text-gray-600'}`}>{total}</span>
+                              <span className={`text-[9px] ${isSelected ? 'text-amber-700 font-semibold' : isLast ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
+                                {day.date}
+                              </span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+            </motion.div>
+
+            {/* Распределение по рейтингу */}
+            <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Распределение по рейтингу</h3>
+              <div className="space-y-3">
+                {mockAnalyticsData.reviewsData.ratingDistribution.map((item) => {
+                  const percentage = (item.count / mockAnalyticsData.reviewsData.totalReviews) * 100;
+                  return (
+                    <div key={item.stars} className="flex items-center gap-3">
+                      <div className="flex items-center gap-1 w-20">
+                        <span className="text-sm font-medium text-gray-700">{item.stars}</span>
+                        <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
+                      </div>
+                      <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full transition-all ${
+                            item.stars >= 4 ? 'bg-emerald-500' :
+                            item.stars === 3 ? 'bg-amber-500' :
+                            'bg-red-500'
+                          }`}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                      <div className="w-16 text-right">
+                        <span className="text-sm font-medium text-gray-700">{item.count}</span>
+                        <span className="text-xs text-gray-500 ml-1">({percentage.toFixed(0)}%)</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </motion.div>
 
             {/* Список отзывов */}
             <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm overflow-hidden">

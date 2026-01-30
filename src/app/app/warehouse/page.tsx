@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Search, Package, Settings, ArrowRightLeft, Minus, Plus, Truck, AlertTriangle, History } from 'lucide-react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Search, Package, Settings, ArrowRightLeft, Minus, Plus, Truck, AlertTriangle, History, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
 import CreateOrderModal from '@/components/warehouse/CreateOrderModal';
+import { useWarehouseProducts } from '@/hooks/useWarehouseProducts';
 
 // Анимации
 const containerVariants = {
@@ -22,27 +23,15 @@ const itemVariants = {
 
 type WarehouseTab = 'all' | 'almaty' | 'astana' | 'karaganda' | 'shymkent';
 
-// Данные товаров на складе
-const warehouseProducts = [
-  { id: 1, name: 'iPhone 14 Pro 256GB', sku: 'APL-IP14P-256', qty: 15, inTransit: 10, costPrice: 485000, price: 549000, warehouse: 'almaty' },
-  { id: 2, name: 'Samsung Galaxy S23 Ultra', sku: 'SAM-S23U-256', qty: 8, inTransit: 0, costPrice: 420000, price: 489000, warehouse: 'almaty' },
-  { id: 3, name: 'AirPods Pro 2', sku: 'APL-APP2', qty: 32, inTransit: 20, costPrice: 89000, price: 109000, warehouse: 'almaty' },
-  { id: 4, name: 'MacBook Pro 14" M2', sku: 'APL-MBP14-M2', qty: 5, inTransit: 5, costPrice: 890000, price: 999000, warehouse: 'astana' },
-  { id: 5, name: 'iPad Air 5th Gen', sku: 'APL-IPA5', qty: 12, inTransit: 0, costPrice: 285000, price: 339000, warehouse: 'almaty' },
-  { id: 6, name: 'Apple Watch Ultra', sku: 'APL-AWU', qty: 18, inTransit: 0, costPrice: 320000, price: 389000, warehouse: 'astana' },
-  { id: 7, name: 'Sony WH-1000XM5', sku: 'SNY-WH1000', qty: 25, inTransit: 15, costPrice: 145000, price: 179000, warehouse: 'karaganda' },
-  { id: 8, name: 'Google Pixel 8 Pro', sku: 'GOO-PX8P', qty: 6, inTransit: 0, costPrice: 380000, price: 449000, warehouse: 'almaty' },
-  { id: 9, name: 'Samsung Galaxy Tab S9', sku: 'SAM-TABS9', qty: 10, inTransit: 5, costPrice: 290000, price: 359000, warehouse: 'shymkent' },
-  { id: 10, name: 'Nintendo Switch OLED', sku: 'NIN-SWOLED', qty: 14, inTransit: 0, costPrice: 165000, price: 199000, warehouse: 'almaty' },
-  { id: 11, name: 'DJI Mini 3 Pro', sku: 'DJI-M3P', qty: 4, inTransit: 3, costPrice: 420000, price: 499000, warehouse: 'astana' },
-  { id: 12, name: 'Bose QuietComfort 45', sku: 'BOSE-QC45', qty: 20, inTransit: 0, costPrice: 125000, price: 159000, warehouse: 'karaganda' },
-];
-
 export default function WarehousePage() {
+  // Получаем товары из хука с localStorage
+  const { products: warehouseProducts, isLoaded } = useWarehouseProducts();
   const [showCreateOrderModal, setShowCreateOrderModal] = useState(false);
   const [activeTab, setActiveTab] = useState<WarehouseTab>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCriticalOnly, setShowCriticalOnly] = useState(false);
+  const [showCostTooltip, setShowCostTooltip] = useState(false);
+  const [showTableCostTooltip, setShowTableCostTooltip] = useState(false);
 
   // Фильтрация по складу, поиску и критическому остатку
   const filteredProducts = warehouseProducts.filter(product => {
@@ -107,55 +96,77 @@ export default function WarehousePage() {
 
       {/* Stats Blocks */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-blue-50 rounded-xl flex items-center justify-center">
-              <Package className="w-5 h-5 text-blue-600" />
+        <div className="bg-white rounded-xl p-3 shadow-sm relative">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+              <Package className="w-4 h-4 text-blue-600" />
             </div>
-            <div>
-              <p className="text-xs text-gray-500">Себестоимость склада</p>
-              <p className="text-lg font-bold text-gray-900">{totalCost.toLocaleString()} ₸</p>
+            <div className="flex-1">
+              <div className="flex items-center gap-1">
+                <p className="text-[10px] text-gray-500">Себестоимость</p>
+                <button
+                  onClick={() => setShowCostTooltip(!showCostTooltip)}
+                  className="flex items-center justify-center text-gray-400 hover:text-blue-500 transition-colors cursor-pointer"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                </button>
+              </div>
+              <p className="text-sm font-bold text-gray-900">{totalCost.toLocaleString()} ₸</p>
             </div>
           </div>
+          {/* Tooltip */}
+          {showCostTooltip && (
+            <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg">
+              <p className="font-medium mb-1">Себестоимость включает:</p>
+              <ul className="space-y-0.5 text-gray-300">
+                <li>• Закупочная цена товара</li>
+                <li>• Доставка до склада</li>
+                <li>• Таможенные расходы</li>
+              </ul>
+            </div>
+          )}
         </div>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center">
-              <Package className="w-5 h-5 text-emerald-600" />
+        <div className="bg-white rounded-xl p-3 shadow-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+              <Package className="w-4 h-4 text-emerald-600" />
             </div>
             <div>
-              <p className="text-xs text-gray-500">Оценочная стоимость</p>
-              <p className="text-lg font-bold text-emerald-600">{totalPrice.toLocaleString()} ₸</p>
+              <p className="text-[10px] text-gray-500">Оценочная стоимость</p>
+              <p className="text-sm font-bold text-emerald-600">{totalPrice.toLocaleString()} ₸</p>
             </div>
           </div>
         </div>
         <button
           onClick={() => setShowCriticalOnly(!showCriticalOnly)}
-          className={`bg-white rounded-xl p-4 shadow-sm text-left transition-all cursor-pointer ${
+          className={`bg-white rounded-xl p-3 shadow-sm text-left transition-all cursor-pointer ${
             showCriticalOnly ? 'ring-2 ring-amber-500' : 'hover:shadow-md'
           }`}
         >
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-amber-50 rounded-xl flex items-center justify-center">
-              <AlertTriangle className="w-5 h-5 text-amber-600" />
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+              <AlertTriangle className="w-4 h-4 text-amber-600" />
             </div>
             <div>
-              <p className="text-xs text-gray-500">Критический остаток</p>
-              <p className="text-lg font-bold text-amber-600">{criticalCount} товаров</p>
+              <p className="text-[10px] text-gray-500">Критический остаток</p>
+              <p className="text-sm font-bold text-amber-600">{criticalCount} товаров</p>
             </div>
           </div>
         </button>
-        <div className="bg-white rounded-xl p-4 shadow-sm">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-purple-50 rounded-xl flex items-center justify-center">
-              <Truck className="w-5 h-5 text-purple-600" />
+        <Link
+          href="/app/warehouse/history"
+          className="bg-white rounded-xl p-3 shadow-sm hover:shadow-md transition-all cursor-pointer block"
+        >
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+              <Truck className="w-4 h-4 text-purple-600" />
             </div>
             <div>
-              <p className="text-xs text-gray-500">В пути</p>
-              <p className="text-lg font-bold text-purple-600">{totalInTransit} шт</p>
+              <p className="text-[10px] text-gray-500">В пути</p>
+              <p className="text-sm font-bold text-purple-600">{totalInTransit} шт</p>
             </div>
           </div>
-        </div>
+        </Link>
       </div>
 
       {/* Filters and Search */}
@@ -242,19 +253,20 @@ export default function WarehousePage() {
         </div>
       </div>
 
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
+      <div>
         {/* Products - Mobile Cards */}
         <div className="lg:hidden space-y-3">
-          {filteredProducts.map((product, index) => (
-            <motion.div
-              key={product.id}
-              variants={itemVariants}
-              className="bg-white rounded-xl p-4 shadow-sm"
-            >
+          <AnimatePresence mode="popLayout">
+            {filteredProducts.map((product) => (
+              <motion.div
+                key={product.id}
+                layout
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.2 }}
+                className="bg-white rounded-xl p-4 shadow-sm"
+              >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold text-sm truncate">{product.name}</p>
@@ -265,14 +277,34 @@ export default function WarehousePage() {
                 </span>
               </div>
               <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-3 text-gray-500">
+                <div className="flex items-center gap-3">
                   <span className="font-medium text-gray-900">{product.qty} шт</span>
-                  <span>{product.costPrice.toLocaleString()} ₸</span>
+                  <span className="text-gray-500 flex items-center gap-0.5 relative">
+                      <span className="text-[10px] opacity-60">себ.</span>
+                      <button
+                        onClick={() => setShowCostTooltip(!showCostTooltip)}
+                        className="text-gray-400 hover:text-blue-500 transition-colors"
+                      >
+                        <HelpCircle className="w-3 h-3" />
+                      </button>
+                      {showCostTooltip && (
+                        <div className="absolute left-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-40">
+                          <p className="font-medium mb-1">Себестоимость включает:</p>
+                          <ul className="space-y-0.5 text-gray-300">
+                            <li>• Закупочная цена</li>
+                            <li>• Доставка до склада</li>
+                            <li>• Таможенные расходы</li>
+                          </ul>
+                        </div>
+                      )}
+                      <span>{product.costPrice.toLocaleString()} ₸</span>
+                    </span>
                 </div>
-                <span className="font-semibold text-emerald-600">{product.price.toLocaleString()} ₸</span>
+                <span className="text-emerald-600"><span className="text-[10px] opacity-60 font-normal">сумма</span> <span className="font-semibold">{product.price.toLocaleString()} ₸</span></span>
               </div>
             </motion.div>
           ))}
+          </AnimatePresence>
 
           {/* Mobile Total */}
           <div className="bg-white rounded-xl p-4 shadow-sm border-t-2 border-gray-200">
@@ -291,7 +323,27 @@ export default function WarehousePage() {
                 <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Товар</th>
                 <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Остаток</th>
                 <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">В пути</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Себест. общ.</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">
+                  <div className="flex items-center gap-1 relative">
+                    <span>Себест. общ.</span>
+                    <button
+                      onClick={() => setShowTableCostTooltip(!showTableCostTooltip)}
+                      className="text-gray-400 hover:text-blue-500 transition-colors"
+                    >
+                      <HelpCircle className="w-3.5 h-3.5" />
+                    </button>
+                    {showTableCostTooltip && (
+                      <div className="absolute left-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-48 normal-case font-normal">
+                        <p className="font-medium mb-1">Себестоимость включает:</p>
+                        <ul className="space-y-0.5 text-gray-300">
+                          <li>• Закупочная цена товара</li>
+                          <li>• Доставка до склада</li>
+                          <li>• Таможенные расходы</li>
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                </th>
                 <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Цена общ.</th>
                 <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Склад</th>
                 <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Действия</th>
@@ -382,7 +434,7 @@ export default function WarehousePage() {
             </tfoot>
           </table>
         </motion.div>
-      </motion.div>
+      </div>
 
       {/* Модальное окно создания заказа */}
       <CreateOrderModal

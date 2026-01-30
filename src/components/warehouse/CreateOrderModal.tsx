@@ -1,10 +1,31 @@
 'use client';
 
-import { useState } from 'react';
-import { X, Plus, Trash2, Package, Search, AlertCircle } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { X, Plus, Minus, Trash2, Package, Search, AlertCircle, RefreshCw, Paperclip, FileText } from 'lucide-react';
 
 // Типы
 type ItemType = 'existing' | 'draft';
+type Currency = 'KZT' | 'USD' | 'CNY';
+
+interface CurrencyInfo {
+  code: Currency;
+  symbol: string;
+  name: string;
+  flag: string;
+}
+
+const currencies: CurrencyInfo[] = [
+  { code: 'KZT', symbol: '₸', name: 'Тенге', flag: '🇰🇿' },
+  { code: 'USD', symbol: '$', name: 'Доллар', flag: '🇺🇸' },
+  { code: 'CNY', symbol: '¥', name: 'Юань', flag: '🇨🇳' },
+];
+
+// Примерные курсы (в реальности будут из API)
+const defaultRates: Record<Currency, number> = {
+  KZT: 1,
+  USD: 525,  // 1 USD = 525 KZT
+  CNY: 72,   // 1 CNY = 72 KZT
+};
 
 interface OrderItem {
   id: string;
@@ -14,8 +35,9 @@ interface OrderItem {
   productId?: number;
   draftDescription?: string;
   quantity: number;
-  pricePerUnit: number;
-  total: number;
+  pricePerUnit: number;      // Цена в выбранной валюте
+  pricePerUnitKZT: number;   // Цена в тенге
+  total: number;             // Итого в тенге
 }
 
 interface NewOrder {
@@ -23,6 +45,8 @@ interface NewOrder {
   orderDate: string;
   expectedDate: string;
   items: OrderItem[];
+  currency: Currency;
+  exchangeRate: number;
   notes?: string;
 }
 
@@ -43,13 +67,11 @@ const kaspiProducts = [
 ];
 
 const defaultSuppliers = [
-  'Apple Inc.',
-  'Samsung Electronics',
-  'Sony Corporation',
-  'Google LLC',
-  'Nintendo Co., Ltd.',
-  'DJI Technology',
-  'Bose Corporation',
+  'Guangzhou Electronics Co.',
+  'Shenzhen Tech Supply',
+  'Hong Kong Gadgets Ltd.',
+  'Beijing Mobile Parts',
+  'Shanghai Digital Trade',
 ];
 
 interface CreateOrderModalProps {
@@ -60,11 +82,16 @@ interface CreateOrderModalProps {
 
 export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: CreateOrderModalProps) {
   const [supplier, setSupplier] = useState('');
-  const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]); // Сегодня по умолчанию
+  const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
   const [expectedDate, setExpectedDate] = useState('');
   const [items, setItems] = useState<OrderItem[]>([]);
   const [notes, setNotes] = useState('');
   const [suppliers, setSuppliers] = useState<string[]>(defaultSuppliers);
+
+  // Валюта и курс
+  const [currency, setCurrency] = useState<Currency>('CNY');
+  const [exchangeRate, setExchangeRate] = useState(defaultRates.CNY);
+  const [isManualRate, setIsManualRate] = useState(false);
 
   // Состояния для добавления поставщика
   const [showAddSupplier, setShowAddSupplier] = useState(false);
@@ -79,9 +106,32 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
   const [draftName, setDraftName] = useState('');
   const [draftDescription, setDraftDescription] = useState('');
   const [draftQuantity, setDraftQuantity] = useState(1);
-  const [draftPrice, setDraftPrice] = useState(0);
+  const [draftPrice, setDraftPrice] = useState<number | ''>('');
+
+  // Состояние для прикреплённых файлов
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+
+  // Обновить курс при смене валюты
+  useEffect(() => {
+    if (!isManualRate) {
+      setExchangeRate(defaultRates[currency]);
+    }
+  }, [currency, isManualRate]);
+
+  // Пересчитать цены при изменении курса
+  useEffect(() => {
+    if (items.length > 0) {
+      setItems(prev => prev.map(item => ({
+        ...item,
+        pricePerUnitKZT: Math.round(item.pricePerUnit * exchangeRate),
+        total: Math.round(item.quantity * item.pricePerUnit * exchangeRate),
+      })));
+    }
+  }, [exchangeRate]);
 
   if (!isOpen) return null;
+
+  const currentCurrency = currencies.find(c => c.code === currency)!;
 
   // Добавить нового поставщика
   const addSupplier = () => {
@@ -107,14 +157,21 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
   const addExistingProduct = (product: typeof kaspiProducts[0]) => {
     const existingItem = items.find(i => i.productId === product.id);
     if (existingItem) {
-      // Увеличить количество
       setItems(prev => prev.map(i =>
         i.productId === product.id
-          ? { ...i, quantity: i.quantity + 1, total: (i.quantity + 1) * i.pricePerUnit }
+          ? {
+              ...i,
+              quantity: i.quantity + 1,
+              total: Math.round((i.quantity + 1) * i.pricePerUnit * exchangeRate)
+            }
           : i
       ));
     } else {
-      // Добавить новый
+      // Конвертируем розничную цену в закупочную в выбранной валюте
+      const retailPriceKZT = product.price;
+      const purchasePriceKZT = Math.round(retailPriceKZT * 0.5); // ~50% от розничной
+      const priceInCurrency = Math.round(purchasePriceKZT / exchangeRate);
+
       const newItem: OrderItem = {
         id: `item-${Date.now()}`,
         type: 'existing',
@@ -122,8 +179,9 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
         sku: product.sku,
         productId: product.id,
         quantity: 1,
-        pricePerUnit: Math.round(product.price * 0.7), // Примерная закупочная цена (70% от розничной)
-        total: Math.round(product.price * 0.7),
+        pricePerUnit: priceInCurrency,
+        pricePerUnitKZT: Math.round(priceInCurrency * exchangeRate),
+        total: Math.round(priceInCurrency * exchangeRate),
       };
       setItems(prev => [...prev, newItem]);
     }
@@ -133,8 +191,9 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
 
   // Добавить черновик товара
   const addDraftProduct = () => {
-    if (!draftName || draftQuantity <= 0 || draftPrice <= 0) return;
+    if (!draftName || draftQuantity <= 0 || !draftPrice || draftPrice <= 0) return;
 
+    const priceKZT = Math.round(draftPrice * exchangeRate);
     const newItem: OrderItem = {
       id: `draft-${Date.now()}`,
       type: 'draft',
@@ -142,46 +201,70 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
       draftDescription: draftDescription || undefined,
       quantity: draftQuantity,
       pricePerUnit: draftPrice,
-      total: draftQuantity * draftPrice,
+      pricePerUnitKZT: priceKZT,
+      total: draftQuantity * priceKZT,
     };
     setItems(prev => [...prev, newItem]);
 
-    // Сброс формы
     setDraftName('');
     setDraftDescription('');
     setDraftQuantity(1);
-    setDraftPrice(0);
+    setDraftPrice('');
     setShowAddDraft(false);
   };
 
   // Обновить количество товара
-  const updateQuantity = (itemId: string, quantity: number) => {
-    if (quantity <= 0) return;
+  const updateQuantity = (itemId: string, quantity: number | string) => {
+    const qty = typeof quantity === 'string' ? parseInt(quantity) || 0 : quantity;
+    if (qty < 0) return;
     setItems(prev => prev.map(i =>
       i.id === itemId
-        ? { ...i, quantity, total: quantity * i.pricePerUnit }
+        ? { ...i, quantity: qty, total: Math.round(qty * i.pricePerUnit * exchangeRate) }
         : i
     ));
   };
 
-  // Обновить цену товара
+  const incrementQuantity = (itemId: string) => {
+    setItems(prev => prev.map(i =>
+      i.id === itemId
+        ? { ...i, quantity: i.quantity + 1, total: Math.round((i.quantity + 1) * i.pricePerUnit * exchangeRate) }
+        : i
+    ));
+  };
+
+  const decrementQuantity = (itemId: string) => {
+    setItems(prev => prev.map(i =>
+      i.id === itemId && i.quantity > 1
+        ? { ...i, quantity: i.quantity - 1, total: Math.round((i.quantity - 1) * i.pricePerUnit * exchangeRate) }
+        : i
+    ));
+  };
+
+  // Обновить цену товара (в выбранной валюте)
   const updatePrice = (itemId: string, price: number) => {
     if (price < 0) return;
+    const priceKZT = Math.round(price * exchangeRate);
     setItems(prev => prev.map(i =>
       i.id === itemId
-        ? { ...i, pricePerUnit: price, total: i.quantity * price }
+        ? { ...i, pricePerUnit: price, pricePerUnitKZT: priceKZT, total: Math.round(i.quantity * price * exchangeRate) }
         : i
     ));
   };
 
-  // Удалить товар
   const removeItem = (itemId: string) => {
     setItems(prev => prev.filter(i => i.id !== itemId));
   };
 
+  // Сбросить курс к автоматическому
+  const resetToAutoRate = () => {
+    setIsManualRate(false);
+    setExchangeRate(defaultRates[currency]);
+  };
+
   // Расчёт итогов
   const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
-  const totalAmount = items.reduce((sum, i) => sum + i.total, 0);
+  const totalAmountCurrency = items.reduce((sum, i) => sum + (i.quantity * i.pricePerUnit), 0);
+  const totalAmountKZT = items.reduce((sum, i) => sum + i.total, 0);
   const hasDrafts = items.some(i => i.type === 'draft');
 
   // Создать заказ
@@ -193,6 +276,8 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
       orderDate,
       expectedDate,
       items,
+      currency,
+      exchangeRate,
       notes: notes || undefined,
     });
 
@@ -202,6 +287,10 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
     setExpectedDate('');
     setItems([]);
     setNotes('');
+    setAttachedFiles([]);
+    setCurrency('CNY');
+    setExchangeRate(defaultRates.CNY);
+    setIsManualRate(false);
     onClose();
   };
 
@@ -217,7 +306,7 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
         {/* Header */}
         <div className="p-4 sm:p-6 border-b border-gray-200 flex items-center justify-between">
           <div>
-            <h2 className="text-lg sm:text-xl font-bold text-gray-900">Новый заказ на пополнение</h2>
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900">Новый заказ</h2>
             <p className="text-xs sm:text-sm text-gray-500 mt-1">Создайте заказ поставщику</p>
           </div>
           <button
@@ -230,9 +319,71 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+          {/* Валюта и курс */}
+          <div className="mb-4 sm:mb-6 p-3 sm:p-4 bg-blue-50 rounded-xl border border-blue-200">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              {/* Выбор валюты */}
+              <div className="flex-1">
+                <label className="block text-xs font-medium text-blue-700 mb-1.5">Валюта закупки</label>
+                <div className="flex gap-1.5">
+                  {currencies.map(curr => (
+                    <button
+                      key={curr.code}
+                      onClick={() => setCurrency(curr.code)}
+                      className={`flex-1 py-2 px-2 sm:px-3 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer flex items-center justify-center gap-1 sm:gap-1.5 ${
+                        currency === curr.code
+                          ? 'bg-blue-600 text-white shadow-sm'
+                          : 'bg-white text-gray-700 hover:bg-blue-100 border border-blue-200'
+                      }`}
+                    >
+                      <span>{curr.flag}</span>
+                      <span className="hidden sm:inline">{curr.name}</span>
+                      <span className="sm:hidden">{curr.code}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Курс валюты */}
+              {currency !== 'KZT' && (
+                <div className="sm:w-48">
+                  <label className="block text-xs font-medium text-blue-700 mb-1.5">
+                    Курс {currentCurrency.code}/KZT
+                  </label>
+                  <div className="flex gap-1.5">
+                    <div className="flex-1 relative">
+                      <input
+                        type="number"
+                        value={exchangeRate}
+                        onChange={(e) => {
+                          setIsManualRate(true);
+                          setExchangeRate(parseFloat(e.target.value) || 0);
+                        }}
+                        className="w-full px-3 py-2 text-sm border border-blue-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">₸</span>
+                    </div>
+                    {isManualRate && (
+                      <button
+                        onClick={resetToAutoRate}
+                        className="p-2 bg-white border border-blue-200 rounded-lg hover:bg-blue-100 transition-colors cursor-pointer"
+                        title="Сбросить к автокурсу"
+                      >
+                        <RefreshCw className="w-4 h-4 text-blue-600" />
+                      </button>
+                    )}
+                  </div>
+                  <p className="text-[10px] text-blue-600 mt-1">
+                    {isManualRate ? 'Ручной курс' : 'Автоматический курс'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Order Info */}
           <div className="space-y-3 sm:space-y-0 sm:grid sm:grid-cols-3 sm:gap-4 mb-4 sm:mb-6">
-            {/* Поставщик - полная ширина на мобильных */}
+            {/* Поставщик */}
             <div className="sm:col-span-1">
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Поставщик *</label>
               {showAddSupplier ? (
@@ -285,7 +436,7 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
                 </div>
               )}
             </div>
-            {/* Даты в одну строку на мобильных */}
+            {/* Даты */}
             <div className="grid grid-cols-2 gap-2 sm:contents">
               <div>
                 <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Дата заказа *</label>
@@ -406,7 +557,7 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
                       type="text"
                       value={draftDescription}
                       onChange={(e) => setDraftDescription(e.target.value)}
-                      placeholder="Новинка 2025"
+                      placeholder="Цвет: Black Titanium"
                       className="w-full px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
                   </div>
@@ -423,11 +574,11 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium text-gray-700 mb-1">Цена *</label>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">Цена ({currentCurrency.symbol}) *</label>
                     <input
                       type="number"
-                      value={draftPrice || ''}
-                      onChange={(e) => setDraftPrice(parseInt(e.target.value) || 0)}
+                      value={draftPrice}
+                      onChange={(e) => setDraftPrice(parseFloat(e.target.value) || '')}
                       placeholder="0"
                       className="w-full px-2 sm:px-3 py-2 text-sm border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500"
                     />
@@ -435,13 +586,18 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
                   <div className="flex items-end">
                     <button
                       onClick={addDraftProduct}
-                      disabled={!draftName || draftQuantity <= 0 || draftPrice <= 0}
+                      disabled={!draftName || draftQuantity <= 0 || !draftPrice || draftPrice <= 0}
                       className="w-full px-2 sm:px-3 py-2 bg-amber-500 hover:bg-amber-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-lg text-xs sm:text-sm font-medium transition-colors cursor-pointer"
                     >
                       Добавить
                     </button>
                   </div>
                 </div>
+                {draftPrice && draftPrice > 0 && (
+                  <p className="text-[10px] text-amber-600 mt-2">
+                    ≈ {Math.round(draftPrice * exchangeRate).toLocaleString('ru-RU')} ₸ за шт
+                  </p>
+                )}
               </div>
             )}
 
@@ -478,23 +634,45 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
                       </div>
                       <div className="flex items-center justify-between gap-2">
                         <div className="flex items-center gap-2">
-                          <input
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
-                            min={1}
-                            className="w-12 px-1.5 py-1 text-xs text-center border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                          />
+                          <div className="flex items-center">
+                            <button
+                              onClick={() => decrementQuantity(item.id)}
+                              disabled={item.quantity <= 1}
+                              style={{ width: '32px', height: '32px' }}
+                              className="flex items-center justify-center bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-300 text-gray-700 rounded-lg border border-gray-300 transition-colors cursor-pointer"
+                            >
+                              <Minus className="w-4 h-4" />
+                            </button>
+                            <input
+                              type="number"
+                              value={item.quantity || ''}
+                              onChange={(e) => updateQuantity(item.id, e.target.value)}
+                              min={0}
+                              style={{ width: '48px', height: '32px' }}
+                              className="px-1 text-sm font-medium text-center border border-gray-300 rounded-lg mx-1 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                            />
+                            <button
+                              onClick={() => incrementQuantity(item.id)}
+                              style={{ width: '32px', height: '32px' }}
+                              className="flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg border border-gray-300 transition-colors cursor-pointer"
+                            >
+                              <Plus className="w-4 h-4" />
+                            </button>
+                          </div>
                           <span className="text-[10px] text-gray-500">x</span>
-                          <input
-                            type="number"
-                            value={item.pricePerUnit}
-                            onChange={(e) => updatePrice(item.id, parseInt(e.target.value) || 0)}
-                            className="w-20 px-1.5 py-1 text-xs text-right border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500"
-                          />
-                          <span className="text-[10px] text-gray-500">₸</span>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              value={item.pricePerUnit}
+                              onChange={(e) => updatePrice(item.id, parseFloat(e.target.value) || 0)}
+                              className="w-16 px-1.5 py-1 text-xs text-right border border-gray-200 rounded focus:outline-none focus:ring-1 focus:ring-emerald-500"
+                            />
+                            <span className="text-[10px] text-gray-500">{currentCurrency.symbol}</span>
+                          </div>
                         </div>
-                        <span className="font-semibold text-gray-900 text-xs">{item.total.toLocaleString('ru-RU')} ₸</span>
+                        <div className="text-right">
+                          <span className="font-semibold text-gray-900 text-xs">{item.total.toLocaleString('ru-RU')} ₸</span>
+                        </div>
                       </div>
                     </div>
 
@@ -515,31 +693,51 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
                         </div>
                       </div>
                       {/* Количество */}
-                      <div className="flex items-center gap-1 flex-shrink-0">
-                        <input
-                          type="number"
-                          value={item.quantity}
-                          onChange={(e) => updateQuantity(item.id, parseInt(e.target.value) || 1)}
-                          min={1}
-                          style={{ width: '60px' }}
-                          className="px-2 py-1.5 text-sm text-center border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                        />
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        <div className="flex items-center">
+                          <button
+                            onClick={() => decrementQuantity(item.id)}
+                            disabled={item.quantity <= 1}
+                            style={{ width: '36px', height: '36px' }}
+                            className="flex items-center justify-center bg-gray-200 hover:bg-gray-300 disabled:bg-gray-100 disabled:text-gray-300 text-gray-700 rounded-lg border border-gray-300 transition-colors cursor-pointer"
+                          >
+                            <Minus className="w-4 h-4" />
+                          </button>
+                          <input
+                            type="number"
+                            value={item.quantity || ''}
+                            onChange={(e) => updateQuantity(item.id, e.target.value)}
+                            min={0}
+                            style={{ width: '56px', height: '36px' }}
+                            className="px-2 text-sm font-medium text-center border border-gray-300 rounded-lg mx-1 focus:outline-none focus:ring-2 focus:ring-emerald-500"
+                          />
+                          <button
+                            onClick={() => incrementQuantity(item.id)}
+                            style={{ width: '36px', height: '36px' }}
+                            className="flex items-center justify-center bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg border border-gray-300 transition-colors cursor-pointer"
+                          >
+                            <Plus className="w-4 h-4" />
+                          </button>
+                        </div>
                         <span className="text-xs text-gray-500">шт</span>
                       </div>
-                      {/* Цена */}
+                      {/* Цена в валюте */}
                       <div className="flex items-center gap-1 flex-shrink-0">
                         <input
                           type="number"
                           value={item.pricePerUnit}
-                          onChange={(e) => updatePrice(item.id, parseInt(e.target.value) || 0)}
-                          style={{ width: '100px' }}
+                          onChange={(e) => updatePrice(item.id, parseFloat(e.target.value) || 0)}
+                          style={{ width: '80px' }}
                           className="px-2 py-1.5 text-sm text-right border border-gray-200 rounded focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         />
-                        <span className="text-xs text-gray-500">₸</span>
+                        <span className="text-xs text-gray-500 w-4">{currentCurrency.symbol}</span>
                       </div>
-                      {/* Итого */}
-                      <div style={{ width: '100px' }} className="text-right flex-shrink-0">
+                      {/* Итого в тенге */}
+                      <div style={{ width: '110px' }} className="text-right flex-shrink-0">
                         <span className="font-semibold text-gray-900 text-sm">{item.total.toLocaleString('ru-RU')} ₸</span>
+                        <div className="text-[10px] text-gray-400">
+                          {(item.quantity * item.pricePerUnit).toLocaleString('ru-RU')} {currentCurrency.symbol}
+                        </div>
                       </div>
                       {/* Удалить */}
                       <button
@@ -562,15 +760,63 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
           </div>
 
           {/* Notes */}
-          <div>
+          <div className="mb-4">
             <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1">Комментарий</label>
             <textarea
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Дополнительная информация о заказе..."
+              placeholder="Номер заказа, трек-номер, контакты..."
               rows={2}
               className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none"
             />
+          </div>
+
+          {/* Прикрепить файл */}
+          <div>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-2">Накладная / документы</label>
+
+            {/* Список прикреплённых файлов */}
+            {attachedFiles.length > 0 && (
+              <div className="space-y-2 mb-3">
+                {attachedFiles.map((file, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center gap-2 p-2 bg-emerald-50 border border-emerald-200 rounded-lg"
+                  >
+                    <FileText className="w-4 h-4 text-emerald-600 flex-shrink-0" />
+                    <span className="flex-1 text-sm text-gray-700 truncate">{file.name}</span>
+                    <span className="text-xs text-gray-500 flex-shrink-0">
+                      {(file.size / 1024).toFixed(0)} KB
+                    </span>
+                    <button
+                      onClick={() => setAttachedFiles(prev => prev.filter((_, i) => i !== index))}
+                      className="p-1 hover:bg-red-100 text-gray-400 hover:text-red-500 rounded transition-colors cursor-pointer"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Кнопка добавления файла */}
+            <label className="flex items-center justify-center gap-2 p-3 border-2 border-dashed border-gray-300 rounded-lg hover:border-emerald-400 hover:bg-emerald-50 transition-colors cursor-pointer">
+              <Paperclip className="w-5 h-5 text-gray-400" />
+              <span className="text-sm text-gray-500">Прикрепить файл</span>
+              <input
+                type="file"
+                multiple
+                accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                onChange={(e) => {
+                  if (e.target.files) {
+                    setAttachedFiles(prev => [...prev, ...Array.from(e.target.files!)]);
+                  }
+                  e.target.value = '';
+                }}
+                className="hidden"
+              />
+            </label>
+            <p className="text-[10px] text-gray-400 mt-1">PDF, JPG, PNG, DOC, XLS (макс. 10 МБ)</p>
           </div>
         </div>
 
@@ -590,8 +836,15 @@ export default function CreateOrderModal({ isOpen, onClose, onCreateOrder }: Cre
                 </div>
               )}
             </div>
-            <div className="text-base sm:text-lg font-bold text-gray-900">
-              {totalAmount.toLocaleString('ru-RU')} ₸
+            <div className="text-right">
+              <div className="text-base sm:text-lg font-bold text-gray-900">
+                {totalAmountKZT.toLocaleString('ru-RU')} ₸
+              </div>
+              {currency !== 'KZT' && (
+                <div className="text-xs text-gray-500">
+                  {totalAmountCurrency.toLocaleString('ru-RU')} {currentCurrency.symbol}
+                </div>
+              )}
             </div>
           </div>
 

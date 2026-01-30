@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Search, Filter, ChevronDown, Package, Truck, FileText, Calendar, ArrowLeft, Eye, CheckCircle, XCircle, X, Scale, Link2 } from 'lucide-react';
 import LinkProductModal from '@/components/warehouse/LinkProductModal';
+import { useWarehouseProducts } from '@/hooks/useWarehouseProducts';
 
 // Типы статусов заказа
 type OrderStatus = 'in_transit' | 'completed' | 'cancelled';
@@ -241,6 +242,9 @@ interface WeightInput {
 }
 
 export default function WarehouseHistoryPage() {
+  // Хук для управления товарами склада с пересчётом себестоимости
+  const { receiveProduct, getProductBySku } = useWarehouseProducts();
+
   const [receipts, setReceipts] = useState<Receipt[]>(initialReceipts);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
@@ -380,6 +384,27 @@ export default function WarehouseHistoryPage() {
       }
       return r;
     }));
+
+    // Обновить себестоимость товаров на складе (средневзвешенная)
+    selectedReceipt.items.forEach(item => {
+      // Определяем ID товара (existing или привязанный черновик)
+      const productId = item.productId || item.linkedProductId;
+      if (!productId) return; // Пропускаем непривязанные черновики
+
+      // Получаем данные о доставке для этого товара
+      const weightData = weightInputs.find(w => w.itemId === item.id);
+      const itemDeliveryCost = weightData?.deliveryCost || 0;
+
+      // Вызываем пересчёт себестоимости:
+      // - purchasePrice: закупочная цена за единицу (в тенге)
+      // - deliveryCost: логистика/таможня за весь этот товар (в тенге)
+      receiveProduct(
+        productId,
+        item.quantity,
+        item.pricePerUnit,  // Закупочная цена за единицу
+        itemDeliveryCost    // Логистика за этот товар
+      );
+    });
 
     setShowAcceptPopup(false);
     setSelectedReceipt(null);
@@ -904,7 +929,7 @@ export default function WarehouseHistoryPage() {
               {/* Total delivery cost */}
               <div className="mb-6">
                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Общая сумма за логистику (₸)
+                  Общая сумма за логистику и таможню (₸)
                 </label>
                 <input
                   type="number"

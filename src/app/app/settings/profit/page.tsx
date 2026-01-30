@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import {
@@ -221,11 +221,11 @@ export default function ProfitSettingsPage() {
                       Тарифы ({deliveryTypeLabels[deliveryType]}, свыше 10,000 ₸):
                     </p>
                     <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-blue-700">
-                      {deliveryRates[deliveryType].map((tier) => (
-                        <>
-                          <span key={`w-${tier.weight}`}>{tier.weight}</span>
-                          <span key={`r-${tier.weight}`}>{tier.rate}</span>
-                        </>
+                      {deliveryRates[deliveryType].map((tier, idx) => (
+                        <React.Fragment key={idx}>
+                          <span>{tier.weight}</span>
+                          <span>{tier.rate}</span>
+                        </React.Fragment>
                       ))}
                     </div>
                   </div>
