@@ -3,18 +3,34 @@
 import { useState, useRef, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, ChevronUp, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Megaphone, Plus, X, Trash2, HelpCircle } from 'lucide-react';
+import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, ChevronUp, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Plus, X, Trash2, HelpCircle, BarChart3 } from 'lucide-react';
 
-// Компонент подсказки
-const HelpTooltip = ({ text }: { text: string }) => (
-  <div className="relative inline-flex items-center group ml-1" style={{ isolation: 'isolate' }}>
-    <HelpCircle className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 cursor-help flex-shrink-0" />
-    <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 w-[180px] text-left z-[9999] shadow-xl pointer-events-none">
-      <span className="whitespace-normal break-words leading-relaxed">{text}</span>
-      <div className="absolute left-full top-1/2 -translate-y-1/2 border-4 border-transparent border-l-gray-900"></div>
+// Компонент подсказки (кликабельный для мобильных)
+const HelpTooltip = ({ text }: { text: string }) => {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <div className="relative inline-flex items-center ml-1">
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          setIsOpen(!isOpen);
+        }}
+        onBlur={() => setTimeout(() => setIsOpen(false), 150)}
+        className="focus:outline-none"
+      >
+        <HelpCircle className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 cursor-help flex-shrink-0" />
+      </button>
+      {isOpen && (
+        <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg w-[180px] text-left z-[9999] shadow-xl">
+          <span className="whitespace-normal break-words leading-relaxed">{text}</span>
+          <div className="absolute left-1/2 -translate-x-1/2 top-full border-4 border-transparent border-t-gray-900"></div>
+        </div>
+      )}
     </div>
-  </div>
-);
+  );
+};
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
 import DateRangeCalendar from '@/components/DateRangeCalendar';
@@ -598,11 +614,16 @@ function AnalyticsPageContent() {
   // Toggle для рентабельности - только реклама или все продажи
   const [showAdsOnlyROI, setShowAdsOnlyROI] = useState(true);
 
+  // Сортировка и фильтрация товаров
+  const [productSort, setProductSort] = useState<'margin' | 'profit' | 'revenue'>('margin');
+  const [productSearch, setProductSearch] = useState('');
+  const [productPage, setProductPage] = useState(1);
+  const PRODUCTS_PER_PAGE = 10;
+
   // Состояние сворачиваемых секций в табе Sales
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
     revenue: false,      // Структура выручки
     sources: false,      // Источники продаж и способы доставки
-    adEfficiency: false, // Эффективность рекламы
     adProducts: false    // Рентабельность по товарам
   });
 
@@ -1575,234 +1596,20 @@ function AnalyticsPageContent() {
 
               <motion.div
                 variants={itemVariants}
-                className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm border border-amber-200 cursor-pointer hover:shadow-md transition-shadow"
+                className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => setShowPendingOrdersPopup(true)}
               >
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
                   <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 rounded-lg sm:rounded-xl flex items-center justify-center">
                     <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
                   </div>
-                  <span className="text-xs sm:text-sm text-amber-700">В пути</span>
+                  <span className="text-xs sm:text-sm text-gray-600">В пути</span>
                   <HelpTooltip text="Заказы в процессе доставки до клиента" />
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-amber-700">{data.pendingOrders?.count || 0}</div>
-                <div className="text-[10px] sm:text-xs mt-1 text-amber-600">
-                  {((data.pendingOrders?.totalAmount || 0) / 1000000).toFixed(1)}M ₸ ожидает
+                <div className="text-lg sm:text-2xl font-bold text-gray-900">{data.pendingOrders?.count || 0}</div>
+                <div className="text-[10px] sm:text-xs mt-1">
+                  <span className="bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded font-medium">{((data.pendingOrders?.totalAmount || 0) / 1000000).toFixed(1)}M ₸ ожидает</span>
                 </div>
-              </motion.div>
-            </motion.div>
-
-            {/* Рентабельность по товарам */}
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="mb-6 sm:mb-8"
-            >
-              <motion.div variants={itemVariants} className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl overflow-hidden">
-                {/* Заголовок - кликабельный для сворачивания */}
-                <button
-                  onClick={() => toggleSection('adProducts')}
-                  className="w-full flex items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-white/30 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center">
-                      <TrendingUp className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">Рентабельность по товарам</h3>
-                      <p className="text-xs text-gray-500">{showAdsOnlyROI ? 'ROI рекламных продаж' : 'Маржинальность всех продаж'}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    {/* Toggle */}
-                    <div
-                      className="flex items-center gap-2"
-                      onClick={(e) => e.stopPropagation()}
-                    >
-                      <span className="text-xs text-gray-500 hidden sm:block">Только реклама</span>
-                      <button
-                        onClick={() => setShowAdsOnlyROI(!showAdsOnlyROI)}
-                        className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer ${
-                          showAdsOnlyROI ? 'bg-indigo-500' : 'bg-gray-300'
-                        }`}
-                      >
-                        <div className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full shadow-md transition-transform ${
-                          showAdsOnlyROI ? 'translate-x-5' : 'translate-x-0'
-                        }`} />
-                      </button>
-                    </div>
-                    <ChevronUp className={`w-5 h-5 text-gray-400 transition-transform ${collapsedSections.adProducts ? 'rotate-180' : ''}`} />
-                  </div>
-                </button>
-
-                {/* Содержимое - сворачиваемое */}
-                <AnimatePresence>
-                  {!collapsedSections.adProducts && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: 'auto', opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.3 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="p-4 sm:p-5 bg-white/50">
-                {(() => {
-                  // Расчёт данных для каждого товара
-                  const totalAdSales = data.topProducts.reduce((sum, p) => sum + (p.adSales || 0), 0);
-
-                  const productsWithROI = data.topProducts.map(product => {
-                    if (showAdsOnlyROI) {
-                      // Режим "только реклама"
-                      const adSales = product.adSales || 0;
-                      const adSalesRatio = product.sales > 0 ? adSales / product.sales : 0;
-                      const adRevenue = Math.round(product.revenue * adSalesRatio);
-                      const adCost = Math.round(product.cost * adSalesRatio);
-                      const adExpense = totalAdSales > 0 ? Math.round((adSales / totalAdSales) * data.totalAdvertising) : 0;
-                      const adProfit = adRevenue - adCost - adExpense;
-                      const roi = adExpense > 0 ? Math.round((adProfit / adExpense) * 100) : 0;
-
-                      return {
-                        ...product,
-                        displaySales: adSales,
-                        totalSales: product.sales,
-                        displayRevenue: adRevenue,
-                        displayExpense: adExpense,
-                        displayProfit: adProfit,
-                        displayROI: roi,
-                        isAdsMode: true
-                      };
-                    } else {
-                      // Режим "все продажи" - маржинальность
-                      const totalProfit = product.profit;
-                      const margin = product.revenue > 0 ? Math.round((totalProfit / product.revenue) * 100) : 0;
-
-                      return {
-                        ...product,
-                        displaySales: product.sales,
-                        totalSales: product.sales,
-                        displayRevenue: product.revenue,
-                        displayExpense: product.cost,
-                        displayProfit: totalProfit,
-                        displayROI: margin,
-                        isAdsMode: false
-                      };
-                    }
-                  }).sort((a, b) => b.displayROI - a.displayROI);
-
-                  return (
-                    <>
-                      {/* Карточки товаров */}
-                      <div className="space-y-3 mb-6">
-                        {productsWithROI.map((product) => (
-                          <div key={product.id} className="bg-white rounded-xl p-4 shadow-sm">
-                            <div className="flex items-start justify-between mb-3">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-sm text-gray-900 truncate">{product.name}</p>
-                                <p className="text-xs text-gray-500">{product.sku}</p>
-                              </div>
-                              <span className={`px-2.5 py-1 rounded-full text-xs font-bold ml-2 ${
-                                product.displayROI >= 100 ? 'bg-emerald-100 text-emerald-700' :
-                                product.displayROI >= 50 ? 'bg-amber-100 text-amber-700' :
-                                product.displayROI >= 0 ? 'bg-orange-100 text-orange-700' :
-                                'bg-red-100 text-red-700'
-                              }`}>
-                                {showAdsOnlyROI ? 'ROI' : 'Маржа'} {product.displayROI}%
-                              </span>
-                            </div>
-                            <div className="flex items-center justify-between text-sm">
-                              <div className="flex items-center gap-4">
-                                <span className="font-medium text-gray-900">
-                                  {product.displaySales} шт
-                                  {showAdsOnlyROI && <span className="text-gray-400 text-xs ml-1">из {product.totalSales}</span>}
-                                </span>
-                                <span className="text-gray-500">
-                                  <span className="text-[10px] opacity-60">{showAdsOnlyROI ? 'расх.' : 'себ.'}</span> {(product.displayExpense / 1000).toFixed(0)}K ₸
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <span className="text-gray-600">
-                                  <span className="text-[10px] opacity-60">выр.</span> {(product.displayRevenue / 1000).toFixed(0)}K ₸
-                                </span>
-                                <span className={product.displayProfit >= 0 ? 'text-emerald-600 font-semibold' : 'text-red-500 font-semibold'}>
-                                  <span className="text-[10px] opacity-60 font-normal">приб.</span> {product.displayProfit >= 0 ? '+' : ''}{(product.displayProfit / 1000).toFixed(0)}K ₸
-                                </span>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* График */}
-                      <div className="bg-white rounded-xl p-4">
-                        <h4 className="text-sm font-semibold text-gray-700 mb-4">
-                          {showAdsOnlyROI ? 'ROI рекламы по товарам' : 'Маржинальность по товарам'}
-                        </h4>
-                        <ResponsiveContainer width="100%" height={200}>
-                          <BarChart data={productsWithROI} layout="vertical" margin={{ top: 0, right: 30, left: 0, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                            <XAxis type="number" tickFormatter={(v) => `${v}%`} />
-                            <YAxis
-                              type="category"
-                              dataKey="name"
-                              width={120}
-                              tick={{ fontSize: 11 }}
-                              tickFormatter={(v) => v.length > 15 ? v.substring(0, 15) + '...' : v}
-                            />
-                            <Tooltip
-                              formatter={(value) => [`${value ?? 0}%`, showAdsOnlyROI ? 'ROI' : 'Маржа']}
-                              contentStyle={{
-                                backgroundColor: 'rgba(255, 255, 255, 0.95)',
-                                border: '1px solid #e5e7eb',
-                                borderRadius: '8px',
-                              }}
-                            />
-                            <Bar
-                              dataKey="displayROI"
-                              radius={[0, 4, 4, 0]}
-                            >
-                              {productsWithROI.map((entry, index) => (
-                                <Cell
-                                  key={`cell-${index}`}
-                                  fill={
-                                    entry.displayROI >= 100 ? '#10b981' :
-                                    entry.displayROI >= 50 ? '#f59e0b' :
-                                    entry.displayROI >= 0 ? '#f97316' :
-                                    '#ef4444'
-                                  }
-                                />
-                              ))}
-                            </Bar>
-                          </BarChart>
-                        </ResponsiveContainer>
-
-                        {/* Легенда */}
-                        <div className="flex flex-wrap justify-center gap-4 mt-4 text-xs">
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 rounded bg-emerald-500"></div>
-                            <span className="text-gray-600">Отлично (100%+)</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 rounded bg-amber-500"></div>
-                            <span className="text-gray-600">Хорошо (50-100%)</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 rounded bg-orange-500"></div>
-                            <span className="text-gray-600">Слабо (0-50%)</span>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            <div className="w-3 h-3 rounded bg-red-500"></div>
-                            <span className="text-gray-600">Убыток (&lt;0%)</span>
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </motion.div>
             </motion.div>
 
@@ -1813,36 +1620,41 @@ function AnalyticsPageContent() {
               animate="visible"
               className="mb-6 sm:mb-8"
             >
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+              <motion.div variants={itemVariants} className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl overflow-hidden">
                 {/* Заголовок - кликабельный для сворачивания */}
                 <div
-                  className="flex items-center justify-between p-4 sm:p-6 cursor-pointer hover:bg-gray-50 transition-colors"
                   onClick={() => toggleSection('revenue')}
+                  className="w-full flex items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-white/30 transition-colors"
                 >
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div className={`p-1.5 rounded-lg transition-transform ${collapsedSections.revenue ? 'rotate-180' : ''}`}>
-                      <ChevronUp className="w-4 h-4 text-gray-500" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center">
+                      <BarChart3 className="w-5 h-5 text-white" />
                     </div>
-                    <h3 className="text-base sm:text-xl font-semibold text-gray-900">Структура выручки</h3>
-                    <HelpTooltip text="Разбивка выручки на себестоимость, расходы и прибыль" />
-                    <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
+                    <div className="text-left">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">Структура выручки</h3>
+                      <p className="text-[10px] text-gray-400">{startDate && endDate ? `${startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} - ${endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}` : ''}</p>
+                    </div>
                   </div>
-                  {/* Toggle для рекламных заказов */}
-                  <label className="flex items-center gap-2 cursor-pointer" onClick={(e) => e.stopPropagation()}>
-                    <span className="text-xs sm:text-sm text-gray-600">Только реклама</span>
-                    <HelpTooltip text="Показать данные только по заказам из рекламы" />
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        checked={showAdsOnly}
-                        onChange={() => setShowAdsOnly(!showAdsOnly)}
-                        className="sr-only"
-                      />
-                      <div className={`w-10 h-5 rounded-full transition-colors ${showAdsOnly ? 'bg-amber-500' : 'bg-gray-300'}`}>
-                        <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full transition-transform ${showAdsOnly ? 'translate-x-5' : ''}`} />
-                      </div>
+                  <div className="flex items-center gap-3">
+                    {/* Toggle */}
+                    <div
+                      className="flex flex-col items-center gap-0.5"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span className="text-[9px] text-gray-400">{showAdsOnly ? 'реклама' : 'все'}</span>
+                      <button
+                        onClick={() => setShowAdsOnly(!showAdsOnly)}
+                        className={`relative w-8 h-4 rounded-full transition-colors cursor-pointer ${
+                          showAdsOnly ? 'bg-emerald-500' : 'bg-gray-300'
+                        }`}
+                      >
+                        <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${
+                          showAdsOnly ? 'translate-x-4' : 'translate-x-0'
+                        }`} />
+                      </button>
                     </div>
-                  </label>
+                    <ChevronUp className={`w-5 h-5 text-gray-400 transition-transform ${collapsedSections.revenue ? 'rotate-180' : ''}`} />
+                  </div>
                 </div>
 
                 {/* Содержимое - сворачиваемое */}
@@ -1853,7 +1665,7 @@ function AnalyticsPageContent() {
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3 }}
-                      className="px-4 sm:px-6 pb-4 sm:pb-6"
+                      className="px-3 sm:px-4 pb-3 sm:pb-4"
                     >
 
                 {(() => {
@@ -1895,11 +1707,11 @@ function AnalyticsPageContent() {
 
                   return (
                     <>
-                      <ResponsiveContainer width="100%" height={280} className="sm:!h-[320px]">
-                        <BarChart data={chartData} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                          <XAxis dataKey="date" stroke="#6b7280" tick={{ fontSize: 11 }} />
-                          <YAxis stroke="#6b7280" tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                      <ResponsiveContainer width="100%" height={200} className="sm:!h-[220px]">
+                        <BarChart data={chartData} margin={{ top: 15, right: 5, left: -10, bottom: 0 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                          <XAxis dataKey="date" stroke="#9ca3af" tick={{ fontSize: 9 }} />
+                          <YAxis stroke="#9ca3af" tick={{ fontSize: 9 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
                           <Tooltip
                             cursor={{ fill: 'rgba(0,0,0,0.05)' }}
                             content={({ active, payload, label }) => {
@@ -1948,12 +1760,14 @@ function AnalyticsPageContent() {
                             }}
                           />
                           <Legend
+                            wrapperStyle={{ fontSize: '9px' }}
+                            iconSize={8}
                             formatter={(value) => {
                               const labels: Record<string, string> = {
-                                cost: 'Себестоимость',
-                                advertising: 'Реклама',
-                                opExpenses: 'Опер. расходы',
-                                profit: 'Прибыль'
+                                cost: 'Себест.',
+                                advertising: 'Рекл.',
+                                opExpenses: 'Опер.',
+                                profit: 'Приб.'
                               };
                               return labels[value] || value;
                             }}
@@ -1961,64 +1775,61 @@ function AnalyticsPageContent() {
                           <Bar dataKey="cost" name="cost" stackId="a" fill="#f87171" />
                           <Bar dataKey="advertising" name="advertising" stackId="a" fill="#fbbf24" />
                           <Bar dataKey="opExpenses" name="opExpenses" stackId="a" fill="#818cf8" />
-                          <Bar dataKey="profit" name="profit" stackId="a" fill="#34d399" radius={[4, 4, 0, 0]}>
+                          <Bar dataKey="profit" name="profit" stackId="a" fill="#34d399" radius={[3, 3, 0, 0]}>
                             <LabelList
                               dataKey="revenue"
                               position="top"
                               formatter={(value) => `${(Number(value) / 1000).toFixed(0)}K`}
-                              style={{ fontSize: 10, fill: '#374151', fontWeight: 500 }}
+                              style={{ fontSize: 8, fill: '#6b7280', fontWeight: 500 }}
                             />
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
 
                       {/* Итоги под графиком */}
-                      <div className="mt-4 grid grid-cols-4 gap-2 sm:gap-4 text-center">
-                        <div className="p-2 sm:p-3 bg-rose-50 rounded-lg">
-                          <div className="text-xs text-rose-600 mb-1">Себестоимость</div>
-                          <div className="text-sm sm:text-base font-bold text-rose-600">
-                            {((showAdsOnly ? data.totalCost * adsRatio : data.totalCost) / 1000).toFixed(0)}K ₸
+                      <div className="mt-3 grid grid-cols-4 gap-1.5">
+                        <div className="bg-white rounded-lg px-2 py-1.5 shadow-sm text-center">
+                          <div className="text-[9px] text-gray-400">себест.</div>
+                          <div className="text-xs font-semibold text-rose-500">
+                            {((showAdsOnly ? data.totalCost * adsRatio : data.totalCost) / 1000).toFixed(0)}K
                           </div>
-                          <div className="text-[10px] text-rose-500">
+                          <div className="text-[8px] text-rose-400">
                             {(((showAdsOnly ? data.totalCost * adsRatio : data.totalCost) / (showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue)) * 100).toFixed(0)}%
                           </div>
                         </div>
-                        <div className="p-2 sm:p-3 bg-amber-50 rounded-lg">
-                          <div className="text-xs text-amber-600 mb-1">Реклама</div>
-                          <div className="text-sm sm:text-base font-bold text-amber-600">
-                            {(data.totalAdvertising / 1000).toFixed(0)}K ₸
+                        <div className="bg-white rounded-lg px-2 py-1.5 shadow-sm text-center">
+                          <div className="text-[9px] text-gray-400">реклама</div>
+                          <div className="text-xs font-semibold text-amber-500">
+                            {(data.totalAdvertising / 1000).toFixed(0)}K
                           </div>
-                          <div className="text-[10px] text-amber-500">
+                          <div className="text-[8px] text-amber-400">
                             {((data.totalAdvertising / (showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue)) * 100).toFixed(0)}%
                           </div>
                         </div>
-                        <div className="p-2 sm:p-3 bg-sky-50 rounded-lg">
-                          <div className="text-xs text-sky-600 mb-1">Цена 1 клиента</div>
-                          <div className="text-sm sm:text-base font-bold text-sky-600">
+                        <div className="bg-white rounded-lg px-2 py-1.5 shadow-sm text-center">
+                          <div className="text-[9px] text-gray-400">цена клиента</div>
+                          <div className="text-xs font-semibold text-sky-500">
                             {(() => {
-                              // CAC = Расходы на рекламу / Количество заказов
-                              // При toggle "только реклама" - считаем на рекламные заказы
-                              // При toggle выкл - считаем на все заказы (распределяем рекламу на всех)
                               const orders = showAdsOnly ? data.ordersBySource.ads : data.totalOrders;
                               const cac = orders > 0 ? data.totalAdvertising / orders : 0;
-                              return `${(cac / 1000).toFixed(1)}K ₸`;
+                              return `${(cac / 1000).toFixed(1)}K`;
                             })()}
                           </div>
-                          <div className="text-[10px] text-sky-500">
-                            {showAdsOnly ? data.ordersBySource.ads : data.totalOrders} заказов
+                          <div className="text-[8px] text-sky-400">
+                            {showAdsOnly ? data.ordersBySource.ads : data.totalOrders} зак.
                           </div>
                         </div>
-                        <div className="p-2 sm:p-3 bg-emerald-50 rounded-lg">
-                          <div className="text-xs text-emerald-600 mb-1">Прибыль</div>
-                          <div className="text-sm sm:text-base font-bold text-emerald-600">
+                        <div className="bg-white rounded-lg px-2 py-1.5 shadow-sm text-center">
+                          <div className="text-[9px] text-gray-400">прибыль</div>
+                          <div className="text-xs font-semibold text-emerald-500">
                             {(() => {
                               const rev = showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue;
                               const cost = showAdsOnly ? data.totalCost * adsRatio : data.totalCost;
                               const profit = rev - cost - data.totalAdvertising;
-                              return `${(profit / 1000).toFixed(0)}K ₸`;
+                              return `${(profit / 1000).toFixed(0)}K`;
                             })()}
                           </div>
-                          <div className="text-[10px] text-emerald-500">
+                          <div className="text-[8px] text-emerald-400">
                             {(() => {
                               const rev = showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue;
                               const cost = showAdsOnly ? data.totalCost * adsRatio : data.totalCost;
@@ -2037,217 +1848,246 @@ function AnalyticsPageContent() {
               </motion.div>
             </motion.div>
 
-            {/* Pie Charts - Side by Side */}
+            {/* Рентабельность по товарам */}
             <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
               className="mb-6 sm:mb-8"
             >
-              <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                {/* Заголовок - кликабельный */}
+              <motion.div variants={itemVariants} className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl overflow-hidden">
+                {/* Заголовок - кликабельный для сворачивания */}
                 <div
-                  className="flex items-center gap-2 sm:gap-3 p-4 sm:p-6 cursor-pointer hover:bg-gray-50 transition-colors"
-                  onClick={() => toggleSection('sources')}
+                  onClick={() => toggleSection('adProducts')}
+                  className="w-full flex items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-white/30 transition-colors"
                 >
-                  <div className={`p-1.5 rounded-lg transition-transform ${collapsedSections.sources ? 'rotate-180' : ''}`}>
-                    <ChevronUp className="w-4 h-4 text-gray-500" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center">
+                      <TrendingUp className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">Маржинальность по товарам</h3>
+                      <p className="text-[10px] text-gray-400">{startDate && endDate ? `${startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} - ${endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}` : ''}</p>
+                    </div>
                   </div>
-                  <h3 className="text-base sm:text-xl font-semibold text-gray-900">Источники и способы доставки</h3>
-                  <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-lg text-xs font-medium">{formatShortPeriod()}</span>
+                  <div className="flex items-center gap-3">
+                    {/* Toggle */}
+                    <div
+                      className="flex flex-col items-center gap-0.5"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <span className="text-[9px] text-gray-400">{showAdsOnlyROI ? 'реклама' : 'все продажи'}</span>
+                      <button
+                        onClick={() => setShowAdsOnlyROI(!showAdsOnlyROI)}
+                        className={`relative w-8 h-4 rounded-full transition-colors cursor-pointer ${
+                          showAdsOnlyROI ? 'bg-indigo-500' : 'bg-gray-300'
+                        }`}
+                      >
+                        <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${
+                          showAdsOnlyROI ? 'translate-x-4' : 'translate-x-0'
+                        }`} />
+                      </button>
+                    </div>
+                    <ChevronUp className={`w-5 h-5 text-gray-400 transition-transform ${collapsedSections.adProducts ? 'rotate-180' : ''}`} />
+                  </div>
                 </div>
 
-                {/* Содержимое */}
+                {/* Содержимое - сворачиваемое */}
                 <AnimatePresence>
-                  {!collapsedSections.sources && (
+                  {!collapsedSections.adProducts && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3 }}
-                      className="px-4 sm:px-6 pb-4 sm:pb-6"
+                      className="overflow-hidden"
                     >
-                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
-                        {/* Sales Sources Distribution */}
-                        <div className="bg-gray-50 rounded-xl p-4">
-                <ResponsiveContainer width="100%" height={180} className="sm:!h-[200px]">
-                  <PieChart>
-                    <Pie
-                      data={salesSourcesData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                    >
-                      {salesSourcesData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={SALES_SOURCE_COLORS[index % SALES_SOURCE_COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        borderRadius: '12px',
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
+                      <div className="p-4 sm:p-5 bg-white/50">
+                {(() => {
+                  // Расчёт данных для каждого товара
+                  const totalAdSales = data.topProducts.reduce((sum, p) => sum + (p.adSales || 0), 0);
 
-                {/* Детализация */}
-                <div className="mt-4 space-y-3">
-                  {salesSourcesData.map((item, index) => {
-                    const total = salesSourcesData.reduce((sum, i) => sum + i.value, 0);
-                    const percent = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
-                    const revenuePercent = Number(percent) / 100;
-                    const itemRevenue = Math.round(data.totalRevenue * revenuePercent);
-                    return (
-                      <div
-                        key={item.name}
-                        className="flex items-center gap-3 -mx-2 px-2 py-1 rounded-lg"
-                      >
-                        <div
-                          className="w-3 h-3 rounded-full flex-shrink-0"
-                          style={{ backgroundColor: SALES_SOURCE_COLORS[index] }}
+                  const productsWithData = data.topProducts.map(product => {
+                    if (showAdsOnlyROI) {
+                      // Режим "только реклама" - показываем только рекламные продажи
+                      const adSales = product.adSales || 0;
+                      const adSalesRatio = product.sales > 0 ? adSales / product.sales : 0;
+                      const adRevenue = Math.round(product.revenue * adSalesRatio);
+                      const adCost = Math.round(product.cost * adSalesRatio);
+                      const adExpense = totalAdSales > 0 ? Math.round((adSales / totalAdSales) * data.totalAdvertising) : 0;
+                      const adProfit = adRevenue - adCost - adExpense;
+                      const margin = adRevenue > 0 ? Math.round((adProfit / adRevenue) * 100) : 0;
+
+                      return {
+                        ...product,
+                        displaySales: adSales,
+                        totalSales: product.sales,
+                        displayCost: adCost,
+                        displayRevenue: adRevenue,
+                        displayAdExpense: adExpense,
+                        displayProfit: adProfit,
+                        displayMargin: margin,
+                        isAdsMode: true
+                      };
+                    } else {
+                      // Режим "все продажи" - маржинальность
+                      const adSales = product.adSales || 0;
+                      const adExpense = totalAdSales > 0 ? Math.round((adSales / totalAdSales) * data.totalAdvertising) : 0;
+                      const totalProfit = product.profit;
+                      const margin = product.revenue > 0 ? Math.round((totalProfit / product.revenue) * 100) : 0;
+
+                      return {
+                        ...product,
+                        displaySales: product.sales,
+                        totalSales: product.sales,
+                        displayCost: product.cost,
+                        displayRevenue: product.revenue,
+                        displayAdExpense: adExpense,
+                        displayProfit: totalProfit,
+                        displayMargin: margin,
+                        isAdsMode: false
+                      };
+                    }
+                  })
+                  // Фильтр по поиску
+                  .filter(product =>
+                    !productSearch || product.name.toLowerCase().includes(productSearch.toLowerCase())
+                  )
+                  // Сортировка
+                  .sort((a, b) => {
+                    if (productSort === 'margin') return b.displayMargin - a.displayMargin;
+                    if (productSort === 'profit') return b.displayProfit - a.displayProfit;
+                    return b.displayRevenue - a.displayRevenue;
+                  });
+
+                  // Пагинация
+                  const totalPages = Math.ceil(productsWithData.length / PRODUCTS_PER_PAGE);
+                  const startIdx = (productPage - 1) * PRODUCTS_PER_PAGE;
+                  const displayedProducts = productsWithData.slice(startIdx, startIdx + PRODUCTS_PER_PAGE);
+
+                  return (
+                    <>
+                      {/* Поиск и сортировка */}
+                      <div className="flex items-center gap-2 mb-2">
+                        <input
+                          type="text"
+                          placeholder="Поиск..."
+                          value={productSearch}
+                          onChange={(e) => {
+                            setProductSearch(e.target.value);
+                            setProductPage(1); // Сброс на первую страницу при поиске
+                          }}
+                          className="flex-1 max-w-[120px] h-5 px-1.5 text-[9px] border border-gray-200 rounded bg-white focus:outline-none focus:border-indigo-400"
                         />
-                        <div className="flex-1 flex justify-between items-center">
-                          <span className="text-sm text-gray-700">{item.name}</span>
-                          <div className="text-right">
-                            <span className="text-sm font-medium text-gray-900">{item.value} зак.</span>
-                            <span className="text-gray-300 mx-1.5">•</span>
-                            <span className="text-sm font-medium text-gray-900">{(itemRevenue / 1000).toFixed(0)}K ₸</span>
-                            <span className="text-gray-300 mx-1.5">•</span>
-                            <span className="text-sm text-gray-500">{percent}%</span>
-                          </div>
-                        </div>
+                        <span className="text-[9px] text-gray-400">сорт:</span>
+                        {[
+                          { key: 'margin', label: 'маржа' },
+                          { key: 'profit', label: 'прибыль' },
+                          { key: 'revenue', label: 'выручка' }
+                        ].map((opt) => (
+                          <button
+                            key={opt.key}
+                            onClick={() => {
+                              setProductSort(opt.key as 'margin' | 'profit' | 'revenue');
+                              setProductPage(1); // Сброс на первую страницу при смене сортировки
+                            }}
+                            className={`px-2 py-0.5 rounded text-[9px] transition-colors ${
+                              productSort === opt.key
+                                ? 'bg-indigo-500 text-white'
+                                : 'bg-white text-gray-500 hover:bg-gray-100'
+                            }`}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
                       </div>
-                    );
-                  })}
-                </div>
-                        </div>
-
-                        {/* Delivery Mode */}
-                        <div className="bg-gray-50 rounded-xl p-4">
-                          <div className="flex items-center gap-2 mb-4">
-                            <h4 className="text-base font-semibold text-gray-900">Способы доставки</h4>
-                          </div>
-                <ResponsiveContainer width="100%" height={180} className="sm:!h-[200px]">
-                  <PieChart>
-                    <Pie
-                      data={deliveryData}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      outerRadius={80}
-                      fill="#8884d8"
-                      dataKey="value"
-                      onClick={(segmentData) => {
-                        if (segmentData.name === 'Межгород') setShowCitiesDropdown(!showCitiesDropdown);
-                        else if (segmentData.name === 'Моя доставка') setShowMyDeliveryPopup(true);
-                        else if (segmentData.name === 'Экспресс доставка') setShowExpressPopup(true);
-                        else if (segmentData.name === 'Самовывоз') setShowPickupPopup(true);
-                        else if (segmentData.name === 'Оффлайн') setShowOfflineDeliveryPopup(true);
-                      }}
-                      style={{ cursor: 'pointer' }}
-                    >
-                      {deliveryData.map((_, index) => (
-                        <Cell key={`cell-${index}`} fill={DELIVERY_COLORS[index % DELIVERY_COLORS.length]} style={{ cursor: 'pointer' }} />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                        backdropFilter: 'blur(10px)',
-                        border: '1px solid rgba(255, 255, 255, 0.2)',
-                        borderRadius: '12px',
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-
-                {/* Детализация */}
-                <div className="mt-4 space-y-1">
-                  {deliveryData.map((item, index) => {
-                    const total = deliveryData.reduce((sum, i) => sum + i.value, 0);
-                    const percent = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
-                    const revenuePercent = Number(percent) / 100;
-                    const itemRevenue = Math.round(data.totalRevenue * revenuePercent);
-                    const isIntercity = item.name === 'Межгород';
-
-                    const handleItemClick = () => {
-                      if (item.name === 'Межгород') setShowCitiesDropdown(!showCitiesDropdown);
-                      else if (item.name === 'Моя доставка') setShowMyDeliveryPopup(true);
-                      else if (item.name === 'Экспресс доставка') setShowExpressPopup(true);
-                      else if (item.name === 'Самовывоз') setShowPickupPopup(true);
-                      else if (item.name === 'Оффлайн') setShowOfflineDeliveryPopup(true);
-                    };
-
-                    return (
-                      <div key={item.name}>
-                        <div
-                          className="flex items-center gap-3 cursor-pointer hover:bg-gray-50 -mx-2 px-2 py-2 rounded-lg transition-colors"
-                          onClick={handleItemClick}
-                        >
-                          <div
-                            className="w-3 h-3 rounded-full flex-shrink-0"
-                            style={{ backgroundColor: DELIVERY_COLORS[index] }}
-                          />
-                          <div className="flex-1 flex justify-between items-center">
-                            <span className="text-sm text-gray-700">{item.name}</span>
-                            <div className="flex items-center gap-2">
-                              <div className="text-right">
-                                <span className="text-sm font-medium text-gray-900">{item.value} зак.</span>
-                                <span className="text-gray-300 mx-1.5">•</span>
-                                <span className="text-sm font-medium text-gray-900">{(itemRevenue / 1000).toFixed(0)}K ₸</span>
-                                <span className="text-gray-300 mx-1.5">•</span>
-                                <span className="text-sm text-gray-500">{percent}%</span>
+                      {/* Карточки товаров */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                        {displayedProducts.map((product) => (
+                          <div key={product.id} className="bg-white rounded-lg px-2.5 py-1.5 shadow-sm">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-medium text-sm text-gray-900 truncate flex-1">{product.name}</p>
+                              <span className="text-xs text-gray-600 whitespace-nowrap">{product.displaySales} шт</span>
+                            </div>
+                            <div className="flex items-center justify-between text-[11px] text-gray-500 mt-0.5">
+                              <div className="flex items-center gap-2">
+                                <span className={`font-semibold ${
+                                  product.displayMargin >= 40 ? 'text-emerald-600' :
+                                  product.displayMargin >= 20 ? 'text-amber-600' :
+                                  product.displayMargin >= 0 ? 'text-orange-500' :
+                                  'text-red-500'
+                                }`}>
+                                  <span className="text-[9px] opacity-50 font-normal text-gray-500">маржа</span> {product.displayMargin}%
+                                </span>
+                                {product.displayAdExpense > 0 && (
+                                  <span className="text-amber-600"><span className="text-[9px] opacity-50">рекл</span> {(product.displayAdExpense / 1000).toFixed(0)}K</span>
+                                )}
+                                <span><span className="text-[9px] opacity-50">цена 1 клиента</span> {product.displaySales > 0 ? Math.round(product.displayRevenue / product.displaySales / 1000) : 0}K</span>
                               </div>
-                              <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform ${isIntercity && showCitiesDropdown ? 'rotate-180' : ''}`} />
+                              <div className="flex items-center gap-2">
+                                <span><span className="text-[9px] opacity-50">выр</span> {(product.displayRevenue / 1000).toFixed(0)}K</span>
+                                <span className={product.displayProfit >= 0 ? 'text-emerald-600 font-medium' : 'text-red-500 font-medium'}>
+                                  <span className="text-[9px] opacity-50 font-normal">приб</span> {product.displayProfit >= 0 ? '+' : ''}{(product.displayProfit / 1000).toFixed(0)}K
+                                </span>
+                              </div>
                             </div>
                           </div>
-                        </div>
-
-                        {/* Выпадающий список городов для Межгород */}
-                        <AnimatePresence>
-                          {isIntercity && showCitiesDropdown && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: 'auto', opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              className="overflow-hidden ml-5 border-l-2 border-purple-200 pl-3"
-                            >
-                              {citiesData.map((city) => {
-                                const avgOrderValue = data.totalRevenue / data.totalOrders;
-                                const cityRevenue = Math.round(city.orders * avgOrderValue);
-                                return (
-                                  <div
-                                    key={city.name}
-                                    className="flex items-center justify-between py-2 px-2 hover:bg-gray-50 rounded-lg cursor-pointer transition-colors"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setSelectedCityPopup(city.name);
-                                    }}
-                                  >
-                                    <span className="text-sm text-gray-600">{city.name}</span>
-                                    <div className="flex items-center gap-2">
-                                      <span className="text-sm text-gray-900">{city.orders} зак.</span>
-                                      <span className="text-gray-300">•</span>
-                                      <span className="text-sm text-gray-600">{(cityRevenue / 1000).toFixed(0)}K ₸</span>
-                                      <ChevronRight className="w-3 h-3 text-gray-400" />
-                                    </div>
-                                  </div>
-                                );
-                              })}
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
+                        ))}
                       </div>
-                    );
-                  })}
-                </div>
+                      {/* Пагинация */}
+                      {totalPages > 1 && (
+                        <div className="flex items-center justify-center gap-1 mt-2">
+                          <button
+                            onClick={() => setProductPage(p => Math.max(1, p - 1))}
+                            disabled={productPage === 1}
+                            className="px-2 py-0.5 text-[10px] text-indigo-600 hover:bg-indigo-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            ←
+                          </button>
+                          {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                            // Показываем страницы вокруг текущей
+                            let pageNum;
+                            if (totalPages <= 5) {
+                              pageNum = i + 1;
+                            } else if (productPage <= 3) {
+                              pageNum = i + 1;
+                            } else if (productPage >= totalPages - 2) {
+                              pageNum = totalPages - 4 + i;
+                            } else {
+                              pageNum = productPage - 2 + i;
+                            }
+                            return (
+                              <button
+                                key={pageNum}
+                                onClick={() => setProductPage(pageNum)}
+                                className={`w-6 h-6 text-[10px] rounded transition-colors ${
+                                  productPage === pageNum
+                                    ? 'bg-indigo-500 text-white'
+                                    : 'text-gray-500 hover:bg-gray-100'
+                                }`}
+                              >
+                                {pageNum}
+                              </button>
+                            );
+                          })}
+                          <button
+                            onClick={() => setProductPage(p => Math.min(totalPages, p + 1))}
+                            disabled={productPage === totalPages}
+                            className="px-2 py-0.5 text-[10px] text-indigo-600 hover:bg-indigo-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                          >
+                            →
+                          </button>
+                          <span className="text-[9px] text-gray-400 ml-2">
+                            {productsWithData.length} товаров
+                          </span>
                         </div>
+                      )}
+                      {productsWithData.length === 0 && (
+                        <div className="text-center text-[10px] text-gray-400 py-2">Ничего не найдено</div>
+                      )}
+                    </>
+                  );
+                })()}
                       </div>
                     </motion.div>
                   )}
@@ -2255,182 +2095,210 @@ function AnalyticsPageContent() {
               </motion.div>
             </motion.div>
 
-            {/* Рекламная аналитика */}
+            {/* Pie Charts - Side by Side */}
             <motion.div
               variants={containerVariants}
               initial="hidden"
               animate="visible"
-              className="mt-6 sm:mt-8"
+              className="mb-6 sm:mb-8"
             >
-              <motion.div variants={itemVariants} className="bg-gradient-to-br from-amber-50 to-orange-50 rounded-2xl shadow-sm border border-amber-200 overflow-hidden">
-                {/* Заголовок - кликабельный */}
+              <motion.div variants={itemVariants} className="bg-gradient-to-br from-sky-50 to-cyan-50 rounded-2xl overflow-hidden">
+                {/* Заголовок - кликабельный для сворачивания */}
                 <div
-                  className="flex items-center gap-2 sm:gap-3 p-4 sm:p-6 cursor-pointer hover:bg-amber-100/50 transition-colors"
-                  onClick={() => toggleSection('adEfficiency')}
+                  onClick={() => toggleSection('sources')}
+                  className="w-full flex items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-white/30 transition-colors"
                 >
-                  <div className={`p-1.5 rounded-lg transition-transform ${collapsedSections.adEfficiency ? 'rotate-180' : ''}`}>
-                    <ChevronUp className="w-4 h-4 text-amber-600" />
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-sky-500 rounded-xl flex items-center justify-center">
+                      <Truck className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="text-left">
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">Источники и способы доставки</h3>
+                      <p className="text-[10px] text-gray-400">{startDate && endDate ? `${startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} - ${endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}` : ''}</p>
+                    </div>
                   </div>
-                  <div className="w-10 h-10 bg-amber-100 rounded-xl flex items-center justify-center">
-                    <Megaphone className="w-5 h-5 text-amber-600" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg sm:text-xl font-semibold text-gray-900">Эффективность рекламы</h3>
-                    <p className="text-xs sm:text-sm text-gray-500">Анализ окупаемости рекламных затрат</p>
-                  </div>
+                  <ChevronUp className={`w-5 h-5 text-gray-400 transition-transform ${collapsedSections.sources ? 'rotate-180' : ''}`} />
                 </div>
 
-                {/* Содержимое */}
+                {/* Содержимое - сворачиваемое */}
                 <AnimatePresence>
-                  {!collapsedSections.adEfficiency && (
+                  {!collapsedSections.sources && (
                     <motion.div
                       initial={{ height: 0, opacity: 0 }}
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3 }}
-                      className="px-4 sm:px-6 pb-4 sm:pb-6"
+                      className="overflow-hidden"
                     >
-                {/* Метрики рекламы */}
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-                  <div className="bg-white rounded-xl p-3 sm:p-4">
-                    <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 mb-1">
-                      Расход на рекламу
-                      <HelpTooltip text="Общая сумма потраченная на рекламу за период" />
-                    </div>
-                    <div className="text-lg sm:text-2xl font-bold text-amber-600">{data.totalAdvertising.toLocaleString('ru-RU')} ₸</div>
-                  </div>
-                  <div className="bg-white rounded-xl p-3 sm:p-4">
-                    <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 mb-1">
-                      Заказов с рекламы
-                      <HelpTooltip text="Количество заказов привлечённых через рекламу" />
-                    </div>
-                    <div className="text-lg sm:text-2xl font-bold text-emerald-600">{data.ordersBySource.ads}</div>
-                    <div className="text-[10px] sm:text-xs text-gray-400">{((data.ordersBySource.ads / data.totalOrders) * 100).toFixed(0)}% от всех заказов</div>
-                  </div>
-                  <div className="bg-white rounded-xl p-3 sm:p-4">
-                    <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 mb-1">
-                      Цена заказа (CAC)
-                      <HelpTooltip text="Customer Acquisition Cost — сколько стоит привлечь одного клиента через рекламу" />
-                    </div>
-                    <div className="text-lg sm:text-2xl font-bold text-blue-600">
-                      {data.ordersBySource.ads > 0 ? Math.round(data.totalAdvertising / data.ordersBySource.ads).toLocaleString('ru-RU') : 0} ₸
-                    </div>
-                    <div className="text-[10px] sm:text-xs text-gray-400">стоимость привлечения</div>
-                  </div>
-                  <div className="bg-white rounded-xl p-3 sm:p-4">
-                    <div className="flex items-center gap-1 text-xs sm:text-sm text-gray-500 mb-1">
-                      Доля рекламы
-                      <HelpTooltip text="Какой % выручки от рекламных заказов уходит на рекламу. Чем меньше — тем лучше" />
-                    </div>
-                    <div className={`text-lg sm:text-2xl font-bold ${
-                      (() => {
-                        const adsRevenue = data.ordersBySource.ads * data.avgOrderValue;
-                        const percent = adsRevenue > 0 ? (data.totalAdvertising / adsRevenue) * 100 : 0;
-                        return percent <= 15 ? 'text-emerald-600' : percent <= 25 ? 'text-amber-600' : 'text-red-500';
-                      })()
-                    }`}>
-                      {(() => {
-                        const adsRevenue = data.ordersBySource.ads * data.avgOrderValue;
-                        return adsRevenue > 0 ? ((data.totalAdvertising / adsRevenue) * 100).toFixed(1) : 0;
-                      })()}%
-                    </div>
-                    <div className="text-[10px] sm:text-xs text-gray-400">от выручки с рекламы</div>
-                  </div>
-                </div>
+                      <div className="p-3 sm:p-5 bg-white/50">
+                      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                        {/* Sales Sources Distribution */}
+                        <div className="bg-white rounded-xl p-2 sm:p-3 shadow-sm">
+                          <h4 className="text-[11px] sm:text-sm font-semibold text-gray-900 mb-1 sm:mb-2">Источники продаж</h4>
+                          <ResponsiveContainer width="100%" height={110} className="sm:!h-[140px]">
+                            <PieChart>
+                              <Pie
+                                data={salesSourcesData}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                outerRadius="90%"
+                                innerRadius="25%"
+                                fill="#8884d8"
+                                dataKey="value"
+                              >
+                                {salesSourcesData.map((_, index) => (
+                                  <Cell key={`cell-${index}`} fill={SALES_SOURCE_COLORS[index % SALES_SOURCE_COLORS.length]} />
+                                ))}
+                              </Pie>
+                              <Tooltip
+                                contentStyle={{
+                                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                  fontSize: '10px',
+                                  padding: '4px 8px',
+                                }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
 
-                {/* Сравнение органика vs реклама */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                  {/* Органика */}
-                  <div className="bg-white rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                      <span className="font-medium text-gray-900">Органика</span>
-                      <HelpTooltip text="Заказы из бесплатного поиска (без затрат на рекламу)" />
-                      <span className="text-xs text-gray-500 ml-auto">{data.ordersBySource.organic} заказов</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Выручка</span>
-                        <span className="font-medium text-gray-900">{Math.round(data.ordersBySource.organic * data.avgOrderValue).toLocaleString('ru-RU')} ₸</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Затраты на привлечение</span>
-                        <span className="font-medium text-emerald-600">0 ₸</span>
-                      </div>
-                      <div className="flex justify-between text-sm pt-2 border-t">
-                        <span className="text-gray-700 font-medium">Чистая маржа</span>
-                        <span className="font-bold text-emerald-600">100%</span>
-                      </div>
-                    </div>
-                  </div>
+                          {/* Детализация */}
+                          <div className="mt-1 sm:mt-2 space-y-0.5">
+                            {salesSourcesData.map((item, index) => {
+                              const total = salesSourcesData.reduce((sum, i) => sum + i.value, 0);
+                              const percent = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
+                              const revenuePercent = Number(percent) / 100;
+                              const itemRevenue = Math.round(data.totalRevenue * revenuePercent);
+                              return (
+                                <div
+                                  key={item.name}
+                                  className="flex items-center gap-1 sm:gap-2 px-1 py-0.5 rounded hover:bg-gray-50"
+                                >
+                                  <div
+                                    className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full flex-shrink-0"
+                                    style={{ backgroundColor: SALES_SOURCE_COLORS[index] }}
+                                  />
+                                  <div className="flex-1 flex justify-between items-center min-w-0">
+                                    <span className="text-[10px] sm:text-xs text-gray-700 truncate">{item.name}</span>
+                                    <span className="text-[9px] sm:text-[11px] font-medium text-gray-900 ml-1">{percent}%</span>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
 
-                  {/* Реклама */}
-                  <div className="bg-white rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-3 h-3 rounded-full bg-amber-500"></div>
-                      <span className="font-medium text-gray-900">Реклама</span>
-                      <HelpTooltip text="Заказы привлечённые через платную рекламу" />
-                      <span className="text-xs text-gray-500 ml-auto">{data.ordersBySource.ads} заказов</span>
-                    </div>
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Выручка</span>
-                        <span className="font-medium text-gray-900">{Math.round(data.ordersBySource.ads * data.avgOrderValue).toLocaleString('ru-RU')} ₸</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-gray-500">Затраты на рекламу</span>
-                        <span className="font-medium text-red-500">-{data.totalAdvertising.toLocaleString('ru-RU')} ₸</span>
-                      </div>
-                      <div className="flex justify-between text-sm pt-2 border-t">
-                        <span className="text-gray-700 font-medium">Прибыль от рекламы</span>
-                        <span className={`font-bold ${(data.ordersBySource.ads * data.avgOrderValue - data.totalAdvertising) > 0 ? 'text-emerald-600' : 'text-red-500'}`}>
-                          {(data.ordersBySource.ads * data.avgOrderValue - data.totalAdvertising).toLocaleString('ru-RU')} ₸
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                        {/* Delivery Mode */}
+                        <div className="bg-white rounded-xl p-2 sm:p-3 shadow-sm">
+                          <h4 className="text-[11px] sm:text-sm font-semibold text-gray-900 mb-1 sm:mb-2">Способы доставки</h4>
+                          <ResponsiveContainer width="100%" height={110} className="sm:!h-[140px]">
+                            <PieChart>
+                              <Pie
+                                data={deliveryData}
+                                cx="50%"
+                                cy="50%"
+                                labelLine={false}
+                                outerRadius="90%"
+                                innerRadius="25%"
+                                fill="#8884d8"
+                                dataKey="value"
+                                onClick={(segmentData) => {
+                                  if (segmentData.name === 'Межгород') setShowCitiesDropdown(!showCitiesDropdown);
+                                  else if (segmentData.name === 'Моя доставка') setShowMyDeliveryPopup(true);
+                                  else if (segmentData.name === 'Экспресс доставка') setShowExpressPopup(true);
+                                  else if (segmentData.name === 'Самовывоз') setShowPickupPopup(true);
+                                  else if (segmentData.name === 'Оффлайн') setShowOfflineDeliveryPopup(true);
+                                }}
+                                style={{ cursor: 'pointer' }}
+                              >
+                                {deliveryData.map((_, index) => (
+                                  <Cell key={`cell-${index}`} fill={DELIVERY_COLORS[index % DELIVERY_COLORS.length]} style={{ cursor: 'pointer' }} />
+                                ))}
+                              </Pie>
+                              <Tooltip
+                                contentStyle={{
+                                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                                  border: 'none',
+                                  borderRadius: '6px',
+                                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+                                  fontSize: '10px',
+                                  padding: '4px 8px',
+                                }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
 
-                {/* Индикатор рентабельности */}
-                <div className="mt-4 p-3 sm:p-4 bg-white rounded-xl">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-1">
-                      <span className="text-sm text-gray-600">Рентабельность рекламы</span>
-                      <HelpTooltip text="Выручка ÷ расход. 3x+ отлично, 2-3x нормально, <2x низкая" />
-                    </div>
-                    <span className={`text-sm font-medium px-2 py-0.5 rounded ${
-                      data.totalAdvertising > 0 && (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 3
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 2
-                          ? 'bg-amber-100 text-amber-700'
-                          : 'bg-red-100 text-red-700'
-                    }`}>
-                      {data.totalAdvertising > 0 && (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 3
-                        ? 'Отлично'
-                        : (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 2
-                          ? 'Нормально'
-                          : 'Низкая'}
-                    </span>
-                  </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div
-                      className={`h-2 rounded-full transition-all ${
-                        data.totalAdvertising > 0 && (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 3
-                          ? 'bg-emerald-500'
-                          : (data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising >= 2
-                            ? 'bg-amber-500'
-                            : 'bg-red-500'
-                      }`}
-                      style={{ width: `${Math.min(((data.ordersBySource.ads * data.avgOrderValue) / data.totalAdvertising / 5) * 100, 100)}%` }}
-                    ></div>
-                  </div>
-                  <div className="flex justify-between text-xs text-gray-400 mt-1">
-                    <span>0x</span>
-                    <span>2x</span>
-                    <span>3x</span>
-                    <span>5x+</span>
-                  </div>
-                </div>
+                          {/* Детализация */}
+                          <div className="mt-1 sm:mt-2 space-y-0.5">
+                            {deliveryData.map((item, index) => {
+                              const total = deliveryData.reduce((sum, i) => sum + i.value, 0);
+                              const percent = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
+                              const isIntercity = item.name === 'Межгород';
+
+                              const handleItemClick = () => {
+                                if (item.name === 'Межгород') setShowCitiesDropdown(!showCitiesDropdown);
+                                else if (item.name === 'Моя доставка') setShowMyDeliveryPopup(true);
+                                else if (item.name === 'Экспресс доставка') setShowExpressPopup(true);
+                                else if (item.name === 'Самовывоз') setShowPickupPopup(true);
+                                else if (item.name === 'Оффлайн') setShowOfflineDeliveryPopup(true);
+                              };
+
+                              return (
+                                <div key={item.name}>
+                                  <div
+                                    className="flex items-center gap-1 sm:gap-2 cursor-pointer hover:bg-gray-50 px-1 py-0.5 rounded transition-colors"
+                                    onClick={handleItemClick}
+                                  >
+                                    <div
+                                      className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full flex-shrink-0"
+                                      style={{ backgroundColor: DELIVERY_COLORS[index] }}
+                                    />
+                                    <div className="flex-1 flex justify-between items-center min-w-0">
+                                      <span className="text-[10px] sm:text-xs text-gray-700 truncate">{item.name}</span>
+                                      <div className="flex items-center gap-1">
+                                        <span className="text-[9px] sm:text-[11px] font-medium text-gray-900">{percent}%</span>
+                                        <ChevronDown className={`w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400 transition-transform ${isIntercity && showCitiesDropdown ? 'rotate-180' : ''}`} />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Выпадающий список городов для Межгород */}
+                                  <AnimatePresence>
+                                    {isIntercity && showCitiesDropdown && (
+                                      <motion.div
+                                        initial={{ height: 0, opacity: 0 }}
+                                        animate={{ height: 'auto', opacity: 1 }}
+                                        exit={{ height: 0, opacity: 0 }}
+                                        className="overflow-hidden ml-3 sm:ml-4 border-l border-sky-200 pl-1.5 sm:pl-2"
+                                      >
+                                        {citiesData.map((city) => (
+                                            <div
+                                              key={city.name}
+                                              className="flex items-center justify-between py-0.5 px-1 hover:bg-gray-50 rounded cursor-pointer transition-colors"
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                setSelectedCityPopup(city.name);
+                                              }}
+                                            >
+                                              <span className="text-[9px] sm:text-[11px] text-gray-600 truncate">{city.name}</span>
+                                              <div className="flex items-center gap-1 text-[9px] sm:text-[11px]">
+                                                <span className="text-gray-900">{city.orders}</span>
+                                                <ChevronRight className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-gray-400" />
+                                              </div>
+                                            </div>
+                                          ))}
+                                      </motion.div>
+                                    )}
+                                  </AnimatePresence>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                      </div>
                     </motion.div>
                   )}
                 </AnimatePresence>
