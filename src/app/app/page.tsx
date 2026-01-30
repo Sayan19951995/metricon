@@ -490,7 +490,6 @@ export default function DashboardPage() {
                 {/* Подписи дат и значений - кликабельные */}
                 <div className="flex justify-between mt-2 sm:ml-8" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
                   {currentWeekData.map((currentValue, idx) => {
-                    const prevValue = prevWeekData[idx];
                     const isToday = idx === currentWeekData.length - 1;
                     const isSelected = idx === selectedDayIdx;
                     const date = new Date();
@@ -505,19 +504,13 @@ export default function DashboardPage() {
                         }}
                         className={`flex flex-col items-center py-1 rounded-lg transition-all cursor-pointer ${
                           isSelected
-                            ? 'bg-emerald-100 shadow-sm px-1'
+                            ? 'bg-emerald-100 shadow-sm px-1.5'
                             : 'hover:bg-gray-100'
                         }`}
                       >
-                        <div className="flex gap-0.5">
-                          <span className={`text-[9px] sm:text-[10px] ${isSelected ? 'text-emerald-700 font-semibold' : 'text-emerald-600'}`}>
-                            {Math.round(currentValue / 1000)}
-                          </span>
-                          <span className="text-[9px] sm:text-[10px] text-gray-300">/</span>
-                          <span className={`text-[9px] sm:text-[10px] ${isSelected ? 'text-blue-700 font-semibold' : 'text-blue-600'}`}>
-                            {Math.round(prevValue / 1000)}
-                          </span>
-                        </div>
+                        <span className={`text-[9px] sm:text-[10px] ${isSelected ? 'text-emerald-700 font-semibold' : 'text-emerald-600'}`}>
+                          {Math.round(currentValue / 1000)}k
+                        </span>
                         <span className={`text-[10px] sm:text-xs ${isSelected ? 'text-emerald-700 font-semibold' : isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
                           {dayNum}
                         </span>
