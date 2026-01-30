@@ -126,7 +126,9 @@ export default function DashboardPage() {
       notSent: 2150000,        // Не отправлено
       notSentCount: 5,         // Кол-во не отправленных
       inDelivery: 2828800,     // Передано на доставку
-      inDeliveryCount: 7       // Кол-во в доставке
+      inDeliveryCount: 7,      // Кол-во в доставке
+      // Поступления за неделю (Пн-Вс)
+      weeklyPayments: [850000, 1120000, 780000, 1450000, 920000, 1680000, 1178800]
     },
     // Отзывы за неделю
     reviews: {
@@ -585,7 +587,7 @@ export default function DashboardPage() {
             </div>
           </div>
           {/* Список статусов */}
-          <div className="space-y-1.5 text-xs">
+          <div className="space-y-1.5 text-xs mb-3">
             <div className="flex items-center justify-between">
               <span className="text-gray-500">Не отправлено</span>
               <span className="font-medium text-gray-700">{dashboardData.awaitingPayment.notSentCount} шт · {dashboardData.awaitingPayment.notSent.toLocaleString('ru-RU')} ₸</span>
@@ -595,6 +597,72 @@ export default function DashboardPage() {
               <span className="font-medium text-gray-700">{dashboardData.awaitingPayment.inDeliveryCount} шт · {dashboardData.awaitingPayment.inDelivery.toLocaleString('ru-RU')} ₸</span>
             </div>
           </div>
+
+          {/* График поступлений за неделю */}
+          <div className="text-[10px] text-gray-400 mb-1">Поступления за неделю</div>
+          {(() => {
+            const payments = dashboardData.awaitingPayment.weeklyPayments;
+            const maxVal = Math.max(...payments);
+            const minVal = Math.min(...payments);
+            const chartH = 50;
+            const pad = 6;
+
+            const getY = (val: number) => {
+              const range = maxVal - minVal || 1;
+              const norm = (val - minVal) / range;
+              return pad + (1 - norm) * (chartH - pad * 2);
+            };
+
+            return (
+              <div className="relative h-[60px]">
+                <svg className="w-full h-full" viewBox="0 0 100 50" preserveAspectRatio="none">
+                  {/* Градиент заливки */}
+                  <defs>
+                    <linearGradient id="paymentGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#6366f1" stopOpacity="0.3" />
+                      <stop offset="100%" stopColor="#6366f1" stopOpacity="0.05" />
+                    </linearGradient>
+                  </defs>
+                  {/* Заливка под линией */}
+                  <path
+                    d={`M 2,${getY(payments[0])} ${payments.map((val, i) => {
+                      const x = 2 + (i / (payments.length - 1)) * 96;
+                      const y = getY(val);
+                      return `L ${x},${y}`;
+                    }).join(' ')} L 98,${chartH} L 2,${chartH} Z`}
+                    fill="url(#paymentGradient)"
+                  />
+                  {/* Линия */}
+                  <polyline
+                    points={payments.map((val, i) => {
+                      const x = 2 + (i / (payments.length - 1)) * 96;
+                      const y = getY(val);
+                      return `${x},${y}`;
+                    }).join(' ')}
+                    fill="none"
+                    stroke="#6366f1"
+                    strokeWidth="2"
+                    vectorEffect="non-scaling-stroke"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+                {/* Подписи дней */}
+                <div className="flex justify-between mt-1">
+                  {payments.map((val, idx) => {
+                    const date = new Date();
+                    date.setDate(date.getDate() - (6 - idx));
+                    return (
+                      <div key={idx} className="flex flex-col items-center">
+                        <span className="text-[9px] text-indigo-600">{Math.round(val / 1000)}k</span>
+                        <span className="text-[10px] text-gray-400">{date.getDate()}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
         </motion.div>
 
         {/* Отзывы за неделю */}
