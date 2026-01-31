@@ -244,49 +244,46 @@ export default function WarehouseSettingsPage() {
               animate={{ opacity: 1 }}
               className="p-4 sm:p-6 hover:bg-gray-50 transition-colors"
             >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center">
-                      <Building2 className="w-5 h-5 text-gray-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-gray-900">{warehouse.name}</h3>
-                      <div className="flex items-center gap-1 text-sm text-gray-500">
-                        <MapPin className="w-3 h-3" />
-                        <span>{warehouse.city}</span>
-                        {warehouse.address && <span>• {warehouse.address}</span>}
-                      </div>
-                    </div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center shrink-0">
+                    <Building2 className="w-5 h-5 text-gray-600" />
                   </div>
+                  <div className="flex-1 min-w-0">
+                    <h3 className="font-semibold text-gray-900">{warehouse.name}</h3>
+                    <div className="flex items-center gap-1 text-sm text-gray-500 mt-0.5">
+                      <MapPin className="w-3 h-3 shrink-0" />
+                      <span className="truncate">{warehouse.city}{warehouse.address && ` • ${warehouse.address}`}</span>
+                    </div>
 
-                  <div className="flex flex-wrap gap-3 mt-3">
-                    <span className="px-2.5 py-1 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium">
-                      {warehouse.productCount} товаров
-                    </span>
+                    <div className="flex flex-wrap gap-2 mt-2">
+                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium">
+                        {warehouse.productCount} товаров
+                      </span>
 
-                    {warehouse.isKaspiLinked ? (
-                      <span className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-medium">
-                        <LinkIcon className="w-3 h-3" />
-                        {warehouse.kaspiWarehouseName}
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1.5 px-2.5 py-1 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium">
-                        <AlertCircle className="w-3 h-3" />
-                        Не привязан к Kaspi
-                      </span>
-                    )}
+                      {warehouse.isKaspiLinked ? (
+                        <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-medium">
+                          <LinkIcon className="w-3 h-3" />
+                          {warehouse.kaspiWarehouseName}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium">
+                          <AlertCircle className="w-3 h-3" />
+                          Не привязан
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1 shrink-0">
                   {warehouse.isKaspiLinked ? (
                     <button
                       onClick={() => handleUnlinkKaspi(warehouse.id)}
                       className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
                       title="Отвязать от Kaspi"
                     >
-                      <Unlink className="w-4 h-4" />
+                      <Unlink className="w-5 h-5" />
                     </button>
                   ) : (
                     <button
@@ -297,7 +294,7 @@ export default function WarehouseSettingsPage() {
                       className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
                       title="Привязать к Kaspi"
                     >
-                      <LinkIcon className="w-4 h-4" />
+                      <LinkIcon className="w-5 h-5" />
                     </button>
                   )}
                   <button
@@ -305,7 +302,7 @@ export default function WarehouseSettingsPage() {
                     className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     title="Удалить склад"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
               </div>
