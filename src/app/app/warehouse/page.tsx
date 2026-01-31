@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Package, Settings, ArrowRightLeft, Minus, Plus, Truck, AlertTriangle, History, HelpCircle } from 'lucide-react';
+import { Search, Package, Settings, ArrowRightLeft, Minus, Plus, Truck, AlertTriangle, History, HelpCircle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import CreateOrderModal from '@/components/warehouse/CreateOrderModal';
 import { useWarehouseProducts } from '@/hooks/useWarehouseProducts';
@@ -25,13 +25,25 @@ type WarehouseTab = 'all' | 'almaty' | 'astana' | 'karaganda' | 'shymkent';
 
 export default function WarehousePage() {
   // Получаем товары из хука с localStorage
-  const { products: warehouseProducts, isLoaded } = useWarehouseProducts();
+  const { products: warehouseProducts, isLoaded, syncWithKaspi } = useWarehouseProducts();
   const [showCreateOrderModal, setShowCreateOrderModal] = useState(false);
   const [activeTab, setActiveTab] = useState<WarehouseTab>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCriticalOnly, setShowCriticalOnly] = useState(false);
   // Для независимых тултипов: null = закрыто, 'header' = в шапке, 'table' = в заголовке таблицы, или id товара
   const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+  // ID товара который сейчас синхронизируется
+  const [syncingProductId, setSyncingProductId] = useState<number | null>(null);
+
+  // Синхронизация товара с Kaspi
+  const handleSyncProduct = async (productId: number) => {
+    setSyncingProductId(productId);
+    try {
+      await syncWithKaspi(productId);
+    } finally {
+      setSyncingProductId(null);
+    }
+  };
 
   // Закрытие тултипа при клике вне
   useEffect(() => {
@@ -379,12 +391,32 @@ export default function WarehousePage() {
               >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{product.name}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-sm truncate">{product.name}</p>
+                    {product.needsKaspiSync && (
+                      <span className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-medium shrink-0">
+                        <AlertTriangle className="w-3 h-3" />
+                        Рассинхрон
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-gray-500">{product.sku}</p>
                 </div>
-                <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 ml-2">
-                  {getWarehouseName(product.warehouse)}
-                </span>
+                <div className="flex items-center gap-1 ml-2">
+                  {product.needsKaspiSync && (
+                    <button
+                      onClick={() => handleSyncProduct(product.id)}
+                      disabled={syncingProductId === product.id}
+                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                      title="Синхронизировать с Kaspi"
+                    >
+                      <RefreshCw className={`w-4 h-4 ${syncingProductId === product.id ? 'animate-spin' : ''}`} />
+                    </button>
+                  )}
+                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                    {getWarehouseName(product.warehouse)}
+                  </span>
+                </div>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-3">
@@ -485,7 +517,15 @@ export default function WarehousePage() {
                   className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                 >
                   <td className="py-4 px-6">
-                    <p className="font-medium text-sm text-gray-900">{product.name}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm text-gray-900">{product.name}</p>
+                      {product.needsKaspiSync && (
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-medium">
+                          <AlertTriangle className="w-3 h-3" />
+                          Рассинхрон
+                        </span>
+                      )}
+                    </div>
                   </td>
                   <td className="py-4 px-6">
                     <span className="text-sm font-semibold text-gray-900">
@@ -514,6 +554,16 @@ export default function WarehousePage() {
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex items-center justify-start gap-1">
+                      {product.needsKaspiSync && (
+                        <button
+                          onClick={() => handleSyncProduct(product.id)}
+                          disabled={syncingProductId === product.id}
+                          className="p-1.5 hover:bg-red-50 rounded-lg transition-colors group cursor-pointer disabled:opacity-50"
+                          title="Синхронизировать с Kaspi"
+                        >
+                          <RefreshCw className={`w-4 h-4 text-red-500 group-hover:text-red-600 ${syncingProductId === product.id ? 'animate-spin' : ''}`} />
+                        </button>
+                      )}
                       <button
                         className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors group cursor-pointer"
                         title="Переместить"

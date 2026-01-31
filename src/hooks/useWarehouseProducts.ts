@@ -18,12 +18,15 @@ export interface WarehouseProduct {
   status?: 'active' | 'archived'; // Статус
   image?: string;                 // Иконка/эмодзи
   preorder?: number | null;       // Дни предзаказа
+  // Синхронизация с Kaspi
+  needsKaspiSync?: boolean;       // Требуется синхронизация с Kaspi (после оффлайн продажи)
+  lastKaspiSync?: string;         // Дата последней синхронизации
 }
 
 // Начальные данные товаров
 const initialProducts: WarehouseProduct[] = [
-  { id: 1, name: 'iPhone 14 Pro 256GB', sku: 'APL-IP14P-256', qty: 15, inTransit: 10, costPrice: 485000, price: 549000, warehouse: 'almaty', weight: 0.24, category: 'Смартфоны', status: 'active', image: '📱', preorder: null },
-  { id: 2, name: 'Samsung Galaxy S23 Ultra', sku: 'SAM-S23U-256', qty: 8, inTransit: 0, costPrice: 420000, price: 489000, warehouse: 'almaty', weight: 0.23, category: 'Смартфоны', status: 'active', image: '📱', preorder: null },
+  { id: 1, name: 'iPhone 14 Pro 256GB', sku: 'APL-IP14P-256', qty: 15, inTransit: 10, costPrice: 485000, price: 549000, warehouse: 'almaty', weight: 0.24, category: 'Смартфоны', status: 'active', image: '📱', preorder: null, needsKaspiSync: true },
+  { id: 2, name: 'Samsung Galaxy S23 Ultra', sku: 'SAM-S23U-256', qty: 8, inTransit: 0, costPrice: 420000, price: 489000, warehouse: 'almaty', weight: 0.23, category: 'Смартфоны', status: 'active', image: '📱', preorder: null, needsKaspiSync: true },
   { id: 3, name: 'AirPods Pro 2', sku: 'APL-APP2', qty: 32, inTransit: 20, costPrice: 89000, price: 109000, warehouse: 'almaty', weight: 0.05, category: 'Аксессуары', status: 'active', image: '🎧', preorder: null },
   { id: 4, name: 'MacBook Pro 14" M2', sku: 'APL-MBP14-M2', qty: 5, inTransit: 5, costPrice: 890000, price: 999000, warehouse: 'astana', weight: 1.6, category: 'Ноутбуки', status: 'active', image: '💻', preorder: 3 },
   { id: 5, name: 'iPad Air 5th Gen', sku: 'APL-IPA5', qty: 12, inTransit: 0, costPrice: 285000, price: 339000, warehouse: 'almaty', weight: 0.46, category: 'Планшеты', status: 'active', image: '📱', preorder: null },
@@ -159,6 +162,43 @@ export const useWarehouseProducts = () => {
     }
   }, []);
 
+  // Пометить товар как требующий синхронизации с Kaspi
+  const markNeedsKaspiSync = useCallback((productId: number) => {
+    setProducts(prev => prev.map(p =>
+      p.id === productId ? { ...p, needsKaspiSync: true } : p
+    ));
+  }, []);
+
+  // Оффлайн продажа - уменьшаем остаток и помечаем для синхронизации
+  const offlineSale = useCallback((productId: number, quantity: number) => {
+    setProducts(prev => prev.map(p =>
+      p.id === productId
+        ? { ...p, qty: Math.max(0, p.qty - quantity), needsKaspiSync: true }
+        : p
+    ));
+  }, []);
+
+  // Синхронизировать с Kaspi (отправить актуальный остаток)
+  const syncWithKaspi = useCallback(async (productId: number): Promise<boolean> => {
+    // TODO: Реальный API вызов к Kaspi
+    // await kaspiApi.updateStock(product.sku, product.qty, product.warehouse);
+
+    // Имитация запроса
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    setProducts(prev => prev.map(p =>
+      p.id === productId
+        ? {
+            ...p,
+            needsKaspiSync: false,
+            lastKaspiSync: new Date().toISOString()
+          }
+        : p
+    ));
+
+    return true;
+  }, []);
+
   return {
     products,
     isLoaded,
@@ -168,7 +208,10 @@ export const useWarehouseProducts = () => {
     receiveProduct,
     addInTransit,
     resetToInitial,
-    setProducts
+    setProducts,
+    markNeedsKaspiSync,
+    offlineSale,
+    syncWithKaspi
   };
 };
 
