@@ -157,47 +157,126 @@ export default function WarehousePage() {
             )}
           </AnimatePresence>
         </div>
-        <div className="bg-white rounded-xl p-3 shadow-sm">
+        <div className="bg-white rounded-xl p-3 shadow-sm relative">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
               <Package className="w-4 h-4 text-emerald-600" />
             </div>
-            <div>
-              <p className="text-[10px] text-gray-500">Оценочная стоимость</p>
+            <div className="flex-1">
+              <div className="flex items-center gap-1">
+                <p className="text-[10px] text-gray-500">Оценочная стоимость</p>
+                <button
+                  data-tooltip-trigger
+                  onClick={() => toggleTooltip('estimated')}
+                  className="flex items-center justify-center text-gray-400 hover:text-emerald-500 transition-colors cursor-pointer"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                </button>
+              </div>
               <p className="text-sm font-bold text-emerald-600">{totalPrice.toLocaleString()} ₸</p>
             </div>
           </div>
+          <AnimatePresence>
+            {activeTooltip === 'estimated' && (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className="absolute left-0 right-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2.5 rounded-lg shadow-lg"
+              >
+                <p className="font-medium mb-1">Оценочная стоимость:</p>
+                <ul className="space-y-0.5 text-gray-300">
+                  <li>• Сумма розничных цен товаров</li>
+                  <li>• Потенциальная выручка при продаже</li>
+                </ul>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-        <button
-          onClick={() => setShowCriticalOnly(!showCriticalOnly)}
-          className={`bg-white rounded-xl p-3 shadow-sm text-left transition-all cursor-pointer ${
-            showCriticalOnly ? 'ring-2 ring-amber-500' : 'hover:shadow-md'
-          }`}
-        >
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
-              <AlertTriangle className="w-4 h-4 text-amber-600" />
+        <div className="relative">
+          <button
+            onClick={() => setShowCriticalOnly(!showCriticalOnly)}
+            className={`w-full bg-white rounded-xl p-3 shadow-sm text-left transition-all cursor-pointer ${
+              showCriticalOnly ? 'ring-2 ring-amber-500' : 'hover:shadow-md'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+                <AlertTriangle className="w-4 h-4 text-amber-600" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-1">
+                  <p className="text-[10px] text-gray-500">Критический остаток</p>
+                  <span
+                    data-tooltip-trigger
+                    onClick={(e) => { e.stopPropagation(); toggleTooltip('critical'); }}
+                    className="flex items-center justify-center text-gray-400 hover:text-amber-500 transition-colors"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+                <p className="text-sm font-bold text-amber-600">{criticalCount} товаров</p>
+              </div>
             </div>
-            <div>
-              <p className="text-[10px] text-gray-500">Критический остаток</p>
-              <p className="text-sm font-bold text-amber-600">{criticalCount} товаров</p>
+          </button>
+          <AnimatePresence>
+            {activeTooltip === 'critical' && (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className="absolute left-0 right-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2.5 rounded-lg shadow-lg"
+              >
+                <p className="font-medium mb-1">Критический остаток:</p>
+                <ul className="space-y-0.5 text-gray-300">
+                  <li>• Товары с остатком менее 10 шт</li>
+                  <li>• Нажмите для фильтрации</li>
+                </ul>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        <div className="relative">
+          <Link
+            href="/app/warehouse/history"
+            className="bg-white rounded-xl p-3 shadow-sm hover:shadow-md transition-all cursor-pointer block"
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+                <Truck className="w-4 h-4 text-purple-600" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-1">
+                  <p className="text-[10px] text-gray-500">В пути</p>
+                  <span
+                    data-tooltip-trigger
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleTooltip('transit'); }}
+                    className="flex items-center justify-center text-gray-400 hover:text-purple-500 transition-colors"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+                <p className="text-sm font-bold text-purple-600">{totalInTransit} шт</p>
+              </div>
             </div>
-          </div>
-        </button>
-        <Link
-          href="/app/warehouse/history"
-          className="bg-white rounded-xl p-3 shadow-sm hover:shadow-md transition-all cursor-pointer block"
-        >
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
-              <Truck className="w-4 h-4 text-purple-600" />
-            </div>
-            <div>
-              <p className="text-[10px] text-gray-500">В пути</p>
-              <p className="text-sm font-bold text-purple-600">{totalInTransit} шт</p>
-            </div>
-          </div>
-        </Link>
+          </Link>
+          <AnimatePresence>
+            {activeTooltip === 'transit' && (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className="absolute left-0 right-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2.5 rounded-lg shadow-lg"
+              >
+                <p className="font-medium mb-1">В пути:</p>
+                <ul className="space-y-0.5 text-gray-300">
+                  <li>• Товары в доставке на склад</li>
+                  <li>• Нажмите для просмотра истории</li>
+                </ul>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
 
       {/* Filters and Search */}
