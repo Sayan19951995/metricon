@@ -130,15 +130,15 @@ export default function WarehousePage() {
       </div>
 
       {/* Stats Blocks */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6">
-        <div className="bg-white rounded-xl p-3 shadow-sm relative">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 items-stretch">
+        <div className="bg-white rounded-xl p-3 shadow-sm relative h-full">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center shrink-0">
               <Package className="w-4 h-4 text-blue-600" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1">
-                <p className="text-[10px] text-gray-500">Себестоимость</p>
+                <p className="text-[10px] text-gray-500 leading-tight">Себестоимость</p>
                 <button
                   data-tooltip-trigger
                   onClick={() => toggleTooltip('header')}
@@ -169,14 +169,14 @@ export default function WarehousePage() {
             )}
           </AnimatePresence>
         </div>
-        <div className="bg-white rounded-xl p-3 shadow-sm relative">
+        <div className="bg-white rounded-xl p-3 shadow-sm relative h-full">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center">
+            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0">
               <Package className="w-4 h-4 text-emerald-600" />
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1">
-                <p className="text-[10px] text-gray-500">Оценочная стоимость</p>
+                <p className="text-[10px] text-gray-500 leading-tight">Оценоч. стоимость</p>
                 <button
                   data-tooltip-trigger
                   onClick={() => toggleTooltip('estimated')}
@@ -205,20 +205,20 @@ export default function WarehousePage() {
             )}
           </AnimatePresence>
         </div>
-        <div className="relative">
+        <div className="relative h-full">
           <button
             onClick={() => setShowCriticalOnly(!showCriticalOnly)}
-            className={`w-full bg-white rounded-xl p-3 shadow-sm text-left transition-all cursor-pointer ${
+            className={`w-full h-full bg-white rounded-xl p-3 shadow-sm text-left transition-all cursor-pointer ${
               showCriticalOnly ? 'ring-2 ring-amber-500' : 'hover:shadow-md'
             }`}
           >
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-4 h-4 text-amber-600" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
-                  <p className="text-[10px] text-gray-500">Критический остаток</p>
+                  <p className="text-[10px] text-gray-500 leading-tight">Критич. остаток</p>
                   <span
                     data-tooltip-trigger
                     onClick={(e) => { e.stopPropagation(); toggleTooltip('critical'); }}
@@ -248,18 +248,18 @@ export default function WarehousePage() {
             )}
           </AnimatePresence>
         </div>
-        <div className="relative">
+        <div className="relative h-full">
           <Link
             href="/app/warehouse/history"
-            className="bg-white rounded-xl p-3 shadow-sm hover:shadow-md transition-all cursor-pointer block"
+            className="bg-white rounded-xl p-3 shadow-sm hover:shadow-md transition-all cursor-pointer block h-full"
           >
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center">
+              <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center shrink-0">
                 <Truck className="w-4 h-4 text-purple-600" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
-                  <p className="text-[10px] text-gray-500">В пути</p>
+                  <p className="text-[10px] text-gray-500 leading-tight">В пути</p>
                   <span
                     data-tooltip-trigger
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleTooltip('transit'); }}

@@ -1529,8 +1529,8 @@ function AnalyticsPageContent() {
               <h3 className="text-sm sm:text-lg font-semibold text-gray-900">Детализация по дням</h3>
               <span className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-medium">{formatShortPeriod()}</span>
             </div>
-            <div>
-              <table className="w-full text-xs sm:text-sm">
+            <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
+              <table className="w-full text-xs sm:text-sm min-w-[320px]">
                 <thead>
                   <tr className="border-b border-gray-200">
                     <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 text-left">Дата</th>

@@ -184,13 +184,13 @@ export default function DashboardPage() {
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen lg:max-h-screen lg:overflow-hidden">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 lg:mb-8">
+      <div className="flex justify-between items-start gap-4 mb-6 lg:mb-8">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Дэшборд</h1>
           <p className="text-gray-500 mt-1 text-sm sm:text-base">Обзор ключевых показателей магазина</p>
         </div>
 
-        <div className="flex items-center gap-4 relative">
+        <div className="flex items-center gap-2 sm:gap-4 relative shrink-0">
           <div className="relative" ref={notificationsRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
