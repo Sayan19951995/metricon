@@ -187,28 +187,37 @@ export default function WarehouseSettingsPage() {
       </div>
 
       {/* Kaspi Integration Card */}
-      <div className="bg-white rounded-2xl p-6 shadow-sm mb-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center">
-              <span className="text-red-600 font-bold text-sm">K</span>
-            </div>
-            <div>
-              <h2 className="font-semibold text-gray-900">Интеграция с Kaspi</h2>
-              <p className="text-sm text-gray-500">Синхронизация складов и остатков</p>
-            </div>
+      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm mb-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center shrink-0">
+            <span className="text-red-600 font-bold text-sm">K</span>
           </div>
+          <div className="flex-1">
+            <h2 className="font-semibold text-gray-900">Интеграция с Kaspi</h2>
+            <p className="text-sm text-gray-500">Синхронизация складов и остатков</p>
+          </div>
+          {/* Desktop button */}
           <button
             onClick={handleSyncKaspi}
             disabled={isSyncing}
-            className="flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white rounded-xl text-sm font-medium transition-colors"
+            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
             {isSyncing ? 'Синхронизация...' : 'Синхронизировать'}
           </button>
         </div>
 
-        <div className="flex flex-wrap gap-4 text-sm">
+        {/* Mobile button */}
+        <button
+          onClick={handleSyncKaspi}
+          disabled={isSyncing}
+          className="sm:hidden w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer mb-4"
+        >
+          <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
+          {isSyncing ? 'Синхронизация...' : 'Синхронизировать'}
+        </button>
+
+        <div className="flex flex-wrap gap-3 sm:gap-4 text-sm">
           <div className="flex items-center gap-2 text-gray-600">
             <Check className="w-4 h-4 text-emerald-500" />
             <span>Подключено складов: {warehouses.filter(w => w.isKaspiLinked).length}</span>
