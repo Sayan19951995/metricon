@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Package, Settings, ArrowRightLeft, Minus, Plus, Truck, AlertTriangle, History, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -30,8 +30,31 @@ export default function WarehousePage() {
   const [activeTab, setActiveTab] = useState<WarehouseTab>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [showCriticalOnly, setShowCriticalOnly] = useState(false);
-  const [showCostTooltip, setShowCostTooltip] = useState(false);
-  const [showTableCostTooltip, setShowTableCostTooltip] = useState(false);
+  // Для независимых тултипов: null = закрыто, 'header' = в шапке, 'table' = в заголовке таблицы, или id товара
+  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
+
+  // Закрытие тултипа при клике вне
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      // Если клик не по кнопке тултипа - закрываем
+      if (!target.closest('[data-tooltip-trigger]')) {
+        setActiveTooltip(null);
+      }
+    };
+
+    if (activeTooltip) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [activeTooltip]);
+
+  const toggleTooltip = (id: string) => {
+    setActiveTooltip(prev => prev === id ? null : id);
+  };
 
   // Фильтрация по складу, поиску и критическому остатку
   const filteredProducts = warehouseProducts.filter(product => {
@@ -105,7 +128,8 @@ export default function WarehousePage() {
               <div className="flex items-center gap-1">
                 <p className="text-[10px] text-gray-500">Себестоимость</p>
                 <button
-                  onClick={() => setShowCostTooltip(!showCostTooltip)}
+                  data-tooltip-trigger
+                  onClick={() => toggleTooltip('header')}
                   className="flex items-center justify-center text-gray-400 hover:text-blue-500 transition-colors cursor-pointer"
                 >
                   <HelpCircle className="w-3.5 h-3.5" />
@@ -115,16 +139,23 @@ export default function WarehousePage() {
             </div>
           </div>
           {/* Tooltip */}
-          {showCostTooltip && (
-            <div className="absolute left-0 right-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg">
-              <p className="font-medium mb-1">Себестоимость включает:</p>
-              <ul className="space-y-0.5 text-gray-300">
-                <li>• Закупочная цена товара</li>
-                <li>• Доставка до склада</li>
-                <li>• Таможенные расходы</li>
-              </ul>
-            </div>
-          )}
+          <AnimatePresence>
+            {activeTooltip === 'header' && (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className="absolute left-0 right-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2.5 rounded-lg shadow-lg"
+              >
+                <p className="font-medium mb-1">Себестоимость включает:</p>
+                <ul className="space-y-0.5 text-gray-300">
+                  <li>• Закупочная цена товара</li>
+                  <li>• Доставка до склада</li>
+                  <li>• Таможенные расходы</li>
+                </ul>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
         <div className="bg-white rounded-xl p-3 shadow-sm">
           <div className="flex items-center gap-2">
@@ -282,21 +313,29 @@ export default function WarehousePage() {
                   <span className="text-gray-500 flex items-center gap-0.5 relative">
                       <span className="text-[10px] opacity-60">себ.</span>
                       <button
-                        onClick={() => setShowCostTooltip(!showCostTooltip)}
-                        className="text-gray-400 hover:text-blue-500 transition-colors"
+                        data-tooltip-trigger
+                        onClick={() => toggleTooltip(product.id)}
+                        className="text-gray-400 hover:text-blue-500 transition-colors cursor-pointer"
                       >
                         <HelpCircle className="w-3 h-3" />
                       </button>
-                      {showCostTooltip && (
-                        <div className="absolute left-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-40">
-                          <p className="font-medium mb-1">Себестоимость включает:</p>
-                          <ul className="space-y-0.5 text-gray-300">
-                            <li>• Закупочная цена</li>
-                            <li>• Доставка до склада</li>
-                            <li>• Таможенные расходы</li>
-                          </ul>
-                        </div>
-                      )}
+                      <AnimatePresence>
+                        {activeTooltip === product.id && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -5 }}
+                            className="absolute left-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-40"
+                          >
+                            <p className="font-medium mb-1">Себестоимость включает:</p>
+                            <ul className="space-y-0.5 text-gray-300">
+                              <li>• Закупочная цена</li>
+                              <li>• Доставка до склада</li>
+                              <li>• Таможенные расходы</li>
+                            </ul>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
                       <span>{product.costPrice.toLocaleString()} ₸</span>
                     </span>
                 </div>
@@ -327,21 +366,29 @@ export default function WarehousePage() {
                   <div className="flex items-center gap-1 relative">
                     <span>Себест. общ.</span>
                     <button
-                      onClick={() => setShowTableCostTooltip(!showTableCostTooltip)}
-                      className="text-gray-400 hover:text-blue-500 transition-colors"
+                      data-tooltip-trigger
+                      onClick={() => toggleTooltip('table')}
+                      className="text-gray-400 hover:text-blue-500 transition-colors cursor-pointer"
                     >
                       <HelpCircle className="w-3.5 h-3.5" />
                     </button>
-                    {showTableCostTooltip && (
-                      <div className="absolute left-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-48 normal-case font-normal">
-                        <p className="font-medium mb-1">Себестоимость включает:</p>
-                        <ul className="space-y-0.5 text-gray-300">
-                          <li>• Закупочная цена товара</li>
-                          <li>• Доставка до склада</li>
-                          <li>• Таможенные расходы</li>
-                        </ul>
-                      </div>
-                    )}
+                    <AnimatePresence>
+                      {activeTooltip === 'table' && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -5 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -5 }}
+                          className="absolute left-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-48 normal-case font-normal"
+                        >
+                          <p className="font-medium mb-1">Себестоимость включает:</p>
+                          <ul className="space-y-0.5 text-gray-300">
+                            <li>• Закупочная цена товара</li>
+                            <li>• Доставка до склада</li>
+                            <li>• Таможенные расходы</li>
+                          </ul>
+                        </motion.div>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </th>
                 <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Цена общ.</th>
