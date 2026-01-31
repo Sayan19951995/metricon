@@ -9,70 +9,129 @@ interface SubscriptionPlan {
   id: string;
   name: string;
   price: number;
+  oldPrice?: number;
   period: string;
   pricePerMonth: number;
   features: string[];
+  limitations?: string[];
   popular?: boolean;
   current?: boolean;
+  badge?: string;
+}
+
+interface AddOnOption {
+  id: string;
+  name: string;
+  price: number;
+  description: string;
+  features: string[];
+  active?: boolean;
 }
 
 // Данные планов подписки
 const subscriptionPlans: SubscriptionPlan[] = [
   {
-    id: 'basic',
-    name: 'Базовый',
-    price: 4990,
+    id: 'start',
+    name: 'Старт',
+    price: 9900,
     period: 'месяц',
-    pricePerMonth: 4990,
+    pricePerMonth: 9900,
     features: [
-      'До 100 товаров',
-      'Базовая аналитика',
-      'История заказов 30 дней',
-      'Email поддержка',
+      'До 30 товаров',
+      'Дашборд с базовой статистикой',
+      'Управление заказами',
+      'Расчёт прибыльности товаров',
+      '1 склад',
+      'Email уведомления',
+      'Аналитика за 7 дней',
     ],
-  },
-  {
-    id: 'pro',
-    name: 'Профессионал',
-    price: 9990,
-    period: 'месяц',
-    pricePerMonth: 9990,
-    features: [
-      'До 1000 товаров',
-      'Расширенная аналитика',
-      'История заказов без ограничений',
-      'Автоматическое ценообразование',
-      'Анализ конкурентов',
-      'Приоритетная поддержка',
+    limitations: [
+      'Без P&L отчётов',
+      'Без анализа рекламы',
+      'Без ролей и сотрудников',
     ],
-    popular: true,
-    current: true,
   },
   {
     id: 'business',
     name: 'Бизнес',
-    price: 19990,
+    price: 14900,
+    oldPrice: 18900,
     period: 'месяц',
-    pricePerMonth: 19990,
+    pricePerMonth: 14900,
     features: [
-      'Неограниченно товаров',
-      'Полная аналитика',
-      'API доступ',
-      'Мультиаккаунт (до 5 магазинов)',
-      'Персональный менеджер',
-      'Обучение команды',
-      'SLA 99.9%',
+      'До 1 000 товаров',
+      'Всё из тарифа "Старт"',
+      'Финансовые отчёты P&L',
+      'Детализация по дням',
+      'Учёт и анализ рекламы (ROI)',
+      'До 3 складов',
+      'Push + Email уведомления',
+      'Аналитика до 30 дней',
+      'История приёмок',
+      'До 2 ролей (сотрудники)',
     ],
+    popular: true,
+    current: true,
+    badge: 'Скидка 20%',
+  },
+  {
+    id: 'pro',
+    name: 'Pro',
+    price: 24900,
+    period: 'месяц',
+    pricePerMonth: 24900,
+    features: [
+      'Безлимит товаров',
+      'Всё из тарифа "Бизнес"',
+      'Безлимит складов',
+      'Аналитика за любой период',
+      'Экспорт отчётов (Excel, PDF)',
+      'Мультиаккаунт (до 3 магазинов)',
+      'До 5 ролей (сотрудники)',
+      'Приоритетная поддержка',
+      'Персональный менеджер',
+    ],
+    badge: '14 дней бесплатно',
+  },
+];
+
+// Дополнительные опции
+const addOnOptions: AddOnOption[] = [
+  {
+    id: 'auto-mailing',
+    name: 'Авторассылка',
+    price: 9900,
+    description: 'Автоматические рассылки клиентам',
+    features: [
+      'Шаблоны сообщений',
+      'Расписание отправки',
+      'Напоминания о заказах',
+      'Статистика доставки',
+    ],
+    active: false,
+  },
+  {
+    id: 'auto-pricing',
+    name: 'Автодемпинг',
+    price: 14900,
+    description: 'Автоматическое управление ценами',
+    features: [
+      'Мониторинг конкурентов',
+      'Стратегии: Undercut, Match, Position',
+      'Мин/макс цены, шаг изменения',
+      'История изменений цен',
+    ],
+    active: false,
   },
 ];
 
 // Текущая подписка (mock данные)
 const currentSubscription = {
-  plan: 'Профессионал',
+  plan: 'Бизнес',
   startDate: '2025-01-15',
   endDate: '2025-02-15',
   autoRenew: true,
-  nextPayment: 9990,
+  nextPayment: 14900,
 };
 
 export default function SubscriptionPage() {
@@ -225,8 +284,8 @@ export default function SubscriptionPage() {
             >
               {plan.popular && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <span className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-medium px-4 py-1 rounded-full">
-                    Популярный
+                  <span className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold px-4 py-1 rounded-full">
+                    ПОПУЛЯРНЫЙ ВЫБОР
                   </span>
                 </div>
               )}
@@ -239,9 +298,22 @@ export default function SubscriptionPage() {
                 </div>
               )}
 
+              {plan.badge && !plan.popular && (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <span className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-medium px-4 py-1 rounded-full">
+                    {plan.badge}
+                  </span>
+                </div>
+              )}
+
               <div className="text-center mb-6">
                 <h3 className="text-xl font-bold text-gray-900 mb-2">{plan.name}</h3>
-                <div className="flex items-baseline justify-center gap-1">
+                <div className="flex items-baseline justify-center gap-2">
+                  {plan.oldPrice && (
+                    <span className="text-lg text-gray-400 line-through">
+                      {plan.oldPrice.toLocaleString('ru-RU')} ₸
+                    </span>
+                  )}
                   <span className="text-4xl font-bold text-gray-900">
                     {getPrice(plan).toLocaleString('ru-RU')}
                   </span>
@@ -255,6 +327,11 @@ export default function SubscriptionPage() {
                     {Math.round(plan.price * 10 / 12).toLocaleString('ru-RU')} ₸/мес
                   </p>
                 )}
+                {plan.badge && plan.popular && (
+                  <div className="mt-2 inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                    {plan.badge}
+                  </div>
+                )}
               </div>
 
               <ul className="space-y-3 mb-8">
@@ -264,6 +341,14 @@ export default function SubscriptionPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                     <span className="text-gray-600 text-sm">{feature}</span>
+                  </li>
+                ))}
+                {plan.limitations?.map((limitation, i) => (
+                  <li key={`lim-${i}`} className="flex items-start gap-3">
+                    <svg className="w-5 h-5 text-gray-300 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                    <span className="text-gray-400 text-sm">{limitation}</span>
                   </li>
                 ))}
               </ul>
@@ -283,6 +368,74 @@ export default function SubscriptionPage() {
             </motion.div>
           ))}
         </div>
+
+        {/* Дополнительные опции */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          className="mt-12"
+        >
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 text-center mb-2">
+            Дополнительные опции
+          </h2>
+          <p className="text-gray-500 text-center mb-8">
+            Подключите к любому тарифу для расширения возможностей
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+            {addOnOptions.map((addon, index) => (
+              <motion.div
+                key={addon.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.4 + index * 0.1 }}
+                className={`relative bg-white rounded-xl p-6 shadow-sm border-2 transition-all hover:shadow-lg ${
+                  addon.active ? 'border-emerald-500' : 'border-gray-100'
+                }`}
+              >
+                {addon.active && (
+                  <div className="absolute -top-3 right-4">
+                    <span className="bg-emerald-500 text-white text-xs font-medium px-3 py-1 rounded-full">
+                      Активно
+                    </span>
+                  </div>
+                )}
+
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">{addon.name}</h3>
+                    <p className="text-gray-500 text-sm">{addon.description}</p>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <span className="text-xl font-bold text-emerald-600">+{addon.price.toLocaleString('ru-RU')} ₸</span>
+                    <span className="text-gray-400 text-sm">/мес</span>
+                  </div>
+                </div>
+
+                <ul className="space-y-2 mb-6">
+                  {addon.features.map((feature, i) => (
+                    <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
+                      <svg className="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
+
+                <button
+                  className={`w-full py-2.5 rounded-lg font-medium transition-all ${
+                    addon.active
+                      ? 'bg-gray-100 text-gray-500'
+                      : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                  }`}
+                >
+                  {addon.active ? 'Отключить' : 'Подключить'}
+                </button>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
 
         {/* FAQ */}
         <div className="mt-12 lg:mt-16">
@@ -305,7 +458,7 @@ export default function SubscriptionPage() {
               },
               {
                 q: 'Есть ли пробный период?',
-                a: 'Да, для новых пользователей доступен бесплатный пробный период 14 дней на плане Профессионал.',
+                a: 'Да, для новых пользователей доступен бесплатный пробный период 14 дней на плане Pro с полным доступом ко всем функциям.',
               },
             ].map((item, index) => (
               <motion.div

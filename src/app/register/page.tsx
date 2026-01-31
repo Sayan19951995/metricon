@@ -94,7 +94,7 @@ export default function RegisterPage() {
   };
 
   const features = [
-    '30 дней Pro доступа бесплатно',
+    '14 дней Pro доступа бесплатно',
     'Интеграция с Kaspi API',
     'Техническая поддержка 24/7',
     'Обучающие материалы'

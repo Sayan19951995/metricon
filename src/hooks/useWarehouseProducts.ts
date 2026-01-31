@@ -19,24 +19,27 @@ export interface WarehouseProduct {
   image?: string;                 // Иконка/эмодзи
   preorder?: number | null;       // Дни предзаказа
   // Синхронизация с Kaspi
-  needsKaspiSync?: boolean;       // Требуется синхронизация с Kaspi (после оффлайн продажи)
-  lastKaspiSync?: string;         // Дата последней синхронизации
+  kaspiStock?: number;            // Остаток по данным Kaspi API (только чтение)
+  lastKaspiFetch?: string;        // Когда последний раз получали данные с Kaspi API
+  lastKaspiSync?: string;         // Когда последний раз отправляли изменения в кабинет Kaspi
 }
 
 // Начальные данные товаров
+// kaspiStock показывает что видит Kaspi API, qty - наш локальный остаток
+// Разница = qty - kaspiStock (положительная = у нас больше, отрицательная = в Kaspi больше)
 const initialProducts: WarehouseProduct[] = [
-  { id: 1, name: 'iPhone 14 Pro 256GB', sku: 'APL-IP14P-256', qty: 15, inTransit: 10, costPrice: 485000, price: 549000, warehouse: 'almaty', weight: 0.24, category: 'Смартфоны', status: 'active', image: '📱', preorder: null, needsKaspiSync: true },
-  { id: 2, name: 'Samsung Galaxy S23 Ultra', sku: 'SAM-S23U-256', qty: 8, inTransit: 0, costPrice: 420000, price: 489000, warehouse: 'almaty', weight: 0.23, category: 'Смартфоны', status: 'active', image: '📱', preorder: null, needsKaspiSync: true },
-  { id: 3, name: 'AirPods Pro 2', sku: 'APL-APP2', qty: 32, inTransit: 20, costPrice: 89000, price: 109000, warehouse: 'almaty', weight: 0.05, category: 'Аксессуары', status: 'active', image: '🎧', preorder: null },
-  { id: 4, name: 'MacBook Pro 14" M2', sku: 'APL-MBP14-M2', qty: 5, inTransit: 5, costPrice: 890000, price: 999000, warehouse: 'astana', weight: 1.6, category: 'Ноутбуки', status: 'active', image: '💻', preorder: 3 },
-  { id: 5, name: 'iPad Air 5th Gen', sku: 'APL-IPA5', qty: 12, inTransit: 0, costPrice: 285000, price: 339000, warehouse: 'almaty', weight: 0.46, category: 'Планшеты', status: 'active', image: '📱', preorder: null },
-  { id: 6, name: 'Apple Watch Ultra', sku: 'APL-AWU', qty: 18, inTransit: 0, costPrice: 320000, price: 389000, warehouse: 'astana', weight: 0.06, category: 'Часы', status: 'active', image: '⌚', preorder: 2 },
-  { id: 7, name: 'Sony WH-1000XM5', sku: 'SNY-WH1000', qty: 25, inTransit: 15, costPrice: 145000, price: 179000, warehouse: 'karaganda', weight: 0.25, category: 'Аксессуары', status: 'active', image: '🎧', preorder: null },
-  { id: 8, name: 'Google Pixel 8 Pro', sku: 'GOO-PX8P', qty: 6, inTransit: 0, costPrice: 380000, price: 449000, warehouse: 'almaty', weight: 0.21, category: 'Смартфоны', status: 'active', image: '📱', preorder: null },
-  { id: 9, name: 'Samsung Galaxy Tab S9', sku: 'SAM-TABS9', qty: 10, inTransit: 5, costPrice: 290000, price: 359000, warehouse: 'shymkent', weight: 0.5, category: 'Планшеты', status: 'active', image: '📱', preorder: null },
-  { id: 10, name: 'Nintendo Switch OLED', sku: 'NIN-SWOLED', qty: 14, inTransit: 0, costPrice: 165000, price: 199000, warehouse: 'almaty', weight: 0.42, category: 'Аксессуары', status: 'active', image: '🎮', preorder: null },
-  { id: 11, name: 'DJI Mini 3 Pro', sku: 'DJI-M3P', qty: 4, inTransit: 3, costPrice: 420000, price: 499000, warehouse: 'astana', weight: 0.25, category: 'Аксессуары', status: 'active', image: '🚁', preorder: null },
-  { id: 12, name: 'Bose QuietComfort 45', sku: 'BOSE-QC45', qty: 20, inTransit: 0, costPrice: 125000, price: 159000, warehouse: 'karaganda', weight: 0.24, category: 'Аксессуары', status: 'active', image: '🎧', preorder: null },
+  { id: 1, name: 'iPhone 14 Pro 256GB', sku: 'APL-IP14P-256', qty: 15, kaspiStock: 17, inTransit: 10, costPrice: 485000, price: 549000, warehouse: 'almaty', weight: 0.24, category: 'Смартфоны', status: 'active', image: '📱', preorder: null },
+  { id: 2, name: 'Samsung Galaxy S23 Ultra', sku: 'SAM-S23U-256', qty: 8, kaspiStock: 5, inTransit: 0, costPrice: 420000, price: 489000, warehouse: 'almaty', weight: 0.23, category: 'Смартфоны', status: 'active', image: '📱', preorder: null },
+  { id: 3, name: 'AirPods Pro 2', sku: 'APL-APP2', qty: 32, kaspiStock: 32, inTransit: 20, costPrice: 89000, price: 109000, warehouse: 'almaty', weight: 0.05, category: 'Аксессуары', status: 'active', image: '🎧', preorder: null },
+  { id: 4, name: 'MacBook Pro 14" M2', sku: 'APL-MBP14-M2', qty: 5, kaspiStock: 5, inTransit: 5, costPrice: 890000, price: 999000, warehouse: 'astana', weight: 1.6, category: 'Ноутбуки', status: 'active', image: '💻', preorder: 3 },
+  { id: 5, name: 'iPad Air 5th Gen', sku: 'APL-IPA5', qty: 12, kaspiStock: 12, inTransit: 0, costPrice: 285000, price: 339000, warehouse: 'almaty', weight: 0.46, category: 'Планшеты', status: 'active', image: '📱', preorder: null },
+  { id: 6, name: 'Apple Watch Ultra', sku: 'APL-AWU', qty: 18, kaspiStock: 20, inTransit: 0, costPrice: 320000, price: 389000, warehouse: 'astana', weight: 0.06, category: 'Часы', status: 'active', image: '⌚', preorder: 2 },
+  { id: 7, name: 'Sony WH-1000XM5', sku: 'SNY-WH1000', qty: 25, kaspiStock: 25, inTransit: 15, costPrice: 145000, price: 179000, warehouse: 'karaganda', weight: 0.25, category: 'Аксессуары', status: 'active', image: '🎧', preorder: null },
+  { id: 8, name: 'Google Pixel 8 Pro', sku: 'GOO-PX8P', qty: 6, kaspiStock: 6, inTransit: 0, costPrice: 380000, price: 449000, warehouse: 'almaty', weight: 0.21, category: 'Смартфоны', status: 'active', image: '📱', preorder: null },
+  { id: 9, name: 'Samsung Galaxy Tab S9', sku: 'SAM-TABS9', qty: 10, kaspiStock: 10, inTransit: 5, costPrice: 290000, price: 359000, warehouse: 'shymkent', weight: 0.5, category: 'Планшеты', status: 'active', image: '📱', preorder: null },
+  { id: 10, name: 'Nintendo Switch OLED', sku: 'NIN-SWOLED', qty: 14, kaspiStock: 14, inTransit: 0, costPrice: 165000, price: 199000, warehouse: 'almaty', weight: 0.42, category: 'Аксессуары', status: 'active', image: '🎮', preorder: null },
+  { id: 11, name: 'DJI Mini 3 Pro', sku: 'DJI-M3P', qty: 4, kaspiStock: 4, inTransit: 3, costPrice: 420000, price: 499000, warehouse: 'astana', weight: 0.25, category: 'Аксессуары', status: 'active', image: '🚁', preorder: null },
+  { id: 12, name: 'Bose QuietComfort 45', sku: 'BOSE-QC45', qty: 20, kaspiStock: 20, inTransit: 0, costPrice: 125000, price: 159000, warehouse: 'karaganda', weight: 0.24, category: 'Аксессуары', status: 'active', image: '🎧', preorder: null },
 ];
 
 const STORAGE_KEY = 'metricon_warehouse_products';
@@ -162,35 +165,72 @@ export const useWarehouseProducts = () => {
     }
   }, []);
 
-  // Пометить товар как требующий синхронизации с Kaspi
-  const markNeedsKaspiSync = useCallback((productId: number) => {
-    setProducts(prev => prev.map(p =>
-      p.id === productId ? { ...p, needsKaspiSync: true } : p
-    ));
-  }, []);
-
-  // Оффлайн продажа - уменьшаем остаток и помечаем для синхронизации
+  // Оффлайн продажа - уменьшаем остаток (Kaspi остаток не меняется, появляется расхождение)
   const offlineSale = useCallback((productId: number, quantity: number) => {
     setProducts(prev => prev.map(p =>
       p.id === productId
-        ? { ...p, qty: Math.max(0, p.qty - quantity), needsKaspiSync: true }
+        ? { ...p, qty: Math.max(0, p.qty - quantity) }
         : p
     ));
   }, []);
 
-  // Синхронизировать с Kaspi (отправить актуальный остаток)
-  const syncWithKaspi = useCallback(async (productId: number): Promise<boolean> => {
-    // TODO: Реальный API вызов к Kaspi
-    // await kaspiApi.updateStock(product.sku, product.qty, product.warehouse);
+  // Получить разницу между локальным остатком и Kaspi
+  // Положительное = у нас больше, отрицательное = в Kaspi больше
+  const getStockDiff = useCallback((product: WarehouseProduct): number | null => {
+    if (product.kaspiStock === undefined) return null;
+    return product.qty - product.kaspiStock;
+  }, []);
 
-    // Имитация запроса
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  // Получить товары с расхождениями
+  const getProductsWithDiff = useCallback(() => {
+    return products.filter(p => {
+      if (p.kaspiStock === undefined) return false;
+      return p.qty !== p.kaspiStock;
+    });
+  }, [products]);
+
+  // Получить остатки с Kaspi API (только чтение, можно часто вызывать)
+  const fetchKaspiStock = useCallback(async (productId?: number): Promise<boolean> => {
+    // TODO: Реальный API вызов к Kaspi
+    // const kaspiData = await kaspiApi.getStock(product.sku);
+
+    // Имитация запроса к API
+    await new Promise(resolve => setTimeout(resolve, 800));
+
+    const now = new Date().toISOString();
+
+    if (productId) {
+      // Обновить один товар
+      setProducts(prev => prev.map(p =>
+        p.id === productId
+          ? { ...p, lastKaspiFetch: now }
+          : p
+      ));
+    } else {
+      // Обновить все товары
+      setProducts(prev => prev.map(p => ({
+        ...p,
+        lastKaspiFetch: now
+      })));
+    }
+
+    return true;
+  }, []);
+
+  // Синхронизировать с Kaspi кабинетом (ЗАПИСЬ - отправить наш остаток в Kaspi)
+  // После успешной синхронизации kaspiStock = qty
+  const syncWithKaspi = useCallback(async (productId: number): Promise<boolean> => {
+    // TODO: Реальный API вызов к Kaspi кабинету
+    // await kaspiCabinet.updateStock(product.sku, product.qty, product.warehouse);
+
+    // Имитация запроса к кабинету (медленнее чем API)
+    await new Promise(resolve => setTimeout(resolve, 1500));
 
     setProducts(prev => prev.map(p =>
       p.id === productId
         ? {
             ...p,
-            needsKaspiSync: false,
+            kaspiStock: p.qty, // После синхронизации Kaspi видит наш остаток
             lastKaspiSync: new Date().toISOString()
           }
         : p
@@ -198,6 +238,21 @@ export const useWarehouseProducts = () => {
 
     return true;
   }, []);
+
+  // Массовая синхронизация всех товаров с расхождениями
+  const syncAllWithKaspi = useCallback(async (): Promise<number> => {
+    const productsWithDiff = products.filter(p =>
+      p.kaspiStock !== undefined && p.qty !== p.kaspiStock
+    );
+
+    let synced = 0;
+    for (const product of productsWithDiff) {
+      await syncWithKaspi(product.id);
+      synced++;
+    }
+
+    return synced;
+  }, [products, syncWithKaspi]);
 
   return {
     products,
@@ -209,9 +264,13 @@ export const useWarehouseProducts = () => {
     addInTransit,
     resetToInitial,
     setProducts,
-    markNeedsKaspiSync,
+    // Kaspi синхронизация
     offlineSale,
-    syncWithKaspi
+    getStockDiff,
+    getProductsWithDiff,
+    fetchKaspiStock,
+    syncWithKaspi,
+    syncAllWithKaspi
   };
 };
 

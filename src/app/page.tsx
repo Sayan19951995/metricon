@@ -12,7 +12,6 @@ import {
   Star,
   ChevronRight,
   Megaphone,
-  Target,
   Clock,
   Shield,
   Users,
@@ -29,7 +28,8 @@ import {
   Settings,
   Globe,
   HeadphonesIcon,
-  BookOpen
+  BookOpen,
+  XCircle
 } from 'lucide-react';
 
 export default function HomePage() {
@@ -38,20 +38,20 @@ export default function HomePage() {
   const features = [
     {
       icon: LineChart,
-      title: 'Аналитика продаж',
-      description: 'Детальная статистика по продажам, прибыли и марже. Графики и отчёты за любой период.',
+      title: 'Глубокая аналитика',
+      description: 'Продажи, прибыль, маржа, средний чек — все ключевые метрики в реальном времени с графиками.',
       color: 'bg-blue-500'
     },
     {
-      icon: TrendingUp,
-      title: 'Автоматизация цен',
-      description: 'Умные алгоритмы отслеживают конкурентов и автоматически корректируют ваши цены.',
+      icon: PieChart,
+      title: 'Финансовые отчёты',
+      description: 'P&L, движение денег, детализация по дням. Понимайте реальную прибыль с учётом всех расходов.',
       color: 'bg-emerald-500'
     },
     {
       icon: Package,
       title: 'Управление складом',
-      description: 'Учёт остатков, себестоимости, закупок. Оповещения о критических остатках товаров.',
+      description: 'Учёт остатков и себестоимости, приёмка товаров, пересчёт средневзвешенной цены закупки.',
       color: 'bg-purple-500'
     },
     {
@@ -61,15 +61,15 @@ export default function HomePage() {
       color: 'bg-amber-500'
     },
     {
-      icon: Target,
-      title: 'Мониторинг конкурентов',
-      description: 'Отслеживание цен и позиций конкурентов в реальном времени с оповещениями.',
+      icon: TrendingUp,
+      title: 'Дашборд продаж',
+      description: 'Обзор ключевых показателей на одном экране: заказы, выручка, ожидаемые платежи, отзывы.',
       color: 'bg-red-500'
     },
     {
-      icon: PieChart,
-      title: 'Финансовая отчётность',
-      description: 'P&L отчёты, движение денежных средств, прогнозирование доходов и расходов.',
+      icon: Bell,
+      title: 'Умные уведомления',
+      description: 'Оповещения о новых заказах, критических остатках, поступлении платежей и отзывах.',
       color: 'bg-indigo-500'
     }
   ];
@@ -109,7 +109,7 @@ export default function HomePage() {
       name: 'Асхат Калиев',
       company: 'TechStore Almaty',
       avatar: 'АК',
-      text: 'За 3 месяца использования Metricon наши продажи выросли на 45%. Автоматизация цен экономит по 2-3 часа каждый день.',
+      text: 'За 3 месяца использования Metricon наши продажи выросли на 45%. Теперь вижу реальную картину бизнеса и принимаю решения на основе данных.',
       rating: 5,
       result: '+45% продаж'
     },
@@ -125,9 +125,9 @@ export default function HomePage() {
       name: 'Ержан Сулейменов',
       company: 'GadgetWorld',
       avatar: 'ЕС',
-      text: 'Мониторинг конкурентов помог найти оптимальные цены. Конверсия выросла, а я трачу меньше времени на рутину.',
+      text: 'Дашборд с ключевыми метриками экономит мне 2 часа в день. Всё важное — на одном экране, не нужно копаться в отчётах.',
       rating: 5,
-      result: '+52% конверсии'
+      result: '+52% эффективности'
     }
   ];
 
@@ -138,48 +138,90 @@ export default function HomePage() {
       period: 'месяц',
       description: 'Для начинающих продавцов',
       features: [
-        'До 100 товаров',
-        'Базовая аналитика продаж',
-        'Учёт склада',
-        'Email поддержка',
-        'Мобильный доступ'
+        'До 30 товаров',
+        'Дашборд с базовой статистикой',
+        'Управление заказами',
+        'Расчёт прибыльности товаров',
+        '1 склад',
+        'Email уведомления',
+        'Аналитика за 7 дней'
+      ],
+      limitations: [
+        'Без P&L отчётов',
+        'Без анализа рекламы',
+        'Без ролей и сотрудников'
       ],
       popular: false,
       cta: 'Начать'
     },
     {
       name: 'Бизнес',
-      price: '24 900',
+      price: '14 900',
+      oldPrice: '18 900',
       period: 'месяц',
-      description: 'Для растущего бизнеса',
+      description: 'Оптимальный выбор для роста',
       features: [
         'До 1 000 товаров',
-        'Расширенная аналитика',
-        'Автоматизация цен',
-        'Мониторинг конкурентов',
-        'Приоритетная поддержка',
-        'API интеграции'
+        'Всё из тарифа "Старт"',
+        'Финансовые отчёты P&L',
+        'Детализация по дням',
+        'Учёт и анализ рекламы (ROI)',
+        'До 3 складов',
+        'Push + Email уведомления',
+        'Аналитика до 30 дней',
+        'История приёмок',
+        'До 2 ролей (сотрудники)'
       ],
-      popular: false,
+      popular: true,
+      badge: 'Скидка 20%',
       cta: 'Выбрать'
     },
     {
       name: 'Pro',
-      price: '49 900',
+      price: '24 900',
       period: 'месяц',
       description: 'Для крупных магазинов',
       features: [
         'Безлимит товаров',
-        'Все функции платформы',
-        'Персональный менеджер',
-        'Приоритетные интеграции',
-        'SLA 99.9%',
-        'Индивидуальные отчёты',
-        'Обучение команды'
+        'Всё из тарифа "Бизнес"',
+        'Безлимит складов',
+        'Аналитика за любой период',
+        'Экспорт отчётов (Excel, PDF)',
+        'Мультиаккаунт (до 3 магазинов)',
+        'До 5 ролей (сотрудники)',
+        'Приоритетная поддержка',
+        'Персональный менеджер'
       ],
-      popular: true,
+      popular: false,
       cta: 'Попробовать бесплатно',
-      badge: '30 дней бесплатно'
+      badge: '14 дней бесплатно'
+    }
+  ];
+
+  const addOnOptions = [
+    {
+      name: 'Авторассылка',
+      price: '9 900',
+      period: 'месяц',
+      description: 'Автоматические рассылки клиентам',
+      features: [
+        'Шаблоны сообщений',
+        'Расписание отправки',
+        'Напоминания о заказах',
+        'Статистика доставки'
+      ]
+    },
+    {
+      name: 'Автодемпинг',
+      price: '14 900',
+      period: 'месяц',
+      description: 'Автоматическое управление ценами',
+      features: [
+        'Мониторинг конкурентов',
+        'Стратегии: Undercut, Match, Position',
+        'Мин/макс цены, шаг изменения',
+        'История изменений цен'
+      ]
     }
   ];
 
@@ -190,11 +232,11 @@ export default function HomePage() {
     },
     {
       question: 'Безопасно ли передавать данные магазина?',
-      answer: 'Абсолютно. Мы используем шифрование данных, серверы расположены в Казахстане и соответствуют требованиям законодательства. Мы не храним ваши пароли от Kaspi.'
+      answer: 'Да. Все данные передаются по защищённому соединению (HTTPS). Ваши учётные данные хранятся в зашифрованном виде и используются только для синхронизации с Kaspi.'
     },
     {
-      question: 'Что входит в 30 дней бесплатного Pro доступа?',
-      answer: 'Вы получаете полный доступ ко всем функциям Pro тарифа: безлимит товаров, все интеграции, персональный менеджер и приоритетная поддержка. Карта не требуется.'
+      question: 'Что входит в 14 дней бесплатного Pro доступа?',
+      answer: 'Вы получаете полный доступ ко всем функциям Pro тарифа: безлимит товаров, все отчёты и аналитика, экспорт данных, персональный менеджер и приоритетная поддержка. Карта не требуется.'
     },
     {
       question: 'Могу ли я отменить подписку в любой момент?',
@@ -282,7 +324,7 @@ export default function HomePage() {
             {/* Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 rounded-full text-emerald-700 text-sm font-medium mb-6">
               <Gift className="w-4 h-4" />
-              <span>30 дней Pro доступа бесплатно — без привязки карты</span>
+              <span>14 дней Pro доступа бесплатно — без привязки карты</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
@@ -293,8 +335,8 @@ export default function HomePage() {
             </h1>
 
             <p className="text-lg sm:text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
-              Metricon — это платформа для управления магазином на Kaspi.
-              Аналитика продаж, автоматизация цен, учёт склада и рекламы в одном месте.
+              Metricon — платформа глубокой аналитики для продавцов Kaspi.
+              Финансовые отчёты, учёт склада, анализ рекламы и управление заказами в одном месте.
             </p>
 
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
@@ -495,7 +537,7 @@ export default function HomePage() {
               {
                 step: '03',
                 title: 'Анализируйте и растите',
-                description: 'Получайте инсайты, автоматизируйте рутину и увеличивайте продажи.',
+                description: 'Получайте инсайты из данных, оптимизируйте бизнес и увеличивайте прибыль.',
                 icon: TrendingUp
               }
             ].map((item, idx) => (
@@ -561,7 +603,7 @@ export default function HomePage() {
                   <span className="text-2xl font-bold">Специальное предложение</span>
                 </div>
                 <h3 className="text-3xl font-bold mb-4">
-                  30 дней Pro доступа бесплатно
+                  14 дней Pro доступа бесплатно
                 </h3>
                 <p className="text-emerald-100 mb-6 text-lg">
                   Попробуйте все функции платформы без ограничений. Никаких скрытых платежей — просто зарегистрируйтесь и начните.
@@ -654,11 +696,16 @@ export default function HomePage() {
                 key={idx}
                 className={`bg-white rounded-2xl p-6 border-2 relative ${
                   plan.popular
-                    ? 'border-emerald-500 shadow-xl shadow-emerald-500/10'
+                    ? 'border-emerald-500 shadow-xl shadow-emerald-500/10 scale-105'
                     : 'border-gray-100'
                 }`}
               >
-                {plan.badge && (
+                {plan.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-orange-500 to-amber-500 text-white text-sm font-bold rounded-full whitespace-nowrap">
+                    ПОПУЛЯРНЫЙ ВЫБОР
+                  </div>
+                )}
+                {plan.badge && !plan.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-sm font-medium rounded-full whitespace-nowrap flex items-center gap-1.5">
                     <Gift className="w-3.5 h-3.5" />
                     {plan.badge}
@@ -667,16 +714,30 @@ export default function HomePage() {
                 <div className="text-center mb-6 pt-2">
                   <h3 className="text-xl font-bold text-gray-900 mb-1">{plan.name}</h3>
                   <p className="text-gray-500 text-sm mb-4">{plan.description}</p>
-                  <div className="flex items-baseline justify-center gap-1">
+                  <div className="flex items-baseline justify-center gap-2">
+                    {plan.oldPrice && (
+                      <span className="text-xl text-gray-400 line-through">{plan.oldPrice} ₸</span>
+                    )}
                     <span className="text-4xl font-bold text-gray-900">{plan.price}</span>
                     <span className="text-gray-500">₸/{plan.period}</span>
                   </div>
+                  {plan.badge && plan.popular && (
+                    <div className="mt-2 inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                      {plan.badge}
+                    </div>
+                  )}
                 </div>
                 <ul className="space-y-3 mb-6">
                   {plan.features.map((feature, i) => (
                     <li key={i} className="flex items-start gap-3">
                       <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
                       <span className="text-gray-600 text-sm">{feature}</span>
+                    </li>
+                  ))}
+                  {plan.limitations?.map((limitation, i) => (
+                    <li key={`lim-${i}`} className="flex items-start gap-3">
+                      <XCircle className="w-5 h-5 text-gray-300 flex-shrink-0 mt-0.5" />
+                      <span className="text-gray-400 text-sm">{limitation}</span>
                     </li>
                   ))}
                 </ul>
@@ -693,6 +754,40 @@ export default function HomePage() {
                 </Link>
               </div>
             ))}
+          </div>
+
+          {/* Дополнительные опции */}
+          <div className="mt-16 max-w-3xl mx-auto">
+            <h3 className="text-xl font-bold text-gray-900 text-center mb-6">
+              Дополнительные опции к любому тарифу
+            </h3>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {addOnOptions.map((addon, idx) => (
+                <div
+                  key={idx}
+                  className="bg-white rounded-xl p-5 border border-gray-200 hover:border-emerald-300 transition-colors"
+                >
+                  <div className="flex items-start justify-between mb-3">
+                    <div>
+                      <h4 className="font-bold text-gray-900">{addon.name}</h4>
+                      <p className="text-gray-500 text-sm">{addon.description}</p>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <span className="font-bold text-emerald-600">+{addon.price} ₸</span>
+                      <span className="text-gray-400 text-sm">/{addon.period}</span>
+                    </div>
+                  </div>
+                  <ul className="space-y-1.5">
+                    {addon.features.map((feature, i) => (
+                      <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
+                        <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
+                        {feature}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
           </div>
 
           <p className="text-center text-gray-500 mt-8 text-sm">
@@ -755,7 +850,7 @@ export default function HomePage() {
               Готовы увеличить продажи на Kaspi?
             </h2>
             <p className="text-xl text-emerald-100 mb-8">
-              Начните с 30 дней бесплатного Pro доступа. Без привязки карты, без обязательств.
+              Начните с 14 дней бесплатного Pro доступа. Без привязки карты, без обязательств.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
@@ -788,7 +883,7 @@ export default function HomePage() {
                 <span className="text-xl font-bold text-white">Metricon</span>
               </Link>
               <p className="text-gray-400 text-sm mb-4 max-w-xs">
-                Платформа аналитики и автоматизации для продавцов Kaspi.kz. Увеличивайте продажи, экономьте время.
+                Платформа глубокой аналитики для продавцов Kaspi.kz. Принимайте решения на основе данных.
               </p>
               <div className="flex items-center gap-2 text-sm text-gray-500">
                 <Shield className="w-4 h-4" />

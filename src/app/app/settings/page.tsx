@@ -18,7 +18,8 @@ import {
   Palette,
   Database,
   FileText,
-  LogOut
+  LogOut,
+  Users
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -77,6 +78,15 @@ const settingsSections = [
         color: 'bg-[#f14635]/10 text-[#f14635]',
         badge: 'Подключено',
         badgeColor: 'bg-emerald-100 text-emerald-700'
+      },
+      {
+        icon: Users,
+        title: 'Команда и роли',
+        description: 'Управление доступом сотрудников',
+        href: '/app/settings/team',
+        color: 'bg-indigo-100 text-indigo-600',
+        badge: '1/2',
+        badgeColor: 'bg-indigo-100 text-indigo-700'
       },
       {
         icon: Building,

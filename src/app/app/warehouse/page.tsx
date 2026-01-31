@@ -25,7 +25,14 @@ type WarehouseTab = 'all' | 'almaty' | 'astana' | 'karaganda' | 'shymkent';
 
 export default function WarehousePage() {
   // Получаем товары из хука с localStorage
-  const { products: warehouseProducts, isLoaded, syncWithKaspi } = useWarehouseProducts();
+  const {
+    products: warehouseProducts,
+    isLoaded,
+    syncWithKaspi,
+    getStockDiff,
+    getProductsWithDiff,
+    fetchKaspiStock
+  } = useWarehouseProducts();
   const [showCreateOrderModal, setShowCreateOrderModal] = useState(false);
   const [activeTab, setActiveTab] = useState<WarehouseTab>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -93,6 +100,10 @@ export default function WarehousePage() {
   const totalInTransit = filteredProducts.reduce((sum, p) => sum + p.inTransit, 0);
   const criticalCount = filteredProducts.filter(p => p.qty < 10).length;
 
+  // Товары с расхождениями Kaspi
+  const productsWithDiff = getProductsWithDiff();
+  const diffCount = productsWithDiff.length;
+
   const getWarehouseName = (warehouse: string) => {
     switch (warehouse) {
       case 'almaty': return 'Алматы';
@@ -131,14 +142,14 @@ export default function WarehousePage() {
 
       {/* Stats Blocks */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 items-stretch">
-        <div className="bg-white rounded-xl p-3 shadow-sm relative h-full">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-blue-50 rounded-lg flex items-center justify-center shrink-0">
-              <Package className="w-4 h-4 text-blue-600" />
+        <div className="bg-white rounded-xl p-3 lg:p-4 shadow-sm relative h-full">
+          <div className="flex items-center gap-2 lg:gap-3">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-50 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
+              <Package className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1">
-                <p className="text-[10px] text-gray-500 leading-tight">Себестоимость</p>
+                <p className="text-[10px] lg:text-xs text-gray-500 leading-tight">Себестоимость</p>
                 <button
                   data-tooltip-trigger
                   onClick={() => toggleTooltip('header')}
@@ -147,7 +158,7 @@ export default function WarehousePage() {
                   <HelpCircle className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <p className="text-sm font-bold text-gray-900">{totalCost.toLocaleString()} ₸</p>
+              <p className="text-sm lg:text-base font-bold text-gray-900">{totalCost.toLocaleString()} ₸</p>
             </div>
           </div>
           {/* Tooltip */}
@@ -169,14 +180,14 @@ export default function WarehousePage() {
             )}
           </AnimatePresence>
         </div>
-        <div className="bg-white rounded-xl p-3 shadow-sm relative h-full">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center shrink-0">
-              <Package className="w-4 h-4 text-emerald-600" />
+        <div className="bg-white rounded-xl p-3 lg:p-4 shadow-sm relative h-full">
+          <div className="flex items-center gap-2 lg:gap-3">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-emerald-50 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
+              <Package className="w-4 h-4 lg:w-5 lg:h-5 text-emerald-600" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1">
-                <p className="text-[10px] text-gray-500 leading-tight">Оценоч. стоимость</p>
+                <p className="text-[10px] lg:text-xs text-gray-500 leading-tight">Оценоч. стоимость</p>
                 <button
                   data-tooltip-trigger
                   onClick={() => toggleTooltip('estimated')}
@@ -185,7 +196,7 @@ export default function WarehousePage() {
                   <HelpCircle className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <p className="text-sm font-bold text-emerald-600">{totalPrice.toLocaleString()} ₸</p>
+              <p className="text-sm lg:text-base font-bold text-emerald-600">{totalPrice.toLocaleString()} ₸</p>
             </div>
           </div>
           <AnimatePresence>
@@ -208,17 +219,17 @@ export default function WarehousePage() {
         <div className="relative h-full">
           <button
             onClick={() => setShowCriticalOnly(!showCriticalOnly)}
-            className={`w-full h-full bg-white rounded-xl p-3 shadow-sm text-left transition-all cursor-pointer ${
+            className={`w-full h-full bg-white rounded-xl p-3 lg:p-4 shadow-sm text-left transition-all cursor-pointer ${
               showCriticalOnly ? 'ring-2 ring-amber-500' : 'hover:shadow-md'
             }`}
           >
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-amber-50 rounded-lg flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-4 h-4 text-amber-600" />
+            <div className="flex items-center gap-2 lg:gap-3">
+              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-amber-50 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
+                <AlertTriangle className="w-4 h-4 lg:w-5 lg:h-5 text-amber-600" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
-                  <p className="text-[10px] text-gray-500 leading-tight">Критич. остаток</p>
+                  <p className="text-[10px] lg:text-xs text-gray-500 leading-tight">Критич. остаток</p>
                   <span
                     data-tooltip-trigger
                     onClick={(e) => { e.stopPropagation(); toggleTooltip('critical'); }}
@@ -227,7 +238,7 @@ export default function WarehousePage() {
                     <HelpCircle className="w-3.5 h-3.5" />
                   </span>
                 </div>
-                <p className="text-sm font-bold text-amber-600">{criticalCount} товаров</p>
+                <p className="text-sm lg:text-base font-bold text-amber-600">{criticalCount} товаров</p>
               </div>
             </div>
           </button>
@@ -251,15 +262,15 @@ export default function WarehousePage() {
         <div className="relative h-full">
           <Link
             href="/app/warehouse/history"
-            className="bg-white rounded-xl p-3 shadow-sm hover:shadow-md transition-all cursor-pointer block h-full"
+            className="bg-white rounded-xl p-3 lg:p-4 shadow-sm hover:shadow-md transition-all cursor-pointer block h-full"
           >
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-purple-50 rounded-lg flex items-center justify-center shrink-0">
-                <Truck className="w-4 h-4 text-purple-600" />
+            <div className="flex items-center gap-2 lg:gap-3">
+              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-purple-50 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
+                <Truck className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
-                  <p className="text-[10px] text-gray-500 leading-tight">В пути</p>
+                  <p className="text-[10px] lg:text-xs text-gray-500 leading-tight">В пути</p>
                   <span
                     data-tooltip-trigger
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleTooltip('transit'); }}
@@ -268,7 +279,7 @@ export default function WarehousePage() {
                     <HelpCircle className="w-3.5 h-3.5" />
                   </span>
                 </div>
-                <p className="text-sm font-bold text-purple-600">{totalInTransit} шт</p>
+                <p className="text-sm lg:text-base font-bold text-purple-600">{totalInTransit} шт</p>
               </div>
             </div>
           </Link>
@@ -284,6 +295,57 @@ export default function WarehousePage() {
                 <ul className="space-y-0.5 text-gray-300">
                   <li>• Товары в доставке на склад</li>
                   <li>• Нажмите для просмотра истории</li>
+                </ul>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+        {/* Kaspi Sync Status - отдельный ряд на мобильном, в общем ряду на десктопе */}
+        <div className="relative h-full col-span-2 lg:col-span-4">
+          <div className={`w-full h-full bg-white rounded-xl p-3 lg:p-4 shadow-sm transition-all ${
+            diffCount > 0 ? 'ring-2 ring-red-400' : ''
+          }`}>
+            <div className="flex items-center gap-2 lg:gap-3">
+              <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0 ${
+                diffCount > 0 ? 'bg-red-50' : 'bg-emerald-50'
+              }`}>
+                <RefreshCw className={`w-4 h-4 lg:w-5 lg:h-5 ${diffCount > 0 ? 'text-red-600' : 'text-emerald-600'}`} />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1">
+                  <p className="text-[10px] lg:text-xs text-gray-500 leading-tight">Синхронизация с Kaspi</p>
+                  <span
+                    data-tooltip-trigger
+                    onClick={() => toggleTooltip('kaspi-sync')}
+                    className="flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+                  >
+                    <HelpCircle className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+                <p className={`text-sm lg:text-base font-bold ${diffCount > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                  {diffCount > 0 ? `${diffCount} товаров с расхождением` : 'Все остатки синхронизированы'}
+                </p>
+              </div>
+              {diffCount > 0 && (
+                <div className="hidden lg:flex items-center gap-2 text-sm text-gray-500">
+                  <span>Нажмите 🔄 у товара для синхронизации</span>
+                </div>
+              )}
+            </div>
+          </div>
+          <AnimatePresence>
+            {activeTooltip === 'kaspi-sync' && (
+              <motion.div
+                initial={{ opacity: 0, y: -5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -5 }}
+                className="absolute left-0 right-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2.5 rounded-lg shadow-lg"
+              >
+                <p className="font-medium mb-1">Синхронизация с Kaspi:</p>
+                <ul className="space-y-0.5 text-gray-300">
+                  <li>• Сравниваем остатки через API Kaspi</li>
+                  <li>• Расхождения — товары где наш остаток ≠ Kaspi</li>
+                  <li>• Нажмите 🔄 чтобы обновить Kaspi</li>
                 </ul>
               </motion.div>
             )}
@@ -395,41 +457,59 @@ export default function WarehousePage() {
                   <p className="text-xs text-gray-500">{product.sku}</p>
                 </div>
                 <div className="flex items-center gap-1.5 ml-2">
-                  {product.needsKaspiSync && (
-                    <div className="relative">
-                      <button
-                        data-tooltip-trigger
-                        onClick={() => toggleTooltip(`sync-${product.id}`)}
-                        className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-medium cursor-pointer hover:bg-amber-200 transition-colors"
-                      >
-                        <AlertTriangle className="w-3 h-3" />
-                        Рассинхрон
-                      </button>
-                      <AnimatePresence>
-                        {activeTooltip === `sync-${product.id}` && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -5 }}
-                            className="absolute right-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-44"
+                  {(() => {
+                    const diff = getStockDiff(product);
+                    if (diff !== null && diff !== 0) {
+                      return (
+                        <>
+                          <div className="relative">
+                            <button
+                              data-tooltip-trigger
+                              onClick={() => toggleTooltip(`sync-${product.id}`)}
+                              className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium cursor-pointer transition-colors ${
+                                diff > 0
+                                  ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                  : 'bg-red-100 text-red-700 hover:bg-red-200'
+                              }`}
+                            >
+                              <AlertTriangle className="w-3 h-3" />
+                              {diff > 0 ? `+${diff}` : diff}
+                            </button>
+                            <AnimatePresence>
+                              {activeTooltip === `sync-${product.id}` && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: -5 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -5 }}
+                                  className="absolute right-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-48"
+                                >
+                                  <p className="font-medium mb-1">Расхождение с Kaspi</p>
+                                  <div className="space-y-0.5 text-gray-300">
+                                    <p>У нас: {product.qty} шт</p>
+                                    <p>В Kaspi: {product.kaspiStock} шт</p>
+                                    <p className="text-white font-medium mt-1">
+                                      {diff > 0
+                                        ? `У нас на ${diff} больше`
+                                        : `В Kaspi на ${Math.abs(diff)} больше`}
+                                    </p>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                          <button
+                            onClick={() => handleSyncProduct(product.id)}
+                            disabled={syncingProductId === product.id}
+                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                            title="Отправить остаток в Kaspi"
                           >
-                            <p className="font-medium mb-1">Возможно расхождение</p>
-                            <p className="text-gray-300">Была оффлайн продажа. Рекомендуем обновить остатки в Kaspi.</p>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-                  )}
-                  {product.needsKaspiSync && (
-                    <button
-                      onClick={() => handleSyncProduct(product.id)}
-                      disabled={syncingProductId === product.id}
-                      className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-                      title="Синхронизировать с Kaspi"
-                    >
-                      <RefreshCw className={`w-4 h-4 ${syncingProductId === product.id ? 'animate-spin' : ''}`} />
-                    </button>
-                  )}
+                            <RefreshCw className={`w-4 h-4 ${syncingProductId === product.id ? 'animate-spin' : ''}`} />
+                          </button>
+                        </>
+                      );
+                    }
+                    return null;
+                  })()}
                   <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
                     {getWarehouseName(product.warehouse)}
                   </span>
@@ -536,31 +616,49 @@ export default function WarehousePage() {
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-sm text-gray-900">{product.name}</p>
-                      {product.needsKaspiSync && (
-                        <div className="relative">
-                          <button
-                            data-tooltip-trigger
-                            onClick={() => toggleTooltip(`table-sync-${product.id}`)}
-                            className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-medium cursor-pointer hover:bg-amber-200 transition-colors"
-                          >
-                            <AlertTriangle className="w-3 h-3" />
-                            Рассинхрон
-                          </button>
-                          <AnimatePresence>
-                            {activeTooltip === `table-sync-${product.id}` && (
-                              <motion.div
-                                initial={{ opacity: 0, y: -5 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: -5 }}
-                                className="absolute left-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-44"
+                      {(() => {
+                        const diff = getStockDiff(product);
+                        if (diff !== null && diff !== 0) {
+                          return (
+                            <div className="relative">
+                              <button
+                                data-tooltip-trigger
+                                onClick={() => toggleTooltip(`table-sync-${product.id}`)}
+                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium cursor-pointer transition-colors ${
+                                  diff > 0
+                                    ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                                    : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                }`}
                               >
-                                <p className="font-medium mb-1">Возможно расхождение</p>
-                                <p className="text-gray-300">Была оффлайн продажа. Рекомендуем обновить остатки в Kaspi.</p>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
-                      )}
+                                <AlertTriangle className="w-3 h-3" />
+                                {diff > 0 ? `+${diff}` : diff}
+                              </button>
+                              <AnimatePresence>
+                                {activeTooltip === `table-sync-${product.id}` && (
+                                  <motion.div
+                                    initial={{ opacity: 0, y: -5 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: -5 }}
+                                    className="absolute left-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-48"
+                                  >
+                                    <p className="font-medium mb-1">Расхождение с Kaspi</p>
+                                    <div className="space-y-0.5 text-gray-300">
+                                      <p>У нас: {product.qty} шт</p>
+                                      <p>В Kaspi: {product.kaspiStock} шт</p>
+                                      <p className="text-white font-medium mt-1">
+                                        {diff > 0
+                                          ? `У нас на ${diff} больше`
+                                          : `В Kaspi на ${Math.abs(diff)} больше`}
+                                      </p>
+                                    </div>
+                                  </motion.div>
+                                )}
+                              </AnimatePresence>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
                   </td>
                   <td className="py-4 px-6">
@@ -590,16 +688,22 @@ export default function WarehousePage() {
                   </td>
                   <td className="py-4 px-6">
                     <div className="flex items-center justify-start gap-1">
-                      {product.needsKaspiSync && (
-                        <button
-                          onClick={() => handleSyncProduct(product.id)}
-                          disabled={syncingProductId === product.id}
-                          className="p-1.5 hover:bg-red-50 rounded-lg transition-colors group cursor-pointer disabled:opacity-50"
-                          title="Синхронизировать с Kaspi"
-                        >
-                          <RefreshCw className={`w-4 h-4 text-red-500 group-hover:text-red-600 ${syncingProductId === product.id ? 'animate-spin' : ''}`} />
-                        </button>
-                      )}
+                      {(() => {
+                        const diff = getStockDiff(product);
+                        if (diff !== null && diff !== 0) {
+                          return (
+                            <button
+                              onClick={() => handleSyncProduct(product.id)}
+                              disabled={syncingProductId === product.id}
+                              className="p-1.5 hover:bg-red-50 rounded-lg transition-colors group cursor-pointer disabled:opacity-50"
+                              title="Отправить остаток в Kaspi"
+                            >
+                              <RefreshCw className={`w-4 h-4 text-red-500 group-hover:text-red-600 ${syncingProductId === product.id ? 'animate-spin' : ''}`} />
+                            </button>
+                          );
+                        }
+                        return null;
+                      })()}
                       <button
                         className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors group cursor-pointer"
                         title="Переместить"
