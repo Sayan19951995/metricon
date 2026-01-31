@@ -442,13 +442,13 @@ export default function WarehousePage() {
                       <span className="text-[10px] opacity-60">себ.</span>
                       <button
                         data-tooltip-trigger
-                        onClick={() => toggleTooltip(product.id)}
+                        onClick={() => toggleTooltip(`cost-${product.id}`)}
                         className="text-gray-400 hover:text-blue-500 transition-colors cursor-pointer"
                       >
                         <HelpCircle className="w-3 h-3" />
                       </button>
                       <AnimatePresence>
-                        {activeTooltip === product.id && (
+                        {activeTooltip === `cost-${product.id}` && (
                           <motion.div
                             initial={{ opacity: 0, y: -5 }}
                             animate={{ opacity: 1, y: 0 }}
