@@ -391,18 +391,35 @@ export default function WarehousePage() {
               >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="font-semibold text-sm truncate">{product.name}</p>
-                    {product.needsKaspiSync && (
-                      <span className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-medium shrink-0">
-                        <AlertTriangle className="w-3 h-3" />
-                        Рассинхрон
-                      </span>
-                    )}
-                  </div>
+                  <p className="font-semibold text-sm truncate">{product.name}</p>
                   <p className="text-xs text-gray-500">{product.sku}</p>
                 </div>
-                <div className="flex items-center gap-1 ml-2">
+                <div className="flex items-center gap-1.5 ml-2">
+                  {product.needsKaspiSync && (
+                    <div className="relative">
+                      <button
+                        data-tooltip-trigger
+                        onClick={() => toggleTooltip(`sync-${product.id}`)}
+                        className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-medium cursor-pointer hover:bg-amber-200 transition-colors"
+                      >
+                        <AlertTriangle className="w-3 h-3" />
+                        Рассинхрон
+                      </button>
+                      <AnimatePresence>
+                        {activeTooltip === `sync-${product.id}` && (
+                          <motion.div
+                            initial={{ opacity: 0, y: -5 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -5 }}
+                            className="absolute right-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-44"
+                          >
+                            <p className="font-medium mb-1">Возможно расхождение</p>
+                            <p className="text-gray-300">Была оффлайн продажа. Рекомендуем обновить остатки в Kaspi.</p>
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </div>
+                  )}
                   {product.needsKaspiSync && (
                     <button
                       onClick={() => handleSyncProduct(product.id)}
@@ -520,10 +537,29 @@ export default function WarehousePage() {
                     <div className="flex items-center gap-2">
                       <p className="font-medium text-sm text-gray-900">{product.name}</p>
                       {product.needsKaspiSync && (
-                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-medium">
-                          <AlertTriangle className="w-3 h-3" />
-                          Рассинхрон
-                        </span>
+                        <div className="relative">
+                          <button
+                            data-tooltip-trigger
+                            onClick={() => toggleTooltip(`table-sync-${product.id}`)}
+                            className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 rounded text-[10px] font-medium cursor-pointer hover:bg-amber-200 transition-colors"
+                          >
+                            <AlertTriangle className="w-3 h-3" />
+                            Рассинхрон
+                          </button>
+                          <AnimatePresence>
+                            {activeTooltip === `table-sync-${product.id}` && (
+                              <motion.div
+                                initial={{ opacity: 0, y: -5 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                exit={{ opacity: 0, y: -5 }}
+                                className="absolute left-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-44"
+                              >
+                                <p className="font-medium mb-1">Возможно расхождение</p>
+                                <p className="text-gray-300">Была оффлайн продажа. Рекомендуем обновить остатки в Kaspi.</p>
+                              </motion.div>
+                            )}
+                          </AnimatePresence>
+                        </div>
                       )}
                     </div>
                   </td>
