@@ -51,6 +51,13 @@ import {
   LabelList,
 } from 'recharts';
 
+// Тип товара проданного за день
+interface DayProduct {
+  name: string;
+  qty: number;
+  price: number;
+}
+
 // Типы для аналитики
 interface DailyData {
   date: string;
@@ -65,6 +72,7 @@ interface DailyData {
   delivery: number;
   profit: number;
   totalExpenses?: number;
+  products?: DayProduct[];
 }
 
 interface TopProduct {
@@ -107,6 +115,45 @@ const SALES_SOURCE_COLORS = ['#4a90d9', '#e07b4a', '#6b7280']; // Синий (О
 
 // Насыщенные но спокойные цвета для способов доставки
 const DELIVERY_COLORS = ['#7b68c9', '#d96b8a', '#4db8a4', '#d4a03d', '#6b7280']; // Фиолетовый, розовый, бирюзовый, горчичный, серый (Оффлайн)
+
+// Список товаров для генерации
+const PRODUCT_CATALOG = [
+  { name: 'iPhone 14 Pro 256GB', price: 549000 },
+  { name: 'Samsung Galaxy S23 Ultra', price: 489000 },
+  { name: 'AirPods Pro 2', price: 109000 },
+  { name: 'MacBook Pro 14" M2', price: 999000 },
+  { name: 'iPad Air 5th Gen', price: 339000 },
+  { name: 'Apple Watch Ultra', price: 389000 },
+  { name: 'Sony WH-1000XM5', price: 179000 },
+  { name: 'Google Pixel 8 Pro', price: 449000 },
+  { name: 'Samsung Galaxy Tab S9', price: 359000 },
+  { name: 'Nintendo Switch OLED', price: 199000 },
+  { name: 'DJI Mini 3 Pro', price: 499000 },
+  { name: 'Bose QuietComfort 45', price: 159000 },
+];
+
+// Генерация товаров для дня на основе его данных
+const generateDayProducts = (orders: number, revenue: number, dateStr: string): DayProduct[] => {
+  if (!dateStr || !orders || orders <= 0) return [];
+
+  // Используем дату как seed для стабильной генерации
+  const seed = dateStr.split('.').reduce((acc, val) => {
+    const num = parseInt(val, 10);
+    return acc + (isNaN(num) ? 0 : num);
+  }, 0);
+  const products: DayProduct[] = [];
+
+  // Генерируем products по количеству заказов
+  for (let i = 0; i < orders; i++) {
+    const productIndex = Math.abs(seed + i * 3) % PRODUCT_CATALOG.length;
+    const product = PRODUCT_CATALOG[productIndex];
+    if (product) {
+      products.push({ name: product.name, qty: 1, price: product.price });
+    }
+  }
+
+  return products;
+};
 
 // Mock данные для аналитики за 7 дней
 const mockAnalyticsData = {
@@ -1731,43 +1778,39 @@ function AnalyticsPageContent() {
                           <YAxis stroke="#9ca3af" tick={{ fontSize: 9 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
                           <Tooltip
                             cursor={{ fill: 'rgba(0,0,0,0.05)' }}
+                            wrapperStyle={{ pointerEvents: 'auto', zIndex: 100 }}
                             content={({ active, payload, label }) => {
                               if (active && payload && payload.length) {
                                 const item = payload[0]?.payload;
+                                const netProfit = (item?.profit || 0) - (item?.loss || 0);
                                 return (
-                                  <div className="bg-white p-3 rounded-xl shadow-lg border border-gray-100">
-                                    <p className="font-semibold text-gray-900 mb-2">{label} ({item?.day})</p>
-                                    <p className="text-sm text-gray-600 mb-1">
-                                      Заказов: <span className="font-medium">{item?.orders}</span>
-                                    </p>
-                                    <div className="space-y-1 text-sm">
-                                      <div className="flex justify-between gap-4">
-                                        <span className="text-rose-500">Себестоимость:</span>
-                                        <span className="font-medium">{item?.cost?.toLocaleString('ru-RU')} ₸ ({item?.costPercent}%)</span>
+                                  <div
+                                    className="bg-gray-900 text-white p-2.5 rounded-lg shadow-lg text-xs min-w-[140px]"
+                                    onClick={(e) => e.stopPropagation()}
+                                    onMouseDown={(e) => e.stopPropagation()}
+                                    onTouchStart={(e) => e.stopPropagation()}
+                                  >
+                                    <p className="font-semibold mb-1.5">{label} ({item?.day})</p>
+                                    <div className="space-y-0.5">
+                                      <div className="flex justify-between gap-3">
+                                        <span className="text-gray-400">Выручка</span>
+                                        <span className="font-medium">{(item?.revenue / 1000).toFixed(1)}K</span>
                                       </div>
-                                      <div className="flex justify-between gap-4">
-                                        <span className="text-amber-500">Реклама:</span>
-                                        <span className="font-medium">{item?.advertising?.toLocaleString('ru-RU')} ₸ ({item?.adsPercent}%)</span>
+                                      <div className="flex justify-between gap-3">
+                                        <span className="text-rose-400">Себест.</span>
+                                        <span>{(item?.cost / 1000).toFixed(1)}K</span>
                                       </div>
-                                      {item?.opExpenses > 0 && (
-                                        <div className="flex justify-between gap-4">
-                                          <span className="text-indigo-500">Опер. расходы:</span>
-                                          <span className="font-medium">{Math.round(item?.opExpenses)?.toLocaleString('ru-RU')} ₸ ({item?.opExpensesPercent}%)</span>
-                                        </div>
-                                      )}
-                                      <div className="flex justify-between gap-4">
-                                        <span className="text-emerald-500">Прибыль:</span>
-                                        <span className="font-medium">{item?.profit?.toLocaleString('ru-RU')} ₸ ({item?.profitPercent}%)</span>
+                                      <div className="flex justify-between gap-3">
+                                        <span className="text-amber-400">Реклама</span>
+                                        <span>{(item?.advertising / 1000).toFixed(1)}K</span>
                                       </div>
-                                      {item?.loss > 0 && (
-                                        <div className="flex justify-between gap-4">
-                                          <span className="text-red-600">Убыток:</span>
-                                          <span className="font-medium text-red-600">-{item?.loss?.toLocaleString('ru-RU')} ₸</span>
-                                        </div>
-                                      )}
-                                      <div className="flex justify-between gap-4 pt-1 border-t mt-1">
-                                        <span className="text-gray-700 font-medium">Выручка:</span>
-                                        <span className="font-bold">{item?.revenue?.toLocaleString('ru-RU')} ₸</span>
+                                      <div className="flex justify-between gap-3 pt-1 border-t border-gray-700 mt-1">
+                                        <span className={netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}>
+                                          {netProfit >= 0 ? 'Прибыль' : 'Убыток'}
+                                        </span>
+                                        <span className={`font-semibold ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                                          {netProfit >= 0 ? '' : '-'}{(Math.abs(netProfit) / 1000).toFixed(1)}K
+                                        </span>
                                       </div>
                                     </div>
                                   </div>
@@ -2186,8 +2229,6 @@ function AnalyticsPageContent() {
                             {salesSourcesData.map((item, index) => {
                               const total = salesSourcesData.reduce((sum, i) => sum + i.value, 0);
                               const percent = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
-                              const revenuePercent = Number(percent) / 100;
-                              const itemRevenue = Math.round(data.totalRevenue * revenuePercent);
                               return (
                                 <div
                                   key={item.name}
@@ -2199,7 +2240,7 @@ function AnalyticsPageContent() {
                                   />
                                   <div className="flex-1 flex justify-between items-center min-w-0">
                                     <span className="text-[10px] sm:text-xs text-gray-700 truncate">{item.name}</span>
-                                    <span className="text-[9px] sm:text-[11px] font-medium text-gray-900 ml-1">{percent}%</span>
+                                    <span className="text-[9px] sm:text-[11px] font-medium text-gray-900 ml-1">{item.value} <span className="text-gray-400">({percent}%)</span></span>
                                   </div>
                                 </div>
                               );
@@ -2221,17 +2262,9 @@ function AnalyticsPageContent() {
                                 innerRadius="25%"
                                 fill="#8884d8"
                                 dataKey="value"
-                                onClick={(segmentData) => {
-                                  if (segmentData.name === 'Межгород') setShowCitiesDropdown(!showCitiesDropdown);
-                                  else if (segmentData.name === 'Моя доставка') setShowMyDeliveryPopup(true);
-                                  else if (segmentData.name === 'Экспресс доставка') setShowExpressPopup(true);
-                                  else if (segmentData.name === 'Самовывоз') setShowPickupPopup(true);
-                                  else if (segmentData.name === 'Оффлайн') setShowOfflineDeliveryPopup(true);
-                                }}
-                                style={{ cursor: 'pointer' }}
                               >
                                 {deliveryData.map((_, index) => (
-                                  <Cell key={`cell-${index}`} fill={DELIVERY_COLORS[index % DELIVERY_COLORS.length]} style={{ cursor: 'pointer' }} />
+                                  <Cell key={`cell-${index}`} fill={DELIVERY_COLORS[index % DELIVERY_COLORS.length]} />
                                 ))}
                               </Pie>
                               <Tooltip
@@ -2254,19 +2287,11 @@ function AnalyticsPageContent() {
                               const percent = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
                               const isIntercity = item.name === 'Межгород';
 
-                              const handleItemClick = () => {
-                                if (item.name === 'Межгород') setShowCitiesDropdown(!showCitiesDropdown);
-                                else if (item.name === 'Моя доставка') setShowMyDeliveryPopup(true);
-                                else if (item.name === 'Экспресс доставка') setShowExpressPopup(true);
-                                else if (item.name === 'Самовывоз') setShowPickupPopup(true);
-                                else if (item.name === 'Оффлайн') setShowOfflineDeliveryPopup(true);
-                              };
-
                               return (
                                 <div key={item.name}>
                                   <div
-                                    className="flex items-center gap-1 sm:gap-2 cursor-pointer hover:bg-gray-50 px-1 py-0.5 rounded transition-colors"
-                                    onClick={handleItemClick}
+                                    className={`flex items-center gap-1 sm:gap-2 px-1 py-0.5 rounded transition-colors ${isIntercity ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+                                    onClick={isIntercity ? () => setShowCitiesDropdown(!showCitiesDropdown) : undefined}
                                   >
                                     <div
                                       className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full flex-shrink-0"
@@ -2275,8 +2300,8 @@ function AnalyticsPageContent() {
                                     <div className="flex-1 flex justify-between items-center min-w-0">
                                       <span className="text-[10px] sm:text-xs text-gray-700 truncate">{item.name}</span>
                                       <div className="flex items-center gap-1">
-                                        <span className="text-[9px] sm:text-[11px] font-medium text-gray-900">{percent}%</span>
-                                        <ChevronDown className={`w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400 transition-transform ${isIntercity && showCitiesDropdown ? 'rotate-180' : ''}`} />
+                                        <span className="text-[9px] sm:text-[11px] font-medium text-gray-900">{item.value} <span className="text-gray-400">({percent}%)</span></span>
+                                        {isIntercity && <ChevronDown className={`w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400 transition-transform ${showCitiesDropdown ? 'rotate-180' : ''}`} />}
                                       </div>
                                     </div>
                                   </div>
@@ -2293,17 +2318,10 @@ function AnalyticsPageContent() {
                                         {citiesData.map((city) => (
                                             <div
                                               key={city.name}
-                                              className="flex items-center justify-between py-0.5 px-1 hover:bg-gray-50 rounded cursor-pointer transition-colors"
-                                              onClick={(e) => {
-                                                e.stopPropagation();
-                                                setSelectedCityPopup(city.name);
-                                              }}
+                                              className="flex items-center justify-between py-0.5 px-1 rounded"
                                             >
                                               <span className="text-[9px] sm:text-[11px] text-gray-600 truncate">{city.name}</span>
-                                              <div className="flex items-center gap-1 text-[9px] sm:text-[11px]">
-                                                <span className="text-gray-900">{city.orders}</span>
-                                                <ChevronRight className="w-2 h-2 sm:w-2.5 sm:h-2.5 text-gray-400" />
-                                              </div>
+                                              <span className="text-[9px] sm:text-[11px] text-gray-900">{city.orders}</span>
                                             </div>
                                           ))}
                                       </motion.div>
@@ -3253,18 +3271,22 @@ function AnalyticsPageContent() {
                 {/* Content */}
                 <div className="p-6 space-y-6">
                   {/* Summary Cards */}
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-sky-50 rounded-xl p-4 text-center">
-                      <div className="text-sky-600 font-bold text-lg">{selectedTableDay.revenue.toLocaleString('ru-RU')} ₸</div>
-                      <div className="text-gray-500 text-sm">Поступления</div>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div className="bg-sky-50 rounded-xl p-2 text-center">
+                      <div className="text-sky-600 font-bold text-sm">{selectedTableDay.revenue.toLocaleString('ru-RU')} ₸</div>
+                      <div className="text-gray-500 text-[10px]">Поступления</div>
                     </div>
-                    <div className="bg-rose-50 rounded-xl p-4 text-center">
-                      <div className="text-rose-500 font-bold text-lg">{(selectedTableDay.totalExpenses || 0).toLocaleString('ru-RU')} ₸</div>
-                      <div className="text-gray-500 text-sm">Расходы</div>
+                    <div className="bg-rose-50 rounded-xl p-2 text-center">
+                      <div className="text-rose-500 font-bold text-sm">{(selectedTableDay.totalExpenses || 0).toLocaleString('ru-RU')} ₸</div>
+                      <div className="text-gray-500 text-[10px]">Расходы</div>
                     </div>
-                    <div className="bg-teal-50 rounded-xl p-4 text-center">
-                      <div className="text-teal-600 font-bold text-lg">{selectedTableDay.profit.toLocaleString('ru-RU')} ₸</div>
-                      <div className="text-gray-500 text-sm">Прибыль</div>
+                    <div className="bg-teal-50 rounded-xl p-2 text-center">
+                      <div className="text-teal-600 font-bold text-sm">{selectedTableDay.profit.toLocaleString('ru-RU')} ₸</div>
+                      <div className="text-gray-500 text-[10px]">Прибыль</div>
+                    </div>
+                    <div className="bg-violet-50 rounded-xl p-2 text-center">
+                      <div className="text-violet-600 font-bold text-sm">{selectedTableDay.orders} шт</div>
+                      <div className="text-gray-500 text-[10px]">Выдано</div>
                     </div>
                   </div>
 
@@ -3292,6 +3314,31 @@ function AnalyticsPageContent() {
                         <span className="text-gray-600">Доставка</span>
                         <span className="font-medium text-gray-900">{selectedTableDay.delivery.toLocaleString('ru-RU')} ₸</span>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* Products List */}
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-3">Проданные товары</h3>
+                    <div className="border border-gray-200 rounded-lg overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="text-left py-2 px-3 font-medium text-gray-600">Товар</th>
+                            <th className="text-center py-2 px-2 font-medium text-gray-600 w-12">Кол</th>
+                            <th className="text-right py-2 px-3 font-medium text-gray-600 w-24">Цена</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100">
+                          {generateDayProducts(selectedTableDay.orders, selectedTableDay.revenue, selectedTableDay.date).map((product, idx) => (
+                            <tr key={idx} className="hover:bg-gray-50">
+                              <td className="py-1.5 px-3 text-gray-900 truncate max-w-[200px]">{product.name}</td>
+                              <td className="py-1.5 px-2 text-center text-gray-600">{product.qty}</td>
+                              <td className="py-1.5 px-3 text-right text-gray-900">{product.price.toLocaleString('ru-RU')} ₸</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
                     </div>
                   </div>
                 </div>

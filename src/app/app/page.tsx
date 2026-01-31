@@ -451,7 +451,7 @@ export default function DashboardPage() {
                     />
                   )}
                 </svg>
-                {/* Точки текущей недели */}
+                {/* Точки текущей недели - кликабельные */}
                 {currentWeekData.map((val, i) => {
                   const xPercent = 2 + (i / (pointsCount - 1)) * 96;
                   const y = getY(val);
@@ -459,6 +459,18 @@ export default function DashboardPage() {
                   const isSelected = i === selectedDayIdx;
                   return (
                     <div key={`current-dot-${i}`}>
+                      {/* Невидимая область для клика */}
+                      <div
+                        className="absolute cursor-pointer z-10"
+                        style={{
+                          left: `${xPercent}%`,
+                          top: `${(y / 80) * 100}%`,
+                          transform: 'translate(-50%, -50%)',
+                          width: 24,
+                          height: 24,
+                        }}
+                        onClick={() => setSelectedDayIdx(i)}
+                      />
                       <div
                         className="absolute transition-all pointer-events-none"
                         style={{
@@ -487,7 +499,7 @@ export default function DashboardPage() {
                     </div>
                   );
                 })}
-                {/* Точки прошлой недели */}
+                {/* Точки прошлой недели - кликабельные */}
                 {prevWeekData.map((val, i) => {
                   const xPercent = 2 + (i / (pointsCount - 1)) * 96;
                   const y = getY(val);
@@ -495,6 +507,18 @@ export default function DashboardPage() {
                   const isSelected = i === selectedDayIdx;
                   return (
                     <div key={`prev-dot-${i}`}>
+                      {/* Невидимая область для клика */}
+                      <div
+                        className="absolute cursor-pointer z-10"
+                        style={{
+                          left: `${xPercent}%`,
+                          top: `${(y / 80) * 100}%`,
+                          transform: 'translate(-50%, -50%)',
+                          width: 24,
+                          height: 24,
+                        }}
+                        onClick={() => setSelectedDayIdx(i)}
+                      />
                       <div
                         className="absolute transition-all pointer-events-none"
                         style={{
@@ -733,6 +757,18 @@ export default function DashboardPage() {
                       const isToday = i === pointsCount - 1;
                       return (
                         <div key={`payment-dot-${i}`}>
+                          {/* Невидимая область для клика */}
+                          <div
+                            className="absolute cursor-pointer z-10"
+                            style={{
+                              left: `${xPercent}%`,
+                              top: `${(y / 80) * 100}%`,
+                              transform: 'translate(-50%, -50%)',
+                              width: 24,
+                              height: 24,
+                            }}
+                            onClick={() => setSelectedPaymentDayIdx(isSelected ? null : i)}
+                          />
                           <div
                             className="absolute transition-all pointer-events-none"
                             style={{
@@ -969,6 +1005,18 @@ export default function DashboardPage() {
                     const isSelected = selectedReviewDayIdx === i;
                     return (
                       <div key={`pos-dot-${i}`}>
+                        {/* Невидимая область для клика */}
+                        <div
+                          className="absolute cursor-pointer z-10"
+                          style={{
+                            left: `${xPercent}%`,
+                            top: `${(y / 80) * 100}%`,
+                            transform: 'translate(-50%, -50%)',
+                            width: 24,
+                            height: 24,
+                          }}
+                          onClick={() => setSelectedReviewDayIdx(isSelected ? null : i)}
+                        />
                         <div
                           className="absolute transition-all pointer-events-none"
                           style={{
@@ -1005,6 +1053,18 @@ export default function DashboardPage() {
                     const isSelected = selectedReviewDayIdx === i;
                     return (
                       <div key={`good-dot-${i}`}>
+                        {/* Невидимая область для клика */}
+                        <div
+                          className="absolute cursor-pointer z-10"
+                          style={{
+                            left: `${xPercent}%`,
+                            top: `${(y / 80) * 100}%`,
+                            transform: 'translate(-50%, -50%)',
+                            width: 24,
+                            height: 24,
+                          }}
+                          onClick={() => setSelectedReviewDayIdx(isSelected ? null : i)}
+                        />
                         <div
                           className="absolute transition-all pointer-events-none"
                           style={{
@@ -1043,6 +1103,18 @@ export default function DashboardPage() {
                     const goodY = getY(good[i]);
                     return (
                       <div key={`neg-dot-${i}`}>
+                        {/* Невидимая область для клика */}
+                        <div
+                          className="absolute cursor-pointer z-10"
+                          style={{
+                            left: `${xPercent}%`,
+                            top: `${(y / 80) * 100}%`,
+                            transform: 'translate(-50%, -50%)',
+                            width: 24,
+                            height: 24,
+                          }}
+                          onClick={() => setSelectedReviewDayIdx(isSelected ? null : i)}
+                        />
                         <div
                           className="absolute transition-all pointer-events-none"
                           style={{
