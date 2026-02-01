@@ -186,7 +186,7 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex justify-between items-start gap-4 mb-6 lg:mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Дэшборд</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Дашборд</h1>
           <p className="text-gray-500 mt-1 text-sm sm:text-base">Обзор ключевых показателей магазина</p>
         </div>
 

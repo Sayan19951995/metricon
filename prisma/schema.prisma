@@ -12,9 +12,17 @@ model User {
   name            String?
   password        String
   role            String   @default("user")
-  kaspiConnected  Boolean  @default(false)
-  kaspiMerchantId String?
-  kaspiUsername   String?
+
+  // Kaspi интеграция
+  kaspiConnected      Boolean  @default(false)
+  kaspiMerchantId     String?
+  kaspiUsername       String?  // Логин Kaspi
+  kaspiPasswordEnc    String?  // Зашифрованный пароль (AES-256)
+  kaspiPasswordIv     String?  // IV для расшифровки пароля
+  kaspiApiToken       String?  // API-токен (если есть)
+  kaspiSessionCookies String?  // Сохранённые куки сессии
+  kaspiLastSync       DateTime? // Последняя синхронизация
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
