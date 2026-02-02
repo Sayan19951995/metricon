@@ -22,7 +22,7 @@ interface SubscriptionPlan {
 interface AddOnOption {
   id: string;
   name: string;
-  price: number;
+  price: number | { start: number; business: number; pro: number };
   description: string;
   features: string[];
   active?: boolean;
@@ -37,7 +37,7 @@ const subscriptionPlans: SubscriptionPlan[] = [
     period: 'месяц',
     pricePerMonth: 9900,
     features: [
-      'До 30 товаров',
+      'До 50 товаров',
       'Дашборд с базовой статистикой',
       'Управление заказами',
       'Расчёт прибыльности товаров',
@@ -59,7 +59,7 @@ const subscriptionPlans: SubscriptionPlan[] = [
     period: 'месяц',
     pricePerMonth: 14900,
     features: [
-      'До 1 000 товаров',
+      'До 200 товаров',
       'Всё из тарифа "Старт"',
       'Финансовые отчёты P&L',
       'Детализация по дням',
@@ -98,28 +98,41 @@ const subscriptionPlans: SubscriptionPlan[] = [
 // Дополнительные опции
 const addOnOptions: AddOnOption[] = [
   {
+    id: 'preorder',
+    name: 'Предзаказ',
+    price: 12900,
+    description: 'Управление предзаказами товаров',
+    features: [
+      'Автоприём предзаказов',
+      'Уведомления о новых предзаказах',
+      'Автообновление статусов',
+      'Лимит товаров = ваш тариф',
+    ],
+    active: false,
+  },
+  {
     id: 'auto-mailing',
     name: 'Авторассылка',
-    price: 9900,
+    price: 12900,
     description: 'Автоматические рассылки клиентам',
     features: [
       'Шаблоны сообщений',
       'Расписание отправки',
       'Напоминания о заказах',
-      'Статистика доставки',
+      'Лимит товаров = ваш тариф',
     ],
     active: false,
   },
   {
     id: 'auto-pricing',
     name: 'Автодемпинг',
-    price: 14900,
+    price: { start: 14990, business: 19990, pro: 24990 },
     description: 'Автоматическое управление ценами',
     features: [
       'Мониторинг конкурентов',
       'Стратегии: Undercut, Match, Position',
       'Мин/макс цены, шаг изменения',
-      'История изменений цен',
+      'Цена зависит от тарифа',
     ],
     active: false,
   },
@@ -143,6 +156,19 @@ export default function SubscriptionPage() {
       return Math.round(plan.price * 10); // 2 месяца бесплатно
     }
     return plan.price;
+  };
+
+  // Получение цены аддона в зависимости от тарифа
+  const getAddonPrice = (addon: AddOnOption) => {
+    if (typeof addon.price === 'number') {
+      return addon.price;
+    }
+    // Определяем текущий тариф
+    const planName = currentSubscription.plan.toLowerCase();
+    if (planName === 'старт' || planName === 'start') return addon.price.start;
+    if (planName === 'бизнес' || planName === 'business') return addon.price.business;
+    if (planName === 'pro' || planName === 'про') return addon.price.pro;
+    return addon.price.start; // по умолчанию
   };
 
   const formatDate = (dateString: string) => {
@@ -407,7 +433,7 @@ export default function SubscriptionPage() {
                     <p className="text-gray-500 text-sm">{addon.description}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <span className="text-xl font-bold text-emerald-600">+{addon.price.toLocaleString('ru-RU')} ₸</span>
+                    <span className="text-xl font-bold text-emerald-600">+{getAddonPrice(addon).toLocaleString('ru-RU')} ₸</span>
                     <span className="text-gray-400 text-sm">/мес</span>
                   </div>
                 </div>
