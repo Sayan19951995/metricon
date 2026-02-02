@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Store,
@@ -16,13 +16,14 @@ import {
   ChevronLeft,
   Loader2,
   Unlink,
-  Link as LinkIcon,
   Settings,
-  Calendar,
-  TrendingUp,
-  ExternalLink
+  ExternalLink,
+  Key,
+  Copy,
+  Check
 } from 'lucide-react';
 import Link from 'next/link';
+import { useUser } from '@/hooks/useUser';
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -43,32 +44,36 @@ const itemVariants = {
   }
 };
 
-// Mock синхронизированные данные
-const syncStats = {
-  lastSync: '18.01.2026, 14:32',
-  ordersCount: 1245,
-  productsCount: 156,
-  revenue: 12500000,
-};
-
-const syncHistory = [
-  { date: '18.01.2026, 14:32', status: 'success', message: 'Синхронизировано: 12 заказов, 3 товара' },
-  { date: '18.01.2026, 10:15', status: 'success', message: 'Синхронизировано: 8 заказов' },
-  { date: '17.01.2026, 22:00', status: 'success', message: 'Полная синхронизация завершена' },
-  { date: '17.01.2026, 14:45', status: 'error', message: 'Ошибка авторизации, требуется повторный вход' },
-  { date: '17.01.2026, 10:30', status: 'success', message: 'Синхронизировано: 15 заказов, 5 товаров' },
-];
+interface SyncHistoryItem {
+  date: string;
+  status: 'success' | 'error';
+  message: string;
+}
 
 export default function KaspiSettingsPage() {
-  const [status, setStatus] = useState<ConnectionStatus>('connected');
-  const [showPassword, setShowPassword] = useState(false);
+  const { user, store, loading: userLoading } = useUser();
+
+  const [status, setStatus] = useState<ConnectionStatus>('disconnected');
+  const [showApiKey, setShowApiKey] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const [credentials, setCredentials] = useState({
-    login: '+7 (777) 123-45-67',
-    password: ''
+    apiKey: '',
+    merchantId: '',
+    storeName: ''
   });
+
+  const [syncStats, setSyncStats] = useState({
+    lastSync: '',
+    ordersCount: 0,
+    productsCount: 0,
+    revenue: 0,
+  });
+
+  const [syncHistory, setSyncHistory] = useState<SyncHistoryItem[]>([]);
 
   const [syncSettings, setSyncSettings] = useState({
     autoSync: true,
@@ -79,28 +84,183 @@ export default function KaspiSettingsPage() {
     syncStock: true,
   });
 
-  const handleConnect = () => {
+  // Проверяем статус подключения при загрузке
+  useEffect(() => {
+    if (user?.id) {
+      checkConnectionStatus();
+    }
+  }, [user?.id]);
+
+  const checkConnectionStatus = async () => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch(`/api/kaspi/connect?userId=${user.id}`);
+      const data = await response.json();
+
+      if (data.connected) {
+        setStatus('connected');
+        // Загружаем статистику
+        loadStats();
+      } else {
+        setStatus('disconnected');
+      }
+    } catch (err) {
+      setStatus('error');
+    }
+  };
+
+  const loadStats = async () => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch(`/api/kaspi/sync?userId=${user.id}`);
+      const data = await response.json();
+
+      if (data.success) {
+        setSyncStats({
+          lastSync: new Date().toLocaleString('ru-RU'),
+          ordersCount: data.stats.ordersCount,
+          productsCount: data.stats.productsCount,
+          revenue: data.stats.totalRevenue,
+        });
+      }
+    } catch (err) {
+      console.error('Failed to load stats:', err);
+    }
+  };
+
+  const handleConnect = async () => {
+    if (!user?.id || !credentials.apiKey || !credentials.merchantId) {
+      setError('Заполните все поля');
+      return;
+    }
+
     setStatus('connecting');
-    setTimeout(() => {
-      setStatus('connected');
-    }, 2000);
+    setError(null);
+
+    try {
+      const response = await fetch('/api/kaspi/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          apiKey: credentials.apiKey,
+          merchantId: credentials.merchantId,
+          storeName: credentials.storeName || 'Мой магазин'
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setStatus('connected');
+        setSyncHistory(prev => [{
+          date: new Date().toLocaleString('ru-RU'),
+          status: 'success',
+          message: 'Kaspi успешно подключен'
+        }, ...prev]);
+
+        // Запускаем первую синхронизацию
+        handleSync();
+      } else {
+        setStatus('error');
+        setError(data.message);
+        setSyncHistory(prev => [{
+          date: new Date().toLocaleString('ru-RU'),
+          status: 'error',
+          message: data.message
+        }, ...prev]);
+      }
+    } catch (err) {
+      setStatus('error');
+      setError('Ошибка подключения');
+    }
   };
 
-  const handleSync = () => {
+  const handleSync = async () => {
+    if (!user?.id) return;
+
     setIsSyncing(true);
-    setTimeout(() => {
+
+    try {
+      const response = await fetch('/api/kaspi/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          daysBack: 30
+        })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setSyncHistory(prev => [{
+          date: new Date().toLocaleString('ru-RU'),
+          status: 'success',
+          message: `Синхронизировано: ${data.stats.ordersCreated} новых заказов, ${data.stats.productsCreated} товаров`
+        }, ...prev.slice(0, 9)]);
+
+        // Обновляем статистику
+        loadStats();
+      } else {
+        setSyncHistory(prev => [{
+          date: new Date().toLocaleString('ru-RU'),
+          status: 'error',
+          message: data.message
+        }, ...prev.slice(0, 9)]);
+      }
+    } catch (err) {
+      setSyncHistory(prev => [{
+        date: new Date().toLocaleString('ru-RU'),
+        status: 'error',
+        message: 'Ошибка синхронизации'
+      }, ...prev.slice(0, 9)]);
+    } finally {
       setIsSyncing(false);
-    }, 3000);
+    }
   };
 
-  const handleDisconnect = () => {
-    setStatus('disconnected');
-    setShowDisconnectModal(false);
-    setCredentials({ login: '', password: '' });
+  const handleDisconnect = async () => {
+    if (!user?.id) return;
+
+    try {
+      const response = await fetch('/api/kaspi/connect', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setStatus('disconnected');
+        setShowDisconnectModal(false);
+        setCredentials({ apiKey: '', merchantId: '', storeName: '' });
+        setSyncStats({ lastSync: '', ordersCount: 0, productsCount: 0, revenue: 0 });
+      }
+    } catch (err) {
+      console.error('Failed to disconnect:', err);
+    }
   };
+
+  const copyMerchantId = () => {
+    navigator.clipboard.writeText(credentials.merchantId || store?.kaspi_merchant_id || '');
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  if (userLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+      </div>
+    );
+  }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <motion.div
@@ -110,15 +270,15 @@ export default function KaspiSettingsPage() {
         >
           <Link
             href="/app/settings"
-            className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4 cursor-pointer"
+            className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-4 cursor-pointer"
           >
             <ChevronLeft className="w-4 h-4" />
             Назад к настройкам
           </Link>
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">Подключение Kaspi</h1>
-              <p className="text-gray-500 mt-1">Интеграция с кабинетом продавца Kaspi.kz</p>
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Подключение Kaspi</h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-1">Интеграция с Kaspi Merchant API</p>
             </div>
             <a
               href="https://kaspi.kz/mc"
@@ -142,12 +302,12 @@ export default function KaspiSettingsPage() {
           <motion.div variants={itemVariants} className={`rounded-2xl p-6 shadow-sm ${
             status === 'connected' ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white' :
             status === 'error' ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' :
-            'bg-white'
+            'bg-white dark:bg-gray-800'
           }`}>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
-                  status === 'connected' || status === 'error' ? 'bg-white/20' : 'bg-[#f14635]/10'
+                  status === 'connected' || status === 'error' ? 'bg-white/20' : 'bg-[#f14635]/10 dark:bg-[#f14635]/20'
                 }`}>
                   <Store className={`w-7 h-7 ${
                     status === 'connected' || status === 'error' ? 'text-white' : 'text-[#f14635]'
@@ -155,18 +315,18 @@ export default function KaspiSettingsPage() {
                 </div>
                 <div>
                   <h2 className={`text-xl font-bold ${
-                    status === 'connected' || status === 'error' ? 'text-white' : 'text-gray-900'
+                    status === 'connected' || status === 'error' ? 'text-white' : 'text-gray-900 dark:text-white'
                   }`}>
                     {status === 'connected' && 'Kaspi подключён'}
                     {status === 'connecting' && 'Подключение...'}
                     {status === 'disconnected' && 'Kaspi не подключён'}
                     {status === 'error' && 'Ошибка подключения'}
                   </h2>
-                  <p className={status === 'connected' || status === 'error' ? 'text-white/80' : 'text-gray-500'}>
-                    {status === 'connected' && `Последняя синхронизация: ${syncStats.lastSync}`}
-                    {status === 'connecting' && 'Проверяем данные авторизации...'}
-                    {status === 'disconnected' && 'Подключите кабинет для загрузки данных'}
-                    {status === 'error' && 'Проверьте данные авторизации'}
+                  <p className={status === 'connected' || status === 'error' ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}>
+                    {status === 'connected' && syncStats.lastSync && `Последняя синхронизация: ${syncStats.lastSync}`}
+                    {status === 'connecting' && 'Проверяем API ключ...'}
+                    {status === 'disconnected' && 'Введите API ключ для подключения'}
+                    {status === 'error' && (error || 'Проверьте API ключ')}
                   </p>
                 </div>
               </div>
@@ -215,51 +375,94 @@ export default function KaspiSettingsPage() {
             )}
           </motion.div>
 
-          {/* Login Form (for disconnected/error state) */}
+          {/* API Key Form (for disconnected/error state) */}
           {(status === 'disconnected' || status === 'error') && (
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Данные для входа</h3>
+            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Данные для подключения</h3>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Логин (телефон или email)</label>
-                  <input
-                    type="text"
-                    value={credentials.login}
-                    onChange={(e) => setCredentials({...credentials, login: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
-                    placeholder="+7 (___) ___-__-__"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Пароль от Kaspi</label>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Merchant ID (ID продавца)
+                  </label>
                   <div className="relative">
                     <input
-                      type={showPassword ? 'text' : 'password'}
-                      value={credentials.password}
-                      onChange={(e) => setCredentials({...credentials, password: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors pr-10"
-                      placeholder="Введите пароль"
+                      type="text"
+                      value={credentials.merchantId}
+                      onChange={(e) => setCredentials({...credentials, merchantId: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors pr-10"
+                      placeholder="Например: 123456"
                     />
                     <button
                       type="button"
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer"
+                      onClick={copyMerchantId}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
                     >
-                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                      {copied ? <Check className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
                     </button>
                   </div>
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                  <p className="text-sm text-blue-800">
-                    <strong>Безопасность:</strong> Ваши данные используются только для автоматизированной загрузки через Playwright.
-                    Мы не храним пароли в открытом виде и используем шифрование.
-                  </p>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    API ключ
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showApiKey ? 'text' : 'password'}
+                      value={credentials.apiKey}
+                      onChange={(e) => setCredentials({...credentials, apiKey: e.target.value})}
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors pr-10"
+                      placeholder="Введите API ключ из кабинета Kaspi"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowApiKey(!showApiKey)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
+                    >
+                      {showApiKey ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
                 </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Название магазина (опционально)
+                  </label>
+                  <input
+                    type="text"
+                    value={credentials.storeName}
+                    onChange={(e) => setCredentials({...credentials, storeName: e.target.value})}
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                    placeholder="Мой магазин"
+                  />
+                </div>
+
+                <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+                  <div className="flex items-start gap-3">
+                    <Key className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-blue-800 dark:text-blue-300 font-medium mb-1">
+                        Где взять API ключ?
+                      </p>
+                      <ol className="text-sm text-blue-700 dark:text-blue-400 list-decimal list-inside space-y-1">
+                        <li>Зайдите в <a href="https://kaspi.kz/mc" target="_blank" rel="noopener noreferrer" className="underline">Кабинет продавца Kaspi</a></li>
+                        <li>Перейдите в раздел "Настройки" → "API"</li>
+                        <li>Создайте новый API ключ или скопируйте существующий</li>
+                        <li>Скопируйте Merchant ID из профиля</li>
+                      </ol>
+                    </div>
+                  </div>
+                </div>
+
+                {error && (
+                  <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-4">
+                    <p className="text-sm text-red-800 dark:text-red-300">{error}</p>
+                  </div>
+                )}
 
                 <button
                   onClick={handleConnect}
-                  disabled={!credentials.login || !credentials.password}
+                  disabled={!credentials.apiKey || !credentials.merchantId}
                   className="w-full px-4 py-3 bg-[#f14635] text-white rounded-xl font-medium hover:bg-[#d93d2e] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Подключить Kaspi
@@ -270,23 +473,23 @@ export default function KaspiSettingsPage() {
 
           {/* Sync Settings */}
           {status === 'connected' && (
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-6 shadow-sm">
+            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <Settings className="w-5 h-5 text-gray-400" />
-                <h3 className="text-lg font-semibold text-gray-900">Настройки синхронизации</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Настройки синхронизации</h3>
               </div>
 
               <div className="space-y-4">
                 {/* Auto Sync Toggle */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
                   <div>
-                    <p className="font-medium text-gray-900">Автоматическая синхронизация</p>
-                    <p className="text-sm text-gray-500">Загружать данные автоматически</p>
+                    <p className="font-medium text-gray-900 dark:text-white">Автоматическая синхронизация</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Загружать данные автоматически</p>
                   </div>
                   <button
                     onClick={() => setSyncSettings({...syncSettings, autoSync: !syncSettings.autoSync})}
                     className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${
-                      syncSettings.autoSync ? 'bg-emerald-500' : 'bg-gray-300'
+                      syncSettings.autoSync ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
                     }`}
                   >
                     <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
@@ -297,15 +500,15 @@ export default function KaspiSettingsPage() {
 
                 {/* Sync Interval */}
                 {syncSettings.autoSync && (
-                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
                     <div>
-                      <p className="font-medium text-gray-900">Интервал синхронизации</p>
-                      <p className="text-sm text-gray-500">Как часто обновлять данные</p>
+                      <p className="font-medium text-gray-900 dark:text-white">Интервал синхронизации</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Как часто обновлять данные</p>
                     </div>
                     <select
                       value={syncSettings.syncInterval}
                       onChange={(e) => setSyncSettings({...syncSettings, syncInterval: e.target.value})}
-                      className="px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm cursor-pointer"
+                      className="px-4 py-2 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-xl text-sm text-gray-900 dark:text-white cursor-pointer"
                     >
                       <option value="15">Каждые 15 минут</option>
                       <option value="30">Каждые 30 минут</option>
@@ -316,16 +519,14 @@ export default function KaspiSettingsPage() {
                 )}
 
                 {/* What to sync */}
-                <div className="p-4 bg-gray-50 rounded-xl">
-                  <p className="font-medium text-gray-900 mb-3">Что синхронизировать</p>
+                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
+                  <p className="font-medium text-gray-900 dark:text-white mb-3">Что синхронизировать</p>
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       { key: 'syncOrders', label: 'Заказы', icon: ShoppingBag },
                       { key: 'syncProducts', label: 'Товары', icon: Package },
-                      { key: 'syncPrices', label: 'Цены', icon: TrendingUp },
-                      { key: 'syncStock', label: 'Остатки', icon: Package },
                     ].map((item) => (
-                      <label key={item.key} className="flex items-center gap-3 p-3 bg-white rounded-lg cursor-pointer hover:bg-gray-50 transition-colors">
+                      <label key={item.key} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-500 transition-colors">
                         <input
                           type="checkbox"
                           checked={syncSettings[item.key as keyof typeof syncSettings] as boolean}
@@ -333,7 +534,7 @@ export default function KaspiSettingsPage() {
                           className="w-4 h-4 text-emerald-500 rounded cursor-pointer"
                         />
                         <item.icon className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-700">{item.label}</span>
+                        <span className="text-sm text-gray-700 dark:text-gray-200">{item.label}</span>
                       </label>
                     ))}
                   </div>
@@ -343,26 +544,26 @@ export default function KaspiSettingsPage() {
           )}
 
           {/* Sync History */}
-          {status === 'connected' && (
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-6 shadow-sm">
+          {status === 'connected' && syncHistory.length > 0 && (
+            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-4">
                 <Clock className="w-5 h-5 text-gray-400" />
-                <h3 className="text-lg font-semibold text-gray-900">История синхронизации</h3>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">История синхронизации</h3>
               </div>
               <div className="space-y-3">
                 {syncHistory.map((item, index) => (
-                  <div key={index} className="flex items-start gap-3 py-3 border-b border-gray-50 last:border-0">
+                  <div key={index} className="flex items-start gap-3 py-3 border-b border-gray-50 dark:border-gray-700 last:border-0">
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      item.status === 'success' ? 'bg-emerald-100' : 'bg-red-100'
+                      item.status === 'success' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30'
                     }`}>
                       {item.status === 'success' ? (
-                        <CheckCircle className="w-4 h-4 text-emerald-600" />
+                        <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                       ) : (
-                        <XCircle className="w-4 h-4 text-red-600" />
+                        <XCircle className="w-4 h-4 text-red-600 dark:text-red-400" />
                       )}
                     </div>
                     <div className="flex-1">
-                      <p className="text-sm text-gray-900">{item.message}</p>
+                      <p className="text-sm text-gray-900 dark:text-white">{item.message}</p>
                       <p className="text-xs text-gray-400 mt-1">{item.date}</p>
                     </div>
                   </div>
@@ -387,14 +588,14 @@ export default function KaspiSettingsPage() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white rounded-2xl shadow-2xl max-w-md w-full overflow-hidden p-6"
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden p-6"
               >
                 <div className="text-center mb-6">
-                  <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <AlertTriangle className="w-8 h-8 text-red-600" />
+                  <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
                   </div>
-                  <h3 className="text-xl font-bold text-gray-900 mb-2">Отключить Kaspi?</h3>
-                  <p className="text-gray-500">
+                  <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Отключить Kaspi?</h3>
+                  <p className="text-gray-500 dark:text-gray-400">
                     Синхронизация данных будет остановлена. Ранее загруженные данные останутся в системе.
                   </p>
                 </div>
@@ -402,7 +603,7 @@ export default function KaspiSettingsPage() {
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowDisconnectModal(false)}
-                    className="flex-1 px-4 py-2.5 bg-gray-100 text-gray-700 rounded-xl font-medium hover:bg-gray-200 transition-colors cursor-pointer"
+                    className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer"
                   >
                     Отмена
                   </button>

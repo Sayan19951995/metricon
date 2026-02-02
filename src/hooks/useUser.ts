@@ -14,6 +14,7 @@ interface Store {
   id: string;
   name: string;
   kaspi_merchant_id?: string;
+  kaspi_api_key?: string;
   whatsapp_connected: boolean;
 }
 
