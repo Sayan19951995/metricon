@@ -389,7 +389,7 @@ export default function KaspiSettingsPage() {
                       type="text"
                       value={credentials.merchantId}
                       onChange={(e) => setCredentials({...credentials, merchantId: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors pr-10"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:outline-none focus:border-emerald-500 transition-colors pr-10"
                       placeholder="Например: 123456"
                     />
                     <button
@@ -411,7 +411,7 @@ export default function KaspiSettingsPage() {
                       type={showApiKey ? 'text' : 'password'}
                       value={credentials.apiKey}
                       onChange={(e) => setCredentials({...credentials, apiKey: e.target.value})}
-                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors pr-10"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:outline-none focus:border-emerald-500 transition-colors pr-10"
                       placeholder="Введите API ключ из кабинета Kaspi"
                     />
                     <button
@@ -432,8 +432,9 @@ export default function KaspiSettingsPage() {
                     type="text"
                     value={credentials.storeName}
                     onChange={(e) => setCredentials({...credentials, storeName: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder:text-gray-400 dark:placeholder:text-gray-400 focus:outline-none focus:border-emerald-500 transition-colors"
                     placeholder="Мой магазин"
+                    style={{ color: 'inherit' }}
                   />
                 </div>
 
