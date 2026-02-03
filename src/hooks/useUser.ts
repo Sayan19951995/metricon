@@ -48,15 +48,79 @@ export function useUser(): UserData {
   useEffect(() => {
     async function fetchUserData() {
       try {
-        // Пока берём тестового пользователя
-        // TODO: заменить на авторизованного пользователя
-        const { data: user, error: userError } = await supabase
+        // Получаем авторизованного пользователя из Supabase Auth
+        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+
+        if (authError || !authUser) {
+          setData(prev => ({
+            ...prev,
+            loading: false,
+            error: 'Не авторизован'
+          }));
+          return;
+        }
+
+        // Ищем пользователя в таблице users
+        let { data: user, error: userError } = await supabase
           .from('users')
           .select('*')
-          .eq('email', 'test@luxstone.kz')
+          .eq('id', authUser.id)
           .single();
 
-        if (userError) throw userError;
+        // Если не найден по id, ищем по email
+        if (userError && userError.code === 'PGRST116') {
+          const { data: userByEmail } = await supabase
+            .from('users')
+            .select('*')
+            .eq('email', authUser.email)
+            .single();
+
+          if (userByEmail) {
+            user = userByEmail;
+          } else {
+            // Создаём запись (первый вход через Google)
+            const name = authUser.user_metadata?.full_name
+              || authUser.user_metadata?.name
+              || authUser.email?.split('@')[0]
+              || 'Пользователь';
+
+            const { data: newUser, error: createError } = await supabase
+              .from('users')
+              .insert({
+                id: authUser.id,
+                email: authUser.email,
+                name: name,
+              })
+              .select()
+              .single();
+
+            if (createError) {
+              console.error('Error creating user:', createError);
+            } else {
+              user = newUser;
+
+              // Создаём бесплатную подписку для нового пользователя
+              await supabase.from('subscriptions').insert({
+                user_id: authUser.id,
+                plan: 'start',
+                status: 'active',
+                start_date: new Date().toISOString().split('T')[0],
+                auto_renew: true
+              });
+            }
+          }
+        } else if (userError) {
+          throw userError;
+        }
+
+        if (!user) {
+          setData(prev => ({
+            ...prev,
+            loading: false,
+            error: 'Пользователь не найден'
+          }));
+          return;
+        }
 
         // Получаем магазин пользователя
         const { data: store, error: storeError } = await supabase
@@ -65,7 +129,9 @@ export function useUser(): UserData {
           .eq('user_id', user.id)
           .single();
 
-        if (storeError && storeError.code !== 'PGRST116') throw storeError;
+        if (storeError && storeError.code !== 'PGRST116') {
+          console.error('Store error:', storeError);
+        }
 
         // Получаем подписку
         const { data: subscription, error: subError } = await supabase
@@ -74,17 +140,20 @@ export function useUser(): UserData {
           .eq('user_id', user.id)
           .single();
 
-        if (subError && subError.code !== 'PGRST116') throw subError;
+        if (subError && subError.code !== 'PGRST116') {
+          console.error('Subscription error:', subError);
+        }
 
         setData({
           user,
-          store,
-          subscription,
+          store: store || null,
+          subscription: subscription || null,
           loading: false,
           error: null
         });
 
       } catch (err) {
+        console.error('useUser error:', err);
         setData(prev => ({
           ...prev,
           loading: false,
@@ -94,6 +163,17 @@ export function useUser(): UserData {
     }
 
     fetchUserData();
+
+    // Слушаем изменения авторизации
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+        fetchUserData();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
   return data;

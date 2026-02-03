@@ -3,39 +3,41 @@ import { supabase } from '@/lib/supabase';
 
 export async function GET() {
   try {
-    // Получаем тестового пользователя с магазином и подпиской
-    const { data: user, error: userError } = await supabase
+    // Проверяем подключение к БД
+    const { data: users, error: usersError } = await supabase
       .from('users')
-      .select('*')
-      .eq('email', 'test@luxstone.kz')
-      .single();
+      .select('id, email, name, created_at')
+      .limit(10);
 
-    if (userError) {
+    if (usersError) {
       return NextResponse.json({
         status: 'error',
-        message: userError.message
+        message: usersError.message
       }, { status: 500 });
     }
 
-    // Получаем магазин
-    const { data: store } = await supabase
-      .from('stores')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
+    // Считаем количество записей
+    const { count: usersCount } = await supabase
+      .from('users')
+      .select('*', { count: 'exact', head: true });
 
-    // Получаем подписку
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
+    const { count: storesCount } = await supabase
+      .from('stores')
+      .select('*', { count: 'exact', head: true });
+
+    const { count: ordersCount } = await supabase
+      .from('orders')
+      .select('*', { count: 'exact', head: true });
 
     return NextResponse.json({
       status: 'success',
-      user,
-      store,
-      subscription
+      database: 'connected',
+      counts: {
+        users: usersCount || 0,
+        stores: storesCount || 0,
+        orders: ordersCount || 0,
+      },
+      recentUsers: users || []
     });
 
   } catch (err) {
