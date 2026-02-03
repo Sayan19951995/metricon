@@ -49,9 +49,15 @@ export function useUser(): UserData {
     async function fetchUserData() {
       try {
         // Получаем авторизованного пользователя из Supabase Auth
-        const { data: { user: authUser }, error: authError } = await supabase.auth.getUser();
+        let authUser = (await supabase.auth.getUser()).data.user;
 
-        if (authError || !authUser) {
+        // Fallback: getSession читает из localStorage без сетевого запроса
+        if (!authUser) {
+          const { data: { session } } = await supabase.auth.getSession();
+          authUser = session?.user ?? null;
+        }
+
+        if (!authUser) {
           setData(prev => ({
             ...prev,
             loading: false,
@@ -114,11 +120,23 @@ export function useUser(): UserData {
         }
 
         if (!user) {
-          setData(prev => ({
-            ...prev,
+          // Fallback: используем данные из auth metadata (Google OAuth)
+          const fallbackName = authUser.user_metadata?.full_name
+            || authUser.user_metadata?.name
+            || authUser.email?.split('@')[0]
+            || 'Пользователь';
+
+          setData({
+            user: {
+              id: authUser.id,
+              email: authUser.email || '',
+              name: fallbackName,
+            },
+            store: null,
+            subscription: null,
             loading: false,
-            error: 'Пользователь не найден'
-          }));
+            error: null
+          });
           return;
         }
 

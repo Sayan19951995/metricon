@@ -1,896 +1,917 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
-import Link from 'next/link';
 import {
   Search,
-  Edit,
+  RefreshCw,
+  Check,
   X,
   ChevronUp,
   ChevronDown,
-  Settings,
-  Info,
-  HelpCircle,
-  AlertTriangle
+  Package,
+  AlertCircle,
+  LogIn,
+  Loader2,
+  Clock,
+  Edit3,
 } from 'lucide-react';
-import { useWarehouseProducts, WarehouseProduct } from '@/hooks/useWarehouseProducts';
+import { useUser } from '@/hooks/useUser';
+import type { KaspiProduct, KaspiAvailability } from '@/lib/kaspi/api-client';
 
-// Комиссии Kaspi по категориям (%)
-// Источник: https://guide.kaspi.kz/partner/ru/shop/conditions/commissions
-const categoryCommissions: Record<string, number> = {
-  'Смартфоны': 15.5,
-  'Телефоны и гаджеты': 15.5,
-  'Ноутбуки': 12.5,
-  'Компьютеры': 12.5,
-  'Планшеты': 12.5,
-  'ТВ, Аудио, Видео': 15.5,
-  'Бытовая техника': 12.5,
-  'Аксессуары': 15.5,
-  'Часы': 15.5,
-  'Украшения': 15.5,
-  'Одежда': 12.5,
-  'Обувь': 12.5,
-  'Красота и здоровье': 12.5,
-  'Детские товары': 12.5,
-  'Спорт, туризм': 12.5,
-  'Автотовары': 12.5,
-  'Товары для дома и дачи': 12.5,
-  'Мебель': 12.5,
-  'Строительство, ремонт': 12.5,
-  'Канцелярские товары': 12.5,
-  'Досуг, книги': 12.5,
-  'Подарки, товары для праздников': 12.5,
-  'Продукты питания': 7.3,
-  'Аптека': 12.5,
-  'Товары для животных': 12.5,
-};
+type SortField = 'name' | 'price' | 'stock' | 'preorder';
+type SortDir = 'asc' | 'desc';
 
-// Получить комиссию по категории (по умолчанию 12.5%)
-const getCategoryCommission = (category: string): number => {
-  return categoryCommissions[category] ?? 12.5;
-};
-
-// Настройки расчёта себестоимости (в будущем будут на странице настроек)
-const costSettings = {
-  tax: 4, // % налог
-  deliveryType: 'city' as 'city' | 'kazakhstan' | 'express', // тип доставки
-};
-
-// Тарифы доставки Kaspi (без НДС, с 1 января 2026)
-// Источник: https://guide.kaspi.kz/partner/ru/shop/delivery/shipping/q2288
-const deliveryRates = {
-  // Заказы до 10,000 ₸ - одинаковые для всех типов
-  lowPrice: [
-    { max: 1000, rate: 49 },
-    { max: 3000, rate: 149 },
-    { max: 5000, rate: 199 },
-    { max: 10000, rate: 699 },
-  ],
-  // Заказы свыше 10,000 ₸ - по весу
-  byWeight: {
-    city: [
-      { max: 5, rate: 1099 },
-      { max: 15, rate: 1349 },
-      { max: 30, rate: 2299 },
-      { max: 60, rate: 2899 },
-      { max: 100, rate: 4149 },
-      { max: Infinity, rate: 6449 },
-    ],
-    kazakhstan: [
-      { max: 5, rate: 1299 },
-      { max: 15, rate: 1699 },
-      { max: 30, rate: 3599 },
-      { max: 60, rate: 5649 },
-      { max: 100, rate: 8549 },
-      { max: Infinity, rate: 11999 },
-    ],
-    express: [
-      { max: 5, rate: 1699 },
-      { max: 15, rate: 1849 },
-      { max: 30, rate: 3149 },
-      { max: 60, rate: 3599 },
-      { max: 100, rate: 5599 },
-      { max: Infinity, rate: 8449 },
-    ],
-  },
-};
-
-// Расчёт стоимости доставки по тарифам Kaspi
-const calculateDeliveryCost = (weight: number, price: number, type: 'city' | 'kazakhstan' | 'express' = 'city'): number => {
-  // Для заказов до 10,000 ₸ - фиксированная ставка по цене (одинаковая для всех типов)
-  if (price < 10000) {
-    for (const tier of deliveryRates.lowPrice) {
-      if (price < tier.max) return tier.rate;
-    }
-    return deliveryRates.lowPrice[deliveryRates.lowPrice.length - 1].rate;
-  }
-
-  // Для заказов свыше 10,000 ₸ - по весу
-  const rates = deliveryRates.byWeight[type];
-  for (const tier of rates) {
-    if (weight <= tier.max) return tier.rate;
-  }
-  return rates[rates.length - 1].rate;
-};
-
-const PRODUCTS_PER_PAGE = 10;
+interface CabinetSession {
+  connected: boolean;
+  merchantId?: string;
+  username?: string;
+}
 
 export default function ProductsPage() {
+  const { user, loading: userLoading } = useUser();
+
+  // Состояние сессии кабинета
+  const [session, setSession] = useState<CabinetSession | null>(null);
+  const [sessionLoading, setSessionLoading] = useState(true);
+
+  // Товары
+  const [products, setProducts] = useState<KaspiProduct[]>([]);
+  const [total, setTotal] = useState(0);
+  const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(false);
+  const limit = 50;
+
+  // Фильтры
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<'all' | 'active' | 'archived' | 'preorder'>('all');
-  const [filterCategory, setFilterCategory] = useState<string>('all');
-  const [sortBy, setSortBy] = useState<'name' | 'price' | 'costPrice' | 'profit' | 'preorder' | 'status'>('name');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-  const [editingProduct, setEditingProduct] = useState<WarehouseProduct | null>(null);
-  const [editPrice, setEditPrice] = useState('');
-  const [editCostPrice, setEditCostPrice] = useState('');
-  const [editPreorder, setEditPreorder] = useState('');
-  const [editWeight, setEditWeight] = useState('');
-  const [showOverheadDetails, setShowOverheadDetails] = useState(false);
-  // Ручные накладные расходы (пустая строка = авто)
-  const [customCommission, setCustomCommission] = useState('');
-  const [customTax, setCustomTax] = useState('');
-  const [customDelivery, setCustomDelivery] = useState('');
-  const [currentPage, setCurrentPage] = useState(1);
+  const [filterStock, setFilterStock] = useState<'all' | 'inStock' | 'outOfStock'>('all');
+  const [sortBy, setSortBy] = useState<SortField>('name');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
 
-  // Данные товаров из хука (localStorage)
-  const { products: warehouseProducts, updateProduct } = useWarehouseProducts();
+  // Inline edit
+  const [editingCell, setEditingCell] = useState<{ offerId: string; field: 'price' | 'stock' | 'preorder' } | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const editInputRef = useRef<HTMLInputElement>(null);
 
-  // Маппинг товаров склада в формат страницы (qty -> stock)
-  const products = warehouseProducts.map(p => ({
-    ...p,
-    stock: p.qty,
-    category: p.category || 'Аксессуары',
-    status: p.status || 'active' as const,
-    image: p.image || '📦',
-    preorder: p.preorder ?? null,
-    weight: p.weight ?? null,
-  }));
+  // Логин
+  const [loginMode, setLoginMode] = useState<'credentials' | 'cookies'>('credentials');
+  const [loginUsername, setLoginUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [loginCookies, setLoginCookies] = useState('');
+  const [loginMerchantId, setLoginMerchantId] = useState('');
+  const [loginLoading, setLoginLoading] = useState(false);
+  const [loginError, setLoginError] = useState('');
 
-  // Расчёт полной себестоимости: закупка + комиссия (по категории) + налог + доставка (по весу)
-  // Если вес не указан, используем минимальный тариф (до 5 кг)
-  const calculateFullCost = (price: number, costPrice: number, weight: number | null, category: string) => {
-    const commissionRate = getCategoryCommission(category);
-    const commission = price * (commissionRate / 100);
-    const tax = price * (costSettings.tax / 100);
-    // Если вес не указан - используем 0 (минимальный тариф до 5 кг)
-    const delivery = calculateDeliveryCost(weight ?? 0, price, costSettings.deliveryType);
-    return costPrice + commission + tax + delivery;
+  // Проверка сессии при загрузке
+  useEffect(() => {
+    if (userLoading) return;
+    if (!user?.id) {
+      setSessionLoading(false);
+      return;
+    }
+    checkSession();
+  }, [user?.id, userLoading]);
+
+  // Загрузка товаров когда сессия активна
+  useEffect(() => {
+    if (session?.connected && user?.id) {
+      loadProducts();
+    }
+  }, [session?.connected, user?.id, page]);
+
+  const checkSession = async () => {
+    if (!user?.id) return;
+    setSessionLoading(true);
+    try {
+      const res = await fetch(`/api/kaspi/cabinet/session?userId=${user.id}`);
+      const data = await res.json();
+      setSession({
+        connected: data.connected || false,
+        merchantId: data.merchantId,
+        username: data.username,
+      });
+    } catch {
+      setSession({ connected: false });
+    } finally {
+      setSessionLoading(false);
+    }
   };
 
-  // Расчёт прибыли: Цена - Полная себестоимость
-  const calculateProfit = (price: number, costPrice: number, weight: number | null, category: string) => {
-    const fullCost = calculateFullCost(price, costPrice, weight, category);
-    return Math.round(price - fullCost);
+  const loadProducts = async () => {
+    if (!user?.id) return;
+    setLoading(true);
+    try {
+      const res = await fetch(`/api/kaspi/cabinet/products?userId=${user.id}&page=${page}&limit=${limit}`);
+      const data = await res.json();
+      if (data.success) {
+        setProducts(data.products || []);
+        setTotal(data.total || 0);
+      } else if (data.needLogin) {
+        setSession({ connected: false });
+      }
+    } catch (err) {
+      console.error('Load products error:', err);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Маржинальность в %
-  const calculateMargin = (price: number, costPrice: number, weight: number | null, category: string) => {
-    const profit = calculateProfit(price, costPrice, weight, category);
-    return ((profit / price) * 100).toFixed(1);
+  const handleLogin = async () => {
+    if (!user?.id) return;
+    setLoginLoading(true);
+    setLoginError('');
+
+    try {
+      const body: Record<string, string> = { userId: user.id };
+
+      if (loginMode === 'cookies') {
+        if (!loginCookies.trim()) {
+          setLoginError('Вставьте cookies');
+          setLoginLoading(false);
+          return;
+        }
+        body.cookies = loginCookies.trim();
+        if (loginMerchantId.trim()) body.merchantId = loginMerchantId.trim();
+      } else {
+        if (!loginUsername.trim() || !loginPassword.trim()) {
+          setLoginError('Введите логин и пароль');
+          setLoginLoading(false);
+          return;
+        }
+        body.username = loginUsername.trim();
+        body.password = loginPassword.trim();
+      }
+
+      const res = await fetch('/api/kaspi/cabinet/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setSession({
+          connected: true,
+          merchantId: data.merchantId,
+          username: loginUsername || undefined,
+        });
+        setLoginError('');
+      } else {
+        setLoginError(data.error || 'Не удалось подключиться');
+        if (data.needManualCookies && loginMode === 'credentials') {
+          setLoginMode('cookies');
+        }
+      }
+    } catch {
+      setLoginError('Ошибка подключения');
+    } finally {
+      setLoginLoading(false);
+    }
   };
 
-  // Получаем уникальные категории
-  const categories = [...new Set(products.map(p => p.category))];
+  // Inline editing
+  const startEdit = (offerId: string, field: 'price' | 'stock' | 'preorder', currentValue: number | null) => {
+    setEditingCell({ offerId, field });
+    setEditValue(currentValue?.toString() || '');
+    setTimeout(() => editInputRef.current?.focus(), 50);
+  };
 
+  const cancelEdit = () => {
+    setEditingCell(null);
+    setEditValue('');
+  };
+
+  const saveEdit = useCallback(async () => {
+    if (!editingCell || !user?.id) return;
+    setSaving(true);
+
+    const value = editValue.trim() === '' ? null : parseFloat(editValue);
+
+    try {
+      const body: Record<string, unknown> = {
+        userId: user.id,
+        offerId: editingCell.offerId,
+      };
+
+      if (editingCell.field === 'price') body.price = value;
+      if (editingCell.field === 'stock') body.stock = value !== null ? Math.round(value) : 0;
+      if (editingCell.field === 'preorder') body.preorder = value !== null ? Math.round(value) : null;
+
+      const res = await fetch('/api/kaspi/cabinet/products', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        // Обновляем локально
+        setProducts(prev => prev.map(p => {
+          if (p.offerId !== editingCell.offerId) return p;
+          const updated = { ...p };
+          if (editingCell.field === 'price' && value !== null) updated.price = value;
+          if (editingCell.field === 'stock' && value !== null) updated.stock = Math.round(value);
+          if (editingCell.field === 'preorder') updated.preorder = value !== null ? Math.round(value) : null;
+          return updated;
+        }));
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+    } finally {
+      setSaving(false);
+      setEditingCell(null);
+      setEditValue('');
+    }
+  }, [editingCell, editValue, user?.id]);
+
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') saveEdit();
+    if (e.key === 'Escape') cancelEdit();
+  };
+
+  // Сортировка
+  const handleSort = (field: SortField) => {
+    if (sortBy === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(field);
+      setSortDir('asc');
+    }
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortBy !== field) return null;
+    return sortDir === 'asc'
+      ? <ChevronUp className="w-3.5 h-3.5 inline ml-0.5" />
+      : <ChevronDown className="w-3.5 h-3.5 inline ml-0.5" />;
+  };
+
+  // Фильтрация и сортировка
   const filteredProducts = products
     .filter(p => {
-      const matchesSearch = p.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = filterStatus === 'all' ||
-                           (filterStatus === 'active' && p.status === 'active') ||
-                           (filterStatus === 'archived' && p.status === 'archived') ||
-                           (filterStatus === 'preorder' && p.preorder && p.preorder > 0);
-      const matchesCategory = filterCategory === 'all' || p.category === filterCategory;
-      return matchesSearch && matchesStatus && matchesCategory;
+      if (searchTerm && !p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !p.sku.toLowerCase().includes(searchTerm.toLowerCase())) {
+        return false;
+      }
+      if (filterStock === 'inStock' && p.stock <= 0) return false;
+      if (filterStock === 'outOfStock' && p.stock > 0) return false;
+      return true;
     })
     .sort((a, b) => {
-      const dir = sortDirection === 'asc' ? 1 : -1;
+      const dir = sortDir === 'asc' ? 1 : -1;
       if (sortBy === 'name') return a.name.localeCompare(b.name) * dir;
       if (sortBy === 'price') return (a.price - b.price) * dir;
-      if (sortBy === 'costPrice') return (a.costPrice - b.costPrice) * dir;
-      if (sortBy === 'profit') return (calculateProfit(a.price, a.costPrice, a.weight, a.category) - calculateProfit(b.price, b.costPrice, b.weight, b.category)) * dir;
+      if (sortBy === 'stock') return (a.stock - b.stock) * dir;
       if (sortBy === 'preorder') return ((a.preorder || 0) - (b.preorder || 0)) * dir;
-      if (sortBy === 'status') return a.status.localeCompare(b.status) * dir;
       return 0;
     });
 
-  // Пагинация
-  const totalPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
-  const paginatedProducts = filteredProducts.slice(
-    (currentPage - 1) * PRODUCTS_PER_PAGE,
-    currentPage * PRODUCTS_PER_PAGE
-  );
+  const totalPages = Math.ceil(total / limit);
 
-  // Сброс страницы при изменении фильтров
-  const handleFilterChange = (type: 'status' | 'category' | 'search', value: string) => {
-    setCurrentPage(1);
-    if (type === 'status') setFilterStatus(value as any);
-    if (type === 'category') setFilterCategory(value);
-    if (type === 'search') setSearchTerm(value);
-  };
+  // === РЕНДЕР ===
 
-  const handleSort = (column: typeof sortBy) => {
-    if (sortBy === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(column);
-      setSortDirection('asc');
-    }
-  };
-
-  const SortIcon = ({ column }: { column: typeof sortBy }) => {
-    if (sortBy !== column) return null;
-    return sortDirection === 'asc'
-      ? <ChevronUp className="w-3.5 h-3.5 inline ml-1" />
-      : <ChevronDown className="w-3.5 h-3.5 inline ml-1" />;
-  };
-
-  const stats = {
-    total: products.length,
-    active: products.filter(p => p.status === 'active').length,
-    archived: products.filter(p => p.status === 'archived').length,
-    preorder: products.filter(p => p.preorder && p.preorder > 0).length,
-  };
-
-  const handleEdit = (product: typeof products[0]) => {
-    setEditingProduct(warehouseProducts.find(p => p.id === product.id) || null);
-    setEditPrice(product.price.toString());
-    setEditCostPrice(product.costPrice.toString());
-    setEditPreorder(product.preorder ? product.preorder.toString() : '');
-    setEditWeight(product.weight ? product.weight.toString() : '');
-    // Сброс кастомных накладных при открытии
-    setCustomCommission('');
-    setCustomTax('');
-    setCustomDelivery('');
-    setShowOverheadDetails(false);
-  };
-
-  const handleSave = () => {
-    if (!editingProduct) return;
-
-    // Обновляем товар через хук (сохраняется в localStorage)
-    updateProduct(editingProduct.id, {
-      price: parseInt(editPrice) || editingProduct.price,
-      costPrice: parseInt(editCostPrice) || editingProduct.costPrice,
-      preorder: editPreorder ? parseInt(editPreorder) : null,
-      weight: editWeight ? parseFloat(editWeight) : null,
-    });
-
-    setEditingProduct(null);
-  };
-
-  return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+  // Скелетон товаров
+  const ProductsSkeleton = () => (
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Header */}
-      <div className="mb-6 lg:mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex justify-between items-start gap-4 mb-6">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold mb-1 sm:mb-2">Товары</h1>
-          <p className="text-gray-500 text-sm">Управление ассортиментом магазина</p>
+          <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+          <div className="h-4 w-52 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse mt-2" />
         </div>
-        <Link
-          href="/app/settings/profit"
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors"
-        >
-          <Settings className="w-4 h-4" />
-          <span>Настройки расчёта</span>
-        </Link>
+        <div className="flex gap-2">
+          <div className="h-9 w-9 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+          <div className="h-9 w-24 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+        </div>
       </div>
 
-      {/* Filters and Search */}
-      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm mb-4 sm:mb-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Search */}
+      {/* Filters bar */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm mb-4 flex gap-3">
+        <div className="flex-1 h-9 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse" />
+        <div className="h-9 w-28 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse" />
+      </div>
+
+      {/* Stats row */}
+      <div className="flex gap-3 mb-4">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-6 bg-gray-100 dark:bg-gray-700 rounded-full animate-pulse" style={{ width: `${80 + i * 20}px` }} />
+        ))}
+      </div>
+
+      {/* Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+        {/* Table header */}
+        <div className="grid grid-cols-6 gap-4 px-4 py-3 border-b border-gray-100 dark:border-gray-700">
+          {['w-32', 'w-20', 'w-16', 'w-16', 'w-20', 'w-16'].map((w, i) => (
+            <div key={i} className={`h-3 ${w} bg-gray-200 dark:bg-gray-600 rounded animate-pulse`} />
+          ))}
+        </div>
+        {/* Table rows */}
+        {[...Array(8)].map((_, rowIdx) => (
+          <div key={rowIdx} className="grid grid-cols-6 gap-4 px-4 py-4 border-b border-gray-50 dark:border-gray-700/50 items-center">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse flex-shrink-0" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" style={{ width: `${60 + Math.random() * 40}%` }} />
+                <div className="h-2.5 w-16 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="h-3 w-14 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="h-2.5 w-10 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+            </div>
+            <div className="h-4 w-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="h-5 w-16 bg-gray-100 dark:bg-gray-700 rounded-full animate-pulse" />
+            <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div className="h-5 w-12 bg-gray-100 dark:bg-gray-700 rounded-full animate-pulse" />
+          </div>
+        ))}
+      </div>
+
+      {/* Pagination */}
+      <div className="flex justify-between items-center mt-4">
+        <div className="h-4 w-32 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+        <div className="flex gap-2">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+
+  // Загрузка сессии
+  if (userLoading || sessionLoading) {
+    return <ProductsSkeleton />;
+  }
+
+  // Кабинет не подключен — форма входа
+  if (!session?.connected) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-1">Товары</h1>
+          <p className="text-gray-500 text-sm">Управление товарами на Kaspi</p>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-lg mx-auto"
+        >
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 sm:p-8">
+            <div className="text-center mb-6">
+              <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <LogIn className="w-8 h-8 text-red-500" />
+              </div>
+              <h2 className="text-xl font-bold mb-2">Подключите Kaspi кабинет</h2>
+              <p className="text-gray-500 text-sm">
+                Для управления товарами, ценами и предзаказами необходимо подключить
+                ваш Kaspi Merchant Cabinet
+              </p>
+            </div>
+
+            {/* Tab переключатель */}
+            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-xl p-1 mb-6">
+              <button
+                onClick={() => setLoginMode('credentials')}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                  loginMode === 'credentials'
+                    ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Логин/пароль
+              </button>
+              <button
+                onClick={() => setLoginMode('cookies')}
+                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                  loginMode === 'cookies'
+                    ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white'
+                    : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                Через cookies
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              {loginMode === 'credentials' ? (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      Логин (телефон или email)
+                    </label>
+                    <input
+                      type="text"
+                      value={loginUsername}
+                      onChange={e => setLoginUsername(e.target.value)}
+                      placeholder="+7 (777) 123-45-67"
+                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      Пароль
+                    </label>
+                    <input
+                      type="password"
+                      value={loginPassword}
+                      onChange={e => setLoginPassword(e.target.value)}
+                      placeholder="Пароль от Kaspi кабинета"
+                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
+                      onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                    />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      Cookies
+                    </label>
+                    <textarea
+                      value={loginCookies}
+                      onChange={e => setLoginCookies(e.target.value)}
+                      placeholder="Вставьте cookies из DevTools (F12 → Application → Cookies → mc.shop.kaspi.kz)"
+                      rows={4}
+                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors resize-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                      Merchant ID (необязательно)
+                    </label>
+                    <input
+                      type="text"
+                      value={loginMerchantId}
+                      onChange={e => setLoginMerchantId(e.target.value)}
+                      placeholder="Например: 4929016"
+                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
+                    />
+                  </div>
+                </>
+              )}
+
+              {loginError && (
+                <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
+                  <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-700 dark:text-red-400">{loginError}</p>
+                </div>
+              )}
+
+              <button
+                onClick={handleLogin}
+                disabled={loginLoading}
+                className="w-full py-3 bg-gradient-to-r from-[#f14635] to-[#ff6b5a] text-white rounded-xl font-semibold text-sm hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer"
+              >
+                {loginLoading ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Подключение...
+                  </span>
+                ) : (
+                  'Подключить кабинет'
+                )}
+              </button>
+            </div>
+
+            {loginMode === 'credentials' && (
+              <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Если автоматический вход не работает (требуется SMS/captcha),
+                  переключитесь на вкладку &quot;Через cookies&quot; и вставьте cookies из браузера.
+                </p>
+              </div>
+            )}
+
+            {loginMode === 'cookies' && (
+              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                <p className="text-xs text-blue-700 dark:text-blue-400 font-medium mb-1">Как получить cookies:</p>
+                <ol className="text-xs text-blue-600 dark:text-blue-400 space-y-0.5 list-decimal list-inside">
+                  <li>Откройте mc.shop.kaspi.kz и войдите</li>
+                  <li>Нажмите F12 (DevTools)</li>
+                  <li>Вкладка Application &rarr; Cookies</li>
+                  <li>Скопируйте все cookies как строку</li>
+                </ol>
+              </div>
+            )}
+          </div>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // === Товары загружены ===
+  return (
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      {/* Header */}
+      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold mb-1">Товары</h1>
+          <p className="text-gray-500 text-sm">
+            {session.username ? `${session.username} — ` : ''}
+            {total} товаров в кабинете Kaspi
+          </p>
+        </div>
+        <button
+          onClick={loadProducts}
+          disabled={loading}
+          className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-sm font-medium transition-colors cursor-pointer border border-gray-200 dark:border-gray-700"
+        >
+          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          Обновить
+        </button>
+      </div>
+
+      {/* Stats */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+          <p className="text-xs text-gray-500 mb-1">Всего</p>
+          <p className="text-2xl font-bold">{total}</p>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+          <p className="text-xs text-gray-500 mb-1">В наличии</p>
+          <p className="text-2xl font-bold text-emerald-600">
+            {products.filter(p => p.stock > 0).length}
+          </p>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+          <p className="text-xs text-gray-500 mb-1">Нет в наличии</p>
+          <p className="text-2xl font-bold text-red-500">
+            {products.filter(p => p.stock <= 0).length}
+          </p>
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+          <p className="text-xs text-gray-500 mb-1">С предзаказом</p>
+          <p className="text-2xl font-bold text-purple-600">
+            {products.filter(p => p.preorder && p.preorder > 0).length}
+          </p>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm mb-4">
+        <div className="flex flex-col lg:flex-row gap-3">
           <div className="flex-1">
             <div className="relative">
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
+              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
                 <Search className="w-4 h-4 text-gray-400" />
               </div>
               <input
                 type="text"
                 value={searchTerm}
-                onChange={(e) => handleFilterChange('search', e.target.value)}
-                placeholder="Поиск по названию..."
-                style={{ paddingLeft: '2.5rem' }}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 transition-colors"
+                onChange={e => { setSearchTerm(e.target.value); }}
+                placeholder="Поиск по названию или SKU..."
+                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 transition-colors"
               />
             </div>
           </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-            {/* Status Filter */}
-            <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0">
+          <div className="flex gap-2">
+            {(['all', 'inStock', 'outOfStock'] as const).map(f => (
               <button
-                onClick={() => handleFilterChange('status', 'all')}
-                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                  filterStatus === 'all'
-                    ? 'bg-gray-900 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                key={f}
+                onClick={() => setFilterStock(f)}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                  filterStock === f
+                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
-                Все ({stats.total})
+                {f === 'all' ? 'Все' : f === 'inStock' ? 'В наличии' : 'Нет в наличии'}
               </button>
-              <button
-                onClick={() => handleFilterChange('status', 'active')}
-                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                  filterStatus === 'active'
-                    ? 'bg-emerald-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                В продаже ({stats.active})
-              </button>
-              <button
-                onClick={() => handleFilterChange('status', 'archived')}
-                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                  filterStatus === 'archived'
-                    ? 'bg-gray-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Архив ({stats.archived})
-              </button>
-              <button
-                onClick={() => handleFilterChange('status', 'preorder')}
-                className={`px-3 sm:px-4 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                  filterStatus === 'preorder'
-                    ? 'bg-purple-500 text-white'
-                    : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                Предзаказ ({stats.preorder})
-              </button>
-            </div>
-
-            {/* Category Filter */}
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-gray-600 whitespace-nowrap hidden sm:inline">Категория:</span>
-              <select
-                value={filterCategory}
-                onChange={(e) => handleFilterChange('category', e.target.value)}
-                className="bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-gray-300 cursor-pointer flex-1 sm:flex-none"
-              >
-                <option value="all">Все</option>
-                {categories.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Add Button */}
-            <button className="px-4 sm:px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer whitespace-nowrap">
-              + Добавить
-            </button>
+            ))}
           </div>
         </div>
       </div>
 
-      {/* Products - Mobile Cards */}
-      <div className="lg:hidden space-y-3">
-        {paginatedProducts.map((product, index) => (
-          <motion.div
-            key={product.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.05 }}
-            className="bg-white rounded-xl p-4 shadow-sm"
-          >
-            <div className="flex items-start gap-3">
-              <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center text-2xl flex-shrink-0">
-                {product.image}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <p className="font-medium text-sm truncate">{product.name}</p>
-                    <p className="text-xs text-gray-400 truncate">{product.category}</p>
-                  </div>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-semibold flex-shrink-0 ${
-                    product.status === 'active'
-                      ? 'bg-emerald-100 text-emerald-700'
-                      : 'bg-gray-100 text-gray-700'
-                  }`}>
-                    {product.status === 'active' ? 'Активный' : 'Архив'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-2 mt-1.5">
-                  <span className="text-sm font-semibold">{product.price.toLocaleString()} ₸</span>
-                  {(() => {
-                    const profit = calculateProfit(product.price, product.costPrice, product.weight, product.category);
-                    const isPositive = profit > 0;
-                    return (
-                      <span className={`text-xs font-medium ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {isPositive ? '+' : ''}{profit.toLocaleString()} ₸
-                      </span>
-                    );
-                  })()}
-                  {product.weight === null && (
-                    <div className="relative group">
-                      <span className="flex items-center gap-0.5 text-amber-500 cursor-help">
-                        <AlertTriangle className="w-3 h-3" />
-                      </span>
-                      <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-1 px-2 py-1 bg-gray-900 text-white text-[10px] rounded-lg whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 shadow-lg">
-                        Вес не указан
-                        <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={() => handleEdit(product)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-              >
-                <Edit className="w-4 h-4 text-gray-600" />
-              </button>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-
-      {/* Products Table - Desktop */}
-      <div className="hidden lg:block bg-white rounded-2xl shadow-sm overflow-hidden">
-        <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
-            <tr>
-              <th
-                onClick={() => handleSort('name')}
-                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 transition-colors select-none"
-              >
-                Товар<SortIcon column="name" />
-              </th>
-              <th
-                onClick={() => handleSort('price')}
-                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 transition-colors select-none"
-              >
-                Цена<SortIcon column="price" />
-              </th>
-              <th
-                onClick={() => handleSort('costPrice')}
-                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 transition-colors select-none"
-              >
-                <span className="flex items-center gap-1">
-                  Себестоимость<SortIcon column="costPrice" />
-                  <div
-                    className="relative group"
-                    onClick={(e) => e.stopPropagation()}
-                  >
-                    <HelpCircle className="w-3.5 h-3.5 text-gray-400 cursor-help" />
-                    <div className="absolute left-0 top-full mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 normal-case font-normal shadow-lg">
-                      <div className="font-medium mb-1">Учтено в себестоимости:</div>
-                      <ul className="space-y-0.5">
-                        <li>• Закупочная стоимость</li>
-                        <li>• Комиссия Kaspi (по категории)</li>
-                        <li>• Налог ({costSettings.tax}%)</li>
-                        <li>• Доставка Kaspi (по весу товара)</li>
-                      </ul>
-                      <div className="absolute left-3 bottom-full w-0 h-0 border-l-4 border-r-4 border-b-4 border-transparent border-b-gray-900"></div>
-                    </div>
-                  </div>
-                </span>
-              </th>
-              <th
-                onClick={() => handleSort('profit')}
-                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 transition-colors select-none"
-              >
-                <span className="flex items-center gap-1">
-                  Прибыль<SortIcon column="profit" />
-                </span>
-              </th>
-              <th
-                onClick={() => handleSort('status')}
-                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 transition-colors select-none"
-              >
-                Статус<SortIcon column="status" />
-              </th>
-              <th className="py-4 px-6"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {paginatedProducts.map((product, index) => (
-              <motion.tr
-                key={product.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-                className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
-              >
-                <td className="py-4 px-6">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center text-2xl">
-                      {product.image}
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm">{product.name}</p>
-                      <p className="text-xs text-gray-400">{product.category}</p>
-                    </div>
-                  </div>
-                </td>
-                <td className="py-4 px-6">
-                  <span className="text-sm font-semibold">{product.price.toLocaleString()} ₸</span>
-                </td>
-                <td className="py-4 px-6">
-                  <span className="text-sm text-gray-600">{Math.round(calculateFullCost(product.price, product.costPrice, product.weight, product.category)).toLocaleString()} ₸</span>
-                </td>
-                <td className="py-4 px-6">
-                  {(() => {
-                    const profit = calculateProfit(product.price, product.costPrice, product.weight, product.category);
-                    const margin = calculateMargin(product.price, product.costPrice, product.weight, product.category);
-                    const isPositive = profit > 0;
-                    return (
-                      <div className="flex items-center gap-2">
-                        <div className="flex flex-col">
-                          <span className={`text-sm font-semibold ${isPositive ? 'text-emerald-600' : 'text-red-600'}`}>
-                            {isPositive ? '+' : ''}{profit.toLocaleString()} ₸
-                          </span>
-                          <span className={`text-xs ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
-                            {margin}%
-                          </span>
-                        </div>
-                        {product.weight === null && (
-                          <div className="relative group">
-                            <span className="text-amber-500 cursor-help">
-                              <AlertTriangle className="w-4 h-4" />
-                            </span>
-                            <div className="absolute left-0 bottom-full mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 shadow-lg">
-                              <div className="font-medium mb-1">Вес не указан</div>
-                              <div className="text-gray-300 text-[11px]">Используется мин. тариф доставки (до 5 кг)</div>
-                              <div className="absolute left-3 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-900"></div>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })()}
-                </td>
-                <td className="py-4 px-6">
-                  <div className="flex flex-col gap-1">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold inline-block w-fit ${
-                      product.status === 'active'
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-gray-100 text-gray-700'
-                    }`}>
-                      {product.status === 'active' ? 'Активный' : 'Архив'}
-                    </span>
-                    {product.preorder && product.preorder > 0 && (
-                      <span className="text-xs text-gray-500">
-                        Предзаказ: {product.preorder} {product.preorder === 1 ? 'день' : product.preorder < 5 ? 'дня' : 'дней'}
-                      </span>
-                    )}
-                  </div>
-                </td>
-                <td className="py-4 px-6 text-right">
-                  <button
-                    onClick={() => handleEdit(product)}
-                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
-                  >
-                    <Edit className="w-4 h-4 text-gray-600" />
-                  </button>
-                </td>
-              </motion.tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Pagination */}
-      {totalPages > 1 && (
-        <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-3 px-2">
-          <div className="text-sm text-gray-500">
-            Показано {((currentPage - 1) * PRODUCTS_PER_PAGE) + 1}–{Math.min(currentPage * PRODUCTS_PER_PAGE, filteredProducts.length)} из {filteredProducts.length}
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-              disabled={currentPage === 1}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                currentPage === 1
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer'
-              }`}
-            >
-              Назад
-            </button>
-            <div className="flex items-center gap-1">
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                    currentPage === page
-                      ? 'bg-gray-900 text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                  }`}
-                >
-                  {page}
-                </button>
-              ))}
-            </div>
-            <button
-              onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-              disabled={currentPage === totalPages}
-              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                currentPage === totalPages
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer'
-              }`}
-            >
-              Вперёд
-            </button>
-          </div>
+      {/* Loading */}
+      {loading && products.length === 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 shadow-sm text-center">
+          <Loader2 className="w-8 h-8 animate-spin text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-500">Загрузка товаров...</p>
         </div>
       )}
 
-      {/* Profit Calculation Note */}
-      <div className="mt-4 text-xs text-gray-500 px-2">
-        <div className="flex items-center gap-1">
-          <Info className="w-3.5 h-3.5" />
-          <span>Прибыль = Цена − Себестоимость (закуп + комиссия по категории + налог {costSettings.tax}% + доставка по весу). Без учёта рекламы.</span>
+      {/* Empty */}
+      {!loading && filteredProducts.length === 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 shadow-sm text-center">
+          <Package className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold mb-1">Товары не найдены</h3>
+          <p className="text-gray-500 text-sm">
+            {searchTerm ? 'Попробуйте изменить поисковый запрос' : 'В кабинете пока нет товаров'}
+          </p>
         </div>
-      </div>
+      )}
 
-      {/* Edit Modal */}
-      {editingProduct && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.2 }}
-            className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[90vh] overflow-y-auto"
-          >
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-xl font-bold">Редактировать товар</h2>
-              <button
-                onClick={() => setEditingProduct(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+      {/* Products Table */}
+      {filteredProducts.length > 0 && (
+        <>
+          {/* Mobile cards */}
+          <div className="lg:hidden space-y-3">
+            {filteredProducts.map((product, index) => (
+              <motion.div
+                key={product.offerId || product.sku}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.2, delay: index * 0.03 }}
+                className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"
               >
-                <X className="w-5 h-5 text-gray-600" />
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              {/* Product Info */}
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
-                <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center text-2xl">
-                  {editingProduct.image}
-                </div>
-                <div>
-                  <p className="font-medium text-sm">{editingProduct.name}</p>
-                  <p className="text-xs text-gray-500">{editingProduct.sku}</p>
-                  <p className="text-xs text-gray-400">{editingProduct.category}</p>
-                </div>
-              </div>
-
-              {/* Price Input */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Цена (₸)
-                </label>
-                <input
-                  type="number"
-                  value={editPrice}
-                  onChange={(e) => setEditPrice(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition-colors"
-                  placeholder="Введите цену"
-                />
-              </div>
-
-              {/* Cost Price Input */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Себестоимость (закуп) ₸
-                </label>
-                <input
-                  type="number"
-                  value={editCostPrice}
-                  onChange={(e) => setEditCostPrice(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition-colors"
-                  placeholder="Введите себестоимость"
-                />
-                <div className="flex items-start gap-1.5 mt-2 p-2 bg-amber-50 rounded-lg border border-amber-100">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-xs text-amber-700">
-                    При пополнении склада себестоимость рассчитывается автоматически (средневзвешенная цена закупки + логистика)
-                  </p>
-                </div>
-              </div>
-
-              {/* Profit Calculation Block */}
-              {(() => {
-                const price = parseInt(editPrice) || 0;
-                const costPrice = parseInt(editCostPrice) || 0;
-                const weight = parseFloat(editWeight) || 0;
-                const category = editingProduct.category || 'Аксессуары';
-
-                // Авто-значения
-                const autoCommissionRate = getCategoryCommission(category);
-                const autoCommission = Math.round(price * (autoCommissionRate / 100));
-                const autoTax = Math.round(price * (costSettings.tax / 100));
-                const autoDelivery = calculateDeliveryCost(weight, price, costSettings.deliveryType);
-
-                // Используем кастомные значения если заданы
-                const commission = customCommission !== '' ? parseInt(customCommission) || 0 : autoCommission;
-                const tax = customTax !== '' ? parseInt(customTax) || 0 : autoTax;
-                const delivery = customDelivery !== '' ? parseInt(customDelivery) || 0 : autoDelivery;
-
-                const totalOverhead = commission + tax + delivery;
-                const fullCost = costPrice + totalOverhead;
-                const profit = price - fullCost;
-                const margin = price > 0 ? ((profit / price) * 100).toFixed(1) : '0';
-
-                return (
-                  <div className="p-3 bg-gray-50 rounded-xl space-y-2">
-                    {/* Прибыль - всегда видна */}
-                    <div className={`flex items-center justify-between ${profit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                      <span className="text-sm font-semibold">Прибыль:</span>
-                      <span className="text-sm font-bold">
-                        {profit >= 0 ? '+' : ''}{profit.toLocaleString()} ₸ ({margin}%)
-                      </span>
+                <div className="flex items-start gap-3">
+                  {product.images?.[0] ? (
+                    <img src={product.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                  ) : (
+                    <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                      <Package className="w-5 h-5 text-gray-400" />
                     </div>
-
-                    {/* Кнопка раскрытия деталей */}
-                    <button
-                      type="button"
-                      onClick={() => setShowOverheadDetails(!showOverheadDetails)}
-                      className="flex items-center gap-1 text-xs text-gray-500 hover:text-gray-700 transition-colors"
-                    >
-                      {showOverheadDetails ? (
-                        <ChevronUp className="w-3.5 h-3.5" />
-                      ) : (
-                        <ChevronDown className="w-3.5 h-3.5" />
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{product.name}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{product.sku} {product.category && `/ ${product.category}`}</p>
+                    <div className="flex items-center gap-3 mt-2">
+                      <span className="text-sm font-semibold">{product.price.toLocaleString('ru-RU')} &#8376;</span>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                        product.stock > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
+                      }`}>
+                        {product.stock} шт
+                      </span>
+                      {product.preorder && product.preorder > 0 && (
+                        <span className="flex items-center gap-1 text-xs text-purple-600">
+                          <Clock className="w-3 h-3" />
+                          {product.preorder} д.
+                        </span>
                       )}
-                      <span>Расчёт накладных расходов</span>
-                    </button>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => startEdit(product.offerId || '', 'price', product.price)}
+                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <Edit3 className="w-4 h-4 text-gray-500" />
+                  </button>
+                </div>
 
-                    {/* Детали - сворачиваемые с редактированием */}
-                    {showOverheadDetails && (
-                      <div className="space-y-2 pt-2 border-t border-gray-200">
-                        {/* Комиссия */}
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs text-gray-500 flex-shrink-0">
-                            Комиссия Kaspi ({autoCommissionRate}%):
-                          </span>
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="number"
-                              value={customCommission}
-                              onChange={(e) => setCustomCommission(e.target.value)}
-                              placeholder={autoCommission.toLocaleString()}
-                              className={`w-24 text-right text-xs px-2 py-1 rounded border transition-colors ${
-                                customCommission !== ''
-                                  ? 'bg-blue-50 border-blue-200'
-                                  : 'bg-white border-gray-200'
-                              }`}
-                            />
-                            <span className="text-xs text-gray-500">₸</span>
+                {/* Availabilities */}
+                {product.availabilities && product.availabilities.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                    <div className="flex flex-wrap gap-2">
+                      {product.availabilities.map((a: KaspiAvailability, i: number) => (
+                        <span key={i} className="text-xs bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded">
+                          {a.storeName || a.cityName || `#${i+1}`}: {a.stockCount} шт
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            ))}
+          </div>
+
+          {/* Desktop table */}
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                  <tr>
+                    <th
+                      onClick={() => handleSort('name')}
+                      className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none"
+                    >
+                      Товар<SortIcon field="name" />
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">
+                      Город / Склад
+                    </th>
+                    <th
+                      onClick={() => handleSort('stock')}
+                      className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none"
+                    >
+                      Остаток<SortIcon field="stock" />
+                    </th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">
+                      Наличие
+                    </th>
+                    <th
+                      onClick={() => handleSort('price')}
+                      className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none"
+                    >
+                      Цена<SortIcon field="price" />
+                    </th>
+                    <th
+                      onClick={() => handleSort('preorder')}
+                      className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none"
+                    >
+                      Предзаказ<SortIcon field="preorder" />
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredProducts.map((product, index) => (
+                    <motion.tr
+                      key={product.offerId || product.sku}
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ duration: 0.2, delay: index * 0.02 }}
+                      className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                    >
+                      {/* Товар */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          {product.images?.[0] ? (
+                            <img src={product.images[0]} alt="" className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                              <Package className="w-4 h-4 text-gray-400" />
+                            </div>
+                          )}
+                          <div className="min-w-0">
+                            <p className="text-sm font-medium truncate max-w-[250px]">{product.name}</p>
+                            <p className="text-xs text-gray-400">{product.sku}</p>
                           </div>
                         </div>
+                      </td>
 
-                        {/* Налог */}
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs text-gray-500 flex-shrink-0">
-                            Налог ({costSettings.tax}%):
-                          </span>
+                      {/* Город/Склад */}
+                      <td className="py-3 px-4">
+                        <div className="flex flex-col gap-0.5">
+                          {product.availabilities && product.availabilities.length > 0 ? (
+                            product.availabilities.slice(0, 3).map((a: KaspiAvailability, i: number) => (
+                              <span key={i} className="text-xs text-gray-500 truncate max-w-[150px]">
+                                {a.storeName || a.cityName || `Точка ${i+1}`}
+                              </span>
+                            ))
+                          ) : (
+                            <span className="text-xs text-gray-400">-</span>
+                          )}
+                          {product.availabilities && product.availabilities.length > 3 && (
+                            <span className="text-xs text-gray-400">+{product.availabilities.length - 3} ещё</span>
+                          )}
+                        </div>
+                      </td>
+
+                      {/* Остаток */}
+                      <td className="py-3 px-4">
+                        {editingCell !== null && editingCell.offerId === product.offerId && editingCell.field === 'stock' ? (
                           <div className="flex items-center gap-1">
                             <input
+                              ref={editInputRef}
                               type="number"
-                              value={customTax}
-                              onChange={(e) => setCustomTax(e.target.value)}
-                              placeholder={autoTax.toLocaleString()}
-                              className={`w-24 text-right text-xs px-2 py-1 rounded border transition-colors ${
-                                customTax !== ''
-                                  ? 'bg-blue-50 border-blue-200'
-                                  : 'bg-white border-gray-200'
-                              }`}
+                              value={editValue}
+                              onChange={e => setEditValue(e.target.value)}
+                              onKeyDown={handleEditKeyDown}
+                              className="w-20 px-2 py-1 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white dark:bg-gray-700"
+                              min="0"
                             />
-                            <span className="text-xs text-gray-500">₸</span>
+                            <button onClick={saveEdit} disabled={saving} className="p-1 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded cursor-pointer">
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={cancelEdit} className="p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
                           </div>
-                        </div>
-
-                        {/* Доставка */}
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="text-xs text-gray-500 flex-shrink-0">
-                            Доставка Kaspi:
-                          </span>
-                          <div className="flex items-center gap-1">
-                            <input
-                              type="number"
-                              value={customDelivery}
-                              onChange={(e) => setCustomDelivery(e.target.value)}
-                              placeholder={autoDelivery.toLocaleString()}
-                              className={`w-24 text-right text-xs px-2 py-1 rounded border transition-colors ${
-                                customDelivery !== ''
-                                  ? 'bg-blue-50 border-blue-200'
-                                  : 'bg-white border-gray-200'
-                              }`}
-                            />
-                            <span className="text-xs text-gray-500">₸</span>
-                          </div>
-                        </div>
-
-                        {/* Кнопка сброса если есть кастомные значения */}
-                        {(customCommission !== '' || customTax !== '' || customDelivery !== '') && (
+                        ) : (
                           <button
-                            type="button"
-                            onClick={() => {
-                              setCustomCommission('');
-                              setCustomTax('');
-                              setCustomDelivery('');
-                            }}
-                            className="text-xs text-blue-500 hover:text-blue-700 transition-colors"
+                            onClick={() => startEdit(product.offerId || '', 'stock', product.stock)}
+                            className="group flex items-center gap-1 cursor-pointer"
                           >
-                            ↻ Сбросить к авто-расчёту
+                            <span className={`text-sm font-medium ${
+                              product.stock > 10 ? 'text-emerald-600' :
+                              product.stock > 0 ? 'text-amber-600' :
+                              'text-red-500'
+                            }`}>
+                              {product.stock} шт
+                            </span>
+                            <Edit3 className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </button>
                         )}
+                      </td>
 
-                        {/* Итоги */}
-                        <div className="grid grid-cols-2 gap-1 text-xs pt-2 border-t border-gray-200">
-                          <span className="text-gray-500 font-medium">Итого накладные:</span>
-                          <span className="text-right text-gray-700 font-medium">{totalOverhead.toLocaleString()} ₸</span>
+                      {/* Наличие */}
+                      <td className="py-3 px-4">
+                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          product.stock > 0
+                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                        }`}>
+                          {product.stock > 0 ? 'В наличии' : 'Нет'}
+                        </span>
+                      </td>
 
-                          <span className="text-gray-500 font-medium">Полная себестоимость:</span>
-                          <span className="text-right text-gray-700 font-medium">{fullCost.toLocaleString()} ₸</span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })()}
+                      {/* Цена */}
+                      <td className="py-3 px-4">
+                        {editingCell !== null && editingCell.offerId === product.offerId && editingCell.field === 'price' ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              ref={editInputRef}
+                              type="number"
+                              value={editValue}
+                              onChange={e => setEditValue(e.target.value)}
+                              onKeyDown={handleEditKeyDown}
+                              className="w-28 px-2 py-1 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white dark:bg-gray-700"
+                              min="0"
+                            />
+                            <span className="text-xs text-gray-400">&#8376;</span>
+                            <button onClick={saveEdit} disabled={saving} className="p-1 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded cursor-pointer">
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={cancelEdit} className="p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => startEdit(product.offerId || '', 'price', product.price)}
+                            className="group flex items-center gap-1 cursor-pointer"
+                          >
+                            <span className="text-sm font-semibold">
+                              {product.price.toLocaleString('ru-RU')} &#8376;
+                            </span>
+                            <Edit3 className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </button>
+                        )}
+                      </td>
 
-              {/* Weight Input */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Вес (кг)
-                </label>
-                <input
-                  type="number"
-                  value={editWeight}
-                  onChange={(e) => setEditWeight(e.target.value)}
-                  step="0.01"
-                  min="0"
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition-colors"
-                  placeholder="Например: 0.24"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Используется для расчёта стоимости доставки Kaspi
-                </p>
-              </div>
+                      {/* Предзаказ */}
+                      <td className="py-3 px-4">
+                        {editingCell !== null && editingCell.offerId === product.offerId && editingCell.field === 'preorder' ? (
+                          <div className="flex items-center gap-1">
+                            <input
+                              ref={editInputRef}
+                              type="number"
+                              value={editValue}
+                              onChange={e => setEditValue(e.target.value)}
+                              onKeyDown={handleEditKeyDown}
+                              placeholder="0"
+                              className="w-16 px-2 py-1 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white dark:bg-gray-700"
+                              min="0"
+                            />
+                            <span className="text-xs text-gray-400">д.</span>
+                            <button onClick={saveEdit} disabled={saving} className="p-1 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded cursor-pointer">
+                              <Check className="w-3.5 h-3.5" />
+                            </button>
+                            <button onClick={cancelEdit} className="p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                              <X className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => startEdit(product.offerId || '', 'preorder', product.preorder ?? null)}
+                            className="group flex items-center gap-1 cursor-pointer"
+                          >
+                            {product.preorder && product.preorder > 0 ? (
+                              <span className="flex items-center gap-1 text-sm text-purple-600 font-medium">
+                                <Clock className="w-3.5 h-3.5" />
+                                {product.preorder} д.
+                              </span>
+                            ) : (
+                              <span className="text-sm text-gray-400">-</span>
+                            )}
+                            <Edit3 className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </button>
+                        )}
+                      </td>
+                    </motion.tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-              {/* Preorder Input */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Предзаказ (дни)
-                </label>
-                <input
-                  type="number"
-                  value={editPreorder}
-                  onChange={(e) => setEditPreorder(e.target.value)}
-                  className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-blue-500 transition-colors"
-                  placeholder="Оставьте пустым если нет предзаказа"
-                />
-                <p className="text-xs text-gray-500 mt-1">
-                  Укажите количество дней для предзаказа или оставьте пустым
-                </p>
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="mt-4 flex items-center justify-between">
+              <p className="text-sm text-gray-500">
+                Страница {page + 1} из {totalPages} ({total} товаров)
+              </p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage(p => Math.max(0, p - 1))}
+                  disabled={page === 0}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    page === 0
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer'
+                  }`}
+                >
+                  Назад
+                </button>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+                  disabled={page >= totalPages - 1}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    page >= totalPages - 1
+                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200 cursor-pointer'
+                  }`}
+                >
+                  Вперёд
+                </button>
               </div>
             </div>
-
-            {/* Actions */}
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => setEditingProduct(null)}
-                className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors cursor-pointer"
-              >
-                Отмена
-              </button>
-              <button
-                onClick={handleSave}
-                className="flex-1 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
-              >
-                Сохранить
-              </button>
-            </div>
-          </motion.div>
-        </div>
+          )}
+        </>
       )}
     </div>
   );

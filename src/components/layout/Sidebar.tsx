@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { Menu, X } from 'lucide-react';
+import { useUser } from '@/hooks/useUser';
 
 // Тип для пунктов меню
 interface NavItem {
@@ -92,9 +93,24 @@ const navigation: NavItem[] = [
   },
 ];
 
+const planNames: Record<string, string> = {
+  start: 'Start',
+  business: 'Business',
+  pro: 'Pro',
+};
+
 export default function Sidebar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user, store, subscription } = useUser();
+
+  const displayName = user?.name || store?.name || 'Пользователь';
+  const storeName = store?.name || '';
+  const initial = displayName.charAt(0).toUpperCase();
+  const currentPlan = subscription?.plan ? planNames[subscription.plan] || subscription.plan : 'Start';
+  const planEndDate = subscription?.end_date
+    ? new Date(subscription.end_date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
+    : null;
 
   // Закрыть меню при изменении маршрута
   useEffect(() => {
@@ -135,11 +151,11 @@ export default function Sidebar() {
         {/* Профиль пользователя */}
         <Link href="/app/profile" className="flex items-center gap-3 p-3 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
           <div className="w-10 h-10 lg:w-12 lg:h-12 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center overflow-hidden">
-            <span className="text-white font-semibold text-base lg:text-lg">S</span>
+            <span className="text-white font-semibold text-base lg:text-lg">{initial}</span>
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-white font-medium text-sm truncate">Саян</div>
-            <div className="text-white/60 text-xs">Luxstone</div>
+            <div className="text-white font-medium text-sm truncate">{displayName}</div>
+            {storeName && <div className="text-white/60 text-xs">{storeName}</div>}
           </div>
         </Link>
       </div>
@@ -179,9 +195,11 @@ export default function Sidebar() {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
               </svg>
             </div>
-            <div className="text-xs text-white/70 mt-1">
-              Активен до 15.02.2025
-            </div>
+            {planEndDate && (
+              <div className="text-xs text-white/70 mt-1">
+                Активен до {planEndDate}
+              </div>
+            )}
           </Link>
         </div>
       </nav>

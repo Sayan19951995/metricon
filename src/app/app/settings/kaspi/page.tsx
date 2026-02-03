@@ -20,10 +20,14 @@ import {
   ExternalLink,
   Key,
   Copy,
-  Check
+  Check,
+  LogIn,
+  Plug,
+  PlugZap
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@/hooks/useUser';
+import BrandLoader from '@/components/ui/BrandLoader';
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -84,10 +88,26 @@ export default function KaspiSettingsPage() {
     syncStock: true,
   });
 
+  // Кабинет Kaspi
+  const [cabinetConnected, setCabinetConnected] = useState(false);
+  const [cabinetUsername, setCabinetUsername] = useState('');
+  const [cabinetConnectedAt, setCabinetConnectedAt] = useState('');
+  const [cabinetLoading, setCabinetLoading] = useState(false);
+
+  // Форма входа в кабинет
+  const [cabinetLoginMode, setCabinetLoginMode] = useState<'credentials' | 'cookies'>('credentials');
+  const [cabinetCreds, setCabinetCreds] = useState({ username: '', password: '' });
+  const [cabinetCookies, setCabinetCookies] = useState({ cookies: '', merchantId: '' });
+  const [cabinetLoginLoading, setCabinetLoginLoading] = useState(false);
+  const [cabinetLoginError, setCabinetLoginError] = useState('');
+  const [showCabinetForm, setShowCabinetForm] = useState(false);
+  const [showCabinetPassword, setShowCabinetPassword] = useState(false);
+
   // Проверяем статус подключения при загрузке
   useEffect(() => {
     if (user?.id) {
       checkConnectionStatus();
+      checkCabinetStatus();
     }
   }, [user?.id]);
 
@@ -251,12 +271,92 @@ export default function KaspiSettingsPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  const checkCabinetStatus = async () => {
+    if (!user?.id) return;
+    setCabinetLoading(true);
+    try {
+      const res = await fetch(`/api/kaspi/cabinet/session?userId=${user.id}`);
+      const data = await res.json();
+      setCabinetConnected(data.connected || false);
+      setCabinetUsername(data.username || '');
+      setCabinetConnectedAt(data.connectedAt || '');
+    } catch {
+      setCabinetConnected(false);
+    } finally {
+      setCabinetLoading(false);
+    }
+  };
+
+  const disconnectCabinet = async () => {
+    if (!user?.id) return;
+    try {
+      await fetch(`/api/kaspi/cabinet/session?userId=${user.id}`, { method: 'DELETE' });
+      setCabinetConnected(false);
+      setCabinetUsername('');
+      setCabinetConnectedAt('');
+    } catch (err) {
+      console.error('Disconnect cabinet error:', err);
+    }
+  };
+
+  const handleCabinetLogin = async () => {
+    if (!user?.id) return;
+    setCabinetLoginLoading(true);
+    setCabinetLoginError('');
+
+    try {
+      const body: Record<string, string> = { userId: user.id };
+
+      if (cabinetLoginMode === 'credentials') {
+        if (!cabinetCreds.username || !cabinetCreds.password) {
+          setCabinetLoginError('Заполните логин и пароль');
+          setCabinetLoginLoading(false);
+          return;
+        }
+        body.username = cabinetCreds.username;
+        body.password = cabinetCreds.password;
+      } else {
+        if (!cabinetCookies.cookies) {
+          setCabinetLoginError('Вставьте cookies');
+          setCabinetLoginLoading(false);
+          return;
+        }
+        body.cookies = cabinetCookies.cookies;
+        if (cabinetCookies.merchantId) {
+          body.merchantId = cabinetCookies.merchantId;
+        }
+      }
+
+      const res = await fetch('/api/kaspi/cabinet/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setCabinetConnected(true);
+        setCabinetUsername(cabinetCreds.username || '');
+        setCabinetConnectedAt(new Date().toISOString());
+        setShowCabinetForm(false);
+        setCabinetCreds({ username: '', password: '' });
+        setCabinetCookies({ cookies: '', merchantId: '' });
+      } else {
+        setCabinetLoginError(data.error || 'Не удалось войти');
+        if (data.needManualCookies && cabinetLoginMode === 'credentials') {
+          setCabinetLoginError('Автоматический вход не удался. Попробуйте через cookies.');
+        }
+      }
+    } catch {
+      setCabinetLoginError('Ошибка соединения');
+    } finally {
+      setCabinetLoginLoading(false);
+    }
+  };
+
   if (userLoading) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
-      </div>
-    );
+    return <BrandLoader />;
   }
 
   return (
@@ -543,6 +643,209 @@ export default function KaspiSettingsPage() {
               </div>
             </motion.div>
           )}
+
+          {/* Cabinet Connection */}
+          <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              {cabinetConnected ? (
+                <PlugZap className="w-5 h-5 text-emerald-500" />
+              ) : (
+                <Plug className="w-5 h-5 text-gray-400" />
+              )}
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Кабинет Kaspi</h3>
+            </div>
+
+            <div className={`p-4 rounded-xl ${
+              cabinetConnected
+                ? 'bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800'
+                : 'bg-gray-50 dark:bg-gray-700'
+            }`}>
+              {cabinetLoading ? (
+                <div className="flex items-center gap-3">
+                  <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                  <span className="text-sm text-gray-500">Проверка...</span>
+                </div>
+              ) : cabinetConnected ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center">
+                      <CheckCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-emerald-800 dark:text-emerald-300">Кабинет подключён</p>
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                        {cabinetUsername && `${cabinetUsername} — `}
+                        {cabinetConnectedAt && `подключено ${new Date(cabinetConnectedAt).toLocaleDateString('ru-RU')}`}
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={disconnectCabinet}
+                    className="px-3 py-1.5 bg-emerald-100 dark:bg-emerald-800/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-sm font-medium hover:bg-emerald-200 dark:hover:bg-emerald-800/50 transition-colors cursor-pointer"
+                  >
+                    Отключить
+                  </button>
+                </div>
+              ) : !showCabinetForm ? (
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-xl flex items-center justify-center">
+                      <LogIn className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-700 dark:text-gray-300">Кабинет не подключён</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Подключите для управления ценами, остатками и предзаказами
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => setShowCabinetForm(true)}
+                    className="px-3 py-1.5 bg-[#f14635] text-white rounded-lg text-sm font-medium hover:bg-[#d93d2e] transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                  >
+                    <LogIn className="w-3.5 h-3.5" />
+                    Подключить
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {/* Tabs */}
+                  <div className="flex gap-1 bg-gray-100 dark:bg-gray-600 p-1 rounded-lg">
+                    <button
+                      onClick={() => { setCabinetLoginMode('credentials'); setCabinetLoginError(''); }}
+                      className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+                        cabinetLoginMode === 'credentials'
+                          ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                      }`}
+                    >
+                      Логин / Пароль
+                    </button>
+                    <button
+                      onClick={() => { setCabinetLoginMode('cookies'); setCabinetLoginError(''); }}
+                      className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors cursor-pointer ${
+                        cabinetLoginMode === 'cookies'
+                          ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+                      }`}
+                    >
+                      Через cookies
+                    </button>
+                  </div>
+
+                  {/* Credentials form */}
+                  {cabinetLoginMode === 'credentials' ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          Логин (телефон или email)
+                        </label>
+                        <input
+                          type="text"
+                          value={cabinetCreds.username}
+                          onChange={(e) => setCabinetCreds({ ...cabinetCreds, username: e.target.value })}
+                          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#f14635] transition-colors"
+                          placeholder="+7 (XXX) XXX-XX-XX"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          Пароль
+                        </label>
+                        <div className="relative">
+                          <input
+                            type={showCabinetPassword ? 'text' : 'password'}
+                            value={cabinetCreds.password}
+                            onChange={(e) => setCabinetCreds({ ...cabinetCreds, password: e.target.value })}
+                            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#f14635] transition-colors pr-10"
+                            placeholder="Пароль от кабинета Kaspi"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowCabinetPassword(!showCabinetPassword)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
+                          >
+                            {showCabinetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          Cookies (из DevTools)
+                        </label>
+                        <textarea
+                          value={cabinetCookies.cookies}
+                          onChange={(e) => setCabinetCookies({ ...cabinetCookies, cookies: e.target.value })}
+                          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#f14635] transition-colors resize-none"
+                          rows={3}
+                          placeholder="Вставьте cookies из mc.shop.kaspi.kz"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                          Merchant ID (опционально)
+                        </label>
+                        <input
+                          type="text"
+                          value={cabinetCookies.merchantId}
+                          onChange={(e) => setCabinetCookies({ ...cabinetCookies, merchantId: e.target.value })}
+                          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#f14635] transition-colors"
+                          placeholder="Если отличается от основного"
+                        />
+                      </div>
+                      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+                        <p className="text-xs text-amber-700 dark:text-amber-400">
+                          Откройте <a href="https://mc.shop.kaspi.kz" target="_blank" rel="noopener noreferrer" className="underline">mc.shop.kaspi.kz</a>, войдите в аккаунт, откройте DevTools (F12) → Application → Cookies и скопируйте все cookies.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Error */}
+                  {cabinetLoginError && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                      <p className="text-xs text-red-700 dark:text-red-400">{cabinetLoginError}</p>
+                    </div>
+                  )}
+
+                  {/* Actions */}
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => { setShowCabinetForm(false); setCabinetLoginError(''); }}
+                      className="px-4 py-2 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-500 transition-colors cursor-pointer"
+                    >
+                      Отмена
+                    </button>
+                    <button
+                      onClick={handleCabinetLogin}
+                      disabled={cabinetLoginLoading}
+                      className="flex-1 px-4 py-2 bg-[#f14635] text-white rounded-lg text-sm font-medium hover:bg-[#d93d2e] transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+                    >
+                      {cabinetLoginLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                          Подключение...
+                        </>
+                      ) : (
+                        <>
+                          <LogIn className="w-4 h-4" />
+                          Войти в кабинет
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+              Кабинет используется для изменения цен, остатков и предзаказов напрямую на Kaspi.
+              API ключ даёт только чтение данных.
+            </p>
+          </motion.div>
 
           {/* Sync History */}
           {status === 'connected' && syncHistory.length > 0 && (

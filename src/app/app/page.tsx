@@ -17,7 +17,6 @@ import {
   BarChart3,
   HelpCircle,
   Trophy,
-  Loader2,
   AlertCircle,
   Settings
 } from 'lucide-react';
@@ -87,7 +86,12 @@ export default function DashboardPage() {
 
   // Загрузка данных дашборда
   useEffect(() => {
-    if (!user?.id) return;
+    if (userLoading) return;
+
+    if (!user?.id) {
+      setDataLoading(false);
+      return;
+    }
 
     async function fetchDashboard() {
       try {
@@ -115,7 +119,7 @@ export default function DashboardPage() {
     }
 
     fetchDashboard();
-  }, [user?.id]);
+  }, [user?.id, userLoading]);
 
   // Закрытие окна уведомлений и тултипов при клике вне их области
   useEffect(() => {
@@ -151,16 +155,157 @@ export default function DashboardPage() {
     visible: { opacity: 1, y: 0 }
   };
 
-  // Загрузка пользователя
-  if (userLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-          <p className="text-gray-500">Загрузка...</p>
+  // Скелетон-заглушка дашборда
+  const DashboardSkeleton = () => (
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+      {/* Header skeleton */}
+      <div className="flex justify-between items-start gap-4 mb-6 lg:mb-8">
+        <div>
+          <div className="h-8 w-40 bg-gray-200 rounded-lg animate-pulse" />
+          <div className="h-4 w-64 bg-gray-100 rounded-lg animate-pulse mt-2" />
+        </div>
+        <div className="flex gap-2">
+          <div className="w-10 h-10 bg-gray-200 rounded-xl animate-pulse" />
+          <div className="w-10 h-10 bg-gray-200 rounded-xl animate-pulse" />
         </div>
       </div>
-    );
+
+      {/* Cards grid skeleton */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-4">
+        {/* Sales chart skeleton */}
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 bg-emerald-100 rounded-lg animate-pulse" />
+            <div className="flex-1">
+              <div className="h-3 w-24 bg-gray-100 rounded animate-pulse" />
+              <div className="h-6 w-36 bg-gray-200 rounded animate-pulse mt-1" />
+            </div>
+          </div>
+          {/* Chart area */}
+          <div className="relative h-[140px] lg:h-[180px] overflow-hidden rounded-lg">
+            <div className="absolute inset-0 bg-gradient-to-t from-gray-50 to-transparent" />
+            <svg className="w-full h-full" viewBox="0 0 400 120">
+              <defs>
+                <linearGradient id="skelGrad" x1="0" y1="0" x2="1" y2="0">
+                  <stop offset="0%" stopColor="#e5e7eb">
+                    <animate attributeName="offset" values="-1;2" dur="2s" repeatCount="indefinite" />
+                  </stop>
+                  <stop offset="50%" stopColor="#d1d5db">
+                    <animate attributeName="offset" values="-0.5;2.5" dur="2s" repeatCount="indefinite" />
+                  </stop>
+                  <stop offset="100%" stopColor="#e5e7eb">
+                    <animate attributeName="offset" values="0;3" dur="2s" repeatCount="indefinite" />
+                  </stop>
+                </linearGradient>
+              </defs>
+              <path d="M 0,90 Q 50,70 100,75 T 200,50 T 300,65 T 400,40" fill="none" stroke="url(#skelGrad)" strokeWidth="3" strokeLinecap="round" />
+              <path d="M 0,90 Q 50,70 100,75 T 200,50 T 300,65 T 400,40 L 400,120 L 0,120 Z" fill="url(#skelGrad)" opacity="0.15" />
+            </svg>
+          </div>
+          <div className="flex justify-between mt-3 px-1">
+            {[...Array(7)].map((_, i) => (
+              <div key={i} className="flex flex-col items-center gap-1">
+                <div className="h-3 w-5 bg-gray-100 rounded animate-pulse" />
+                <div className="h-3 w-4 bg-gray-200 rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Payments skeleton */}
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-indigo-100 rounded-lg animate-pulse" />
+            <div className="flex-1">
+              <div className="h-3 w-28 bg-gray-100 rounded animate-pulse" />
+              <div className="h-6 w-40 bg-gray-200 rounded animate-pulse mt-1" />
+            </div>
+          </div>
+          <div className="space-y-2 mb-3">
+            <div className="flex justify-between">
+              <div className="h-3 w-20 bg-gray-100 rounded animate-pulse" />
+              <div className="h-3 w-28 bg-gray-100 rounded animate-pulse" />
+            </div>
+            <div className="flex justify-between">
+              <div className="h-3 w-24 bg-gray-100 rounded animate-pulse" />
+              <div className="h-3 w-24 bg-gray-100 rounded animate-pulse" />
+            </div>
+          </div>
+          <div className="relative h-[120px] lg:h-[160px] overflow-hidden rounded-lg">
+            <svg className="w-full h-full" viewBox="0 0 400 120">
+              <path d="M 0,100 Q 60,80 120,85 T 240,55 T 360,70 L 400,50 L 400,120 L 0,120 Z" fill="url(#skelGrad)" opacity="0.15" />
+              <path d="M 0,100 Q 60,80 120,85 T 240,55 T 360,70 L 400,50" fill="none" stroke="url(#skelGrad)" strokeWidth="3" strokeLinecap="round" />
+            </svg>
+          </div>
+          <div className="flex justify-between mt-3 px-1">
+            {[...Array(7)].map((_, i) => (
+              <div key={i} className="flex flex-col items-center gap-1">
+                <div className="h-3 w-5 bg-gray-100 rounded animate-pulse" />
+                <div className="h-3 w-4 bg-gray-200 rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Month stats skeleton */}
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-blue-100 rounded-lg animate-pulse" />
+            <div className="flex-1">
+              <div className="h-3 w-32 bg-gray-100 rounded animate-pulse" />
+              <div className="h-6 w-44 bg-gray-200 rounded animate-pulse mt-1" />
+            </div>
+          </div>
+          <div className="space-y-3">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex justify-between">
+                <div className="h-3 bg-gray-100 rounded animate-pulse" style={{ width: `${60 + Math.random() * 40}px` }} />
+                <div className="h-3 bg-gray-200 rounded animate-pulse" style={{ width: `${30 + Math.random() * 30}px` }} />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Top products skeleton */}
+        <div className="bg-white rounded-xl p-4 shadow-sm">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-purple-100 rounded-lg animate-pulse" />
+            <div className="flex-1">
+              <div className="h-3 w-24 bg-gray-100 rounded animate-pulse" />
+              <div className="h-6 w-28 bg-gray-200 rounded animate-pulse mt-1" />
+            </div>
+          </div>
+          <div className="space-y-2.5">
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <div className="w-5 h-5 rounded-full bg-gray-200 animate-pulse" />
+                <div className="flex-1 h-3 bg-gray-100 rounded animate-pulse" />
+                <div className="h-3 w-12 bg-gray-200 rounded animate-pulse" />
+                <div className="h-3 w-14 bg-gray-100 rounded animate-pulse" />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick actions skeleton */}
+      <div className="mt-4 lg:mt-6 grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="flex items-center gap-3 p-3 sm:p-4 bg-white rounded-xl shadow-sm">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gray-200 rounded-lg animate-pulse" />
+            <div className="flex-1">
+              <div className="h-4 w-16 bg-gray-200 rounded animate-pulse" />
+              <div className="h-3 w-24 bg-gray-100 rounded animate-pulse mt-1 hidden sm:block" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+
+  // Загрузка пользователя или данных
+  if (userLoading || dataLoading) {
+    return <DashboardSkeleton />;
   }
 
   // Kaspi не подключен — показываем призыв подключить
@@ -226,18 +371,6 @@ export default function DashboardPage() {
             </button>
           ))}
         </motion.div>
-      </div>
-    );
-  }
-
-  // Загрузка данных
-  if (dataLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
-        <div className="flex flex-col items-center gap-3">
-          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
-          <p className="text-gray-500">Загрузка данных...</p>
-        </div>
       </div>
     );
   }
