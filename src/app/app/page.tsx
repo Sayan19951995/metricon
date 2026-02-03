@@ -16,23 +16,106 @@ import {
   Warehouse,
   BarChart3,
   HelpCircle,
-  Star,
-  Trophy
+  Trophy,
+  Loader2,
+  AlertCircle,
+  Settings
 } from 'lucide-react';
+import { useUser } from '@/hooks/useUser';
+
+interface DashboardData {
+  sales: {
+    weekData: number[];
+    prevWeekData: number[];
+    ordersPerDay: number[];
+    weekGrowth: number;
+    todayRevenue: number;
+    todayOrders: number;
+  };
+  month: {
+    revenue: number;
+    orders: number;
+    productsSold: number;
+  };
+  todayOrders: {
+    total: number;
+    new: number;
+    processing: number;
+    shipping: number;
+    completed: number;
+    revenue: number;
+  };
+  awaitingPayment: {
+    totalAmount: number;
+    ordersCount: number;
+    notSent: number;
+    notSentCount: number;
+    inDelivery: number;
+    inDeliveryCount: number;
+    weeklyPayments: number[];
+    weeklyCompletedCount: number[];
+  };
+  topProducts: Array<{
+    name: string;
+    sold: number;
+    revenue: number;
+  }>;
+  totals: {
+    orders: number;
+    products: number;
+  };
+}
 
 export default function DashboardPage() {
   const router = useRouter();
+  const { user, loading: userLoading } = useUser();
   const [showNotifications, setShowNotifications] = useState(false);
   const [showGrowthTooltip, setShowGrowthTooltip] = useState(false);
   const [chartTooltip, setChartTooltip] = useState<{ idx: number; x: number; y: number } | null>(null);
-  const [selectedDayIdx, setSelectedDayIdx] = useState(6); // По умолчанию сегодня (последний день)
-  const [selectedPaymentDayIdx, setSelectedPaymentDayIdx] = useState<number | null>(null); // null = показать "Ожидаем платежа"
-  const [paymentTooltip, setPaymentTooltip] = useState<{ idx: number; x: number; y: number } | null>(null);
-  const [selectedReviewDayIdx, setSelectedReviewDayIdx] = useState<number | null>(null); // null = показать общее
+  const [selectedDayIdx, setSelectedDayIdx] = useState(6);
+  const [selectedPaymentDayIdx, setSelectedPaymentDayIdx] = useState<number | null>(null);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const growthTooltipRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
   const paymentChartRef = useRef<HTMLDivElement>(null);
+
+  // Данные дашборда
+  const [dashboardData, setDashboardData] = useState<DashboardData | null>(null);
+  const [kaspiConnected, setKaspiConnected] = useState(false);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
+
+  // Загрузка данных дашборда
+  useEffect(() => {
+    if (!user?.id) return;
+
+    async function fetchDashboard() {
+      try {
+        setDataLoading(true);
+        setDataError(null);
+
+        const res = await fetch(`/api/dashboard?userId=${user!.id}`);
+        const json = await res.json();
+
+        if (!json.success) {
+          setDataError(json.message);
+          return;
+        }
+
+        setKaspiConnected(json.kaspiConnected);
+
+        if (json.data) {
+          setDashboardData(json.data);
+        }
+      } catch (err) {
+        setDataError(err instanceof Error ? err.message : 'Ошибка загрузки');
+      } finally {
+        setDataLoading(false);
+      }
+    }
+
+    fetchDashboard();
+  }, [user?.id]);
 
   // Закрытие окна уведомлений и тултипов при клике вне их области
   useEffect(() => {
@@ -43,136 +126,23 @@ export default function DashboardPage() {
       if (growthTooltipRef.current && !growthTooltipRef.current.contains(event.target as Node)) {
         setShowGrowthTooltip(false);
       }
-      // Закрытие тултипа графика продаж
       if (chartRef.current && !chartRef.current.contains(event.target as Node)) {
         setChartTooltip(null);
       }
-      // Закрытие тултипа графика поступлений
       if (paymentChartRef.current && !paymentChartRef.current.contains(event.target as Node)) {
-        setPaymentTooltip(null);
+        setSelectedPaymentDayIdx(null);
       }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  // Mock данные для дашборда
-  const dashboardData = {
-    // Продажи за вчера
-    yesterdaySales: {
-      revenue: 1547800,
-      orders: 23,
-      avgCheck: 67295,
-      growth: 12.5,
-      profit: 245000,
-      profitMargin: 15.8,
-      // Данные за текущую неделю (Пн-Вс)
-      weekData: [980000, 1250000, 1120000, 1450000, 1680000, 1890000, 1547800],
-      // Данные за прошлую неделю (для сравнения)
-      prevWeekData: [870000, 1180000, 1050000, 1320000, 1490000, 1680000, 1375000],
-      // Заказы по дням текущей недели
-      ordersPerDay: [12, 15, 14, 19, 22, 25, 18]
-    },
-    // Стоимость склада
-    warehouse: {
-      totalValue: 48750000,
-      totalItems: 1247,
-      avgItemValue: 39095
-    },
-    // Заказы на сегодня
-    todayOrders: {
-      total: 18,
-      new: 7,
-      processing: 8,
-      shipping: 3,
-      revenue: 1285000,
-      // Данные за неделю (Пн-Вс)
-      weekData: [12, 15, 14, 19, 22, 25, 18]
-    },
-    // Оборот за месяц
-    monthTurnover: {
-      revenue: 38500000,
-      orders: 542,
-      growth: 22.7,
-      profit: 5915000,
-      profitMargin: 15.4
-    },
-    // Критический остаток
-    criticalStock: {
-      count: 8,
-      items: [
-        { name: 'iPhone 14 Pro 256GB', stock: 2, minStock: 10 },
-        { name: 'AirPods Pro 2', stock: 3, minStock: 15 },
-        { name: 'MacBook Air M2', stock: 1, minStock: 5 },
-        { name: 'Apple Watch Ultra', stock: 4, minStock: 10 },
-        { name: 'Samsung Galaxy S23', stock: 2, minStock: 8 }
-      ]
-    },
-    // Рентабельность рекламы
-    adsROI: {
-      spend: 850000,
-      revenue: 4250000,
-      roi: 400,
-      orders: 89,
-      cpo: 9550 // cost per order
-    },
-    // Ожидающие платежи
-    pendingPayments: {
-      total: 12850000,
-      ordersCount: 156,
-      items: [
-        { orderId: 'ORD-2025-004', supplier: 'Apple Inc.', amount: 16140000, expectedDate: '2025-10-28' },
-        { orderId: 'ORD-2025-003', supplier: 'Apple Inc.', amount: 3540000, expectedDate: '2025-11-08' }
-      ]
-    },
-    // Ожидаем платежа (заказы от клиентов)
-    awaitingPayment: {
-      totalAmount: 4978800,
-      ordersCount: 12,
-      notSent: 2150000,        // Не выдано
-      notSentCount: 5,         // Кол-во не выданных
-      inDelivery: 2828800,     // Передано на доставку
-      inDeliveryCount: 7,      // Кол-во в доставке
-      // Поступления за неделю (Пн-Вс)
-      weeklyPayments: [850000, 1120000, 780000, 1450000, 920000, 1680000, 1178800],
-      // Кол-во выданных за неделю (Пн-Вс)
-      weeklyIssuedCount: [2, 3, 1, 4, 2, 5, 3],
-      // Кол-во заказов за неделю (Пн-Вс)
-      weeklyOrders: [3, 4, 2, 5, 3, 6, 4]
-    },
-    // Отзывы за неделю
-    reviews: {
-      total: 47,
-      positive: 38,   // 5 звёзд
-      good: 6,        // 4 звезды
-      negative: 3,    // 1-3 звезды
-      // Отзывы по дням (Пн-Вс)
-      weeklyReviews: [5, 8, 4, 9, 7, 8, 6],
-      weeklyPositive: [4, 6, 3, 7, 6, 7, 5],
-      weeklyGood: [1, 1, 1, 1, 1, 1, 0],
-      weeklyNegative: [0, 1, 0, 1, 0, 0, 1]
-    },
-    // Топ товаров за неделю (топ 5)
-    topProducts: [
-      { name: 'iPhone 14 Pro 256GB', sold: 45, revenue: 44955000, stock: 15 },
-      { name: 'AirPods Pro 2', sold: 38, revenue: 3420000, stock: 32 },
-      { name: 'MacBook Air M2', sold: 12, revenue: 17988000, stock: 5 },
-      { name: 'Apple Watch Ultra', sold: 9, revenue: 4491000, stock: 18 },
-      { name: 'iPad Pro 12.9"', sold: 7, revenue: 6993000, stock: 3 }
-    ]
-  };
 
   const containerVariants = {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
+      transition: { staggerChildren: 0.1 }
     }
   };
 
@@ -180,6 +150,134 @@ export default function DashboardPage() {
     hidden: { opacity: 0, y: 20 },
     visible: { opacity: 1, y: 0 }
   };
+
+  // Загрузка пользователя
+  if (userLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <p className="text-gray-500">Загрузка...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Kaspi не подключен — показываем призыв подключить
+  if (!dataLoading && !kaspiConnected) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+        <div className="flex justify-between items-start gap-4 mb-6 lg:mb-8">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Дашборд</h1>
+            <p className="text-gray-500 mt-1 text-sm sm:text-base">Обзор ключевых показателей магазина</p>
+          </div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="max-w-lg mx-auto mt-12"
+        >
+          <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
+            <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-amber-600" />
+            </div>
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Kaspi не подключен</h2>
+            <p className="text-gray-500 mb-6">
+              Чтобы видеть данные на дашборде, подключите свой Kaspi магазин через API
+            </p>
+            <button
+              onClick={() => router.push('/app/settings/kaspi')}
+              className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors cursor-pointer"
+            >
+              <Settings className="w-5 h-5" />
+              Подключить Kaspi
+            </button>
+          </div>
+        </motion.div>
+
+        {/* Quick Actions всё равно показываем */}
+        <motion.div
+          className="mt-8 grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 max-w-3xl mx-auto"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          {[
+            { label: 'Заказы', desc: 'Управление заказами', icon: ShoppingCart, color: 'blue', href: '/app/orders' },
+            { label: 'Товары', desc: 'Каталог товаров', icon: Package, color: 'emerald', href: '/app/products' },
+            { label: 'Аналитика', desc: 'Отчёты и статистика', icon: BarChart3, color: 'purple', href: '/app/analytics' },
+            { label: 'Склад', desc: 'Управление запасами', icon: Warehouse, color: 'amber', href: '/app/warehouse' },
+          ].map((item) => (
+            <button
+              key={item.label}
+              onClick={() => router.push(item.href)}
+              className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+            >
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 bg-${item.color}-100 group-hover:bg-${item.color}-200 rounded-lg flex items-center justify-center transition-colors flex-shrink-0`}>
+                <item.icon className={`w-4 h-4 sm:w-5 sm:h-5 text-${item.color}-600`} />
+              </div>
+              <div className="text-left flex-1 min-w-0">
+                <span className="text-sm font-medium text-gray-900 block truncate">{item.label}</span>
+                <span className="text-xs text-gray-500 hidden sm:block">{item.desc}</span>
+              </div>
+              <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
+            </button>
+          ))}
+        </motion.div>
+      </div>
+    );
+  }
+
+  // Загрузка данных
+  if (dataLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-600" />
+          <p className="text-gray-500">Загрузка данных...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Ошибка
+  if (dataError) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
+          <p className="text-gray-700 font-medium">Ошибка загрузки</p>
+          <p className="text-gray-500 text-sm mt-1">{dataError}</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Если данных нет вообще
+  if (!dashboardData) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <div className="text-center">
+          <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
+          <p className="text-gray-700 font-medium">Нет данных</p>
+          <p className="text-gray-500 text-sm mt-1">Синхронизируйте данные из Kaspi в настройках</p>
+          <button
+            onClick={() => router.push('/app/settings/kaspi')}
+            className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer text-sm"
+          >
+            Настройки Kaspi
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const { sales, awaitingPayment, topProducts } = dashboardData;
+
+  // Проверяем есть ли вообще данные для отображения
+  const hasData = sales.weekData.some(v => v > 0);
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen lg:max-h-screen lg:overflow-hidden">
@@ -197,7 +295,6 @@ export default function DashboardPage() {
               className="p-2 hover:bg-white rounded-xl transition-colors relative cursor-pointer"
             >
               <Bell className="w-6 h-6 text-gray-600" />
-              <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
             </button>
 
             {showNotifications && (
@@ -209,49 +306,9 @@ export default function DashboardPage() {
               >
                 <div className="p-4 border-b border-gray-200 flex items-center justify-between">
                   <h3 className="font-semibold text-lg">Уведомления</h3>
-                  <button className="text-xs text-red-600 hover:text-red-700 font-medium cursor-pointer">
-                    Очистить
-                  </button>
                 </div>
-                <div className="max-h-96 overflow-y-auto">
-                  <div className="p-4 hover:bg-gray-50 cursor-pointer border-b border-gray-100">
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Новый заказ #1247</p>
-                        <p className="text-xs text-gray-500 mt-1">iPhone 14 Pro - 3 шт.</p>
-                        <p className="text-xs text-gray-400 mt-1">5 минут назад</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-4 hover:bg-gray-50 cursor-pointer border-b border-gray-100">
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-orange-500 rounded-full mt-2"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Низкий остаток</p>
-                        <p className="text-xs text-gray-500 mt-1">AirPods Pro 2 - осталось 3 шт.</p>
-                        <p className="text-xs text-gray-400 mt-1">1 час назад</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="p-4 hover:bg-gray-50 cursor-pointer">
-                    <div className="flex items-start gap-3">
-                      <div className="w-2 h-2 bg-emerald-500 rounded-full mt-2"></div>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium">Товар прибыл</p>
-                        <p className="text-xs text-gray-500 mt-1">ORD-2025-001 получен на склад</p>
-                        <p className="text-xs text-gray-400 mt-1">3 часа назад</p>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                <div className="p-3 border-t border-gray-200">
-                  <button
-                    onClick={() => router.push('/app/notifications')}
-                    className="w-full text-center text-sm text-blue-600 hover:text-blue-700 font-medium cursor-pointer"
-                  >
-                    Посмотреть все
-                  </button>
+                <div className="p-6 text-center text-gray-400 text-sm">
+                  Нет новых уведомлений
                 </div>
               </motion.div>
             )}
@@ -261,6 +318,27 @@ export default function DashboardPage() {
           </button>
         </div>
       </div>
+
+      {/* Если данных ещё нет после синхронизации */}
+      {!hasData && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3"
+        >
+          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+          <div>
+            <p className="text-sm font-medium text-amber-800">Данные ещё не синхронизированы</p>
+            <p className="text-xs text-amber-600 mt-0.5">
+              Перейдите в{' '}
+              <button onClick={() => router.push('/app/settings/kaspi')} className="underline cursor-pointer">
+                настройки Kaspi
+              </button>{' '}
+              и нажмите «Синхронизировать»
+            </p>
+          </div>
+        </motion.div>
+      )}
 
       {/* Main Grid */}
       <motion.div
@@ -274,15 +352,13 @@ export default function DashboardPage() {
           variants={itemVariants}
           className="bg-white rounded-xl p-4 shadow-sm overflow-hidden"
         >
-          {/* Заголовок с суммой и количеством - кликабельный */}
           {(() => {
-            const selectedRevenue = dashboardData.yesterdaySales.weekData[selectedDayIdx];
-            const prevWeekRevenue = dashboardData.yesterdaySales.prevWeekData[selectedDayIdx];
-            const selectedOrders = dashboardData.yesterdaySales.ordersPerDay[selectedDayIdx];
+            const selectedRevenue = sales.weekData[selectedDayIdx] || 0;
+            const prevWeekRevenue = sales.prevWeekData[selectedDayIdx] || 0;
+            const selectedOrders = sales.ordersPerDay[selectedDayIdx] || 0;
             const growth = prevWeekRevenue > 0 ? ((selectedRevenue - prevWeekRevenue) / prevWeekRevenue * 100) : 0;
             const isToday = selectedDayIdx === 6;
 
-            // Получаем дату для выбранного дня
             const selectedDate = new Date();
             selectedDate.setDate(selectedDate.getDate() - (6 - selectedDayIdx));
             const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
@@ -305,37 +381,39 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="flex items-center gap-1.5">
-                    <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium ${
-                      growth >= 0
-                        ? 'bg-emerald-100 text-emerald-700'
-                        : 'bg-red-100 text-red-700'
-                    }`}>
-                      {growth >= 0 ? (
-                        <ArrowUpRight className="w-3 h-3" />
-                      ) : (
-                        <ArrowDownRight className="w-3 h-3" />
-                      )}
-                      {Math.abs(growth).toFixed(1)}%
+                  {prevWeekRevenue > 0 && (
+                    <div className="flex items-center gap-1.5">
+                      <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium ${
+                        growth >= 0
+                          ? 'bg-emerald-100 text-emerald-700'
+                          : 'bg-red-100 text-red-700'
+                      }`}>
+                        {growth >= 0 ? (
+                          <ArrowUpRight className="w-3 h-3" />
+                        ) : (
+                          <ArrowDownRight className="w-3 h-3" />
+                        )}
+                        {Math.abs(growth).toFixed(1)}%
+                      </div>
+                      <div className="relative" ref={growthTooltipRef}>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowGrowthTooltip(!showGrowthTooltip);
+                          }}
+                          className="text-gray-400 hover:text-gray-600 transition-colors"
+                        >
+                          <HelpCircle className="w-3.5 h-3.5" />
+                        </button>
+                        {showGrowthTooltip && (
+                          <div className="absolute right-0 top-6 z-50 w-52 p-2.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
+                            <p>Изменение продаж по сравнению с тем же днём прошлой недели</p>
+                            <div className="absolute -top-1.5 right-2 w-3 h-3 bg-gray-900 rotate-45"></div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <div className="relative" ref={growthTooltipRef}>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowGrowthTooltip(!showGrowthTooltip);
-                        }}
-                        className="text-gray-400 hover:text-gray-600 transition-colors"
-                      >
-                        <HelpCircle className="w-3.5 h-3.5" />
-                      </button>
-                      {showGrowthTooltip && (
-                        <div className="absolute right-0 top-6 z-50 w-52 p-2.5 bg-gray-900 text-white text-xs rounded-lg shadow-lg">
-                          <p>Изменение продаж по сравнению с тем же днём прошлой недели</p>
-                          <div className="absolute -top-1.5 right-2 w-3 h-3 bg-gray-900 rotate-45"></div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  )}
                   <div className="flex items-center gap-1 mt-1">
                     <ShoppingCart className="w-3.5 h-3.5 text-blue-500" />
                     <span className="text-sm font-semibold text-gray-700">{selectedOrders}</span>
@@ -358,100 +436,71 @@ export default function DashboardPage() {
             </span>
           </div>
           {(() => {
-            const currentWeekData = dashboardData.yesterdaySales.weekData;
-            const prevWeekData = dashboardData.yesterdaySales.prevWeekData;
-            const allData = [...currentWeekData, ...prevWeekData];
-            const maxValue = Math.max(...allData);
-            const minValue = Math.min(...allData);
+            const currentWeekData = sales.weekData;
+            const prevWeekData = sales.prevWeekData;
+            const allData = [...currentWeekData, ...prevWeekData].filter(v => v > 0);
+            const maxValue = allData.length > 0 ? Math.max(...allData) : 100;
+            const minValue = allData.length > 0 ? Math.min(...allData) : 0;
             const chartHeight = 80;
             const padding = 8;
             const pointsCount = currentWeekData.length;
 
-            // Единая функция для расчёта Y (обе линии на одной шкале)
             const getY = (val: number) => {
               const range = maxValue - minValue || 1;
               const normalized = (val - minValue) / range;
               return padding + (1 - normalized) * (chartHeight - padding * 2);
             };
 
-            // Значения для Y-оси (5 уровней)
             const yAxisValues = [0, 0.25, 0.5, 0.75, 1].map(ratio =>
               maxValue - ratio * (maxValue - minValue)
             );
 
             return (
               <div>
-                {/* Контейнер графика с фиксированной высотой */}
                 <div className="relative h-[140px] lg:h-[180px] flex">
-                {/* Y-ось слева */}
                 <div className="hidden sm:flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '32px' }}>
                   {yAxisValues.map((val, i) => (
                     <span key={i} className="text-right">{Math.round(val / 1000)}k</span>
                   ))}
                 </div>
-                {/* Область графика */}
                 <div className="flex-1 relative">
                 <svg className="w-full h-full" viewBox="0 0 100 80" preserveAspectRatio="none">
-                  {/* Горизонтальные вспомогательные линии */}
                   {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
                     const y = padding + ratio * (chartHeight - padding * 2);
                     return (
                       <line
                         key={`grid-${i}`}
-                        x1="0"
-                        y1={y}
-                        x2="100"
-                        y2={y}
-                        stroke="#e5e7eb"
-                        strokeWidth="1"
-                        vectorEffect="non-scaling-stroke"
+                        x1="0" y1={y} x2="100" y2={y}
+                        stroke="#e5e7eb" strokeWidth="1" vectorEffect="non-scaling-stroke"
                       />
                     );
                   })}
-                  {/* Линия прошлой недели (синяя, снизу) */}
                   <polyline
                     points={prevWeekData.map((val, i) => {
                       const x = 2 + (i / (pointsCount - 1)) * 96;
                       const y = getY(val);
                       return `${x},${y}`;
                     }).join(' ')}
-                    fill="none"
-                    stroke="#3b82f6"
-                    strokeWidth="2"
-                    vectorEffect="non-scaling-stroke"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    opacity="0.7"
+                    fill="none" stroke="#3b82f6" strokeWidth="2"
+                    vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" opacity="0.7"
                   />
-                  {/* Линия текущей недели (зелёная, сверху) */}
                   <polyline
                     points={currentWeekData.map((val, i) => {
                       const x = 2 + (i / (pointsCount - 1)) * 96;
                       const y = getY(val);
                       return `${x},${y}`;
                     }).join(' ')}
-                    fill="none"
-                    stroke="#10b981"
-                    strokeWidth="2"
-                    vectorEffect="non-scaling-stroke"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
+                    fill="none" stroke="#10b981" strokeWidth="2"
+                    vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round"
                   />
-                  {/* Вертикальная линия при наведении */}
                   {chartTooltip && (
                     <line
-                      x1={2 + (chartTooltip.idx / (pointsCount - 1)) * 96}
-                      y1={0}
-                      x2={2 + (chartTooltip.idx / (pointsCount - 1)) * 96}
-                      y2={80}
-                      stroke="#9ca3af"
-                      strokeWidth="1"
-                      vectorEffect="non-scaling-stroke"
-                      strokeDasharray="3,3"
+                      x1={2 + (chartTooltip.idx / (pointsCount - 1)) * 96} y1={0}
+                      x2={2 + (chartTooltip.idx / (pointsCount - 1)) * 96} y2={80}
+                      stroke="#9ca3af" strokeWidth="1" vectorEffect="non-scaling-stroke" strokeDasharray="3,3"
                     />
                   )}
                 </svg>
-                {/* Точки текущей недели - кликабельные */}
                 {currentWeekData.map((val, i) => {
                   const xPercent = 2 + (i / (pointsCount - 1)) * 96;
                   const y = getY(val);
@@ -459,23 +508,18 @@ export default function DashboardPage() {
                   const isSelected = i === selectedDayIdx;
                   return (
                     <div key={`current-dot-${i}`}>
-                      {/* Невидимая область для клика */}
                       <div
                         className="absolute cursor-pointer z-10"
                         style={{
-                          left: `${xPercent}%`,
-                          top: `${(y / 80) * 100}%`,
-                          transform: 'translate(-50%, -50%)',
-                          width: 24,
-                          height: 24,
+                          left: `${xPercent}%`, top: `${(y / 80) * 100}%`,
+                          transform: 'translate(-50%, -50%)', width: 24, height: 24,
                         }}
                         onClick={() => setSelectedDayIdx(i)}
                       />
                       <div
                         className="absolute transition-all pointer-events-none"
                         style={{
-                          left: `${xPercent}%`,
-                          top: `${(y / 80) * 100}%`,
+                          left: `${xPercent}%`, top: `${(y / 80) * 100}%`,
                           transform: 'translate(-50%, -50%)',
                           width: isSelected ? 10 : isToday ? 8 : 6,
                           height: isSelected ? 10 : isToday ? 8 : 6,
@@ -483,13 +527,11 @@ export default function DashboardPage() {
                           backgroundColor: isSelected ? '#047857' : isToday ? '#059669' : '#10b981',
                         }}
                       />
-                      {/* Лейбл при выборе */}
                       {isSelected && (
                         <div
                           className="absolute pointer-events-none text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1 rounded"
                           style={{
-                            left: `${xPercent}%`,
-                            top: `${(y / 80) * 100 - 12}%`,
+                            left: `${xPercent}%`, top: `${(y / 80) * 100 - 12}%`,
                             transform: 'translate(-50%, -50%)',
                           }}
                         >
@@ -499,7 +541,6 @@ export default function DashboardPage() {
                     </div>
                   );
                 })}
-                {/* Точки прошлой недели - кликабельные */}
                 {prevWeekData.map((val, i) => {
                   const xPercent = 2 + (i / (pointsCount - 1)) * 96;
                   const y = getY(val);
@@ -507,23 +548,18 @@ export default function DashboardPage() {
                   const isSelected = i === selectedDayIdx;
                   return (
                     <div key={`prev-dot-${i}`}>
-                      {/* Невидимая область для клика */}
                       <div
                         className="absolute cursor-pointer z-10"
                         style={{
-                          left: `${xPercent}%`,
-                          top: `${(y / 80) * 100}%`,
-                          transform: 'translate(-50%, -50%)',
-                          width: 24,
-                          height: 24,
+                          left: `${xPercent}%`, top: `${(y / 80) * 100}%`,
+                          transform: 'translate(-50%, -50%)', width: 24, height: 24,
                         }}
                         onClick={() => setSelectedDayIdx(i)}
                       />
                       <div
                         className="absolute transition-all pointer-events-none"
                         style={{
-                          left: `${xPercent}%`,
-                          top: `${(y / 80) * 100}%`,
+                          left: `${xPercent}%`, top: `${(y / 80) * 100}%`,
                           transform: 'translate(-50%, -50%)',
                           width: isSelected ? 8 : isToday ? 6 : 5,
                           height: isSelected ? 8 : isToday ? 6 : 5,
@@ -532,13 +568,11 @@ export default function DashboardPage() {
                           opacity: isSelected ? 1 : 0.7,
                         }}
                       />
-                      {/* Лейбл при выборе */}
                       {isSelected && (
                         <div
                           className="absolute pointer-events-none text-[10px] font-semibold text-blue-700 bg-blue-50 px-1 rounded"
                           style={{
-                            left: `${xPercent}%`,
-                            top: `${(y / 80) * 100 + 12}%`,
+                            left: `${xPercent}%`, top: `${(y / 80) * 100 + 12}%`,
                             transform: 'translate(-50%, -50%)',
                           }}
                         >
@@ -551,7 +585,6 @@ export default function DashboardPage() {
                 </div>
                 </div>
 
-                {/* Подписи дат и значений - кликабельные */}
                 <div className="flex justify-between mt-2 sm:ml-8" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
                   {currentWeekData.map((currentValue, idx) => {
                     const isToday = idx === currentWeekData.length - 1;
@@ -562,14 +595,9 @@ export default function DashboardPage() {
                     return (
                       <button
                         key={idx}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedDayIdx(idx);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); setSelectedDayIdx(idx); }}
                         className={`flex flex-col items-center py-1 rounded-lg transition-all cursor-pointer ${
-                          isSelected
-                            ? 'bg-emerald-100 shadow-sm px-1.5'
-                            : 'hover:bg-gray-100'
+                          isSelected ? 'bg-emerald-100 shadow-sm px-1.5' : 'hover:bg-gray-100'
                         }`}
                       >
                         <span className={`text-[9px] sm:text-[10px] ${isSelected ? 'text-emerald-700 font-semibold' : 'text-emerald-600'}`}>
@@ -592,11 +620,9 @@ export default function DashboardPage() {
           variants={itemVariants}
           className="bg-white rounded-xl p-4 shadow-sm overflow-hidden"
         >
-          {/* Динамический заголовок */}
           {(() => {
-            const payments = dashboardData.awaitingPayment.weeklyPayments;
-            const issuedCount = dashboardData.awaitingPayment.weeklyIssuedCount;
-            const orders = dashboardData.awaitingPayment.weeklyOrders;
+            const payments = awaitingPayment.weeklyPayments;
+            const completedCount = awaitingPayment.weeklyCompletedCount;
             const isShowingPayment = selectedPaymentDayIdx !== null;
             const selectedDate = new Date();
             if (isShowingPayment) {
@@ -621,28 +647,24 @@ export default function DashboardPage() {
                   </h3>
                   <div className={`text-xl font-bold ${isShowingPayment ? 'text-emerald-600' : 'text-gray-900'}`}>
                     {isShowingPayment
-                      ? payments[selectedPaymentDayIdx!].toLocaleString('ru-RU')
-                      : dashboardData.awaitingPayment.totalAmount.toLocaleString('ru-RU')
+                      ? (payments[selectedPaymentDayIdx!] || 0).toLocaleString('ru-RU')
+                      : awaitingPayment.totalAmount.toLocaleString('ru-RU')
                     } ₸
                   </div>
-                  {/* Выдано при выборе дня */}
                   {isShowingPayment && (
                     <div className="mt-1 text-xs text-gray-500">
-                      Выдано: <span className="font-medium text-gray-700">{issuedCount[selectedPaymentDayIdx!]}</span>
+                      Завершено: <span className="font-medium text-gray-700">{completedCount[selectedPaymentDayIdx!] || 0}</span>
                     </div>
                   )}
                 </div>
                 {!isShowingPayment && (
                   <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
-                    {dashboardData.awaitingPayment.ordersCount} заказов
+                    {awaitingPayment.ordersCount} заказов
                   </div>
                 )}
                 {isShowingPayment && (
                   <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedPaymentDayIdx(null);
-                    }}
+                    onClick={(e) => { e.stopPropagation(); setSelectedPaymentDayIdx(null); }}
                     className="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg hover:bg-indigo-100"
                   >
                     Сбросить
@@ -652,16 +674,15 @@ export default function DashboardPage() {
             );
           })()}
 
-          {/* Список статусов - показываем только когда не выбран день */}
           {selectedPaymentDayIdx === null && (
             <div className="space-y-1.5 text-xs mb-3">
               <div className="flex items-center justify-between">
                 <span className="text-gray-500">Не выдано</span>
-                <span className="font-medium text-gray-700">{dashboardData.awaitingPayment.notSentCount} шт · {dashboardData.awaitingPayment.notSent.toLocaleString('ru-RU')} ₸</span>
+                <span className="font-medium text-gray-700">{awaitingPayment.notSentCount} шт · {awaitingPayment.notSent.toLocaleString('ru-RU')} ₸</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-500">Передано на доставку</span>
-                <span className="font-medium text-gray-700">{dashboardData.awaitingPayment.inDeliveryCount} шт · {dashboardData.awaitingPayment.inDelivery.toLocaleString('ru-RU')} ₸</span>
+                <span className="text-gray-500">В доставке</span>
+                <span className="font-medium text-gray-700">{awaitingPayment.inDeliveryCount} шт · {awaitingPayment.inDelivery.toLocaleString('ru-RU')} ₸</span>
               </div>
             </div>
           )}
@@ -669,9 +690,10 @@ export default function DashboardPage() {
           {/* График поступлений за неделю */}
           <div className="text-[10px] text-gray-400 mb-1">Поступления за неделю</div>
           {(() => {
-            const payments = dashboardData.awaitingPayment.weeklyPayments;
-            const maxVal = Math.max(...payments);
-            const minVal = Math.min(...payments);
+            const payments = awaitingPayment.weeklyPayments;
+            const nonZero = payments.filter(v => v > 0);
+            const maxVal = nonZero.length > 0 ? Math.max(...nonZero) : 100;
+            const minVal = nonZero.length > 0 ? Math.min(...nonZero) : 0;
             const chartH = 80;
             const pad = 6;
             const pointsCount = payments.length;
@@ -682,49 +704,34 @@ export default function DashboardPage() {
               return pad + (1 - norm) * (chartH - pad * 2);
             };
 
-            // Значения для Y-оси (5 уровней)
             const yAxisValues = [0, 0.25, 0.5, 0.75, 1].map(ratio =>
               maxVal - ratio * (maxVal - minVal)
             );
 
             return (
               <div>
-                {/* Контейнер графика */}
                 <div className="relative h-[120px] lg:h-[160px] flex">
-                  {/* Y-ось слева - скрыта на мобильных */}
                   <div className="hidden sm:flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '32px' }}>
                     {yAxisValues.map((val, i) => (
                       <span key={i} className="text-right">{Math.round(val / 1000)}k</span>
                     ))}
                   </div>
 
-                  {/* Область графика */}
                   <div className="flex-1 relative">
                     <svg className="w-full h-full" viewBox="0 0 100 80" preserveAspectRatio="none">
-                      {/* Горизонтальные вспомогательные линии */}
                       {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
                         const y = pad + ratio * (chartH - pad * 2);
                         return (
-                          <line
-                            key={`grid-${i}`}
-                            x1="0"
-                            y1={y}
-                            x2="100"
-                            y2={y}
-                            stroke="#e5e7eb"
-                            strokeWidth="1"
-                            vectorEffect="non-scaling-stroke"
-                          />
+                          <line key={`grid-${i}`} x1="0" y1={y} x2="100" y2={y}
+                            stroke="#e5e7eb" strokeWidth="1" vectorEffect="non-scaling-stroke" />
                         );
                       })}
-                      {/* Градиент заливки */}
                       <defs>
                         <linearGradient id="paymentGradient" x1="0" y1="0" x2="0" y2="1">
                           <stop offset="0%" stopColor="#6366f1" stopOpacity="0.3" />
                           <stop offset="100%" stopColor="#6366f1" stopOpacity="0.05" />
                         </linearGradient>
                       </defs>
-                      {/* Заливка под линией */}
                       <path
                         d={`M 2,${getY(payments[0])} ${payments.map((val, i) => {
                           const x = 2 + (i / (pointsCount - 1)) * 96;
@@ -733,23 +740,17 @@ export default function DashboardPage() {
                         }).join(' ')} L 98,${chartH} L 2,${chartH} Z`}
                         fill="url(#paymentGradient)"
                       />
-                      {/* Линия */}
                       <polyline
                         points={payments.map((val, i) => {
                           const x = 2 + (i / (pointsCount - 1)) * 96;
                           const y = getY(val);
                           return `${x},${y}`;
                         }).join(' ')}
-                        fill="none"
-                        stroke="#6366f1"
-                        strokeWidth="2"
-                        vectorEffect="non-scaling-stroke"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
+                        fill="none" stroke="#6366f1" strokeWidth="2"
+                        vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round"
                       />
                     </svg>
 
-                    {/* Точки */}
                     {payments.map((val, i) => {
                       const xPercent = 2 + (i / (pointsCount - 1)) * 96;
                       const y = getY(val);
@@ -757,23 +758,18 @@ export default function DashboardPage() {
                       const isToday = i === pointsCount - 1;
                       return (
                         <div key={`payment-dot-${i}`}>
-                          {/* Невидимая область для клика */}
                           <div
                             className="absolute cursor-pointer z-10"
                             style={{
-                              left: `${xPercent}%`,
-                              top: `${(y / 80) * 100}%`,
-                              transform: 'translate(-50%, -50%)',
-                              width: 24,
-                              height: 24,
+                              left: `${xPercent}%`, top: `${(y / 80) * 100}%`,
+                              transform: 'translate(-50%, -50%)', width: 24, height: 24,
                             }}
                             onClick={() => setSelectedPaymentDayIdx(isSelected ? null : i)}
                           />
                           <div
                             className="absolute transition-all pointer-events-none"
                             style={{
-                              left: `${xPercent}%`,
-                              top: `${(y / 80) * 100}%`,
+                              left: `${xPercent}%`, top: `${(y / 80) * 100}%`,
                               transform: 'translate(-50%, -50%)',
                               width: isSelected ? 10 : isToday ? 8 : 6,
                               height: isSelected ? 10 : isToday ? 8 : 6,
@@ -781,13 +777,11 @@ export default function DashboardPage() {
                               backgroundColor: isSelected ? '#059669' : '#6366f1',
                             }}
                           />
-                          {/* Лейбл при выборе */}
                           {isSelected && (
                             <div
                               className="absolute pointer-events-none text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-1 rounded"
                               style={{
-                                left: `${xPercent}%`,
-                                top: `${(y / 80) * 100 - 12}%`,
+                                left: `${xPercent}%`, top: `${(y / 80) * 100 - 12}%`,
                                 transform: 'translate(-50%, -50%)',
                               }}
                             >
@@ -800,7 +794,6 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                {/* Подписи дней - кликабельные */}
                 <div className="flex justify-between mt-2 sm:ml-8" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
                   {payments.map((val, idx) => {
                     const date = new Date();
@@ -810,14 +803,9 @@ export default function DashboardPage() {
                     return (
                       <button
                         key={idx}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedPaymentDayIdx(isSelected ? null : idx);
-                        }}
+                        onClick={(e) => { e.stopPropagation(); setSelectedPaymentDayIdx(isSelected ? null : idx); }}
                         className={`flex flex-col items-center py-1 rounded-lg transition-all cursor-pointer ${
-                          isSelected
-                            ? 'bg-indigo-100 shadow-sm px-1'
-                            : 'hover:bg-gray-100'
+                          isSelected ? 'bg-indigo-100 shadow-sm px-1' : 'hover:bg-gray-100'
                         }`}
                       >
                         <span className={`text-[8px] sm:text-[9px] ${isSelected ? 'text-indigo-700 font-semibold' : 'text-indigo-600'}`}>
@@ -835,347 +823,52 @@ export default function DashboardPage() {
           })()}
         </motion.div>
 
-        {/* Отзывы за неделю */}
+        {/* Оборот за месяц */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-xl p-4 shadow-sm overflow-hidden"
+          className="bg-white rounded-xl p-4 shadow-sm"
         >
-          {/* Динамический заголовок */}
-          {(() => {
-            const isShowingDay = selectedReviewDayIdx !== null;
-            const selectedDate = new Date();
-            if (isShowingDay) {
-              selectedDate.setDate(selectedDate.getDate() - (6 - selectedReviewDayIdx));
-            }
-            const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-            const dayPositive = isShowingDay ? dashboardData.reviews.weeklyPositive[selectedReviewDayIdx!] : 0;
-            const dayGood = isShowingDay ? dashboardData.reviews.weeklyGood[selectedReviewDayIdx!] : 0;
-            const dayNegative = isShowingDay ? dashboardData.reviews.weeklyNegative[selectedReviewDayIdx!] : 0;
-            const dayTotal = dayPositive + dayGood + dayNegative;
-
-            return (
-              <div
-                className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
-                onClick={() => router.push('/app/analytics?tab=reviews')}
-              >
-                <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
-                  <Star className="w-5 h-5 text-amber-500" />
-                </div>
-                <div className="flex-1">
-                  <h3 className="text-gray-500 text-xs">
-                    {isShowingDay
-                      ? `Отзывы за ${dayNames[selectedDate.getDay()]}, ${selectedDate.getDate()}.${String(selectedDate.getMonth() + 1).padStart(2, '0')}`
-                      : 'Отзывы за неделю'
-                    }
-                  </h3>
-                  <div className="text-xl font-bold text-gray-900">
-                    {isShowingDay ? dayTotal : dashboardData.reviews.total}
-                  </div>
-                  {isShowingDay && (
-                    <div className="flex items-center gap-2 mt-1 text-xs">
-                      <span className="text-emerald-600">+{dayPositive}</span>
-                      <span className="text-amber-600">{dayGood}</span>
-                      <span className="text-red-600">-{dayNegative}</span>
-                    </div>
-                  )}
-                </div>
-                {isShowingDay && (
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedReviewDayIdx(null);
-                    }}
-                    className="text-xs text-amber-600 bg-amber-50 px-2 py-1 rounded-lg hover:bg-amber-100"
-                  >
-                    Сбросить
-                  </button>
-                )}
-              </div>
-            );
-          })()}
-
-          {/* Распределение отзывов - показываем только когда не выбран день */}
-          {selectedReviewDayIdx === null && (
-            <div className="space-y-1.5 text-xs mb-3">
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                  <span className="text-gray-500">Положительные</span>
-                </span>
-                <span className="font-medium text-emerald-600">{dashboardData.reviews.positive}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-                  <span className="text-gray-500">Хорошие</span>
-                </span>
-                <span className="font-medium text-amber-600">{dashboardData.reviews.good}</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                  <span className="text-gray-500">Отрицательные</span>
-                </span>
-                <span className="font-medium text-red-600">{dashboardData.reviews.negative}</span>
+          <div
+            className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
+            onClick={() => router.push('/app/analytics')}
+          >
+            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-blue-600" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-gray-500 text-xs">Оборот за 30 дней</h3>
+              <div className="text-xl font-bold text-gray-900">
+                {dashboardData.month.revenue.toLocaleString('ru-RU')} ₸
               </div>
             </div>
-          )}
+          </div>
 
-          {/* График отзывов за неделю */}
-          <div className="text-[10px] text-gray-400 mb-1">Динамика отзывов</div>
-          {(() => {
-            const positive = dashboardData.reviews.weeklyPositive;
-            const good = dashboardData.reviews.weeklyGood;
-            const negative = dashboardData.reviews.weeklyNegative;
-            const allData = [...positive, ...good, ...negative];
-            const maxVal = Math.max(...allData);
-            const minVal = 0;
-            const chartH = 80;
-            const pad = 8;
-            const pointsCount = positive.length;
-
-            const getY = (val: number) => {
-              const range = maxVal - minVal || 1;
-              const norm = (val - minVal) / range;
-              return pad + (1 - norm) * (chartH - pad * 2);
-            };
-
-            return (
-              <div>
-                <div className="relative h-[120px] lg:h-[160px]">
-                  <svg className="w-full h-full" viewBox="0 0 100 80" preserveAspectRatio="none">
-                    {/* Горизонтальные линии */}
-                    {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => (
-                      <line
-                        key={`grid-${i}`}
-                        x1="0"
-                        y1={pad + ratio * (chartH - pad * 2)}
-                        x2="100"
-                        y2={pad + ratio * (chartH - pad * 2)}
-                        stroke="#e5e7eb"
-                        strokeWidth="1"
-                        vectorEffect="non-scaling-stroke"
-                      />
-                    ))}
-                    {/* Линия отрицательных (красная) */}
-                    <polyline
-                      points={negative.map((val, i) => {
-                        const x = 2 + (i / (pointsCount - 1)) * 96;
-                        return `${x},${getY(val)}`;
-                      }).join(' ')}
-                      fill="none"
-                      stroke="#ef4444"
-                      strokeWidth="2"
-                      vectorEffect="non-scaling-stroke"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    {/* Линия хороших (янтарная) */}
-                    <polyline
-                      points={good.map((val, i) => {
-                        const x = 2 + (i / (pointsCount - 1)) * 96;
-                        return `${x},${getY(val)}`;
-                      }).join(' ')}
-                      fill="none"
-                      stroke="#f59e0b"
-                      strokeWidth="2"
-                      vectorEffect="non-scaling-stroke"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                    {/* Линия положительных (зелёная) */}
-                    <polyline
-                      points={positive.map((val, i) => {
-                        const x = 2 + (i / (pointsCount - 1)) * 96;
-                        return `${x},${getY(val)}`;
-                      }).join(' ')}
-                      fill="none"
-                      stroke="#10b981"
-                      strokeWidth="2"
-                      vectorEffect="non-scaling-stroke"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  {/* Точки положительных */}
-                  {positive.map((val, i) => {
-                    const xPercent = 2 + (i / (pointsCount - 1)) * 96;
-                    const y = getY(val);
-                    const isToday = i === pointsCount - 1;
-                    const isSelected = selectedReviewDayIdx === i;
-                    return (
-                      <div key={`pos-dot-${i}`}>
-                        {/* Невидимая область для клика */}
-                        <div
-                          className="absolute cursor-pointer z-10"
-                          style={{
-                            left: `${xPercent}%`,
-                            top: `${(y / 80) * 100}%`,
-                            transform: 'translate(-50%, -50%)',
-                            width: 24,
-                            height: 24,
-                          }}
-                          onClick={() => setSelectedReviewDayIdx(isSelected ? null : i)}
-                        />
-                        <div
-                          className="absolute transition-all pointer-events-none"
-                          style={{
-                            left: `${xPercent}%`,
-                            top: `${(y / 80) * 100}%`,
-                            transform: 'translate(-50%, -50%)',
-                            width: isSelected ? 9 : isToday ? 7 : 4,
-                            height: isSelected ? 9 : isToday ? 7 : 4,
-                            borderRadius: '50%',
-                            backgroundColor: isSelected ? '#047857' : '#10b981',
-                          }}
-                        />
-                        {/* Лейбл при выборе */}
-                        {isSelected && (
-                          <div
-                            className="absolute pointer-events-none text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1 rounded"
-                            style={{
-                              left: `${xPercent}%`,
-                              top: `${(y / 80) * 100 - 10}%`,
-                              transform: 'translate(-50%, -50%)',
-                            }}
-                          >
-                            +{val}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {/* Точки хороших */}
-                  {good.map((val, i) => {
-                    const xPercent = 2 + (i / (pointsCount - 1)) * 96;
-                    const y = getY(val);
-                    const isToday = i === pointsCount - 1;
-                    const isSelected = selectedReviewDayIdx === i;
-                    return (
-                      <div key={`good-dot-${i}`}>
-                        {/* Невидимая область для клика */}
-                        <div
-                          className="absolute cursor-pointer z-10"
-                          style={{
-                            left: `${xPercent}%`,
-                            top: `${(y / 80) * 100}%`,
-                            transform: 'translate(-50%, -50%)',
-                            width: 24,
-                            height: 24,
-                          }}
-                          onClick={() => setSelectedReviewDayIdx(isSelected ? null : i)}
-                        />
-                        <div
-                          className="absolute transition-all pointer-events-none"
-                          style={{
-                            left: `${xPercent}%`,
-                            top: `${(y / 80) * 100}%`,
-                            transform: 'translate(-50%, -50%)',
-                            width: isSelected ? 9 : isToday ? 7 : 4,
-                            height: isSelected ? 9 : isToday ? 7 : 4,
-                            borderRadius: '50%',
-                            backgroundColor: isSelected ? '#d97706' : '#f59e0b',
-                          }}
-                        />
-                        {/* Лейбл при выборе */}
-                        {isSelected && (
-                          <div
-                            className="absolute pointer-events-none text-[9px] font-semibold text-amber-700 bg-amber-50 px-1 rounded"
-                            style={{
-                              left: `${xPercent}%`,
-                              top: `${(y / 80) * 100 + 10}%`,
-                              transform: 'translate(-50%, -50%)',
-                            }}
-                          >
-                            {val}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                  {/* Точки отрицательных */}
-                  {negative.map((val, i) => {
-                    const xPercent = 2 + (i / (pointsCount - 1)) * 96;
-                    const y = getY(val);
-                    const isToday = i === pointsCount - 1;
-                    const isSelected = selectedReviewDayIdx === i;
-                    // Используем позицию хороших для размещения лейбла отрицательных
-                    const goodY = getY(good[i]);
-                    return (
-                      <div key={`neg-dot-${i}`}>
-                        {/* Невидимая область для клика */}
-                        <div
-                          className="absolute cursor-pointer z-10"
-                          style={{
-                            left: `${xPercent}%`,
-                            top: `${(y / 80) * 100}%`,
-                            transform: 'translate(-50%, -50%)',
-                            width: 24,
-                            height: 24,
-                          }}
-                          onClick={() => setSelectedReviewDayIdx(isSelected ? null : i)}
-                        />
-                        <div
-                          className="absolute transition-all pointer-events-none"
-                          style={{
-                            left: `${xPercent}%`,
-                            top: `${(y / 80) * 100}%`,
-                            transform: 'translate(-50%, -50%)',
-                            width: isSelected ? 9 : isToday ? 7 : 4,
-                            height: isSelected ? 9 : isToday ? 7 : 4,
-                            borderRadius: '50%',
-                            backgroundColor: isSelected ? '#b91c1c' : '#ef4444',
-                          }}
-                        />
-                        {/* Лейбл при выборе - под хорошими */}
-                        {isSelected && val > 0 && (
-                          <div
-                            className="absolute pointer-events-none text-[9px] font-semibold text-red-700 bg-red-50 px-1 rounded"
-                            style={{
-                              left: `${xPercent}%`,
-                              top: `${(goodY / 80) * 100 + 18}%`,
-                              transform: 'translate(-50%, -50%)',
-                            }}
-                          >
-                            -{val}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })}
-                </div>
-                {/* Подписи - кликабельные */}
-                <div className="flex justify-between mt-1" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
-                  {positive.map((posVal, idx) => {
-                    const total = posVal + good[idx] + negative[idx];
-                    const date = new Date();
-                    date.setDate(date.getDate() - (6 - idx));
-                    const isToday = idx === positive.length - 1;
-                    const isSelected = selectedReviewDayIdx === idx;
-                    return (
-                      <button
-                        key={idx}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setSelectedReviewDayIdx(isSelected ? null : idx);
-                        }}
-                        className={`flex flex-col items-center py-1 rounded-lg transition-all cursor-pointer ${
-                          isSelected
-                            ? 'bg-amber-100 shadow-sm px-1'
-                            : 'hover:bg-gray-100'
-                        }`}
-                      >
-                        <span className={`text-[9px] ${isSelected ? 'text-amber-700 font-semibold' : 'text-gray-600'}`}>{total}</span>
-                        <span className={`text-[10px] ${isSelected ? 'text-amber-700 font-semibold' : isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
-                          {date.getDate()}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500">Заказов</span>
+              <span className="font-medium text-gray-700">{dashboardData.month.orders}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500">Товаров продано</span>
+              <span className="font-medium text-gray-700">{dashboardData.month.productsSold}</span>
+            </div>
+            {dashboardData.month.orders > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-500">Средний чек</span>
+                <span className="font-medium text-gray-700">
+                  {Math.round(dashboardData.month.revenue / dashboardData.month.orders).toLocaleString('ru-RU')} ₸
+                </span>
               </div>
-            );
-          })()}
+            )}
+            <div className="flex items-center justify-between pt-1 border-t border-gray-100">
+              <span className="text-gray-500">Всего заказов в системе</span>
+              <span className="font-medium text-gray-700">{dashboardData.totals.orders}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-gray-500">Всего товаров</span>
+              <span className="font-medium text-gray-700">{dashboardData.totals.products}</span>
+            </div>
+          </div>
         </motion.div>
 
         {/* Топ товаров за неделю */}
@@ -1197,36 +890,38 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          {/* Список топ товаров */}
-          <div className="space-y-1.5 text-xs">
-            {dashboardData.topProducts.map((product, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-2"
-              >
-                <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                  index === 0 ? 'bg-amber-100 text-amber-700' :
-                  index === 1 ? 'bg-gray-200 text-gray-600' :
-                  index === 2 ? 'bg-orange-100 text-orange-700' :
-                  'bg-gray-100 text-gray-500'
-                }`}>
-                  {index + 1}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <span className="text-gray-700 truncate block">{product.name}</span>
-                </div>
-                <div className="text-right flex-shrink-0 flex items-center gap-2">
-                  <div className={`text-[10px] px-1.5 py-0.5 rounded min-w-[58px] text-center ${
-                    product.stock < 10 ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-500'
+          {topProducts.length > 0 ? (
+            <div className="space-y-1.5 text-xs">
+              {topProducts.map((product, index) => (
+                <div key={index} className="flex items-center gap-2">
+                  <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
+                    index === 0 ? 'bg-amber-100 text-amber-700' :
+                    index === 1 ? 'bg-gray-200 text-gray-600' :
+                    index === 2 ? 'bg-orange-100 text-orange-700' :
+                    'bg-gray-100 text-gray-500'
                   }`}>
-                    <span className="opacity-70">склад:</span> {product.stock}
+                    {index + 1}
                   </div>
-                  <span className="font-medium text-gray-900 min-w-[40px] text-right">{product.sold} шт</span>
-                  <span className="text-gray-400 min-w-[50px] text-right">· {(product.revenue / 1000000).toFixed(1)}M ₸</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-gray-700 truncate block">{product.name}</span>
+                  </div>
+                  <div className="text-right flex-shrink-0 flex items-center gap-2">
+                    <span className="font-medium text-gray-900 min-w-[40px] text-right">{product.sold} шт</span>
+                    <span className="text-gray-400 min-w-[50px] text-right">
+                      · {product.revenue >= 1000000
+                        ? `${(product.revenue / 1000000).toFixed(1)}M`
+                        : `${Math.round(product.revenue / 1000)}k`
+                      } ₸
+                    </span>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="text-center text-gray-400 text-sm py-4">
+              Нет данных о продажах
+            </div>
+          )}
         </motion.div>
       </motion.div>
 
