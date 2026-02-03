@@ -79,6 +79,10 @@ export default function KaspiSettingsPage() {
 
   const [syncHistory, setSyncHistory] = useState<SyncHistoryItem[]>([]);
 
+  // Диагностика API
+  const [debugData, setDebugData] = useState<any>(null);
+  const [debugLoading, setDebugLoading] = useState(false);
+
   const [syncSettings, setSyncSettings] = useState({
     autoSync: true,
     syncInterval: '30',
@@ -209,7 +213,7 @@ export default function KaspiSettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.id,
-          daysBack: 30
+          daysBack: 14
         })
       });
 
@@ -262,6 +266,22 @@ export default function KaspiSettingsPage() {
       }
     } catch (err) {
       console.error('Failed to disconnect:', err);
+    }
+  };
+
+  const handleDebugApi = async () => {
+    if (!user?.id) return;
+    setDebugLoading(true);
+    setDebugData(null);
+
+    try {
+      const response = await fetch(`/api/kaspi/debug?userId=${user.id}`);
+      const data = await response.json();
+      setDebugData(data);
+    } catch (err) {
+      setDebugData({ error: 'Ошибка запроса: ' + (err instanceof Error ? err.message : 'Unknown') });
+    } finally {
+      setDebugLoading(false);
     }
   };
 
@@ -846,6 +866,43 @@ export default function KaspiSettingsPage() {
               API ключ даёт только чтение данных.
             </p>
           </motion.div>
+
+          {/* API Debug - всегда видно */}
+          {user?.id && (
+            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Settings className="w-5 h-5 text-gray-400" />
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Диагностика API</h3>
+                </div>
+                <button
+                  onClick={handleDebugApi}
+                  disabled={debugLoading}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-xl text-sm font-medium hover:bg-blue-600 transition-colors cursor-pointer disabled:opacity-50"
+                >
+                  {debugLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Загрузка...
+                    </>
+                  ) : (
+                    'Выгрузить данные API'
+                  )}
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
+                Покажет сырые ответы Kaspi API: заказы, entries (товары), relationships
+              </p>
+
+              {debugData && (
+                <div className="mt-4 bg-gray-50 dark:bg-gray-900 rounded-xl p-4 overflow-auto max-h-[600px]">
+                  <pre className="text-xs text-gray-800 dark:text-gray-200 whitespace-pre-wrap break-words">
+                    {JSON.stringify(debugData, null, 2)}
+                  </pre>
+                </div>
+              )}
+            </motion.div>
+          )}
 
           {/* Sync History */}
           {status === 'connected' && syncHistory.length > 0 && (

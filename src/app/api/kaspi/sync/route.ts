@@ -6,7 +6,7 @@ import { createKaspiClient } from '@/lib/kaspi-api';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, daysBack = 30 } = body;
+    const { userId, daysBack = 14 } = body;
 
     if (!userId) {
       return NextResponse.json({
@@ -41,6 +41,15 @@ export async function POST(request: NextRequest) {
       size: 100
     });
 
+    // Загружаем entries для каждого заказа (Kaspi API требует отдельный запрос)
+    for (const order of orders) {
+      const entries = await kaspiClient.getOrderEntries(order.code);
+      order.entries = entries;
+    }
+
+    console.log('SYNC: orders loaded:', orders.length, ', first order entries:', orders[0]?.entries?.length || 0,
+      ', first entry name:', orders[0]?.entries?.[0]?.product?.name || 'N/A');
+
     // Статистика синхронизации
     let ordersCreated = 0;
     let ordersUpdated = 0;
@@ -73,13 +82,22 @@ export async function POST(request: NextRequest) {
         .eq('store_id', store.id)
         .single();
 
+      // Для завершённых заказов используем stateDate (время завершения), для остальных — plannedDeliveryDate
+      const isCompleted = order.state === 'ARCHIVE' || order.state === 'COMPLETED';
+      let deliveryDate: string | null = null;
+      if (isCompleted && order.stateDate) {
+        deliveryDate = new Date(parseInt(order.stateDate)).toISOString();
+      } else if (order.plannedDeliveryDate) {
+        deliveryDate = new Date(parseInt(order.plannedDeliveryDate)).toISOString().split('T')[0];
+      }
+
       const orderData = {
         store_id: store.id,
         kaspi_order_id: order.orderId,
         customer_name: `${order.customer.firstName} ${order.customer.lastName}`.trim(),
         customer_phone: order.customer.cellPhone,
         delivery_address: order.deliveryAddress?.formattedAddress || order.deliveryAddress?.address,
-        delivery_date: order.plannedDeliveryDate ? new Date(parseInt(order.plannedDeliveryDate)).toISOString().split('T')[0] : null,
+        delivery_date: deliveryDate,
         status: order.state.toLowerCase(),
         total_amount: order.totalPrice,
         items: order.entries.map(e => ({
@@ -89,7 +107,6 @@ export async function POST(request: NextRequest) {
           price: e.basePrice,
           total: e.totalPrice
         })),
-        updated_at: new Date().toISOString()
       };
 
       if (existingOrder) {
@@ -196,6 +213,7 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
+    console.error('SYNC error:', error);
     return NextResponse.json({
       success: false,
       message: error instanceof Error ? error.message : 'Неизвестная ошибка'

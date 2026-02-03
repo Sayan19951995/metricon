@@ -40,8 +40,7 @@ export async function POST(request: NextRequest) {
         .update({
           kaspi_api_key: apiKey,
           kaspi_merchant_id: merchantId,
-          name: storeName || existingStore.name,
-          updated_at: new Date().toISOString()
+          name: storeName || existingStore.name
         })
         .eq('id', existingStore.id);
 
@@ -120,7 +119,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    if (!store.kaspi_api_key || !store.kaspi_merchant_id) {
+    if (!store.kaspi_api_key?.trim() || !store.kaspi_merchant_id?.trim()) {
       return NextResponse.json({
         connected: false,
         store: {
@@ -156,8 +155,17 @@ export async function GET(request: NextRequest) {
 // DELETE - отключить Kaspi
 export async function DELETE(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId } = body;
+    const { searchParams } = new URL(request.url);
+    let userId = searchParams.get('userId');
+
+    if (!userId) {
+      try {
+        const body = await request.json();
+        userId = body.userId;
+      } catch {
+        // body parsing failed
+      }
+    }
 
     if (!userId) {
       return NextResponse.json({
@@ -166,16 +174,18 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
 
+    console.log('DELETE kaspi connect, userId:', userId);
+
     const { error } = await supabase
       .from('stores')
       .update({
-        kaspi_api_key: null,
-        kaspi_merchant_id: null,
-        updated_at: new Date().toISOString()
+        kaspi_api_key: '',
+        kaspi_merchant_id: ''
       })
       .eq('user_id', userId);
 
     if (error) {
+      console.error('DELETE error:', error);
       return NextResponse.json({
         success: false,
         message: `Ошибка отключения: ${error.message}`
@@ -188,6 +198,7 @@ export async function DELETE(request: NextRequest) {
     });
 
   } catch (error) {
+    console.error('DELETE catch error:', error);
     return NextResponse.json({
       success: false,
       message: error instanceof Error ? error.message : 'Неизвестная ошибка'

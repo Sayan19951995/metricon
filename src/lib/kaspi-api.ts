@@ -39,6 +39,11 @@ export class KaspiApiClient {
     return response.json();
   }
 
+  // Raw fetch - возвращает сырой JSON ответ без обработки
+  async fetchRaw(endpoint: string): Promise<any> {
+    return this.fetch<any>(endpoint);
+  }
+
   // Проверка подключения - получаем последние заказы
   async testConnection(): Promise<{ success: boolean; message: string; ordersCount?: number }> {
     try {
@@ -88,7 +93,7 @@ export class KaspiApiClient {
 
     const response = await this.fetch<any>(url);
 
-    // Преобразуем ответ Kaspi API в наш формат
+    // Преобразуем ответ Kaspi API в наш формат (без entries - они загружаются отдельно)
     const orders: KaspiOrder[] = (response.data || []).map((item: any) => ({
       code: item.id,
       orderId: item.attributes?.code || item.id,
@@ -111,17 +116,7 @@ export class KaspiApiClient {
         cellPhone: item.attributes?.customer?.cellPhone || '',
       },
       state: item.attributes?.state || 'NEW',
-      entries: (item.attributes?.entries || []).map((entry: any) => ({
-        quantity: entry.quantity || 1,
-        deliveryPointOfServiceId: entry.deliveryPointOfService?.id,
-        product: {
-          code: entry.product?.code || '',
-          name: entry.product?.name || '',
-          sku: entry.product?.sku || '',
-        },
-        totalPrice: entry.totalPrice || 0,
-        basePrice: entry.basePrice || 0,
-      })),
+      entries: [], // Загружаются отдельно через getOrderEntries
       signatureRequired: item.attributes?.signatureRequired || false,
       preOrder: item.attributes?.preOrder || false,
       kaspiDelivery: item.attributes?.kaspiDelivery,
@@ -132,6 +127,30 @@ export class KaspiApiClient {
       totalPages: response.meta?.pageCount || 1,
       totalElements: response.meta?.totalCount || orders.length,
     };
+  }
+
+  // Получить entries (товары) заказа - отдельный запрос по документации Kaspi API
+  // Kaspi API возвращает товар в entry.attributes.offer (не product!)
+  async getOrderEntries(orderId: string): Promise<any[]> {
+    try {
+      const response = await this.fetch<any>(`/orders/${orderId}/entries`);
+
+      return (response.data || []).map((entry: any) => ({
+        quantity: entry.attributes?.quantity || 1,
+        deliveryPointOfServiceId: entry.relationships?.deliveryPointOfService?.data?.id,
+        product: {
+          code: entry.relationships?.product?.data?.id || entry.attributes?.offer?.code || '',
+          name: entry.attributes?.offer?.name || '',
+          sku: entry.attributes?.offer?.code || '',
+        },
+        category: entry.attributes?.category?.title || '',
+        totalPrice: entry.attributes?.totalPrice || 0,
+        basePrice: entry.attributes?.basePrice || 0,
+      }));
+    } catch (err) {
+      console.error(`Failed to get entries for order ${orderId}:`, err);
+      return [];
+    }
   }
 
   // Получить детали заказа
@@ -164,17 +183,7 @@ export class KaspiApiClient {
           cellPhone: item.attributes?.customer?.cellPhone || '',
         },
         state: item.attributes?.state || 'NEW',
-        entries: (item.attributes?.entries || []).map((entry: any) => ({
-          quantity: entry.quantity || 1,
-          deliveryPointOfServiceId: entry.deliveryPointOfService?.id,
-          product: {
-            code: entry.product?.code || '',
-            name: entry.product?.name || '',
-            sku: entry.product?.sku || '',
-          },
-          totalPrice: entry.totalPrice || 0,
-          basePrice: entry.basePrice || 0,
-        })),
+        entries: await this.getOrderEntries(item.id),
         signatureRequired: item.attributes?.signatureRequired || false,
         preOrder: item.attributes?.preOrder || false,
         kaspiDelivery: item.attributes?.kaspiDelivery,

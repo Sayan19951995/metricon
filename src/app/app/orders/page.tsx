@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useRouter } from 'next/navigation';
 import {
@@ -17,113 +17,137 @@ import {
   ArrowRightLeft,
   Store,
   CheckCircle2,
-  ShoppingBag
+  ShoppingBag,
+  Loader2
 } from 'lucide-react';
+import { useUser } from '@/hooks/useUser';
+import { supabase } from '@/lib/supabase';
 
-type OrderStatus = 'my_delivery' | 'express' | 'pickup' | 'packing' | 'transfer' | 'offline' | 'transferred';
+type OrderStatus = 'new' | 'sign_required' | 'pickup' | 'delivery' | 'kaspi_delivery' | 'archive' | 'completed' | 'cancelled' | 'returned';
 type FilterStatus = 'all' | OrderStatus;
 type SortField = 'code' | 'customer' | 'date' | 'items' | 'total' | 'status';
 type SortDirection = 'asc' | 'desc';
 
+interface Order {
+  id: string;
+  code: string;
+  customer: string;
+  phone: string;
+  date: string;
+  time: string;
+  items: number;
+  itemsList: any[];
+  total: number;
+  status: OrderStatus;
+  delivery_address: string;
+  delivery_date: string;
+  completed_date: string;
+  completed_time: string;
+  payment: string;
+}
+
+// Маппинг статусов Kaspi на наши
+function mapKaspiStatus(status: string): OrderStatus {
+  const s = status.toLowerCase().replace(/\s+/g, '_');
+  if (s.includes('new') || s.includes('pending')) return 'new';
+  if (s.includes('sign')) return 'sign_required';
+  if (s.includes('pickup') || s.includes('self')) return 'pickup';
+  if (s.includes('kaspi_delivery') || s.includes('kaspi')) return 'kaspi_delivery';
+  if (s.includes('delivery') || s.includes('shipping')) return 'delivery';
+  if (s.includes('archive') || s.includes('completed') || s.includes('done')) return 'completed';
+  if (s.includes('cancel')) return 'cancelled';
+  if (s.includes('return')) return 'returned';
+  return s as OrderStatus;
+}
+
 export default function OrdersPage() {
   const router = useRouter();
+  const { user, store, loading: userLoading } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
-  const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Фиктивные данные заказов
-  const [orders] = useState([
-    {
-      id: 1,
-      code: 'ORD-2025-001',
-      customer: 'Алексей Иванов',
-      date: '14.01.2025',
-      time: '14:30',
-      items: 3,
-      total: 1287000,
-      status: 'my_delivery' as OrderStatus,
-      payment: 'kaspi',
-    },
-    {
-      id: 2,
-      code: 'ORD-2025-002',
-      customer: 'Мария Петрова',
-      date: '14.01.2025',
-      time: '12:15',
-      items: 1,
-      total: 549000,
-      status: 'express' as OrderStatus,
-      payment: 'kaspi',
-    },
-    {
-      id: 3,
-      code: 'ORD-2025-003',
-      customer: 'Дмитрий Сидоров',
-      date: '13.01.2025',
-      time: '18:45',
-      items: 2,
-      total: 838000,
-      status: 'pickup' as OrderStatus,
-      payment: 'kaspi',
-    },
-    {
-      id: 4,
-      code: 'ORD-2025-004',
-      customer: 'Анна Смирнова',
-      date: '13.01.2025',
-      time: '10:20',
-      items: 4,
-      total: 1456000,
-      status: 'packing' as OrderStatus,
-      payment: 'kaspi',
-    },
-    {
-      id: 5,
-      code: 'ORD-2025-005',
-      customer: 'Сергей Козлов',
-      date: '12.01.2025',
-      time: '16:30',
-      items: 1,
-      total: 149000,
-      status: 'transfer' as OrderStatus,
-      payment: 'kaspi',
-    },
-    {
-      id: 6,
-      code: 'ORD-2025-006',
-      customer: 'Елена Новикова',
-      date: '12.01.2025',
-      time: '11:00',
-      items: 2,
-      total: 728000,
-      status: 'offline' as OrderStatus,
-      payment: 'kaspi',
-    },
-    {
-      id: 7,
-      code: 'ORD-2025-007',
-      customer: 'Иван Петров',
-      date: '11.01.2025',
-      time: '09:15',
-      items: 1,
-      total: 325000,
-      status: 'transferred' as OrderStatus,
-      payment: 'kaspi',
-    },
-    {
-      id: 8,
-      code: 'ORD-2025-008',
-      customer: 'Ольга Сидорова',
-      date: '11.01.2025',
-      time: '15:45',
-      items: 2,
-      total: 890000,
-      status: 'my_delivery' as OrderStatus,
-      payment: 'kaspi',
-    },
-  ]);
+  useEffect(() => {
+    if (store?.id) {
+      loadOrders();
+    }
+  }, [store?.id]);
+
+  const loadOrders = async () => {
+    if (!store?.id) return;
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('orders')
+        .select('*')
+        .eq('store_id', store.id)
+        .order('created_at', { ascending: false })
+        .limit(200);
+
+      if (error) throw error;
+
+      const mapped = (data || []).map((o: any, idx: number) => {
+        const createdAt = new Date(o.created_at);
+        // items может быть строкой JSON, массивом или объектом
+        let itemsList: any[] = [];
+        try {
+          const raw = o.items;
+          if (Array.isArray(raw)) {
+            itemsList = raw;
+          } else if (typeof raw === 'string' && raw.trim()) {
+            const parsed = JSON.parse(raw);
+            itemsList = Array.isArray(parsed) ? parsed : [];
+          } else if (raw && typeof raw === 'object') {
+            // Если объект с числовыми ключами
+            itemsList = Object.values(raw);
+          }
+        } catch {
+          itemsList = [];
+        }
+        const itemsCount = itemsList.length > 0
+          ? itemsList.reduce((sum: number, i: any) => sum + (Number(i.quantity) || 1), 0)
+          : 1;
+
+        // Для завершённых заказов delivery_date содержит полный ISO timestamp (время выдачи)
+        const status = mapKaspiStatus(o.status || 'new');
+        let completedDate = '';
+        let completedTime = '';
+        if ((status === 'completed' || status === 'archive') && o.delivery_date && o.delivery_date.includes('T')) {
+          const completedAt = new Date(o.delivery_date);
+          completedDate = completedAt.toLocaleDateString('ru-RU');
+          completedTime = completedAt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        return {
+          id: o.id,
+          code: o.kaspi_order_id || o.id.slice(0, 8),
+          customer: o.customer_name || 'Не указан',
+          phone: o.customer_phone || '',
+          date: createdAt.toLocaleDateString('ru-RU'),
+          time: createdAt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+          items: itemsCount,
+          itemsList,
+          total: Number(o.total_amount) || 0,
+          status,
+          delivery_address: o.delivery_address || '',
+          delivery_date: o.delivery_date || '',
+          completed_date: completedDate,
+          completed_time: completedTime,
+          payment: 'kaspi',
+        };
+      });
+
+      setOrders(mapped);
+    } catch (err) {
+      console.error('Failed to load orders:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSort = (field: SortField) => {
     if (sortField === field) {
@@ -177,112 +201,68 @@ export default function OrdersPage() {
       return sortDirection === 'asc' ? comparison : -comparison;
     });
 
-  // Подсчёт заказов по статусам
-  const statusCounts = {
-    all: orders.length,
-    my_delivery: orders.filter(o => o.status === 'my_delivery').length,
-    express: orders.filter(o => o.status === 'express').length,
-    pickup: orders.filter(o => o.status === 'pickup').length,
-    packing: orders.filter(o => o.status === 'packing').length,
-    transfer: orders.filter(o => o.status === 'transfer').length,
-    offline: orders.filter(o => o.status === 'offline').length,
-    transferred: orders.filter(o => o.status === 'transferred').length,
+  const countByStatus = (status: FilterStatus) => {
+    if (status === 'all') return orders.length;
+    return orders.filter(o => o.status === status).length;
   };
 
-  // Подсчёт сумм по статусам
-  const statusTotals = {
-    all: orders.reduce((sum, o) => sum + o.total, 0),
-    my_delivery: orders.filter(o => o.status === 'my_delivery').reduce((sum, o) => sum + o.total, 0),
-    express: orders.filter(o => o.status === 'express').reduce((sum, o) => sum + o.total, 0),
-    pickup: orders.filter(o => o.status === 'pickup').reduce((sum, o) => sum + o.total, 0),
-    packing: orders.filter(o => o.status === 'packing').reduce((sum, o) => sum + o.total, 0),
-    transfer: orders.filter(o => o.status === 'transfer').reduce((sum, o) => sum + o.total, 0),
-    offline: orders.filter(o => o.status === 'offline').reduce((sum, o) => sum + o.total, 0),
-    transferred: orders.filter(o => o.status === 'transferred').reduce((sum, o) => sum + o.total, 0),
+  const totalByStatus = (status: FilterStatus) => {
+    if (status === 'all') return orders.reduce((sum, o) => sum + o.total, 0);
+    return orders.filter(o => o.status === status).reduce((sum, o) => sum + o.total, 0);
   };
 
   // Статистические карточки
   const statsCards = [
-    {
-      key: 'all' as const,
-      label: 'Всего заказов',
-      icon: ShoppingBag,
-      color: 'bg-gray-100',
-      iconColor: 'text-gray-600',
-      borderColor: 'border-gray-200'
-    },
-    {
-      key: 'my_delivery' as const,
-      label: 'Моя доставка',
-      icon: Truck,
-      color: 'bg-blue-50',
-      iconColor: 'text-blue-600',
-      borderColor: 'border-blue-200'
-    },
-    {
-      key: 'express' as const,
-      label: 'Экспресс',
-      icon: Zap,
-      color: 'bg-orange-50',
-      iconColor: 'text-orange-600',
-      borderColor: 'border-orange-200'
-    },
-    {
-      key: 'pickup' as const,
-      label: 'Самовывоз',
-      icon: MapPin,
-      color: 'bg-purple-50',
-      iconColor: 'text-purple-600',
-      borderColor: 'border-purple-200'
-    },
-    {
-      key: 'packing' as const,
-      label: 'Упаковка',
-      icon: Package,
-      color: 'bg-yellow-50',
-      iconColor: 'text-yellow-600',
-      borderColor: 'border-yellow-200'
-    },
-    {
-      key: 'transferred' as const,
-      label: 'Передан',
-      icon: CheckCircle2,
-      color: 'bg-emerald-50',
-      iconColor: 'text-emerald-600',
-      borderColor: 'border-emerald-200'
-    },
+    { key: 'all' as const, label: 'Все заказы', icon: ShoppingBag, color: 'bg-gray-100', iconColor: 'text-gray-600', borderColor: 'border-gray-200' },
+    { key: 'new' as const, label: 'Новые', icon: Zap, color: 'bg-orange-50', iconColor: 'text-orange-600', borderColor: 'border-orange-200' },
+    { key: 'delivery' as const, label: 'Доставка', icon: Truck, color: 'bg-blue-50', iconColor: 'text-blue-600', borderColor: 'border-blue-200' },
+    { key: 'kaspi_delivery' as const, label: 'Kaspi доставка', icon: Package, color: 'bg-yellow-50', iconColor: 'text-yellow-600', borderColor: 'border-yellow-200' },
+    { key: 'pickup' as const, label: 'Самовывоз', icon: MapPin, color: 'bg-purple-50', iconColor: 'text-purple-600', borderColor: 'border-purple-200' },
+    { key: 'completed' as const, label: 'Завершён', icon: CheckCircle2, color: 'bg-emerald-50', iconColor: 'text-emerald-600', borderColor: 'border-emerald-200' },
   ];
 
   const getStatusColor = (status: OrderStatus) => {
     switch (status) {
-      case 'my_delivery': return 'bg-blue-100 text-blue-700';
-      case 'express': return 'bg-orange-100 text-orange-700';
-      case 'pickup': return 'bg-purple-100 text-purple-700';
-      case 'packing': return 'bg-yellow-100 text-yellow-700';
-      case 'transfer': return 'bg-cyan-100 text-cyan-700';
-      case 'offline': return 'bg-gray-100 text-gray-700';
-      case 'transferred': return 'bg-emerald-100 text-emerald-700';
+      case 'new': return 'bg-orange-500 text-white';
+      case 'sign_required': return 'bg-yellow-500 text-white';
+      case 'pickup': return 'bg-purple-500 text-white';
+      case 'delivery': return 'bg-blue-500 text-white';
+      case 'kaspi_delivery': return 'bg-cyan-600 text-white';
+      case 'completed': case 'archive': return 'bg-emerald-500 text-white';
+      case 'cancelled': return 'bg-red-500 text-white';
+      case 'returned': return 'bg-gray-500 text-white';
+      default: return 'bg-gray-500 text-white';
     }
   };
 
   const getStatusText = (status: OrderStatus) => {
     switch (status) {
-      case 'my_delivery': return 'Моя доставка';
-      case 'express': return 'Экспресс';
+      case 'new': return 'Новый';
+      case 'sign_required': return 'Подписание';
       case 'pickup': return 'Самовывоз';
-      case 'packing': return 'Упаковка';
-      case 'transfer': return 'Передача';
-      case 'offline': return 'Оффлайн';
-      case 'transferred': return 'Передан';
+      case 'delivery': return 'Доставка';
+      case 'kaspi_delivery': return 'Kaspi доставка';
+      case 'completed': case 'archive': return 'Завершён';
+      case 'cancelled': return 'Отменён';
+      case 'returned': return 'Возврат';
+      default: return status;
     }
   };
+
+  if (userLoading || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+        <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="mb-6 lg:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold mb-2">Заказы</h1>
-        <p className="text-gray-500 text-sm">Управление заказами и доставкой</p>
+        <p className="text-gray-500 text-sm">Управление заказами и доставкой — {orders.length} заказов из Kaspi</p>
       </div>
 
       {/* Stats Cards */}
@@ -305,8 +285,8 @@ export default function OrdersPage() {
                 <span className="text-xs font-medium text-gray-600 truncate">{card.label}</span>
               </div>
               <div className="space-y-1">
-                <p className="text-lg sm:text-xl font-bold text-gray-900">{statusCounts[card.key]}</p>
-                <p className="text-xs text-gray-500">{statusTotals[card.key].toLocaleString()} ₸</p>
+                <p className="text-lg sm:text-xl font-bold text-gray-900">{countByStatus(card.key)}</p>
+                <p className="text-xs text-gray-500">{totalByStatus(card.key).toLocaleString()} ₸</p>
               </div>
             </motion.div>
           );
@@ -344,86 +324,26 @@ export default function OrdersPage() {
 
         {/* Status Filter Buttons */}
         <div className="flex gap-2 overflow-x-auto pt-4 pb-1">
-          <button
-            onClick={() => setFilterStatus('all')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              filterStatus === 'all'
-                ? 'bg-gray-900 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            Все <span className={`text-xs ${filterStatus === 'all' ? 'text-gray-300' : 'text-gray-400'}`}>{statusCounts.all}</span>
-          </button>
-          <button
-            onClick={() => setFilterStatus('my_delivery')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              filterStatus === 'my_delivery'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            Моя доставка <span className={`text-xs ${filterStatus === 'my_delivery' ? 'text-blue-200' : 'text-gray-400'}`}>{statusCounts.my_delivery}</span>
-          </button>
-          <button
-            onClick={() => setFilterStatus('express')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              filterStatus === 'express'
-                ? 'bg-orange-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            Экспресс <span className={`text-xs ${filterStatus === 'express' ? 'text-orange-200' : 'text-gray-400'}`}>{statusCounts.express}</span>
-          </button>
-          <button
-            onClick={() => setFilterStatus('pickup')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              filterStatus === 'pickup'
-                ? 'bg-purple-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            Самовывоз <span className={`text-xs ${filterStatus === 'pickup' ? 'text-purple-200' : 'text-gray-400'}`}>{statusCounts.pickup}</span>
-          </button>
-          <button
-            onClick={() => setFilterStatus('packing')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              filterStatus === 'packing'
-                ? 'bg-yellow-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            Упаковка <span className={`text-xs ${filterStatus === 'packing' ? 'text-yellow-200' : 'text-gray-400'}`}>{statusCounts.packing}</span>
-          </button>
-          <button
-            onClick={() => setFilterStatus('transfer')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              filterStatus === 'transfer'
-                ? 'bg-cyan-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            Передача <span className={`text-xs ${filterStatus === 'transfer' ? 'text-cyan-200' : 'text-gray-400'}`}>{statusCounts.transfer}</span>
-          </button>
-          <button
-            onClick={() => setFilterStatus('offline')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              filterStatus === 'offline'
-                ? 'bg-gray-700 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            Оффлайн <span className={`text-xs ${filterStatus === 'offline' ? 'text-gray-400' : 'text-gray-400'}`}>{statusCounts.offline}</span>
-          </button>
-          <button
-            onClick={() => setFilterStatus('transferred')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              filterStatus === 'transferred'
-                ? 'bg-emerald-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-            }`}
-          >
-            Передан <span className={`text-xs ${filterStatus === 'transferred' ? 'text-emerald-200' : 'text-gray-400'}`}>{statusCounts.transferred}</span>
-          </button>
+          {[
+            { key: 'all' as FilterStatus, label: 'Все', active: 'bg-gray-900 text-white', activeCount: 'text-gray-300' },
+            { key: 'new' as FilterStatus, label: 'Новые', active: 'bg-orange-500 text-white', activeCount: 'text-orange-200' },
+            { key: 'delivery' as FilterStatus, label: 'Доставка', active: 'bg-blue-500 text-white', activeCount: 'text-blue-200' },
+            { key: 'kaspi_delivery' as FilterStatus, label: 'Kaspi доставка', active: 'bg-cyan-500 text-white', activeCount: 'text-cyan-200' },
+            { key: 'pickup' as FilterStatus, label: 'Самовывоз', active: 'bg-purple-500 text-white', activeCount: 'text-purple-200' },
+            { key: 'sign_required' as FilterStatus, label: 'Подписание', active: 'bg-yellow-500 text-white', activeCount: 'text-yellow-200' },
+            { key: 'completed' as FilterStatus, label: 'Завершён', active: 'bg-emerald-500 text-white', activeCount: 'text-emerald-200' },
+            { key: 'cancelled' as FilterStatus, label: 'Отменён', active: 'bg-red-500 text-white', activeCount: 'text-red-200' },
+          ].map(btn => (
+            <button
+              key={btn.key}
+              onClick={() => setFilterStatus(btn.key)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
+                filterStatus === btn.key ? btn.active : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {btn.label} <span className={`text-xs ${filterStatus === btn.key ? btn.activeCount : 'text-gray-400'}`}>{countByStatus(btn.key)}</span>
+            </button>
+          ))}
         </div>
       </div>
 
@@ -440,17 +360,36 @@ export default function OrdersPage() {
           >
             <div className="flex items-start justify-between mb-2">
               <div>
-                <p className="font-semibold text-sm">{order.code}</p>
-                <p className="text-xs text-gray-500">{order.customer}</p>
+                <p className="text-xs font-bold text-gray-900">№ {order.code}</p>
+                <p className="text-sm text-gray-700 mt-0.5">{order.customer}</p>
                 <p className="text-xs text-gray-400 mt-1">{order.date} • {order.time}</p>
+                {order.completed_date && (
+                  <p className="text-xs text-emerald-600 mt-0.5">Выдан: {order.completed_date} • {order.completed_time}</p>
+                )}
               </div>
-              <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
+              <span className={`px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${getStatusColor(order.status)}`}>
                 {getStatusText(order.status)}
               </span>
             </div>
-            <div className="flex items-center justify-between text-sm pt-2 border-t border-gray-100">
-              <span className="text-gray-500">{order.items} шт.</span>
-              <span className="font-semibold">{order.total.toLocaleString()} ₸</span>
+            <div className="pt-2 border-t border-gray-100">
+              <div className="space-y-1.5 mb-2">
+                {order.itemsList.length > 0 ? order.itemsList.map((item: any, i: number) => (
+                  <div key={i}>
+                    <p className="text-xs text-gray-700 truncate">
+                      {item.product_name || 'Товар'} — {item.quantity || 1} шт.
+                    </p>
+                    <p className="text-[11px] text-gray-400">
+                      {Number(item.price || 0).toLocaleString()} ₸ / шт.
+                    </p>
+                  </div>
+                )) : (
+                  <p className="text-xs text-gray-500">{order.items} шт.</p>
+                )}
+              </div>
+              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                <span className="text-xs text-gray-500">Итого</span>
+                <span className="text-sm font-bold text-gray-900">{order.total.toLocaleString()} ₸</span>
+              </div>
             </div>
           </motion.div>
         ))}
@@ -536,25 +475,41 @@ export default function OrdersPage() {
                 className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
               >
                 <td className="py-4 px-6">
-                  <p className="font-semibold text-sm">{order.code}</p>
+                  <p className="font-semibold text-sm text-gray-900">{order.code}</p>
                 </td>
                 <td className="py-4 px-6">
-                  <p className="text-sm font-medium">{order.customer}</p>
+                  <p className="text-sm font-medium text-gray-900">{order.customer}</p>
                 </td>
                 <td className="py-4 px-6">
                   <div>
-                    <p className="text-sm">{order.date}</p>
+                    <p className="text-sm text-gray-900">{order.date}</p>
                     <p className="text-xs text-gray-500">{order.time}</p>
+                    {order.completed_date && (
+                      <p className="text-xs text-emerald-600 mt-0.5">Выдан: {order.completed_date} {order.completed_time}</p>
+                    )}
                   </div>
                 </td>
                 <td className="py-4 px-6">
-                  <span className="text-sm text-gray-600">{order.items} шт.</span>
+                  <div className="space-y-0.5">
+                    {order.itemsList.length > 0 ? order.itemsList.map((item: any, i: number) => (
+                      <p key={i} className="text-sm text-gray-700 truncate max-w-[250px]">
+                        {item.product_name || 'Товар'} — {item.quantity || 1} шт.
+                      </p>
+                    )) : (
+                      <span className="text-sm text-gray-700">{order.items} шт.</span>
+                    )}
+                  </div>
                 </td>
                 <td className="py-4 px-6">
-                  <span className="text-sm font-semibold">{order.total.toLocaleString()} ₸</span>
+                  <div>
+                    <span className="text-sm font-semibold text-gray-900">{order.total.toLocaleString()} ₸</span>
+                    {order.itemsList.length > 0 && order.itemsList[0]?.price > 0 && (
+                      <p className="text-xs text-gray-400">{Number(order.itemsList[0].price).toLocaleString()} ₸ / шт.</p>
+                    )}
+                  </div>
                 </td>
                 <td className="py-4 px-6">
-                  <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(order.status)}`}>
+                  <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${getStatusColor(order.status)}`}>
                     {getStatusText(order.status)}
                   </span>
                 </td>
@@ -600,8 +555,8 @@ export default function OrdersPage() {
             {/* Header */}
             <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
               <div>
-                <h2 className="text-2xl font-bold">Детали заказа</h2>
-                <p className="text-sm text-gray-500 mt-1">{selectedOrder.code}</p>
+                <h2 className="text-2xl font-bold text-gray-900">Детали заказа</h2>
+                <p className="text-sm text-gray-600 font-medium mt-1">№ {selectedOrder.code}</p>
               </div>
               <button
                 onClick={() => setSelectedOrder(null)}
@@ -616,7 +571,7 @@ export default function OrdersPage() {
               {/* Status Badge */}
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Статус заказа</span>
-                <span className={`px-4 py-2 rounded-full text-sm font-semibold ${getStatusColor(selectedOrder.status)}`}>
+                <span className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${getStatusColor(selectedOrder.status)}`}>
                   {getStatusText(selectedOrder.status)}
                 </span>
               </div>
@@ -626,7 +581,35 @@ export default function OrdersPage() {
                 <h3 className="font-semibold text-gray-900">Информация о клиенте</h3>
                 <div>
                   <p className="text-xs text-gray-500">Имя клиента</p>
-                  <p className="text-sm font-medium">{selectedOrder.customer}</p>
+                  <p className="text-sm font-medium text-gray-900">{selectedOrder.customer || 'Не указан'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Телефон</p>
+                  <p className="text-sm font-medium text-gray-900">{selectedOrder.phone || 'Не указан'}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">Адрес доставки</p>
+                  <p className="text-sm font-medium text-gray-900">{selectedOrder.delivery_address || 'Не указан'}</p>
+                </div>
+              </div>
+
+              {/* Order Items */}
+              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
+                <h3 className="font-semibold text-gray-900">Товары</h3>
+                <div className="space-y-2">
+                  {selectedOrder.itemsList && selectedOrder.itemsList.length > 0 ? (
+                    selectedOrder.itemsList.map((item: any, i: number) => (
+                      <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-gray-900">{item.product_name || 'Товар'}</p>
+                          <p className="text-xs text-gray-500">{item.quantity || 1} шт. x {Number(item.price || 0).toLocaleString()} ₸</p>
+                        </div>
+                        <p className="text-sm font-semibold text-gray-900">{Number(item.total || 0).toLocaleString()} ₸</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-gray-500">{selectedOrder.items} шт.</p>
+                  )}
                 </div>
               </div>
 
@@ -636,16 +619,27 @@ export default function OrdersPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <p className="text-xs text-gray-500">Дата заказа</p>
-                    <p className="text-sm font-medium">{selectedOrder.date}</p>
+                    <p className="text-sm font-medium text-gray-900">{selectedOrder.date}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Время заказа</p>
-                    <p className="text-sm font-medium">{selectedOrder.time}</p>
+                    <p className="text-sm font-medium text-gray-900">{selectedOrder.time}</p>
                   </div>
                   <div>
                     <p className="text-xs text-gray-500">Количество товаров</p>
-                    <p className="text-sm font-medium">{selectedOrder.items} шт.</p>
+                    <p className="text-sm font-medium text-gray-900">{selectedOrder.items} шт.</p>
                   </div>
+                  {selectedOrder.completed_date ? (
+                    <div>
+                      <p className="text-xs text-gray-500">Время выдачи</p>
+                      <p className="text-sm font-medium text-emerald-600">{selectedOrder.completed_date} • {selectedOrder.completed_time}</p>
+                    </div>
+                  ) : selectedOrder.delivery_date ? (
+                    <div>
+                      <p className="text-xs text-gray-500">Дата доставки</p>
+                      <p className="text-sm font-medium text-gray-900">{new Date(selectedOrder.delivery_date).toLocaleDateString('ru-RU')}</p>
+                    </div>
+                  ) : null}
                 </div>
               </div>
 
