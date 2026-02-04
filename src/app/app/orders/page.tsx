@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { supabase } from '@/lib/supabase';
+import { getCached, setCache } from '@/lib/cache';
 
 type OrderStatus = 'new' | 'sign_required' | 'pickup' | 'delivery' | 'kaspi_delivery' | 'archive' | 'completed' | 'cancelled' | 'returned';
 type FilterStatus = 'all' | OrderStatus;
@@ -87,15 +88,79 @@ export default function OrdersPage() {
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
 
+  const mapOrderData = (data: any[]): Order[] => {
+    const mapped = data.map((o: any) => {
+      const createdAt = new Date(o.created_at);
+      let itemsList: any[] = [];
+      try {
+        const raw = o.items;
+        if (Array.isArray(raw)) {
+          itemsList = raw;
+        } else if (typeof raw === 'string' && raw.trim()) {
+          const parsed = JSON.parse(raw);
+          itemsList = Array.isArray(parsed) ? parsed : [];
+        } else if (raw && typeof raw === 'object') {
+          itemsList = Object.values(raw);
+        }
+      } catch {
+        itemsList = [];
+      }
+      const itemsCount = itemsList.length > 0
+        ? itemsList.reduce((sum: number, i: any) => sum + (Number(i.quantity) || 1), 0)
+        : 1;
+
+      const status = mapKaspiStatus(o.status || 'new');
+      let completedDate = '';
+      let completedTime = '';
+      if ((status === 'completed' || status === 'archive') && o.delivery_date && o.delivery_date.includes('T')) {
+        const completedAt = new Date(o.delivery_date);
+        completedDate = completedAt.toLocaleDateString('ru-RU');
+        completedTime = completedAt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+      }
+
+      return {
+        id: o.id,
+        code: o.kaspi_order_id || o.id.slice(0, 8),
+        customer: o.customer_name || 'Не указан',
+        phone: o.customer_phone || '',
+        date: createdAt.toLocaleDateString('ru-RU'),
+        time: createdAt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
+        items: itemsCount,
+        itemsList,
+        total: Number(o.total_amount) || 0,
+        status,
+        rawStatus: (o.status || '').toLowerCase(),
+        delivery_address: o.delivery_address || '',
+        delivery_date: o.delivery_date || '',
+        completed_date: completedDate,
+        completed_time: completedTime,
+        payment: 'kaspi',
+      };
+    });
+
+    return mapped.filter(o =>
+      !['completed', 'archive', 'cancelled', 'returned'].includes(o.status)
+    );
+  };
+
   useEffect(() => {
     if (store?.id) {
+      const cacheKey = `orders_${store.id}`;
+      const cached = getCached<Order[]>(cacheKey);
+      if (cached) {
+        setOrders(cached);
+        setLoading(false);
+      }
       loadOrders();
     }
   }, [store?.id]);
 
   const loadOrders = async () => {
     if (!store?.id) return;
-    setLoading(true);
+    const cacheKey = `orders_${store.id}`;
+    const hasCached = getCached<Order[]>(cacheKey) !== null;
+    if (!hasCached) setLoading(true);
+
     try {
       const { data, error } = await supabase
         .from('orders')
@@ -106,63 +171,9 @@ export default function OrdersPage() {
 
       if (error) throw error;
 
-      const mapped = (data || []).map((o: any, idx: number) => {
-        const createdAt = new Date(o.created_at);
-        // items может быть строкой JSON, массивом или объектом
-        let itemsList: any[] = [];
-        try {
-          const raw = o.items;
-          if (Array.isArray(raw)) {
-            itemsList = raw;
-          } else if (typeof raw === 'string' && raw.trim()) {
-            const parsed = JSON.parse(raw);
-            itemsList = Array.isArray(parsed) ? parsed : [];
-          } else if (raw && typeof raw === 'object') {
-            // Если объект с числовыми ключами
-            itemsList = Object.values(raw);
-          }
-        } catch {
-          itemsList = [];
-        }
-        const itemsCount = itemsList.length > 0
-          ? itemsList.reduce((sum: number, i: any) => sum + (Number(i.quantity) || 1), 0)
-          : 1;
-
-        // Для завершённых заказов delivery_date содержит полный ISO timestamp (время выдачи)
-        const status = mapKaspiStatus(o.status || 'new');
-        let completedDate = '';
-        let completedTime = '';
-        if ((status === 'completed' || status === 'archive') && o.delivery_date && o.delivery_date.includes('T')) {
-          const completedAt = new Date(o.delivery_date);
-          completedDate = completedAt.toLocaleDateString('ru-RU');
-          completedTime = completedAt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
-        }
-
-        return {
-          id: o.id,
-          code: o.kaspi_order_id || o.id.slice(0, 8),
-          customer: o.customer_name || 'Не указан',
-          phone: o.customer_phone || '',
-          date: createdAt.toLocaleDateString('ru-RU'),
-          time: createdAt.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }),
-          items: itemsCount,
-          itemsList,
-          total: Number(o.total_amount) || 0,
-          status,
-          rawStatus: (o.status || '').toLowerCase(),
-          delivery_address: o.delivery_address || '',
-          delivery_date: o.delivery_date || '',
-          completed_date: completedDate,
-          completed_time: completedTime,
-          payment: 'kaspi',
-        };
-      });
-
-      // Показываем только активные заказы (не архив/завершённые/отменённые/возвраты)
-      const activeOnly = mapped.filter(o =>
-        !['completed', 'archive', 'cancelled', 'returned'].includes(o.status)
-      );
+      const activeOnly = mapOrderData(data || []);
       setOrders(activeOnly);
+      setCache(cacheKey, activeOnly);
     } catch (err) {
       console.error('Failed to load orders:', err);
     } finally {

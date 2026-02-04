@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
+import { getCached, setCache } from '@/lib/cache';
 
 interface User {
   id: string;
@@ -36,25 +37,29 @@ interface UserData {
   error: string | null;
 }
 
+const CACHE_KEY = 'user_data';
+
 export function useUser(): UserData {
+  const cached = getCached<{ user: User; store: Store | null; subscription: Subscription | null }>(CACHE_KEY);
+
   const [data, setData] = useState<UserData>({
-    user: null,
-    store: null,
-    subscription: null,
-    loading: true,
+    user: cached?.user || null,
+    store: cached?.store || null,
+    subscription: cached?.subscription || null,
+    loading: !cached,
     error: null
   });
 
   useEffect(() => {
     async function fetchUserData() {
       try {
-        // Получаем авторизованного пользователя из Supabase Auth
-        let authUser = (await supabase.auth.getUser()).data.user;
+        // getSession читает из localStorage — мгновенно, без сети
+        const { data: { session } } = await supabase.auth.getSession();
+        let authUser = session?.user ?? null;
 
-        // Fallback: getSession читает из localStorage без сетевого запроса
+        // Если нет сессии в localStorage — пробуем сеть
         if (!authUser) {
-          const { data: { session } } = await supabase.auth.getSession();
-          authUser = session?.user ?? null;
+          authUser = (await supabase.auth.getUser()).data.user;
         }
 
         if (!authUser) {
@@ -120,55 +125,41 @@ export function useUser(): UserData {
         }
 
         if (!user) {
-          // Fallback: используем данные из auth metadata (Google OAuth)
           const fallbackName = authUser.user_metadata?.full_name
             || authUser.user_metadata?.name
             || authUser.email?.split('@')[0]
             || 'Пользователь';
 
-          setData({
-            user: {
-              id: authUser.id,
-              email: authUser.email || '',
-              name: fallbackName,
-            },
+          const result = {
+            user: { id: authUser.id, email: authUser.email || '', name: fallbackName },
             store: null,
             subscription: null,
-            loading: false,
-            error: null
-          });
+          };
+          setCache(CACHE_KEY, result);
+          setData({ ...result, loading: false, error: null });
           return;
         }
 
-        // Получаем магазин пользователя
-        const { data: store, error: storeError } = await supabase
-          .from('stores')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
+        // Магазин и подписка — параллельно
+        const [storeResult, subResult] = await Promise.all([
+          supabase.from('stores').select('*').eq('user_id', user.id).single(),
+          supabase.from('subscriptions').select('*').eq('user_id', user.id).single()
+        ]);
 
-        if (storeError && storeError.code !== 'PGRST116') {
-          console.error('Store error:', storeError);
+        if (storeResult.error && storeResult.error.code !== 'PGRST116') {
+          console.error('Store error:', storeResult.error);
+        }
+        if (subResult.error && subResult.error.code !== 'PGRST116') {
+          console.error('Subscription error:', subResult.error);
         }
 
-        // Получаем подписку
-        const { data: subscription, error: subError } = await supabase
-          .from('subscriptions')
-          .select('*')
-          .eq('user_id', user.id)
-          .single();
-
-        if (subError && subError.code !== 'PGRST116') {
-          console.error('Subscription error:', subError);
-        }
-
-        setData({
+        const result = {
           user,
-          store: store || null,
-          subscription: subscription || null,
-          loading: false,
-          error: null
-        });
+          store: storeResult.data || null,
+          subscription: subResult.data || null,
+        };
+        setCache(CACHE_KEY, result);
+        setData({ ...result, loading: false, error: null });
 
       } catch (err) {
         console.error('useUser error:', err);

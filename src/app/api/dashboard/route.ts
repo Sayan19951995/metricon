@@ -117,10 +117,6 @@ export async function GET(request: NextRequest) {
     const currentWeekOrders: number[] = [];
     const prevWeekData: number[] = [];
 
-    // Поступления за неделю — берём из daily_stats (revenue по дням)
-    const weeklyPayments: number[] = [];
-    const weeklyCompletedCount: number[] = [];
-
     for (let i = 6; i >= 0; i--) {
       const date = new Date(now);
       date.setDate(date.getDate() - i);
@@ -130,16 +126,49 @@ export async function GET(request: NextRequest) {
       currentWeekData.push(stat?.revenue || 0);
       currentWeekOrders.push(stat?.orders_count || 0);
 
-      // Поступления = дневная выручка из daily_stats
-      weeklyPayments.push(stat?.revenue || 0);
-      weeklyCompletedCount.push(stat?.orders_count || 0);
-
       const prevDate = new Date(now);
       prevDate.setDate(prevDate.getDate() - i - 7);
       const prevDateStr = prevDate.toISOString().split('T')[0];
 
       const prevStat = (dailyStats || []).find(s => s.date === prevDateStr);
       prevWeekData.push(prevStat?.revenue || 0);
+    }
+
+    // === Поступления за неделю — по дате выдачи (completed_at) ===
+    const sevenDaysAgoDate = new Date(now);
+    sevenDaysAgoDate.setDate(sevenDaysAgoDate.getDate() - 7);
+
+    const { data: completedOrders } = await supabase
+      .from('orders')
+      .select('total_amount, completed_at, status')
+      .eq('store_id', store.id)
+      .not('completed_at', 'is', null)
+      .eq('status', 'completed')
+      .gte('completed_at', sevenDaysAgoDate.toISOString());
+
+    // Группируем по дате completed_at в UTC+5
+    const paymentsByDate = new Map<string, { revenue: number; count: number }>();
+    for (const order of (completedOrders || [])) {
+      const utcMs = new Date(order.completed_at).getTime();
+      const kzDate = new Date(utcMs + 5 * 3600000).toISOString().split('T')[0];
+      const existing = paymentsByDate.get(kzDate);
+      if (existing) {
+        existing.revenue += order.total_amount || 0;
+        existing.count += 1;
+      } else {
+        paymentsByDate.set(kzDate, { revenue: order.total_amount || 0, count: 1 });
+      }
+    }
+
+    const weeklyPayments: number[] = [];
+    const weeklyCompletedCount: number[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const date = new Date(now);
+      date.setDate(date.getDate() - i);
+      const dateStr = date.toISOString().split('T')[0];
+      const dayStat = paymentsByDate.get(dateStr);
+      weeklyPayments.push(dayStat?.revenue || 0);
+      weeklyCompletedCount.push(dayStat?.count || 0);
     }
 
     // === Топ товаров ===

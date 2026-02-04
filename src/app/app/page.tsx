@@ -22,6 +22,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { getCached, setCache } from '@/lib/cache';
 
 interface DashboardData {
   sales: {
@@ -95,9 +96,21 @@ export default function DashboardPage() {
       return;
     }
 
+    const cacheKey = `dashboard_${user.id}`;
+    const cached = getCached<{ data: DashboardData; kaspiConnected: boolean }>(cacheKey);
+
+    // Если есть кеш — показываем мгновенно без загрузки
+    if (cached) {
+      setDashboardData(cached.data);
+      setKaspiConnected(cached.kaspiConnected);
+      setDataLoading(false);
+    }
+
     async function fetchDashboard() {
       try {
-        setDataLoading(true);
+        if (!cached) {
+          setDataLoading(true);
+        }
         setDataError(null);
 
         // 1. Быстро загружаем из БД
@@ -105,7 +118,7 @@ export default function DashboardPage() {
         const json = await res.json();
 
         if (!json.success) {
-          setDataError(json.message);
+          if (!cached) setDataError(json.message);
           return;
         }
 
@@ -113,6 +126,7 @@ export default function DashboardPage() {
 
         if (json.data) {
           setDashboardData(json.data);
+          setCache(cacheKey, { data: json.data, kaspiConnected: json.kaspiConnected });
         }
 
         // 2. Фоновая синхронизация с Kaspi API
@@ -120,7 +134,7 @@ export default function DashboardPage() {
           backgroundSync();
         }
       } catch (err) {
-        setDataError(err instanceof Error ? err.message : 'Ошибка загрузки');
+        if (!cached) setDataError(err instanceof Error ? err.message : 'Ошибка загрузки');
       } finally {
         setDataLoading(false);
       }
@@ -142,6 +156,7 @@ export default function DashboardPage() {
           const json = await res.json();
           if (json.success && json.data) {
             setDashboardData(json.data);
+            setCache(cacheKey, { data: json.data, kaspiConnected: true });
           }
         }
       } catch {
