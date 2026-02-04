@@ -242,7 +242,7 @@ export default function OrdersPage() {
           comparison = a.customer.localeCompare(b.customer);
           break;
         case 'date':
-          comparison = b.id - a.id; // Newer orders have higher IDs
+          comparison = a.date.localeCompare(b.date) || a.time.localeCompare(b.time);
           break;
         case 'items':
           comparison = a.items - b.items;
