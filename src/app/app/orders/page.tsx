@@ -27,7 +27,7 @@ import { supabase } from '@/lib/supabase';
 import { getCached, setCache } from '@/lib/cache';
 
 type OrderStatus = 'new' | 'sign_required' | 'pickup' | 'delivery' | 'kaspi_delivery' | 'archive' | 'completed' | 'cancelled' | 'returned';
-type FilterStatus = 'all' | OrderStatus;
+type FilterStatus = 'all' | OrderStatus | 'preorder' | 'packing' | 'transfer' | 'transmitted';
 type SortField = 'code' | 'customer' | 'date' | 'items' | 'total' | 'status';
 type SortDirection = 'asc' | 'desc';
 
