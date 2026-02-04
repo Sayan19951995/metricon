@@ -116,6 +116,7 @@ export class KaspiApiClient {
         cellPhone: item.attributes?.customer?.cellPhone || '',
       },
       state: item.attributes?.state || 'NEW',
+      status: item.attributes?.status || item.attributes?.state || 'NEW',
       entries: [], // Загружаются отдельно через getOrderEntries
       signatureRequired: item.attributes?.signatureRequired || false,
       preOrder: item.attributes?.preOrder || false,
@@ -151,6 +152,28 @@ export class KaspiApiClient {
       console.error(`Failed to get entries for order ${orderId}:`, err);
       return [];
     }
+  }
+
+  // Получить ВСЕ заказы с пагинацией
+  async getAllOrders(params: {
+    state?: OrderState;
+    dateFrom?: number;
+    dateTo?: number;
+    pageSize?: number;
+  } = {}): Promise<{ orders: KaspiOrder[]; totalElements: number }> {
+    const { pageSize = 100, ...rest } = params;
+    let allOrders: KaspiOrder[] = [];
+    let page = 0;
+    let totalPages = 1;
+
+    while (page < totalPages) {
+      const result = await this.getOrders({ ...rest, page, size: pageSize });
+      allOrders = allOrders.concat(result.orders);
+      totalPages = result.totalPages;
+      page++;
+    }
+
+    return { orders: allOrders, totalElements: allOrders.length };
   }
 
   // Получить детали заказа
@@ -226,7 +249,7 @@ export class KaspiApiClient {
     const dateTo = Date.now();
     const dateFrom = dateTo - daysBack * 24 * 60 * 60 * 1000;
 
-    const { orders } = await this.getOrders({ dateFrom, dateTo, size: 100 });
+    const { orders } = await this.getAllOrders({ dateFrom, dateTo });
 
     const productsMap = new Map<string, KaspiProduct>();
 
@@ -256,7 +279,7 @@ export class KaspiApiClient {
     completedOrders: number;
     cancelledOrders: number;
   }> {
-    const { orders } = await this.getOrders({ dateFrom, dateTo, size: 100 });
+    const { orders } = await this.getAllOrders({ dateFrom, dateTo });
 
     let totalRevenue = 0;
     let newOrders = 0;

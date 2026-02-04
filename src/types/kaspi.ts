@@ -30,6 +30,7 @@ export interface KaspiOrder {
     cellPhone: string;
   };
   state: OrderState;
+  status?: string; // Финальный статус для ARCHIVE: COMPLETED, CANCELLED, RETURNED
   entries: OrderEntry[];
   signatureRequired: boolean;
   preOrder: boolean;
@@ -59,8 +60,12 @@ export interface OrderEntry {
 
 export type OrderState =
   | 'NEW'
+  | 'SIGN_REQUIRED'
   | 'ACCEPTED'
   | 'APPROVED_BY_BANK'
+  | 'PICKUP'
+  | 'DELIVERY'
+  | 'KASPI_DELIVERY'
   | 'COMPLETED'
   | 'CANCELLED'
   | 'CANCELLING'

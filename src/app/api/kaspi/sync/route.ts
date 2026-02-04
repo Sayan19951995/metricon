@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { createKaspiClient } from '@/lib/kaspi-api';
+import { OrderState, KaspiOrder } from '@/types/kaspi';
 
 // POST - синхронизировать данные из Kaspi в БД
 export async function POST(request: NextRequest) {
@@ -29,38 +30,68 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Получаем заказы из Kaspi
     const kaspiClient = createKaspiClient(store.kaspi_api_key, store.kaspi_merchant_id);
-
     const dateTo = Date.now();
     const dateFrom = dateTo - daysBack * 24 * 60 * 60 * 1000;
 
-    const { orders } = await kaspiClient.getOrders({
-      dateFrom,
-      dateTo,
-      size: 100
-    });
+    // === 1. Получаем ТОЛЬКО активные заказы по каждому статусу ===
+    const activeStates: OrderState[] = ['KASPI_DELIVERY', 'DELIVERY', 'NEW', 'SIGN_REQUIRED', 'PICKUP'];
+    const orders: KaspiOrder[] = [];
+    const existingIds = new Set<string>();
 
-    // Загружаем entries для каждого заказа (Kaspi API требует отдельный запрос)
+    for (const state of activeStates) {
+      try {
+        // Запрашиваем по статусу без фильтра по дате — получаем ВСЕ активные заказы
+        const { orders: stateOrders } = await kaspiClient.getAllOrders({
+          state,
+          pageSize: 100
+        });
+        for (const o of stateOrders) {
+          if (!existingIds.has(o.code)) {
+            orders.push(o);
+            existingIds.add(o.code);
+          }
+        }
+      } catch {
+        // Нет заказов в этом статусе
+      }
+    }
+
+    console.log(`SYNC: fetched ${orders.length} active orders`);
+
+    // Загружаем entries для активных заказов
     for (const order of orders) {
       const entries = await kaspiClient.getOrderEntries(order.code);
       order.entries = entries;
     }
 
-    console.log('SYNC: orders loaded:', orders.length, ', first order entries:', orders[0]?.entries?.length || 0,
-      ', first entry name:', orders[0]?.entries?.[0]?.product?.name || 'N/A');
+    // Логируем
+    const stateCounts: Record<string, number> = {};
+    for (const order of orders) {
+      stateCounts[order.state] = (stateCounts[order.state] || 0) + 1;
+    }
+    console.log('SYNC: active orders by state:', JSON.stringify(stateCounts));
 
-    // Статистика синхронизации
+    // Подстатусы KASPI_DELIVERY
+    const kdOrders = orders.filter(o => o.state === 'KASPI_DELIVERY');
+    const subStatusCounts: Record<string, number> = { preorder: 0, transmitted: 0, transfer: 0, packing: 0 };
+    for (const o of kdOrders) {
+      const sub = o.kaspiDelivery?.courierTransmissionDate ? 'transmitted'
+        : o.kaspiDelivery?.waybill ? 'transfer'
+        : o.preOrder ? 'preorder'
+        : 'packing';
+      subStatusCounts[sub]++;
+    }
+    console.log('SYNC KD sub-statuses:', JSON.stringify(subStatusCounts));
+
+    // === 2. Сохраняем активные заказы в БД ===
     let ordersCreated = 0;
     let ordersUpdated = 0;
     let productsCreated = 0;
-
-    // Собираем уникальные продукты
     const productsMap = new Map<string, any>();
 
-    // Сохраняем заказы в БД
     for (const order of orders) {
-      // Собираем продукты из заказа
+      // Собираем продукты
       for (const entry of order.entries) {
         if (!productsMap.has(entry.product.code)) {
           productsMap.set(entry.product.code, {
@@ -74,7 +105,6 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      // Проверяем существует ли заказ
       const { data: existingOrder } = await supabase
         .from('orders')
         .select('id')
@@ -82,12 +112,8 @@ export async function POST(request: NextRequest) {
         .eq('store_id', store.id)
         .single();
 
-      // Для завершённых заказов используем stateDate (время завершения), для остальных — plannedDeliveryDate
-      const isCompleted = order.state === 'ARCHIVE' || order.state === 'COMPLETED';
       let deliveryDate: string | null = null;
-      if (isCompleted && order.stateDate) {
-        deliveryDate = new Date(parseInt(order.stateDate)).toISOString();
-      } else if (order.plannedDeliveryDate) {
+      if (order.plannedDeliveryDate) {
         deliveryDate = new Date(parseInt(order.plannedDeliveryDate)).toISOString().split('T')[0];
       }
 
@@ -98,7 +124,16 @@ export async function POST(request: NextRequest) {
         customer_phone: order.customer.cellPhone,
         delivery_address: order.deliveryAddress?.formattedAddress || order.deliveryAddress?.address,
         delivery_date: deliveryDate,
-        status: order.state.toLowerCase(),
+        status: (() => {
+          const base = order.state.toLowerCase();
+          if (order.state === 'KASPI_DELIVERY') {
+            if (order.kaspiDelivery?.courierTransmissionDate) return 'kaspi_delivery_transmitted';
+            if (order.kaspiDelivery?.waybill) return 'kaspi_delivery_transfer';
+            if (order.preOrder) return 'kaspi_delivery_preorder';
+            return 'kaspi_delivery_packing';
+          }
+          return base;
+        })(),
         total_amount: order.totalPrice,
         items: order.entries.map(e => ({
           product_code: e.product.code,
@@ -110,25 +145,18 @@ export async function POST(request: NextRequest) {
       };
 
       if (existingOrder) {
-        // Обновляем существующий заказ
-        await supabase
-          .from('orders')
-          .update(orderData)
-          .eq('id', existingOrder.id);
+        await supabase.from('orders').update(orderData).eq('id', existingOrder.id);
         ordersUpdated++;
       } else {
-        // Создаём новый заказ
-        await supabase
-          .from('orders')
-          .insert({
-            ...orderData,
-            created_at: order.creationDate ? new Date(parseInt(order.creationDate)).toISOString() : new Date().toISOString()
-          });
+        await supabase.from('orders').insert({
+          ...orderData,
+          created_at: order.creationDate ? new Date(parseInt(order.creationDate)).toISOString() : new Date().toISOString()
+        });
         ordersCreated++;
       }
     }
 
-    // Сохраняем продукты в БД
+    // Сохраняем продукты
     for (const product of productsMap.values()) {
       const { data: existingProduct } = await supabase
         .from('products')
@@ -138,39 +166,139 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (!existingProduct) {
-        await supabase
-          .from('products')
-          .insert(product);
+        await supabase.from('products').insert(product);
         productsCreated++;
       }
     }
 
-    // Обновляем дневную статистику
-    const stats = await kaspiClient.getOrdersStatistics(dateFrom, dateTo);
+    // === 3. Отслеживание завершений и возвратов ===
+    // Получаем все архивные заказы из Kaspi за период
+    const allArchiveOrders: KaspiOrder[] = [];
+    const archiveIds = new Set<string>();
 
-    // Группируем заказы по дням
-    const dailyStats = new Map<string, {
-      revenue: number;
-      orders_count: number;
-      products_sold: number;
-    }>();
-
-    for (const order of orders) {
-      const date = order.creationDate
-        ? new Date(parseInt(order.creationDate)).toISOString().split('T')[0]
-        : new Date().toISOString().split('T')[0];
-
-      if (!dailyStats.has(date)) {
-        dailyStats.set(date, { revenue: 0, orders_count: 0, products_sold: 0 });
+    for (const state of ['ARCHIVE', 'COMPLETED'] as OrderState[]) {
+      try {
+        const { orders: stateOrders } = await kaspiClient.getAllOrders({
+          state,
+          dateFrom,
+          dateTo,
+          pageSize: 100
+        });
+        for (const o of stateOrders) {
+          if (!archiveIds.has(o.code)) {
+            allArchiveOrders.push(o);
+            archiveIds.add(o.code);
+          }
+        }
+      } catch {
+        // Нет заказов в этом статусе
       }
-
-      const stat = dailyStats.get(date)!;
-      stat.revenue += order.totalPrice;
-      stat.orders_count += 1;
-      stat.products_sold += order.entries.reduce((sum, e) => sum + e.quantity, 0);
     }
 
-    // Сохраняем дневную статистику
+    console.log(`SYNC: fetched ${allArchiveOrders.length} archive orders for completion tracking`);
+
+    // Для каждого архивного заказа проверяем в БД
+    let completionsDetected = 0;
+    let returnsDetected = 0;
+
+    for (const order of allArchiveOrders) {
+      const orderId = order.orderId;
+      const kaspiStatus = (order.state === 'ARCHIVE' || order.state === 'COMPLETED')
+        ? (order.status || order.state).toLowerCase()
+        : order.state.toLowerCase();
+
+      const { data: dbOrder } = await supabase
+        .from('orders')
+        .select('id, status, completed_at')
+        .eq('kaspi_order_id', orderId)
+        .eq('store_id', store.id)
+        .single();
+
+      if (!dbOrder) continue;
+
+      // Заказ выдан (COMPLETED) — ставим completed_at и статус
+      if (kaspiStatus === 'completed') {
+        const update: Record<string, any> = { status: 'completed' };
+        if (!dbOrder.completed_at) {
+          update.completed_at = new Date().toISOString();
+          completionsDetected++;
+        }
+        if (dbOrder.status !== 'completed') {
+          await supabase.from('orders').update(update).eq('id', dbOrder.id);
+        }
+      }
+
+      // Заказ был выдан, но потом возвращён — обновляем статус, НЕ трогаем completed_at
+      if (kaspiStatus === 'returned' && dbOrder.status !== 'returned') {
+        const update: Record<string, any> = { status: 'returned' };
+        // Если заказ был выдан до возврата, но completed_at не было — ставим сейчас
+        if (!dbOrder.completed_at) {
+          update.completed_at = new Date().toISOString();
+        }
+        await supabase.from('orders').update(update).eq('id', dbOrder.id);
+        returnsDetected++;
+      }
+
+      // Отменённый заказ
+      if (kaspiStatus === 'cancelled' && dbOrder.status !== 'cancelled') {
+        await supabase.from('orders').update({
+          status: 'cancelled'
+        }).eq('id', dbOrder.id);
+      }
+    }
+
+    console.log(`SYNC: completions=${completionsDetected}, returns=${returnsDetected}`);
+
+    // === 4. Пересчитываем daily_stats по дате СОЗДАНИЯ из Kaspi (исключая отменённые/возвращённые) ===
+    // completed_at tracking работает параллельно для будущего переключения на дату выдачи
+    const allStatsOrders: KaspiOrder[] = [];
+    const statsIds = new Set<string>();
+    const allStates: OrderState[] = [
+      'ARCHIVE', 'COMPLETED', 'CANCELLED', 'RETURNED',
+      'KASPI_DELIVERY', 'DELIVERY', 'NEW', 'SIGN_REQUIRED', 'PICKUP'
+    ];
+
+    for (const state of allStates) {
+      try {
+        const { orders: stateOrders } = await kaspiClient.getAllOrders({
+          state,
+          dateFrom,
+          dateTo,
+          pageSize: 100
+        });
+        for (const o of stateOrders) {
+          if (!statsIds.has(o.code)) {
+            allStatsOrders.push(o);
+            statsIds.add(o.code);
+          }
+        }
+      } catch {
+        // Нет заказов в этом статусе
+      }
+    }
+
+    console.log(`SYNC: fetched ${allStatsOrders.length} orders for daily_stats`);
+
+    const dailyStats = new Map<string, { revenue: number; orders_count: number }>();
+
+    for (const order of allStatsOrders) {
+      // Пропускаем отменённые и возвращённые
+      const orderStatus = (order.status || order.state || '').toUpperCase();
+      if (orderStatus === 'CANCELLED' || orderStatus === 'RETURNED') continue;
+
+      // Дата создания в UTC+5
+      const utcMs = order.creationDate ? parseInt(order.creationDate) : Date.now();
+      const kzDate = new Date(utcMs + 5 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+      if (!dailyStats.has(kzDate)) {
+        dailyStats.set(kzDate, { revenue: 0, orders_count: 0 });
+      }
+      const stat = dailyStats.get(kzDate)!;
+      stat.revenue += order.totalPrice;
+      stat.orders_count += 1;
+    }
+
+    // Сохраняем daily_stats
     for (const [date, stat] of dailyStats) {
       const { data: existingStat } = await supabase
         .from('daily_stats')
@@ -180,24 +308,17 @@ export async function POST(request: NextRequest) {
         .single();
 
       if (existingStat) {
-        await supabase
-          .from('daily_stats')
-          .update({
-            revenue: stat.revenue,
-            orders_count: stat.orders_count,
-            products_sold: stat.products_sold
-          })
-          .eq('id', existingStat.id);
+        await supabase.from('daily_stats').update({
+          revenue: stat.revenue,
+          orders_count: stat.orders_count
+        }).eq('id', existingStat.id);
       } else {
-        await supabase
-          .from('daily_stats')
-          .insert({
-            store_id: store.id,
-            date,
-            revenue: stat.revenue,
-            orders_count: stat.orders_count,
-            products_sold: stat.products_sold
-          });
+        await supabase.from('daily_stats').insert({
+          store_id: store.id,
+          date,
+          revenue: stat.revenue,
+          orders_count: stat.orders_count
+        });
       }
     }
 
@@ -234,7 +355,6 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Получаем магазин пользователя
     const { data: store, error: storeError } = await supabase
       .from('stores')
       .select('*')
@@ -248,7 +368,6 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Получаем статистику за последние 30 дней
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
@@ -259,7 +378,6 @@ export async function GET(request: NextRequest) {
       .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
       .order('date', { ascending: true });
 
-    // Получаем количество товаров и заказов
     const { count: ordersCount } = await supabase
       .from('orders')
       .select('*', { count: 'exact', head: true })
@@ -270,7 +388,6 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .eq('store_id', store.id);
 
-    // Считаем общую выручку
     const totalRevenue = (dailyStats || []).reduce((sum, day) => sum + (day.revenue || 0), 0);
 
     return NextResponse.json({

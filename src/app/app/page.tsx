@@ -18,7 +18,8 @@ import {
   HelpCircle,
   Trophy,
   AlertCircle,
-  Settings
+  Settings,
+  RefreshCw
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 
@@ -83,8 +84,9 @@ export default function DashboardPage() {
   const [kaspiConnected, setKaspiConnected] = useState(false);
   const [dataLoading, setDataLoading] = useState(true);
   const [dataError, setDataError] = useState<string | null>(null);
+  const [syncing, setSyncing] = useState(false);
 
-  // Загрузка данных дашборда
+  // Загрузка данных из БД + фоновая синхронизация с Kaspi API
   useEffect(() => {
     if (userLoading) return;
 
@@ -98,6 +100,7 @@ export default function DashboardPage() {
         setDataLoading(true);
         setDataError(null);
 
+        // 1. Быстро загружаем из БД
         const res = await fetch(`/api/dashboard?userId=${user!.id}`);
         const json = await res.json();
 
@@ -111,10 +114,40 @@ export default function DashboardPage() {
         if (json.data) {
           setDashboardData(json.data);
         }
+
+        // 2. Фоновая синхронизация с Kaspi API
+        if (json.kaspiConnected) {
+          backgroundSync();
+        }
       } catch (err) {
         setDataError(err instanceof Error ? err.message : 'Ошибка загрузки');
       } finally {
         setDataLoading(false);
+      }
+    }
+
+    async function backgroundSync() {
+      try {
+        setSyncing(true);
+        const syncRes = await fetch('/api/kaspi/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userId: user!.id, daysBack: 14 })
+        });
+        const syncJson = await syncRes.json();
+
+        if (syncJson.success) {
+          // Синк завершён — перезагружаем данные из БД
+          const res = await fetch(`/api/dashboard?userId=${user!.id}`);
+          const json = await res.json();
+          if (json.success && json.data) {
+            setDashboardData(json.data);
+          }
+        }
+      } catch {
+        // Фоновая синхронизация не критична
+      } finally {
+        setSyncing(false);
       }
     }
 
@@ -418,7 +451,15 @@ export default function DashboardPage() {
       <div className="flex justify-between items-start gap-4 mb-6 lg:mb-8">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Дашборд</h1>
-          <p className="text-gray-500 mt-1 text-sm sm:text-base">Обзор ключевых показателей магазина</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-gray-500 text-sm sm:text-base">Обзор ключевых показателей магазина</p>
+            {syncing && (
+              <span className="inline-flex items-center gap-1 text-xs text-blue-500">
+                <RefreshCw className="w-3 h-3 animate-spin" />
+                Обновление...
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="flex items-center gap-2 sm:gap-4 relative shrink-0">

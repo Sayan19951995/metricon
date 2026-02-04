@@ -18,7 +18,9 @@ import {
   Store,
   CheckCircle2,
   ShoppingBag,
-  Loader2
+  Loader2,
+  RefreshCw,
+  Info
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { supabase } from '@/lib/supabase';
@@ -39,6 +41,7 @@ interface Order {
   itemsList: any[];
   total: number;
   status: OrderStatus;
+  rawStatus: string;
   delivery_address: string;
   delivery_date: string;
   completed_date: string;
@@ -47,17 +50,29 @@ interface Order {
 }
 
 // Маппинг статусов Kaspi на наши
+// state: NEW, SIGN_REQUIRED, PICKUP, DELIVERY, KASPI_DELIVERY, ARCHIVE, RETURNED, CANCELLED
+// status (API): APPROVED_BY_BANK, ACCEPTED_BY_MERCHANT, COMPLETED, CANCELLED, RETURNED
 function mapKaspiStatus(status: string): OrderStatus {
   const s = status.toLowerCase().replace(/\s+/g, '_');
-  if (s.includes('new') || s.includes('pending')) return 'new';
+  // Точные совпадения state
+  if (s === 'new' || s === 'approved_by_bank') return 'new';
+  if (s === 'sign_required') return 'sign_required';
+  if (s === 'pickup') return 'pickup';
+  if (s === 'kaspi_delivery') return 'kaspi_delivery';
+  if (s === 'delivery') return 'delivery';
+  if (s === 'archive' || s === 'completed') return 'completed';
+  if (s === 'cancelled' || s === 'cancelling') return 'cancelled';
+  if (s === 'returned') return 'returned';
+  // Совпадения по вхождению для обратной совместимости
+  if (s.includes('kaspi_delivery')) return 'kaspi_delivery';
+  if (s.includes('accepted_by_merchant') || s.includes('accepted')) return 'kaspi_delivery';
   if (s.includes('sign')) return 'sign_required';
-  if (s.includes('pickup') || s.includes('self')) return 'pickup';
-  if (s.includes('kaspi_delivery') || s.includes('kaspi')) return 'kaspi_delivery';
-  if (s.includes('delivery') || s.includes('shipping')) return 'delivery';
-  if (s.includes('archive') || s.includes('completed') || s.includes('done')) return 'completed';
+  if (s.includes('delivery')) return 'delivery';
+  if (s.includes('archive') || s.includes('completed')) return 'completed';
   if (s.includes('cancel')) return 'cancelled';
   if (s.includes('return')) return 'returned';
-  return s as OrderStatus;
+  if (s.includes('new') || s.includes('pending') || s.includes('approved')) return 'new';
+  return 'new';
 }
 
 export default function OrdersPage() {
@@ -70,6 +85,7 @@ export default function OrdersPage() {
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
+  const [syncing, setSyncing] = useState(false);
 
   useEffect(() => {
     if (store?.id) {
@@ -133,6 +149,7 @@ export default function OrdersPage() {
           itemsList,
           total: Number(o.total_amount) || 0,
           status,
+          rawStatus: (o.status || '').toLowerCase(),
           delivery_address: o.delivery_address || '',
           delivery_date: o.delivery_date || '',
           completed_date: completedDate,
@@ -141,11 +158,35 @@ export default function OrdersPage() {
         };
       });
 
-      setOrders(mapped);
+      // Показываем только активные заказы (не архив/завершённые/отменённые/возвраты)
+      const activeOnly = mapped.filter(o =>
+        !['completed', 'archive', 'cancelled', 'returned'].includes(o.status)
+      );
+      setOrders(activeOnly);
     } catch (err) {
       console.error('Failed to load orders:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSync = async () => {
+    if (!user?.id || syncing) return;
+    setSyncing(true);
+    try {
+      const response = await fetch('/api/kaspi/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, daysBack: 14 })
+      });
+      const data = await response.json();
+      if (data.success) {
+        await loadOrders();
+      }
+    } catch (err) {
+      console.error('Sync failed:', err);
+    } finally {
+      setSyncing(false);
     }
   };
 
@@ -171,7 +212,12 @@ export default function OrdersPage() {
     .filter(o => {
       const matchesSearch = o.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            o.customer.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesStatus = filterStatus === 'all' || o.status === filterStatus;
+      const matchesStatus = filterStatus === 'all'
+        || (filterStatus as any) === 'preorder' && o.rawStatus.includes('preorder')
+        || (filterStatus as any) === 'packing' && (o.rawStatus.includes('packing') || o.rawStatus === 'kaspi_delivery')
+        || (filterStatus as any) === 'transfer' && o.rawStatus === 'kaspi_delivery_transfer'
+        || (filterStatus as any) === 'transmitted' && o.rawStatus.includes('transmitted')
+        || !['preorder', 'packing', 'transfer', 'transmitted'].includes(filterStatus as any) && o.status === filterStatus;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -201,24 +247,35 @@ export default function OrdersPage() {
       return sortDirection === 'asc' ? comparison : -comparison;
     });
 
-  const countByStatus = (status: FilterStatus) => {
+  const countByStatus = (status: FilterStatus | 'preorder' | 'packing' | 'transfer' | 'transmitted') => {
     if (status === 'all') return orders.length;
+    if (status === 'preorder') return orders.filter(o => o.rawStatus.includes('preorder')).length;
+    if (status === 'packing') return orders.filter(o => o.rawStatus.includes('packing') || o.rawStatus === 'kaspi_delivery').length;
+    if (status === 'transfer') return orders.filter(o => o.rawStatus === 'kaspi_delivery_transfer').length;
+    if (status === 'transmitted') return orders.filter(o => o.rawStatus.includes('transmitted')).length;
     return orders.filter(o => o.status === status).length;
   };
 
-  const totalByStatus = (status: FilterStatus) => {
+  const totalByStatus = (status: FilterStatus | 'preorder' | 'packing' | 'transfer' | 'transmitted') => {
     if (status === 'all') return orders.reduce((sum, o) => sum + o.total, 0);
+    if (status === 'preorder') return orders.filter(o => o.rawStatus.includes('preorder')).reduce((sum, o) => sum + o.total, 0);
+    if (status === 'packing') return orders.filter(o => o.rawStatus.includes('packing') || o.rawStatus === 'kaspi_delivery').reduce((sum, o) => sum + o.total, 0);
+    if (status === 'transfer') return orders.filter(o => o.rawStatus === 'kaspi_delivery_transfer').reduce((sum, o) => sum + o.total, 0);
+    if (status === 'transmitted') return orders.filter(o => o.rawStatus.includes('transmitted')).reduce((sum, o) => sum + o.total, 0);
     return orders.filter(o => o.status === status).reduce((sum, o) => sum + o.total, 0);
   };
 
-  // Статистические карточки
+  // Статистические карточки — все статусы из Kaspi API (state)
   const statsCards = [
     { key: 'all' as const, label: 'Все заказы', icon: ShoppingBag, color: 'bg-gray-100', iconColor: 'text-gray-600', borderColor: 'border-gray-200' },
     { key: 'new' as const, label: 'Новые', icon: Zap, color: 'bg-orange-50', iconColor: 'text-orange-600', borderColor: 'border-orange-200' },
-    { key: 'delivery' as const, label: 'Доставка', icon: Truck, color: 'bg-blue-50', iconColor: 'text-blue-600', borderColor: 'border-blue-200' },
-    { key: 'kaspi_delivery' as const, label: 'Kaspi доставка', icon: Package, color: 'bg-yellow-50', iconColor: 'text-yellow-600', borderColor: 'border-yellow-200' },
+    { key: 'sign_required' as const, label: 'Подписание', icon: ArrowRightLeft, color: 'bg-yellow-50', iconColor: 'text-yellow-600', borderColor: 'border-yellow-200' },
     { key: 'pickup' as const, label: 'Самовывоз', icon: MapPin, color: 'bg-purple-50', iconColor: 'text-purple-600', borderColor: 'border-purple-200' },
-    { key: 'completed' as const, label: 'Завершён', icon: CheckCircle2, color: 'bg-emerald-50', iconColor: 'text-emerald-600', borderColor: 'border-emerald-200' },
+    { key: 'delivery' as const, label: 'Моя доставка', icon: Truck, color: 'bg-blue-50', iconColor: 'text-blue-600', borderColor: 'border-blue-200' },
+    { key: 'preorder' as const, label: 'Предзаказ', icon: Loader2, color: 'bg-amber-50', iconColor: 'text-amber-600', borderColor: 'border-amber-200' },
+    { key: 'packing' as const, label: 'Упаковка', icon: Package, color: 'bg-indigo-50', iconColor: 'text-indigo-600', borderColor: 'border-indigo-200' },
+    { key: 'transfer' as const, label: 'Передача', icon: ArrowRightLeft, color: 'bg-teal-50', iconColor: 'text-teal-600', borderColor: 'border-teal-200' },
+    { key: 'transmitted' as const, label: 'Переданы на доставку', icon: Truck, color: 'bg-sky-50', iconColor: 'text-sky-600', borderColor: 'border-sky-200' },
   ];
 
   const getStatusColor = (status: OrderStatus) => {
@@ -235,13 +292,20 @@ export default function OrdersPage() {
     }
   };
 
-  const getStatusText = (status: OrderStatus) => {
+  const getStatusText = (status: OrderStatus, rawStatus?: string) => {
+    // Детальные подстатусы Kaspi Доставки
+    if (status === 'kaspi_delivery' && rawStatus) {
+      if (rawStatus.includes('preorder')) return 'Предзаказ';
+      if (rawStatus.includes('transmitted')) return 'Переданы на доставку';
+      if (rawStatus.includes('transfer')) return 'Передача';
+      if (rawStatus.includes('packing')) return 'Упаковка';
+    }
     switch (status) {
       case 'new': return 'Новый';
       case 'sign_required': return 'Подписание';
       case 'pickup': return 'Самовывоз';
-      case 'delivery': return 'Доставка';
-      case 'kaspi_delivery': return 'Kaspi доставка';
+      case 'delivery': return 'Моя доставка';
+      case 'kaspi_delivery': return 'Упаковка';
       case 'completed': case 'archive': return 'Завершён';
       case 'cancelled': return 'Отменён';
       case 'returned': return 'Возврат';
@@ -265,9 +329,15 @@ export default function OrdersPage() {
         <p className="text-gray-500 text-sm">Управление заказами и доставкой — {orders.length} заказов из Kaspi</p>
       </div>
 
+      {/* Sync Delay Notice */}
+      <div className="mb-4 sm:mb-6 bg-blue-50 border border-blue-100 rounded-xl p-3 sm:p-4 flex items-center gap-3">
+        <Info className="w-4 h-4 text-blue-400 shrink-0" />
+        <p className="text-xs text-blue-600">Данные из Kaspi API обновляются с задержкой до 2 часов. Если заказ не отображается — повторите синхронизацию позже.</p>
+      </div>
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4 mb-4 sm:mb-6">
-        {statsCards.map((card, index) => {
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4 mb-4 sm:mb-6">
+        {statsCards.filter(card => card.key === 'all' || countByStatus(card.key) > 0).map((card, index) => {
           const Icon = card.icon;
           return (
             <motion.div
@@ -313,13 +383,23 @@ export default function OrdersPage() {
             </div>
           </div>
 
-          {/* Add Button */}
-          <button
-            onClick={() => router.push('/app/orders/add')}
-            className="px-4 sm:px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0"
-          >
-            + Добавить
-          </button>
+          {/* Sync & Add Buttons */}
+          <div className="flex gap-2 shrink-0">
+            <button
+              onClick={handleSync}
+              disabled={syncing}
+              className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-2 disabled:opacity-50"
+            >
+              <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Синхр...' : 'Обновить'}
+            </button>
+            <button
+              onClick={() => router.push('/app/orders/add')}
+              className="px-4 sm:px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            >
+              + Добавить
+            </button>
+          </div>
         </div>
 
         {/* Status Filter Buttons */}
@@ -327,12 +407,13 @@ export default function OrdersPage() {
           {[
             { key: 'all' as FilterStatus, label: 'Все', active: 'bg-gray-900 text-white', activeCount: 'text-gray-300' },
             { key: 'new' as FilterStatus, label: 'Новые', active: 'bg-orange-500 text-white', activeCount: 'text-orange-200' },
-            { key: 'delivery' as FilterStatus, label: 'Доставка', active: 'bg-blue-500 text-white', activeCount: 'text-blue-200' },
-            { key: 'kaspi_delivery' as FilterStatus, label: 'Kaspi доставка', active: 'bg-cyan-500 text-white', activeCount: 'text-cyan-200' },
-            { key: 'pickup' as FilterStatus, label: 'Самовывоз', active: 'bg-purple-500 text-white', activeCount: 'text-purple-200' },
             { key: 'sign_required' as FilterStatus, label: 'Подписание', active: 'bg-yellow-500 text-white', activeCount: 'text-yellow-200' },
-            { key: 'completed' as FilterStatus, label: 'Завершён', active: 'bg-emerald-500 text-white', activeCount: 'text-emerald-200' },
-            { key: 'cancelled' as FilterStatus, label: 'Отменён', active: 'bg-red-500 text-white', activeCount: 'text-red-200' },
+            { key: 'pickup' as FilterStatus, label: 'Самовывоз', active: 'bg-purple-500 text-white', activeCount: 'text-purple-200' },
+            { key: 'delivery' as FilterStatus, label: 'Моя доставка', active: 'bg-blue-500 text-white', activeCount: 'text-blue-200' },
+            { key: 'preorder' as any, label: 'Предзаказ', active: 'bg-amber-500 text-white', activeCount: 'text-amber-200' },
+            { key: 'packing' as any, label: 'Упаковка', active: 'bg-indigo-500 text-white', activeCount: 'text-indigo-200' },
+            { key: 'transfer' as any, label: 'Передача', active: 'bg-teal-500 text-white', activeCount: 'text-teal-200' },
+            { key: 'transmitted' as any, label: 'Переданы на доставку', active: 'bg-sky-500 text-white', activeCount: 'text-sky-200' },
           ].map(btn => (
             <button
               key={btn.key}
@@ -368,7 +449,7 @@ export default function OrdersPage() {
                 )}
               </div>
               <span className={`px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${getStatusColor(order.status)}`}>
-                {getStatusText(order.status)}
+                {getStatusText(order.status, order.rawStatus)}
               </span>
             </div>
             <div className="pt-2 border-t border-gray-100">
@@ -510,7 +591,7 @@ export default function OrdersPage() {
                 </td>
                 <td className="py-4 px-6">
                   <span className={`px-3 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${getStatusColor(order.status)}`}>
-                    {getStatusText(order.status)}
+                    {getStatusText(order.status, order.rawStatus)}
                   </span>
                 </td>
                 <td className="py-4 px-6 text-right">
@@ -572,7 +653,7 @@ export default function OrdersPage() {
               <div className="flex items-center justify-between">
                 <span className="text-sm text-gray-600">Статус заказа</span>
                 <span className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${getStatusColor(selectedOrder.status)}`}>
-                  {getStatusText(selectedOrder.status)}
+                  {getStatusText(selectedOrder.status, selectedOrder.rawStatus)}
                 </span>
               </div>
 
