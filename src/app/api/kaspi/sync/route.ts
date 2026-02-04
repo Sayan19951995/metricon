@@ -33,31 +33,35 @@ export async function POST(request: NextRequest) {
     const kaspiClient = createKaspiClient(store.kaspi_api_key, store.kaspi_merchant_id);
     const dateTo = Date.now();
     const dateFrom = dateTo - daysBack * 24 * 60 * 60 * 1000;
-
-    // === 1. Получаем ТОЛЬКО активные заказы по каждому статусу ===
-    const activeStates: OrderState[] = ['KASPI_DELIVERY', 'DELIVERY', 'NEW', 'SIGN_REQUIRED', 'PICKUP'];
-    const orders: KaspiOrder[] = [];
+    // === 1. Получаем ВСЕ заказы без фильтра по state, затем фильтруем активные локально ===
+    // Kaspi API не возвращает заказы при фильтрации по активным статусам (KASPI_DELIVERY и т.д.)
+    // Макс. диапазон дат — 14 дней (ограничение Kaspi API)
+    const activeStates = new Set<string>(['KASPI_DELIVERY', 'DELIVERY', 'NEW', 'SIGN_REQUIRED', 'PICKUP']);
+    const allFetchedOrders: KaspiOrder[] = [];
     const existingIds = new Set<string>();
 
-    for (const state of activeStates) {
-      try {
-        // Запрашиваем по статусу без фильтра по дате — получаем ВСЕ активные заказы
-        const { orders: stateOrders } = await kaspiClient.getAllOrders({
-          state,
-          pageSize: 100
-        });
-        for (const o of stateOrders) {
-          if (!existingIds.has(o.code)) {
-            orders.push(o);
-            existingIds.add(o.code);
-          }
+    try {
+      const { orders: fetchedOrders } = await kaspiClient.getAllOrders({
+        dateFrom,
+        dateTo,
+        pageSize: 100
+      });
+      for (const o of fetchedOrders) {
+        if (!existingIds.has(o.code)) {
+          allFetchedOrders.push(o);
+          existingIds.add(o.code);
         }
-      } catch {
-        // Нет заказов в этом статусе
       }
+    } catch (err) {
+      console.error('SYNC: failed to fetch all orders:', err);
     }
 
-    console.log(`SYNC: fetched ${orders.length} active orders`);
+    console.log(`SYNC: fetched ${allFetchedOrders.length} total orders (no state filter)`);
+
+    // Фильтруем только активные заказы
+    const orders = allFetchedOrders.filter(o => activeStates.has(o.state));
+
+    console.log(`SYNC: ${orders.length} active orders out of ${allFetchedOrders.length} total`);
 
     // Загружаем entries для активных заказов
     for (const order of orders) {
@@ -247,7 +251,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log(`SYNC: completions=${completionsDetected}, returns=${returnsDetected}`);
+    console.log(`SYNC: completions=${completionsDetected}, returns=${returnsDetected}, ordersCreated=${ordersCreated}, ordersUpdated=${ordersUpdated}`);
 
     // === 4. Пересчитываем daily_stats по дате СОЗДАНИЯ из Kaspi (исключая отменённые/возвращённые) ===
     // completed_at tracking работает параллельно для будущего переключения на дату выдачи

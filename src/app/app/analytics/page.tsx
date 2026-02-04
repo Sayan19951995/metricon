@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useRef, useEffect, Suspense } from 'react';
+import { useState, useRef, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, ChevronUp, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Plus, X, Trash2, HelpCircle, BarChart3 } from 'lucide-react';
+import { useUser } from '@/hooks/useUser';
 
 // Компонент подсказки (кликабельный для мобильных)
 const HelpTooltip = ({ text }: { text: string }) => {
@@ -109,6 +110,11 @@ interface OperationalExpense {
   startDate: Date;       // Начало периода
   endDate: Date;         // Конец периода
 }
+
+// Форматирование чисел: полные числа с разделителями (без K/M)
+const fmt = (n: number) => Math.round(n).toLocaleString('ru-RU');
+// Короткий формат для осей графиков (чтобы не перекрывались)
+const fmtAxis = (n: number) => n >= 1000000 ? `${(n / 1000000).toFixed(1)}M` : n >= 1000 ? `${Math.round(n / 1000)}k` : String(n);
 
 // Насыщенные но спокойные цвета для источников продаж
 const SALES_SOURCE_COLORS = ['#4a90d9', '#e07b4a', '#6b7280']; // Синий (Органика), оранжевый (Реклама), серый (Оффлайн)
@@ -621,11 +627,47 @@ function AnalyticsPageSkeleton() {
 
 // Основной контент страницы
 function AnalyticsPageContent() {
+  const { user, loading: userLoading } = useUser();
   const searchParams = useSearchParams();
   const tabFromUrl = searchParams.get('tab') as TabType | null;
   const validTabs: TabType[] = ['finances', 'sales', 'reviews'];
   const initialTab = tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : 'finances';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
+
+  // Данные из API
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [apiData, setApiData] = useState<any>(null);
+  const [dataLoading, setDataLoading] = useState(true);
+
+  const fetchAnalyticsData = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      setDataLoading(true);
+      const res = await fetch(`/api/analytics?userId=${user.id}`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        // Преобразуем fullDate строки в Date объекты
+        const data = json.data;
+        if (data.dailyData) {
+          data.dailyData = data.dailyData.map((d: any) => ({
+            ...d,
+            fullDate: new Date(d.fullDate),
+          }));
+        }
+        setApiData(data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch analytics:', err);
+    } finally {
+      setDataLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id && !userLoading) {
+      fetchAnalyticsData();
+    }
+  }, [user?.id, userLoading, fetchAnalyticsData]);
 
   // Инициализация с периодом "Неделя" по умолчанию
   const getDefaultDateRange = () => {
@@ -922,73 +964,56 @@ function AnalyticsPageContent() {
       .map(([_, value]) => value);
   };
 
+  // Источник данных: API или mock
+  const sourceData = apiData || mockAnalyticsData;
+
   // Фильтрация данных по выбранному периоду
   const getFilteredData = () => {
-    if (!startDate || !endDate) {
-      // Возвращаем данные с пересчитанными расходами и прибылью
+    const allDailyData = (sourceData.dailyData || []).map((day: any) => {
+      const totalExpenses = (day.cost || 0) + (day.advertising || 0) + (day.tax || 0) + (day.commissions || 0) + (day.delivery || 0);
+      const recalculatedProfit = (day.revenue || 0) - totalExpenses;
       return {
-        ...mockAnalyticsData,
-        dailyData: mockAnalyticsData.dailyData.map(day => {
-          const totalExpenses = day.cost + day.advertising + day.tax + day.commissions + day.delivery;
-          const recalculatedProfit = day.revenue - totalExpenses;
-          return {
-            ...day,
-            totalExpenses,
-            profit: recalculatedProfit
-          };
-        })
+        ...day,
+        fullDate: day.fullDate instanceof Date ? day.fullDate : new Date(day.fullDate),
+        totalExpenses,
+        profit: recalculatedProfit,
+      };
+    });
+
+    if (!startDate || !endDate) {
+      return {
+        ...sourceData,
+        dailyData: allDailyData,
+        reviewsData: mockAnalyticsData.reviewsData,
       };
     }
 
-    // Фильтруем dailyData по выбранному периоду и пересчитываем расходы и прибыль
+    // Фильтруем dailyData по выбранному периоду
     const startTime = new Date(startDate);
     startTime.setHours(0, 0, 0, 0);
     const endTime = new Date(endDate);
     endTime.setHours(23, 59, 59, 999);
 
-    const filteredDailyData = mockAnalyticsData.dailyData
-      .filter(day => {
-        const dayDate = new Date(day.fullDate);
-        dayDate.setHours(12, 0, 0, 0);
-        return dayDate >= startTime && dayDate <= endTime;
-      })
-      .map(day => {
-        const totalExpenses = day.cost + day.advertising + day.tax + day.commissions + day.delivery;
-        const recalculatedProfit = day.revenue - totalExpenses;
-        return {
-          ...day,
-          totalExpenses,
-          profit: recalculatedProfit
-        };
-      });
+    const filteredDailyData = allDailyData.filter((day: DailyData) => {
+      const dayDate = new Date(day.fullDate);
+      dayDate.setHours(12, 0, 0, 0);
+      return dayDate >= startTime && dayDate <= endTime;
+    });
 
     // Проверяем, если период больше 31 дня - группируем по месяцам
     const daysDifference = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     const chartData = daysDifference > 31 ? groupByMonth(filteredDailyData) : filteredDailyData;
 
     // Пересчитываем метрики на основе отфильтрованных данных
-    const totalOrders = filteredDailyData.reduce((sum, day) => sum + day.orders, 0);
-    const totalRevenue = filteredDailyData.reduce((sum, day) => sum + day.revenue, 0);
-    const totalCost = filteredDailyData.reduce((sum, day) => sum + day.cost, 0);
-    const totalAdvertising = filteredDailyData.reduce((sum, day) => sum + day.advertising, 0);
-    const totalCommissions = filteredDailyData.reduce((sum, day) => sum + day.commissions, 0);
-    const totalTax = filteredDailyData.reduce((sum, day) => sum + day.tax, 0);
-    const totalDelivery = filteredDailyData.reduce((sum, day) => sum + day.delivery, 0);
-    const totalProfit = filteredDailyData.reduce((sum, day) => sum + day.profit, 0);
+    const totalOrders = filteredDailyData.reduce((sum: number, day: DailyData) => sum + day.orders, 0);
+    const totalRevenue = filteredDailyData.reduce((sum: number, day: DailyData) => sum + day.revenue, 0);
+    const totalCost = filteredDailyData.reduce((sum: number, day: DailyData) => sum + (day.cost || 0), 0);
+    const totalAdvertising = filteredDailyData.reduce((sum: number, day: DailyData) => sum + (day.advertising || 0), 0);
+    const totalCommissions = filteredDailyData.reduce((sum: number, day: DailyData) => sum + (day.commissions || 0), 0);
+    const totalTax = filteredDailyData.reduce((sum: number, day: DailyData) => sum + (day.tax || 0), 0);
+    const totalDelivery = filteredDailyData.reduce((sum: number, day: DailyData) => sum + (day.delivery || 0), 0);
+    const totalProfit = filteredDailyData.reduce((sum: number, day: DailyData) => sum + day.profit, 0);
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
-
-    // Рассчитываем источники продаж и способы доставки на основе заказов за период
-    // Используем процентное соотношение от общего числа заказов
-    const organicPercent = 0.6; // 60% органика
-
-    const organicOrders = Math.max(1, Math.round(totalOrders * organicPercent));
-    const advertisingOrders = Math.max(totalOrders > 0 ? 1 : 0, totalOrders - organicOrders);
-
-    // Способы доставки в процентах
-    const intercityPercent = 0.25;
-    const myDeliveryPercent = 0.42;
-    const expressPercent = 0.17;
-    const pickupPercent = 0.16;
 
     return {
       totalOrders,
@@ -1001,30 +1026,12 @@ function AnalyticsPageContent() {
       totalProfit,
       avgOrderValue,
       dailyData: chartData,
-      topProducts: mockAnalyticsData.topProducts,
-      ordersByStatus: {
-        pending: Math.max(totalOrders > 0 ? 1 : 0, Math.round(totalOrders * 0.07)),
-        processing: Math.max(totalOrders > 0 ? 1 : 0, Math.round(totalOrders * 0.18)),
-        shipped: Math.max(totalOrders > 0 ? 1 : 0, Math.round(totalOrders * 0.13)),
-        delivered: Math.max(totalOrders > 0 ? 1 : 0, Math.round(totalOrders * 0.58)),
-        cancelled: Math.round(totalOrders * 0.04),
-      },
-      salesSources: {
-        organic: organicOrders,
-        advertising: advertisingOrders,
-      },
-      ordersBySource: {
-        organic: organicOrders,
-        ads: advertisingOrders,
-        offline: Math.round(totalOrders * 0.05),
-      },
-      deliveryModes: {
-        intercity: Math.max(totalOrders > 0 ? 1 : 0, Math.round(totalOrders * intercityPercent)),
-        myDelivery: Math.max(totalOrders > 0 ? 1 : 0, Math.round(totalOrders * myDeliveryPercent)),
-        expressDelivery: Math.max(totalOrders > 0 ? 1 : 0, Math.round(totalOrders * expressPercent)),
-        pickup: Math.max(totalOrders > 0 ? 1 : 0, Math.round(totalOrders * pickupPercent)),
-      },
-      pendingOrders: mockAnalyticsData.pendingOrders,
+      topProducts: sourceData.topProducts || [],
+      ordersByStatus: sourceData.ordersByStatus || { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 },
+      salesSources: sourceData.salesSources || { organic: totalOrders, advertising: 0 },
+      ordersBySource: sourceData.ordersBySource || { organic: totalOrders, ads: 0, offline: 0 },
+      deliveryModes: sourceData.deliveryModes || { intercity: 0, myDelivery: 0, expressDelivery: 0, pickup: 0 },
+      pendingOrders: sourceData.pendingOrders || { count: 0, totalAmount: 0, orders: [] },
       reviewsData: mockAnalyticsData.reviewsData,
     };
   };
@@ -1047,14 +1054,18 @@ function AnalyticsPageContent() {
     prevStartDate.setDate(prevEndDate.getDate() - periodLength + 1);
 
     // Фильтруем данные для предыдущего периода
-    const prevPeriodData = mockAnalyticsData.dailyData
-      .filter(day => {
+    const allSourceDailyData = (sourceData.dailyData || []).map((d: any) => ({
+      ...d,
+      fullDate: d.fullDate instanceof Date ? d.fullDate : new Date(d.fullDate),
+    }));
+    const prevPeriodData = allSourceDailyData
+      .filter((day: any) => {
         const dayDate = day.fullDate;
         return dayDate >= prevStartDate && dayDate <= prevEndDate;
       })
-      .map((day, index) => {
-        const totalExpenses = day.cost + day.advertising + day.tax + day.commissions + day.delivery;
-        const recalculatedProfit = day.revenue - totalExpenses;
+      .map((day: any, index: number) => {
+        const totalExpenses = (day.cost || 0) + (day.advertising || 0) + (day.tax || 0) + (day.commissions || 0) + (day.delivery || 0);
+        const recalculatedProfit = (day.revenue || 0) - totalExpenses;
 
         // Используем индекс для сопоставления с текущим периодом на графике
         const currentPeriodDay = data.dailyData[index];
@@ -1139,6 +1150,10 @@ function AnalyticsPageContent() {
       opacity: 1,
     },
   };
+
+  if (userLoading || dataLoading) {
+    return <AnalyticsPageSkeleton />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
@@ -1273,7 +1288,7 @@ function AnalyticsPageContent() {
                   </div>
                   <span className="text-xs sm:text-sm text-gray-600">Поступления</span>
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-gray-900">{(data.totalRevenue / 1000).toFixed(0)}K ₸</div>
+                <div className="text-lg sm:text-2xl font-bold text-gray-900">{fmt(data.totalRevenue)} ₸</div>
                 <div className="text-[10px] sm:text-xs mt-1">
                   <span className="bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
                 </div>
@@ -1287,7 +1302,7 @@ function AnalyticsPageContent() {
                   <span className="text-xs sm:text-sm text-gray-600">Расходы</span>
                 </div>
                 <div className="text-lg sm:text-2xl font-bold text-gray-900">
-                  {((data.totalCost + data.totalAdvertising + data.totalTax + data.totalCommissions + data.totalDelivery) / 1000).toFixed(0)}K ₸
+                  {fmt(data.totalCost + data.totalAdvertising + data.totalTax + data.totalCommissions + data.totalDelivery)} ₸
                 </div>
                 <div className="text-[10px] sm:text-xs mt-1">
                   <button
@@ -1311,23 +1326,23 @@ function AnalyticsPageContent() {
                       <div className="space-y-1 sm:space-y-1.5 text-[10px] sm:text-xs mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200">
                         <div className="flex justify-between text-gray-600">
                           <span>Себест.</span>
-                          <span className="font-medium">{(data.totalCost / 1000).toFixed(0)}K</span>
+                          <span className="font-medium">{fmt(data.totalCost)} ₸</span>
                         </div>
                         <div className="flex justify-between text-gray-600">
                           <span>Реклама</span>
-                          <span className="font-medium">{(data.totalAdvertising / 1000).toFixed(0)}K</span>
+                          <span className="font-medium">{fmt(data.totalAdvertising)} ₸</span>
                         </div>
                         <div className="flex justify-between text-gray-600">
                           <span>Налог</span>
-                          <span className="font-medium">{(data.totalTax / 1000).toFixed(0)}K</span>
+                          <span className="font-medium">{fmt(data.totalTax)} ₸</span>
                         </div>
                         <div className="flex justify-between text-gray-600">
                           <span>Комиссия</span>
-                          <span className="font-medium">{(data.totalCommissions / 1000).toFixed(0)}K</span>
+                          <span className="font-medium">{fmt(data.totalCommissions)} ₸</span>
                         </div>
                         <div className="flex justify-between text-gray-600">
                           <span>Доставка</span>
-                          <span className="font-medium">{(data.totalDelivery / 1000).toFixed(0)}K</span>
+                          <span className="font-medium">{fmt(data.totalDelivery)} ₸</span>
                         </div>
                       </div>
                     </motion.div>
@@ -1342,7 +1357,7 @@ function AnalyticsPageContent() {
                   </div>
                   <span className="text-xs sm:text-sm text-gray-600">Прибыль</span>
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-emerald-600">{(data.totalProfit / 1000).toFixed(0)}K ₸</div>
+                <div className="text-lg sm:text-2xl font-bold text-emerald-600">{fmt(data.totalProfit)} ₸</div>
                 <div className="text-[10px] sm:text-xs mt-1">
                   <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-medium">{profitMargin}% маржа</span>
                 </div>
@@ -1433,7 +1448,7 @@ function AnalyticsPageContent() {
               <LineChart data={combinedChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                 <XAxis dataKey="date" stroke="#6b7280" tick={{ fontSize: 12 }} />
-                <YAxis stroke="#6b7280" tick={{ fontSize: 12 }} tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`} />
+                <YAxis stroke="#6b7280" tick={{ fontSize: 12 }} tickFormatter={(value) => fmtAxis(value)} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: 'rgba(255, 255, 255, 0.95)',
@@ -1594,8 +1609,8 @@ function AnalyticsPageContent() {
           <>
             {/* Period Info + кнопка расходов */}
             <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-400">
-                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+              <div className="flex items-center gap-2 text-xs sm:text-sm lg:text-base text-gray-400">
+                <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
                 <span>Период: <span className="text-gray-500">{formatShortPeriod()}</span></span>
                 <span className="text-gray-300">|</span>
                 <span>{data.totalOrders} заказов</span>
@@ -1638,7 +1653,7 @@ function AnalyticsPageContent() {
                   <span className="text-xs sm:text-sm text-gray-600">Ср. чек</span>
                   <HelpTooltip text="Средняя сумма одного заказа (выручка ÷ количество заказов)" />
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-gray-900">{(data.avgOrderValue / 1000).toFixed(0)}K ₸</div>
+                <div className="text-lg sm:text-2xl font-bold text-gray-900">{fmt(data.avgOrderValue)} ₸</div>
                 <div className="text-[10px] sm:text-xs mt-1">
                   <span className="bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
                 </div>
@@ -1672,7 +1687,7 @@ function AnalyticsPageContent() {
                 </div>
                 <div className="text-lg sm:text-2xl font-bold text-gray-900">{data.pendingOrders?.count || 0}</div>
                 <div className="text-[10px] sm:text-xs mt-1">
-                  <span className="bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded font-medium">{((data.pendingOrders?.totalAmount || 0) / 1000000).toFixed(1)}M ₸ ожидает</span>
+                  <span className="bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded font-medium">{fmt(data.pendingOrders?.totalAmount || 0)} ₸ ожидает</span>
                 </div>
               </motion.div>
             </motion.div>
@@ -1696,7 +1711,7 @@ function AnalyticsPageContent() {
                     </div>
                     <div className="text-left">
                       <h3 className="text-base sm:text-lg font-semibold text-gray-900">Структура выручки</h3>
-                      <p className="text-[10px] text-gray-400">{startDate && endDate ? `${startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} - ${endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}` : ''}</p>
+                      <p className="text-[10px] lg:text-xs text-gray-400">{startDate && endDate ? `${startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} - ${endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}` : ''}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -1705,15 +1720,15 @@ function AnalyticsPageContent() {
                       className="flex flex-col items-center gap-0.5"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <span className="text-[9px] text-gray-400">{showAdsOnly ? 'реклама' : 'все'}</span>
+                      <span className="text-[9px] lg:text-xs text-gray-400">{showAdsOnly ? 'реклама' : 'все'}</span>
                       <button
                         onClick={() => setShowAdsOnly(!showAdsOnly)}
-                        className={`relative w-8 h-4 rounded-full transition-colors cursor-pointer ${
+                        className={`relative w-8 h-4 lg:w-10 lg:h-5 rounded-full transition-colors cursor-pointer ${
                           showAdsOnly ? 'bg-emerald-500' : 'bg-gray-300'
                         }`}
                       >
-                        <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${
-                          showAdsOnly ? 'translate-x-4' : 'translate-x-0'
+                        <div className={`absolute top-0.5 left-0.5 w-3 h-3 lg:w-4 lg:h-4 bg-white rounded-full shadow-sm transition-transform ${
+                          showAdsOnly ? 'translate-x-4 lg:translate-x-5' : 'translate-x-0'
                         }`} />
                       </button>
                     </div>
@@ -1729,7 +1744,7 @@ function AnalyticsPageContent() {
                       animate={{ height: 'auto', opacity: 1 }}
                       exit={{ height: 0, opacity: 0 }}
                       transition={{ duration: 0.3 }}
-                      className="px-3 sm:px-4 pb-3 sm:pb-4"
+                      className="px-3 sm:px-4 lg:px-6 pb-3 sm:pb-4 lg:pb-6"
                     >
 
                 {(() => {
@@ -1771,11 +1786,11 @@ function AnalyticsPageContent() {
 
                   return (
                     <>
-                      <ResponsiveContainer width="100%" height={200} className="sm:!h-[220px]">
+                      <ResponsiveContainer width="100%" height={200} className="sm:!h-[220px] lg:!h-[320px]">
                         <BarChart data={chartData} margin={{ top: 15, right: 5, left: -10, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
-                          <XAxis dataKey="date" stroke="#9ca3af" tick={{ fontSize: 9 }} />
-                          <YAxis stroke="#9ca3af" tick={{ fontSize: 9 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}K`} />
+                          <XAxis dataKey="date" stroke="#9ca3af" tick={{ fontSize: typeof window !== 'undefined' && window.innerWidth >= 1024 ? 12 : 9 }} />
+                          <YAxis stroke="#9ca3af" tick={{ fontSize: typeof window !== 'undefined' && window.innerWidth >= 1024 ? 12 : 9 }} tickFormatter={(v) => fmtAxis(v)} />
                           <Tooltip
                             cursor={{ fill: 'rgba(0,0,0,0.05)' }}
                             wrapperStyle={{ pointerEvents: 'auto', zIndex: 100 }}
@@ -1794,22 +1809,22 @@ function AnalyticsPageContent() {
                                     <div className="space-y-0.5">
                                       <div className="flex justify-between gap-3">
                                         <span className="text-gray-400">Выручка</span>
-                                        <span className="font-medium">{(item?.revenue / 1000).toFixed(1)}K</span>
+                                        <span className="font-medium">{fmt(item?.revenue || 0)} ₸</span>
                                       </div>
                                       <div className="flex justify-between gap-3">
                                         <span className="text-rose-400">Себест.</span>
-                                        <span>{(item?.cost / 1000).toFixed(1)}K</span>
+                                        <span>{fmt(item?.cost || 0)} ₸</span>
                                       </div>
                                       <div className="flex justify-between gap-3">
                                         <span className="text-amber-400">Реклама</span>
-                                        <span>{(item?.advertising / 1000).toFixed(1)}K</span>
+                                        <span>{fmt(item?.advertising || 0)} ₸</span>
                                       </div>
                                       <div className="flex justify-between gap-3 pt-1 border-t border-gray-700 mt-1">
                                         <span className={netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}>
                                           {netProfit >= 0 ? 'Прибыль' : 'Убыток'}
                                         </span>
                                         <span className={`font-semibold ${netProfit >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
-                                          {netProfit >= 0 ? '' : '-'}{(Math.abs(netProfit) / 1000).toFixed(1)}K
+                                          {netProfit >= 0 ? '' : '-'}{fmt(Math.abs(netProfit))} ₸
                                         </span>
                                       </div>
                                     </div>
@@ -1820,8 +1835,8 @@ function AnalyticsPageContent() {
                             }}
                           />
                           <Legend
-                            wrapperStyle={{ fontSize: '9px' }}
-                            iconSize={8}
+                            wrapperStyle={{ fontSize: typeof window !== 'undefined' && window.innerWidth >= 1024 ? '13px' : '9px' }}
+                            iconSize={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 12 : 8}
                             formatter={(value) => {
                               const labels: Record<string, string> = {
                                 cost: 'Себест.',
@@ -1839,57 +1854,57 @@ function AnalyticsPageContent() {
                             <LabelList
                               dataKey="revenue"
                               position="top"
-                              formatter={(value) => `${(Number(value) / 1000).toFixed(0)}K`}
-                              style={{ fontSize: 8, fill: '#6b7280', fontWeight: 500 }}
+                              formatter={(value) => `${fmt(Number(value))} ₸`}
+                              style={{ fontSize: typeof window !== 'undefined' && window.innerWidth >= 1024 ? 11 : 8, fill: '#6b7280', fontWeight: 500 }}
                             />
                           </Bar>
                         </BarChart>
                       </ResponsiveContainer>
 
                       {/* Итоги под графиком */}
-                      <div className="mt-3 grid grid-cols-4 gap-1.5">
-                        <div className="bg-white rounded-lg px-2 py-1.5 shadow-sm text-center">
-                          <div className="text-[9px] text-gray-400">себест.</div>
-                          <div className="text-xs font-semibold text-rose-500">
-                            {((showAdsOnly ? data.totalCost * adsRatio : data.totalCost) / 1000).toFixed(0)}K
+                      <div className="mt-3 lg:mt-4 grid grid-cols-4 gap-1.5 lg:gap-3">
+                        <div className="bg-white rounded-lg px-2 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
+                          <div className="text-[9px] lg:text-sm text-gray-400">себест.</div>
+                          <div className="text-xs lg:text-base font-semibold text-rose-500">
+                            {fmt(showAdsOnly ? data.totalCost * adsRatio : data.totalCost)} ₸
                           </div>
-                          <div className="text-[8px] text-rose-400">
+                          <div className="text-[8px] lg:text-xs text-rose-400">
                             {(((showAdsOnly ? data.totalCost * adsRatio : data.totalCost) / (showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue)) * 100).toFixed(0)}%
                           </div>
                         </div>
-                        <div className="bg-white rounded-lg px-2 py-1.5 shadow-sm text-center">
-                          <div className="text-[9px] text-gray-400">реклама</div>
-                          <div className="text-xs font-semibold text-amber-500">
-                            {(data.totalAdvertising / 1000).toFixed(0)}K
+                        <div className="bg-white rounded-lg px-2 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
+                          <div className="text-[9px] lg:text-sm text-gray-400">реклама</div>
+                          <div className="text-xs lg:text-base font-semibold text-amber-500">
+                            {fmt(data.totalAdvertising)} ₸
                           </div>
-                          <div className="text-[8px] text-amber-400">
+                          <div className="text-[8px] lg:text-xs text-amber-400">
                             {((data.totalAdvertising / (showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue)) * 100).toFixed(0)}%
                           </div>
                         </div>
-                        <div className="bg-white rounded-lg px-2 py-1.5 shadow-sm text-center">
-                          <div className="text-[9px] text-gray-400">цена клиента</div>
-                          <div className="text-xs font-semibold text-sky-500">
+                        <div className="bg-white rounded-lg px-2 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
+                          <div className="text-[9px] lg:text-sm text-gray-400">цена клиента</div>
+                          <div className="text-xs lg:text-base font-semibold text-sky-500">
                             {(() => {
                               const orders = showAdsOnly ? data.ordersBySource.ads : data.totalOrders;
                               const cac = orders > 0 ? data.totalAdvertising / orders : 0;
-                              return `${(cac / 1000).toFixed(1)}K`;
+                              return `${fmt(cac)} ₸`;
                             })()}
                           </div>
-                          <div className="text-[8px] text-sky-400">
+                          <div className="text-[8px] lg:text-xs text-sky-400">
                             {showAdsOnly ? data.ordersBySource.ads : data.totalOrders} зак.
                           </div>
                         </div>
-                        <div className="bg-white rounded-lg px-2 py-1.5 shadow-sm text-center">
-                          <div className="text-[9px] text-gray-400">прибыль</div>
-                          <div className="text-xs font-semibold text-emerald-500">
+                        <div className="bg-white rounded-lg px-2 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
+                          <div className="text-[9px] lg:text-sm text-gray-400">прибыль</div>
+                          <div className="text-xs lg:text-base font-semibold text-emerald-500">
                             {(() => {
                               const rev = showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue;
                               const cost = showAdsOnly ? data.totalCost * adsRatio : data.totalCost;
                               const profit = rev - cost - data.totalAdvertising;
-                              return `${(profit / 1000).toFixed(0)}K`;
+                              return `${fmt(profit)} ₸`;
                             })()}
                           </div>
-                          <div className="text-[8px] text-emerald-400">
+                          <div className="text-[8px] lg:text-xs text-emerald-400">
                             {(() => {
                               const rev = showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue;
                               const cost = showAdsOnly ? data.totalCost * adsRatio : data.totalCost;
@@ -1927,7 +1942,7 @@ function AnalyticsPageContent() {
                     </div>
                     <div className="text-left">
                       <h3 className="text-base sm:text-lg font-semibold text-gray-900">Маржинальность по товарам</h3>
-                      <p className="text-[10px] text-gray-400">{startDate && endDate ? `${startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} - ${endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}` : ''}</p>
+                      <p className="text-[10px] lg:text-xs text-gray-400">{startDate && endDate ? `${startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} - ${endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}` : ''}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">
@@ -1936,15 +1951,15 @@ function AnalyticsPageContent() {
                       className="flex flex-col items-center gap-0.5"
                       onClick={(e) => e.stopPropagation()}
                     >
-                      <span className="text-[9px] text-gray-400">{showAdsOnlyROI ? 'реклама' : 'все продажи'}</span>
+                      <span className="text-[9px] lg:text-xs text-gray-400">{showAdsOnlyROI ? 'реклама' : 'все продажи'}</span>
                       <button
                         onClick={() => setShowAdsOnlyROI(!showAdsOnlyROI)}
-                        className={`relative w-8 h-4 rounded-full transition-colors cursor-pointer ${
+                        className={`relative w-8 h-4 lg:w-10 lg:h-5 rounded-full transition-colors cursor-pointer ${
                           showAdsOnlyROI ? 'bg-indigo-500' : 'bg-gray-300'
                         }`}
                       >
-                        <div className={`absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow-sm transition-transform ${
-                          showAdsOnlyROI ? 'translate-x-4' : 'translate-x-0'
+                        <div className={`absolute top-0.5 left-0.5 w-3 h-3 lg:w-4 lg:h-4 bg-white rounded-full shadow-sm transition-transform ${
+                          showAdsOnlyROI ? 'translate-x-4 lg:translate-x-5' : 'translate-x-0'
                         }`} />
                       </button>
                     </div>
@@ -2028,7 +2043,7 @@ function AnalyticsPageContent() {
                   return (
                     <>
                       {/* Поиск и сортировка */}
-                      <div className="flex items-center gap-2 mb-2">
+                      <div className="flex items-center gap-2 lg:gap-3 mb-2 lg:mb-4">
                         <input
                           type="text"
                           placeholder="Поиск..."
@@ -2037,9 +2052,9 @@ function AnalyticsPageContent() {
                             setProductSearch(e.target.value);
                             setProductPage(1); // Сброс на первую страницу при поиске
                           }}
-                          className="flex-1 max-w-[120px] h-5 px-1.5 text-[9px] border border-gray-200 rounded bg-white focus:outline-none focus:border-indigo-400"
+                          className="flex-1 max-w-[120px] lg:max-w-[200px] h-5 lg:h-8 px-1.5 lg:px-3 text-[9px] lg:text-sm border border-gray-200 rounded lg:rounded-lg bg-white focus:outline-none focus:border-indigo-400"
                         />
-                        <span className="text-[9px] text-gray-400">сорт:</span>
+                        <span className="text-[9px] lg:text-sm text-gray-400">сорт:</span>
                         {[
                           { key: 'margin', label: 'маржа' },
                           { key: 'profit', label: 'прибыль' },
@@ -2051,7 +2066,7 @@ function AnalyticsPageContent() {
                               setProductSort(opt.key as 'margin' | 'profit' | 'revenue');
                               setProductPage(1); // Сброс на первую страницу при смене сортировки
                             }}
-                            className={`px-2 py-0.5 rounded text-[9px] transition-colors ${
+                            className={`px-2 py-0.5 lg:px-3 lg:py-1 rounded lg:rounded-lg text-[9px] lg:text-sm transition-colors ${
                               productSort === opt.key
                                 ? 'bg-indigo-500 text-white'
                                 : 'bg-white text-gray-500 hover:bg-gray-100'
@@ -2062,32 +2077,32 @@ function AnalyticsPageContent() {
                         ))}
                       </div>
                       {/* Карточки товаров */}
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-1.5 lg:gap-3">
                         {displayedProducts.map((product) => (
-                          <div key={product.id} className="bg-white rounded-lg px-2.5 py-1.5 shadow-sm">
+                          <div key={product.id} className="bg-white rounded-lg px-2.5 py-1.5 lg:px-4 lg:py-3 shadow-sm">
                             <div className="flex items-center justify-between gap-2">
-                              <p className="font-medium text-sm text-gray-900 truncate flex-1">{product.name}</p>
-                              <span className="text-xs text-gray-600 whitespace-nowrap">{product.displaySales} шт</span>
+                              <p className="font-medium text-sm lg:text-base text-gray-900 truncate flex-1">{product.name}</p>
+                              <span className="text-xs lg:text-sm text-gray-600 whitespace-nowrap">{product.displaySales} шт</span>
                             </div>
-                            <div className="flex items-center justify-between text-[11px] text-gray-500 mt-0.5">
-                              <div className="flex items-center gap-2">
+                            <div className="flex items-center justify-between text-[11px] lg:text-sm text-gray-500 mt-0.5 lg:mt-1">
+                              <div className="flex items-center gap-2 lg:gap-3">
                                 <span className={`font-semibold ${
                                   product.displayMargin >= 40 ? 'text-emerald-600' :
                                   product.displayMargin >= 20 ? 'text-amber-600' :
                                   product.displayMargin >= 0 ? 'text-orange-500' :
                                   'text-red-500'
                                 }`}>
-                                  <span className="text-[9px] opacity-50 font-normal text-gray-500">маржа</span> {product.displayMargin}%
+                                  <span className="text-[9px] lg:text-xs opacity-50 font-normal text-gray-500">маржа</span> {product.displayMargin}%
                                 </span>
                                 {product.displayAdExpense > 0 && (
-                                  <span className="text-amber-600"><span className="text-[9px] opacity-50">рекл</span> {(product.displayAdExpense / 1000).toFixed(0)}K</span>
+                                  <span className="text-amber-600"><span className="text-[9px] lg:text-xs opacity-50">рекл</span> {fmt(product.displayAdExpense)} ₸</span>
                                 )}
-                                <span><span className="text-[9px] opacity-50">цена 1 клиента</span> {product.displaySales > 0 ? Math.round(product.displayRevenue / product.displaySales / 1000) : 0}K</span>
+                                <span><span className="text-[9px] lg:text-xs opacity-50">цена 1 клиента</span> {product.displaySales > 0 ? fmt(product.displayRevenue / product.displaySales) : '0'} ₸</span>
                               </div>
-                              <div className="flex items-center gap-2">
-                                <span><span className="text-[9px] opacity-50">выр</span> {(product.displayRevenue / 1000).toFixed(0)}K</span>
+                              <div className="flex items-center gap-2 lg:gap-3">
+                                <span><span className="text-[9px] lg:text-xs opacity-50">выр</span> {fmt(product.displayRevenue)} ₸</span>
                                 <span className={product.displayProfit >= 0 ? 'text-emerald-600 font-medium' : 'text-red-500 font-medium'}>
-                                  <span className="text-[9px] opacity-50 font-normal">приб</span> {product.displayProfit >= 0 ? '+' : ''}{(product.displayProfit / 1000).toFixed(0)}K
+                                  <span className="text-[9px] lg:text-xs opacity-50 font-normal">приб</span> {product.displayProfit >= 0 ? '+' : ''}{fmt(product.displayProfit)} ₸
                                 </span>
                               </div>
                             </div>
@@ -2096,11 +2111,11 @@ function AnalyticsPageContent() {
                       </div>
                       {/* Пагинация */}
                       {totalPages > 1 && (
-                        <div className="flex items-center justify-center gap-1 mt-2">
+                        <div className="flex items-center justify-center gap-1 lg:gap-2 mt-2 lg:mt-4">
                           <button
                             onClick={() => setProductPage(p => Math.max(1, p - 1))}
                             disabled={productPage === 1}
-                            className="px-2 py-0.5 text-[10px] text-indigo-600 hover:bg-indigo-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="px-2 py-0.5 lg:px-3 lg:py-1 text-[10px] lg:text-sm text-indigo-600 hover:bg-indigo-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
                           >
                             ←
                           </button>
@@ -2120,7 +2135,7 @@ function AnalyticsPageContent() {
                               <button
                                 key={pageNum}
                                 onClick={() => setProductPage(pageNum)}
-                                className={`w-6 h-6 text-[10px] rounded transition-colors ${
+                                className={`w-6 h-6 lg:w-8 lg:h-8 text-[10px] lg:text-sm rounded transition-colors ${
                                   productPage === pageNum
                                     ? 'bg-indigo-500 text-white'
                                     : 'text-gray-500 hover:bg-gray-100'
@@ -2133,17 +2148,17 @@ function AnalyticsPageContent() {
                           <button
                             onClick={() => setProductPage(p => Math.min(totalPages, p + 1))}
                             disabled={productPage === totalPages}
-                            className="px-2 py-0.5 text-[10px] text-indigo-600 hover:bg-indigo-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="px-2 py-0.5 lg:px-3 lg:py-1 text-[10px] lg:text-sm text-indigo-600 hover:bg-indigo-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
                           >
                             →
                           </button>
-                          <span className="text-[9px] text-gray-400 ml-2">
+                          <span className="text-[9px] lg:text-sm text-gray-400 ml-2">
                             {productsWithData.length} товаров
                           </span>
                         </div>
                       )}
                       {productsWithData.length === 0 && (
-                        <div className="text-center text-[10px] text-gray-400 py-2">Ничего не найдено</div>
+                        <div className="text-center text-[10px] lg:text-sm text-gray-400 py-2">Ничего не найдено</div>
                       )}
                     </>
                   );
@@ -2174,7 +2189,7 @@ function AnalyticsPageContent() {
                     </div>
                     <div className="text-left">
                       <h3 className="text-base sm:text-lg font-semibold text-gray-900">Источники и способы доставки</h3>
-                      <p className="text-[10px] text-gray-400">{startDate && endDate ? `${startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} - ${endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}` : ''}</p>
+                      <p className="text-[10px] lg:text-xs text-gray-400">{startDate && endDate ? `${startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} - ${endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}` : ''}</p>
                     </div>
                   </div>
                   <ChevronUp className={`w-5 h-5 text-gray-400 transition-transform ${collapsedSections.sources ? 'rotate-180' : ''}`} />
@@ -2190,20 +2205,20 @@ function AnalyticsPageContent() {
                       transition={{ duration: 0.3 }}
                       className="overflow-hidden"
                     >
-                      <div className="p-3 sm:p-5 bg-white/50">
-                      <div className="grid grid-cols-2 gap-2 sm:gap-4">
+                      <div className="p-3 sm:p-5 lg:p-6 bg-white/50">
+                      <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:gap-6">
                         {/* Sales Sources Distribution */}
-                        <div className="bg-white rounded-xl p-2 sm:p-3 shadow-sm">
-                          <h4 className="text-[11px] sm:text-sm font-semibold text-gray-900 mb-1 sm:mb-2">Источники продаж</h4>
-                          <ResponsiveContainer width="100%" height={110} className="sm:!h-[140px]">
+                        <div className="bg-white rounded-xl p-2 sm:p-3 lg:p-5 shadow-sm">
+                          <h4 className="text-[11px] sm:text-sm lg:text-base font-semibold text-gray-900 mb-1 sm:mb-2 lg:mb-3">Источники продаж</h4>
+                          <ResponsiveContainer width="100%" height={110} className="sm:!h-[140px] lg:!h-[280px]">
                             <PieChart>
                               <Pie
                                 data={salesSourcesData}
                                 cx="50%"
                                 cy="50%"
                                 labelLine={false}
-                                outerRadius="90%"
-                                innerRadius="25%"
+                                outerRadius={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 120 : '90%'}
+                                innerRadius={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 35 : '25%'}
                                 fill="#8884d8"
                                 dataKey="value"
                               >
@@ -2225,22 +2240,22 @@ function AnalyticsPageContent() {
                           </ResponsiveContainer>
 
                           {/* Детализация */}
-                          <div className="mt-1 sm:mt-2 space-y-0.5">
+                          <div className="mt-1 sm:mt-2 lg:mt-3 space-y-0.5 lg:space-y-1">
                             {salesSourcesData.map((item, index) => {
                               const total = salesSourcesData.reduce((sum, i) => sum + i.value, 0);
                               const percent = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
                               return (
                                 <div
                                   key={item.name}
-                                  className="flex items-center gap-1 sm:gap-2 px-1 py-0.5 rounded hover:bg-gray-50"
+                                  className="flex items-center gap-1 sm:gap-2 lg:gap-3 px-1 lg:px-2 py-0.5 lg:py-1 rounded hover:bg-gray-50"
                                 >
                                   <div
-                                    className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full flex-shrink-0"
+                                    className="w-2 h-2 sm:w-2.5 sm:h-2.5 lg:w-3 lg:h-3 rounded-full flex-shrink-0"
                                     style={{ backgroundColor: SALES_SOURCE_COLORS[index] }}
                                   />
                                   <div className="flex-1 flex justify-between items-center min-w-0">
-                                    <span className="text-[10px] sm:text-xs text-gray-700 truncate">{item.name}</span>
-                                    <span className="text-[9px] sm:text-[11px] font-medium text-gray-900 ml-1">{item.value} <span className="text-gray-400">({percent}%)</span></span>
+                                    <span className="text-[10px] sm:text-xs lg:text-sm text-gray-700 truncate">{item.name}</span>
+                                    <span className="text-[9px] sm:text-[11px] lg:text-sm font-medium text-gray-900 ml-1">{item.value} <span className="text-gray-400">({percent}%)</span></span>
                                   </div>
                                 </div>
                               );
@@ -2249,17 +2264,17 @@ function AnalyticsPageContent() {
                         </div>
 
                         {/* Delivery Mode */}
-                        <div className="bg-white rounded-xl p-2 sm:p-3 shadow-sm">
-                          <h4 className="text-[11px] sm:text-sm font-semibold text-gray-900 mb-1 sm:mb-2">Способы доставки</h4>
-                          <ResponsiveContainer width="100%" height={110} className="sm:!h-[140px]">
+                        <div className="bg-white rounded-xl p-2 sm:p-3 lg:p-5 shadow-sm">
+                          <h4 className="text-[11px] sm:text-sm lg:text-base font-semibold text-gray-900 mb-1 sm:mb-2 lg:mb-3">Способы доставки</h4>
+                          <ResponsiveContainer width="100%" height={110} className="sm:!h-[140px] lg:!h-[280px]">
                             <PieChart>
                               <Pie
                                 data={deliveryData}
                                 cx="50%"
                                 cy="50%"
                                 labelLine={false}
-                                outerRadius="90%"
-                                innerRadius="25%"
+                                outerRadius={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 120 : '90%'}
+                                innerRadius={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 35 : '25%'}
                                 fill="#8884d8"
                                 dataKey="value"
                               >
@@ -2281,7 +2296,7 @@ function AnalyticsPageContent() {
                           </ResponsiveContainer>
 
                           {/* Детализация */}
-                          <div className="mt-1 sm:mt-2 space-y-0.5">
+                          <div className="mt-1 sm:mt-2 lg:mt-3 space-y-0.5 lg:space-y-1">
                             {deliveryData.map((item, index) => {
                               const total = deliveryData.reduce((sum, i) => sum + i.value, 0);
                               const percent = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
@@ -2290,17 +2305,17 @@ function AnalyticsPageContent() {
                               return (
                                 <div key={item.name}>
                                   <div
-                                    className={`flex items-center gap-1 sm:gap-2 px-1 py-0.5 rounded transition-colors ${isIntercity ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+                                    className={`flex items-center gap-1 sm:gap-2 lg:gap-3 px-1 lg:px-2 py-0.5 lg:py-1 rounded transition-colors ${isIntercity ? 'cursor-pointer hover:bg-gray-50' : ''}`}
                                     onClick={isIntercity ? () => setShowCitiesDropdown(!showCitiesDropdown) : undefined}
                                   >
                                     <div
-                                      className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full flex-shrink-0"
+                                      className="w-2 h-2 sm:w-2.5 sm:h-2.5 lg:w-3 lg:h-3 rounded-full flex-shrink-0"
                                       style={{ backgroundColor: DELIVERY_COLORS[index] }}
                                     />
                                     <div className="flex-1 flex justify-between items-center min-w-0">
-                                      <span className="text-[10px] sm:text-xs text-gray-700 truncate">{item.name}</span>
+                                      <span className="text-[10px] sm:text-xs lg:text-sm text-gray-700 truncate">{item.name}</span>
                                       <div className="flex items-center gap-1">
-                                        <span className="text-[9px] sm:text-[11px] font-medium text-gray-900">{item.value} <span className="text-gray-400">({percent}%)</span></span>
+                                        <span className="text-[9px] sm:text-[11px] lg:text-sm font-medium text-gray-900">{item.value} <span className="text-gray-400">({percent}%)</span></span>
                                         {isIntercity && <ChevronDown className={`w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400 transition-transform ${showCitiesDropdown ? 'rotate-180' : ''}`} />}
                                       </div>
                                     </div>
@@ -2313,15 +2328,15 @@ function AnalyticsPageContent() {
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: 'auto', opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
-                                        className="overflow-hidden ml-3 sm:ml-4 border-l border-sky-200 pl-1.5 sm:pl-2"
+                                        className="overflow-hidden ml-3 sm:ml-4 lg:ml-5 border-l border-sky-200 pl-1.5 sm:pl-2 lg:pl-3"
                                       >
                                         {citiesData.map((city) => (
                                             <div
                                               key={city.name}
-                                              className="flex items-center justify-between py-0.5 px-1 rounded"
+                                              className="flex items-center justify-between py-0.5 lg:py-1 px-1 lg:px-2 rounded"
                                             >
-                                              <span className="text-[9px] sm:text-[11px] text-gray-600 truncate">{city.name}</span>
-                                              <span className="text-[9px] sm:text-[11px] text-gray-900">{city.orders}</span>
+                                              <span className="text-[9px] sm:text-[11px] lg:text-sm text-gray-600 truncate">{city.name}</span>
+                                              <span className="text-[9px] sm:text-[11px] lg:text-sm text-gray-900">{city.orders}</span>
                                             </div>
                                           ))}
                                       </motion.div>
@@ -3194,7 +3209,7 @@ function AnalyticsPageContent() {
                               <div className="text-right text-sm">
                                 <span className="font-semibold text-gray-900">{city.orders} зак.</span>
                                 <span className="text-gray-300 mx-1.5">•</span>
-                                <span className="text-gray-600">{(cityRevenue / 1000).toFixed(0)}K ₸</span>
+                                <span className="text-gray-600">{fmt(cityRevenue)} ₸</span>
                               </div>
                             </div>
                             <div className="w-full bg-gray-100 rounded-full h-1.5">
@@ -3528,7 +3543,7 @@ function AnalyticsPageContent() {
                       <div className="text-gray-500 text-sm">Заказов</div>
                     </div>
                     <div className="bg-blue-50 rounded-xl p-4 text-center">
-                      <div className="text-blue-600 font-bold text-xl">{Math.round(data.totalRevenue * 0.6 / 1000)}K ₸</div>
+                      <div className="text-blue-600 font-bold text-xl">{fmt(data.totalRevenue * 0.6)} ₸</div>
                       <div className="text-gray-500 text-sm">Выручка</div>
                     </div>
                   </div>
@@ -3593,7 +3608,7 @@ function AnalyticsPageContent() {
                       <div className="text-gray-500 text-sm">Заказов</div>
                     </div>
                     <div className="bg-orange-50 rounded-xl p-4 text-center">
-                      <div className="text-orange-600 font-bold text-xl">{Math.round(data.totalRevenue * 0.4 / 1000)}K ₸</div>
+                      <div className="text-orange-600 font-bold text-xl">{fmt(data.totalRevenue * 0.4)} ₸</div>
                       <div className="text-gray-500 text-sm">Выручка</div>
                     </div>
                   </div>
@@ -3673,7 +3688,7 @@ function AnalyticsPageContent() {
                       <div className="text-gray-500 text-sm">Заказов</div>
                     </div>
                     <div className="bg-gray-100 rounded-xl p-4 text-center">
-                      <div className="text-gray-700 font-bold text-xl">{Math.round(data.totalRevenue * 0.05 / 1000)}K ₸</div>
+                      <div className="text-gray-700 font-bold text-xl">{fmt(data.totalRevenue * 0.05)} ₸</div>
                       <div className="text-gray-500 text-sm">Выручка</div>
                     </div>
                   </div>
@@ -3738,7 +3753,7 @@ function AnalyticsPageContent() {
                       <div className="text-gray-500 text-sm">Заказов</div>
                     </div>
                     <div className="bg-pink-50 rounded-xl p-4 text-center">
-                      <div className="text-pink-600 font-bold text-xl">{Math.round(data.totalRevenue * 0.42 / 1000)}K ₸</div>
+                      <div className="text-pink-600 font-bold text-xl">{fmt(data.totalRevenue * 0.42)} ₸</div>
                       <div className="text-gray-500 text-sm">Выручка</div>
                     </div>
                   </div>
@@ -3802,7 +3817,7 @@ function AnalyticsPageContent() {
                       <div className="text-gray-500 text-sm">Заказов</div>
                     </div>
                     <div className="bg-teal-50 rounded-xl p-4 text-center">
-                      <div className="text-teal-600 font-bold text-xl">{Math.round(data.totalRevenue * 0.17 / 1000)}K ₸</div>
+                      <div className="text-teal-600 font-bold text-xl">{fmt(data.totalRevenue * 0.17)} ₸</div>
                       <div className="text-gray-500 text-sm">Выручка</div>
                     </div>
                   </div>
@@ -3866,7 +3881,7 @@ function AnalyticsPageContent() {
                       <div className="text-gray-500 text-sm">Заказов</div>
                     </div>
                     <div className="bg-amber-50 rounded-xl p-4 text-center">
-                      <div className="text-amber-600 font-bold text-xl">{Math.round(data.totalRevenue * 0.16 / 1000)}K ₸</div>
+                      <div className="text-amber-600 font-bold text-xl">{fmt(data.totalRevenue * 0.16)} ₸</div>
                       <div className="text-gray-500 text-sm">Выручка</div>
                     </div>
                   </div>
@@ -3930,7 +3945,7 @@ function AnalyticsPageContent() {
                       <div className="text-gray-500 text-sm">Заказов</div>
                     </div>
                     <div className="bg-gray-100 rounded-xl p-4 text-center">
-                      <div className="text-gray-700 font-bold text-xl">{Math.round(data.totalRevenue * 0.05 / 1000)}K ₸</div>
+                      <div className="text-gray-700 font-bold text-xl">{fmt(data.totalRevenue * 0.05)} ₸</div>
                       <div className="text-gray-500 text-sm">Выручка</div>
                     </div>
                   </div>
@@ -4002,7 +4017,7 @@ function AnalyticsPageContent() {
                             <div className="text-gray-500 text-sm">Заказов</div>
                           </div>
                           <div className="bg-purple-50 rounded-xl p-4 text-center">
-                            <div className="text-purple-600 font-bold text-xl">{Math.round(cityRevenue / 1000)}K ₸</div>
+                            <div className="text-purple-600 font-bold text-xl">{fmt(cityRevenue)} ₸</div>
                             <div className="text-gray-500 text-sm">Выручка</div>
                           </div>
                         </div>
@@ -4263,7 +4278,7 @@ function AnalyticsPageContent() {
                     </div>
                     <div className="text-center">
                       <div className="text-2xl sm:text-3xl font-bold text-amber-700">
-                        {((data.pendingOrders?.totalAmount || 0) / 1000000).toFixed(1)}M ₸
+                        {fmt(data.pendingOrders?.totalAmount || 0)} ₸
                       </div>
                       <div className="text-xs sm:text-sm text-amber-600">Ожидаемая сумма</div>
                     </div>
@@ -4287,7 +4302,7 @@ function AnalyticsPageContent() {
                           <div className="text-xs text-gray-500 truncate">{order.product}</div>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <div className="font-semibold text-gray-900 text-sm">{(order.amount / 1000).toFixed(0)}K ₸</div>
+                          <div className="font-semibold text-gray-900 text-sm">{fmt(order.amount)} ₸</div>
                           <div className="text-[10px] text-gray-400">{order.date}</div>
                         </div>
                       </div>
@@ -4394,13 +4409,13 @@ function AnalyticsPageContent() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="text-center">
                       <div className="text-2xl sm:text-3xl font-bold text-indigo-700">
-                        {(calculateMonthlyOperationalExpenses() / 1000).toFixed(0)}K ₸
+                        {fmt(calculateMonthlyOperationalExpenses())} ₸
                       </div>
                       <div className="text-xs sm:text-sm text-indigo-600">Всего расходов</div>
                     </div>
                     <div className="text-center">
                       <div className="text-2xl sm:text-3xl font-bold text-indigo-700">
-                        {(calculateAverageDailyExpenses() / 1000).toFixed(1)}K ₸
+                        {fmt(calculateAverageDailyExpenses())} ₸
                       </div>
                       <div className="text-xs sm:text-sm text-indigo-600">В день (средн.)</div>
                     </div>
@@ -4439,7 +4454,7 @@ function AnalyticsPageContent() {
                               {format(expense.startDate, 'd MMM', { locale: ru })} — {format(expense.endDate, 'd MMM yyyy', { locale: ru })}
                             </div>
                             <div className="text-xs text-indigo-600">
-                              {(dailyAmount / 1000).toFixed(1)}K ₸/день
+                              {fmt(dailyAmount)} ₸/день
                             </div>
                           </div>
                         </div>
@@ -4571,7 +4586,7 @@ function AnalyticsPageContent() {
 
                       {newExpenseStartDate && newExpenseEndDate && newExpenseAmount && (
                         <div className="text-xs text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg">
-                          ≈ {((parseFloat(newExpenseAmount) / (Math.ceil((newExpenseEndDate.getTime() - newExpenseStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1)) / 1000).toFixed(1)}K ₸ в день
+                          ≈ {fmt(parseFloat(newExpenseAmount) / (Math.ceil((newExpenseEndDate.getTime() - newExpenseStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1))} ₸ в день
                         </div>
                       )}
 

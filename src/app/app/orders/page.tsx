@@ -285,7 +285,7 @@ export default function OrdersPage() {
     { key: 'delivery' as const, label: 'Моя доставка', icon: Truck, color: 'bg-blue-50', iconColor: 'text-blue-600', borderColor: 'border-blue-200' },
     { key: 'preorder' as const, label: 'Предзаказ', icon: Loader2, color: 'bg-amber-50', iconColor: 'text-amber-600', borderColor: 'border-amber-200' },
     { key: 'packing' as const, label: 'Упаковка', icon: Package, color: 'bg-indigo-50', iconColor: 'text-indigo-600', borderColor: 'border-indigo-200' },
-    { key: 'transfer' as const, label: 'Передача', icon: ArrowRightLeft, color: 'bg-teal-50', iconColor: 'text-teal-600', borderColor: 'border-teal-200' },
+    { key: 'transfer' as const, label: 'Экспресс', icon: ArrowRightLeft, color: 'bg-teal-50', iconColor: 'text-teal-600', borderColor: 'border-teal-200' },
     { key: 'transmitted' as const, label: 'Переданы на доставку', icon: Truck, color: 'bg-sky-50', iconColor: 'text-sky-600', borderColor: 'border-sky-200' },
   ];
 
@@ -308,7 +308,7 @@ export default function OrdersPage() {
     if (status === 'kaspi_delivery' && rawStatus) {
       if (rawStatus.includes('preorder')) return 'Предзаказ';
       if (rawStatus.includes('transmitted')) return 'Переданы на доставку';
-      if (rawStatus.includes('transfer')) return 'Передача';
+      if (rawStatus.includes('transfer')) return 'Экспресс';
       if (rawStatus.includes('packing')) return 'Упаковка';
     }
     switch (status) {
@@ -347,7 +347,7 @@ export default function OrdersPage() {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4 mb-4 sm:mb-6">
+      <div className="flex flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6">
         {statsCards.filter(card => card.key === 'all' || countByStatus(card.key) > 0).map((card, index) => {
           const Icon = card.icon;
           return (
@@ -357,7 +357,7 @@ export default function OrdersPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.05 }}
               onClick={() => setFilterStatus(card.key)}
-              className={`${card.color} ${filterStatus === card.key ? `border-2 ${card.borderColor}` : 'border border-transparent'} rounded-xl p-3 sm:p-4 cursor-pointer hover:shadow-md transition-all`}
+              className={`flex-1 min-w-[140px] ${card.color} ${filterStatus === card.key ? `border-2 ${card.borderColor}` : 'border border-transparent'} rounded-xl p-3 sm:p-4 cursor-pointer hover:shadow-md transition-all`}
             >
               <div className="flex items-center gap-2 mb-2">
                 <div className={`p-1.5 rounded-lg ${card.color}`}>
@@ -423,7 +423,7 @@ export default function OrdersPage() {
             { key: 'delivery' as FilterStatus, label: 'Моя доставка', active: 'bg-blue-500 text-white', activeCount: 'text-blue-200' },
             { key: 'preorder' as any, label: 'Предзаказ', active: 'bg-amber-500 text-white', activeCount: 'text-amber-200' },
             { key: 'packing' as any, label: 'Упаковка', active: 'bg-indigo-500 text-white', activeCount: 'text-indigo-200' },
-            { key: 'transfer' as any, label: 'Передача', active: 'bg-teal-500 text-white', activeCount: 'text-teal-200' },
+            { key: 'transfer' as any, label: 'Экспресс', active: 'bg-teal-500 text-white', activeCount: 'text-teal-200' },
             { key: 'transmitted' as any, label: 'Переданы на доставку', active: 'bg-sky-500 text-white', activeCount: 'text-sky-200' },
           ].map(btn => (
             <button
