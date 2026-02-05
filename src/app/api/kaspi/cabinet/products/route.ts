@@ -1,6 +1,75 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { KaspiAPIClient } from '@/lib/kaspi/api-client';
+import { KaspiAPIClient, kaspiCabinetLogin } from '@/lib/kaspi/api-client';
+
+interface KaspiSession {
+  cookies: string;
+  merchant_id: string;
+  username?: string;
+  password?: string;
+  created_at?: string;
+}
+
+/**
+ * Получить свежую сессию: если BFF вернул 401 — автоматически перелогиниться
+ */
+async function getClientWithAutoRelogin(
+  store: { id: string; kaspi_session: unknown; kaspi_merchant_id: string },
+): Promise<{ client: KaspiAPIClient; merchantId: string } | { error: string; needLogin?: boolean }> {
+  const session = store.kaspi_session as KaspiSession | null;
+
+  if (!session?.cookies) {
+    return { error: 'Кабинет не подключен', needLogin: true };
+  }
+
+  const merchantId = session.merchant_id || store.kaspi_merchant_id;
+  if (!merchantId) {
+    return { error: 'merchantId не найден' };
+  }
+
+  return { client: new KaspiAPIClient(session.cookies, merchantId), merchantId };
+}
+
+/**
+ * При 401 — перелогиниться и вернуть новый клиент
+ */
+async function reloginAndRetry(
+  store: { id: string; kaspi_session: unknown; kaspi_merchant_id: string },
+): Promise<{ client: KaspiAPIClient; merchantId: string } | null> {
+  const session = store.kaspi_session as KaspiSession | null;
+
+  if (!session?.username || !session?.password) {
+    console.log('[AutoRelogin] No stored credentials, cannot auto-relogin');
+    return null;
+  }
+
+  console.log(`[AutoRelogin] Session expired, re-logging in as ${session.username}...`);
+  const result = await kaspiCabinetLogin(session.username, session.password);
+
+  if (!result.success || !result.cookies) {
+    console.error('[AutoRelogin] Re-login failed:', result.error);
+    return null;
+  }
+
+  const merchantId = result.merchantId || session.merchant_id || store.kaspi_merchant_id;
+
+  // Обновляем cookies в Supabase, сохраняя credentials
+  await supabase
+    .from('stores')
+    .update({
+      kaspi_session: {
+        cookies: result.cookies,
+        merchant_id: merchantId,
+        created_at: new Date().toISOString(),
+        username: session.username,
+        password: session.password,
+      },
+    })
+    .eq('id', store.id);
+
+  console.log('[AutoRelogin] Re-login successful, cookies updated');
+  return { client: new KaspiAPIClient(result.cookies, merchantId), merchantId };
+}
 
 /**
  * GET /api/kaspi/cabinet/products?userId=xxx&page=0&limit=50
@@ -12,6 +81,7 @@ export async function GET(request: NextRequest) {
     const userId = searchParams.get('userId');
     const page = parseInt(searchParams.get('page') || '0');
     const limit = parseInt(searchParams.get('limit') || '50');
+    const activeParam = searchParams.get('active');
 
     if (!userId) {
       return NextResponse.json({
@@ -20,7 +90,6 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Получаем магазин и сессию
     const { data: store } = await supabase
       .from('stores')
       .select('id, kaspi_session, kaspi_merchant_id')
@@ -34,56 +103,61 @@ export async function GET(request: NextRequest) {
       }, { status: 404 });
     }
 
-    const session = store.kaspi_session as {
-      cookies: string;
-      merchant_id: string;
-    } | null;
-
-    if (!session?.cookies) {
+    const clientResult = await getClientWithAutoRelogin(store);
+    if ('error' in clientResult) {
       return NextResponse.json({
         success: false,
-        error: 'Кабинет не подключен',
-        needLogin: true,
+        error: clientResult.error,
+        needLogin: clientResult.needLogin,
       });
     }
 
-    const merchantId = session.merchant_id || store.kaspi_merchant_id;
-    if (!merchantId) {
-      return NextResponse.json({
-        success: false,
-        error: 'merchantId не найден',
-      }, { status: 400 });
+    let { client } = clientResult;
+    const activeOnly = activeParam === 'true' ? true : activeParam === 'false' ? false : undefined;
+
+    // Загружаем ВСЕ товары за один запрос (обычно ≤200 — BFF справляется)
+    let allProducts;
+
+    try {
+      const result = await client.getProductsPage(0, 100, activeOnly);
+      allProducts = result.products;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : '';
+
+      if (msg.includes('401')) {
+        const reloginResult = await reloginAndRetry(store);
+        if (!reloginResult) {
+          return NextResponse.json({
+            success: false,
+            error: 'Сессия истекла. Войдите заново.',
+            needLogin: true,
+          });
+        }
+
+        client = reloginResult.client;
+        const retryResult = await client.getProductsPage(0, 100, activeOnly);
+        allProducts = retryResult.products;
+      } else {
+        throw error;
+      }
     }
 
-    const client = new KaspiAPIClient(session.cookies, merchantId);
+    // Считаем статистику по ВСЕМ товарам
+    const stats = {
+      inStock: allProducts.filter(p => p.stock > 0 || !p.stockSpecified).length,
+      notSpecified: allProducts.filter(p => !p.stockSpecified).length,
+      lowStock: allProducts.filter(p => p.stock > 0 && p.stock < 5 && p.stockSpecified !== false).length,
+    };
 
-    // Получаем количество и страницу товаров
-    const [products, total] = await Promise.all([
-      client.getProductsPage(page, limit),
-      client.getProductsCount(),
-    ]);
-
+    // Отдаём ВСЕ товары — сортировка/пагинация на клиенте
     return NextResponse.json({
       success: true,
-      products,
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
+      products: allProducts,
+      total: allProducts.length,
+      stats,
     });
   } catch (error) {
     console.error('Cabinet products error:', error);
-
-    // Если 401/403 — сессия истекла
-    const msg = error instanceof Error ? error.message : '';
-    if (msg.includes('401') || msg.includes('403')) {
-      return NextResponse.json({
-        success: false,
-        error: 'Сессия истекла',
-        needLogin: true,
-      });
-    }
-
     return NextResponse.json({
       success: false,
       error: error instanceof Error ? error.message : 'Ошибка сервера',
@@ -107,7 +181,6 @@ export async function PATCH(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Получаем магазин и сессию
     const { data: store } = await supabase
       .from('stores')
       .select('id, kaspi_session, kaspi_merchant_id')
@@ -121,25 +194,19 @@ export async function PATCH(request: NextRequest) {
       }, { status: 404 });
     }
 
-    const session = store.kaspi_session as {
-      cookies: string;
-      merchant_id: string;
-    } | null;
-
-    if (!session?.cookies) {
+    const clientResult = await getClientWithAutoRelogin(store);
+    if ('error' in clientResult) {
       return NextResponse.json({
         success: false,
-        error: 'Кабинет не подключен',
-        needLogin: true,
+        error: clientResult.error,
+        needLogin: clientResult.needLogin,
       });
     }
 
-    const merchantId = session.merchant_id || store.kaspi_merchant_id;
-    const client = new KaspiAPIClient(session.cookies, merchantId);
+    const { client } = clientResult;
 
     const results: Record<string, boolean> = {};
 
-    // Обновляем цену
     if (price !== undefined && price !== null) {
       try {
         await client.updateProductPrice(offerId, price);
@@ -150,14 +217,11 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // Обновляем остатки
     if (stock !== undefined && stock !== null) {
       try {
-        // stock может быть массивом availabilities или простым числом
         if (Array.isArray(stock)) {
           await client.updateProductStock(offerId, stock);
         } else {
-          // Если передано простое число — обновляем все точки одинаково
           await client.updateProductStock(offerId, [
             { storeId: 'default', stockCount: stock },
           ]);
@@ -169,7 +233,6 @@ export async function PATCH(request: NextRequest) {
       }
     }
 
-    // Обновляем предзаказ
     if (preorder !== undefined) {
       try {
         await client.updatePreorder(offerId, preorder);

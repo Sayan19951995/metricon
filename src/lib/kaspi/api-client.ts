@@ -27,6 +27,7 @@ export interface KaspiProduct {
   availabilities?: KaspiAvailability[];
   preorder?: number | null;
   active?: boolean;
+  stockSpecified?: boolean;
 }
 
 export interface KaspiAvailability {
@@ -37,6 +38,7 @@ export interface KaspiAvailability {
   stockCount: number;
   available: boolean;
   preorderPeriod?: number | null;
+  stockSpecified?: boolean;
 }
 
 export interface KaspiLoginResult {
@@ -52,78 +54,293 @@ export interface KaspiProductsResult {
 }
 
 /**
- * Попытка HTTP-логина в Kaspi Merchant Cabinet.
- * Kaspi может требовать SMS/captcha — в этом случае вернёт ошибку.
+ * OAuth2 логин в Kaspi Merchant Cabinet.
+ *
+ * Поток:
+ * 1. mc.shop.kaspi.kz/oauth2/authorization/1 → redirect → idmc.shop.kaspi.kz/login
+ * 2. POST idmc.shop.kaspi.kz/api/p/login {_u, _p} → {redirectUrl}
+ * 3. Переход по redirectUrl → session cookies для mc.shop.kaspi.kz
  */
 export async function kaspiCabinetLogin(
   username: string,
   password: string
 ): Promise<KaspiLoginResult> {
+  const IDP_URL = 'https://idmc.shop.kaspi.kz';
+  // Храним cookies раздельно по домену
+  let mcCookies = '';   // mc.shop.kaspi.kz
+  let idpCookies = '';  // idmc.shop.kaspi.kz
+
   try {
-    // Шаг 1: Получаем начальные cookies и CSRF token
-    const initResponse = await fetch(`${AUTH_URL}/mc/login`, {
+    // === Шаг 1: Начинаем OAuth2 flow ===
+    console.log('[kaspiLogin] Step 1: Starting OAuth2 flow...');
+
+    const oauthRes = await fetch(`${BASE_URL}/oauth2/authorization/1`, {
       method: 'GET',
-      headers: {
-        'User-Agent': DEFAULT_HEADERS['User-Agent'],
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-      },
+      headers: { 'User-Agent': DEFAULT_HEADERS['User-Agent'] },
       redirect: 'manual',
     });
 
-    const initCookies = extractCookies(initResponse);
+    const oauthCookies = extractCookies(oauthRes);
+    if (oauthCookies) mcCookies = mergeCookies(mcCookies, oauthCookies);
 
-    // Шаг 2: Отправляем логин/пароль
-    const loginResponse = await fetch(`${AUTH_URL}/mc/login`, {
+    const idpAuthorizeUrl = oauthRes.headers.get('location');
+    console.log(`[kaspiLogin] OAuth2 redirect: ${oauthRes.status} → ${idpAuthorizeUrl?.substring(0, 80)}...`);
+    console.log(`[kaspiLogin] Step 1 cookies (${mcCookies.length} chars): ${cookieKeys(mcCookies)}`);
+
+    if (!idpAuthorizeUrl || !idpAuthorizeUrl.includes('idmc.shop.kaspi.kz')) {
+      return { success: false, error: 'Не удалось начать процесс авторизации' };
+    }
+
+    // === Шаг 2: Переходим на IDP authorize ===
+    const authorizeRes = await fetch(idpAuthorizeUrl, {
+      method: 'GET',
+      headers: { 'User-Agent': DEFAULT_HEADERS['User-Agent'] },
+      redirect: 'manual',
+    });
+
+    const authCookies = extractCookies(authorizeRes);
+    if (authCookies) idpCookies = mergeCookies(idpCookies, authCookies);
+
+    const loginPageUrl = authorizeRes.headers.get('location');
+    console.log(`[kaspiLogin] IDP authorize: ${authorizeRes.status} → ${loginPageUrl}`);
+    console.log(`[kaspiLogin] IDP cookies: ${idpCookies ? 'present' : 'empty'}`);
+
+    // === Шаг 3: POST логин/пароль на IDP API ===
+    console.log('[kaspiLogin] Step 3: Posting credentials to IDP...');
+
+    const loginRes = await fetch(`${IDP_URL}/api/p/login`, {
       method: 'POST',
       headers: {
         'User-Agent': DEFAULT_HEADERS['User-Agent'],
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Cookie': initCookies,
-        'Referer': `${AUTH_URL}/mc/login`,
-        'Origin': AUTH_URL,
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+        'Cookie': idpCookies,
+        'Referer': `${IDP_URL}/login`,
+        'Origin': IDP_URL,
       },
-      body: new URLSearchParams({
-        username,
-        password,
-        '_csrf': '', // TODO: extract from page if needed
-      }).toString(),
-      redirect: 'manual',
+      body: JSON.stringify({ _u: username, _p: password }),
     });
 
-    const loginCookies = extractCookies(loginResponse);
-    const allCookies = mergeCookies(initCookies, loginCookies);
+    const loginData = await loginRes.json().catch(() => null);
+    console.log(`[kaspiLogin] Login response: ${loginRes.status}`, JSON.stringify(loginData)?.substring(0, 200));
 
-    // Шаг 3: Проверяем успешность — пробуем получить данные
-    const checkResponse = await fetch(`${BASE_URL}/bff/offer-view/count?m=0`, {
-      headers: {
-        ...DEFAULT_HEADERS,
-        'Cookie': allCookies,
-      },
-    });
+    // Собираем cookies от IDP
+    const loginRespCookies = extractCookies(loginRes);
+    if (loginRespCookies) idpCookies = mergeCookies(idpCookies, loginRespCookies);
 
-    if (checkResponse.ok) {
-      // Пытаемся получить merchantId из ответа или из redirect
-      const merchantId = await extractMerchantId(allCookies);
-      return {
-        success: true,
-        cookies: allCookies,
-        merchantId: merchantId || undefined,
-      };
+    if (!loginRes.ok || !loginData) {
+      const errorCode = loginData?.errorCode;
+      if (errorCode === 'SECURITY_CODE_SMS_FLOOD') {
+        return { success: false, error: 'Слишком много попыток. Подождите и попробуйте снова.' };
+      }
+      if (errorCode === 'INVALID_CREDENTIALS' || errorCode === 'FAILED') {
+        return { success: false, error: 'Неверный логин или пароль' };
+      }
+      return { success: false, error: loginData?.errorCode || 'Ошибка авторизации' };
     }
 
-    // Если редирект на логин — авторизация не прошла
-    if (checkResponse.status === 302 || checkResponse.status === 401) {
-      return {
-        success: false,
-        error: 'Неверный логин или пароль, или требуется SMS-подтверждение',
-      };
+    // Если нужен выбор мерчанта (su: true), пробуем выбрать автоматически
+    if (loginData.su) {
+      console.log('[kaspiLogin] Merchant selection required (su=true)');
+      // Пробуем без указания мерчанта — может сработает если один мерчант
+      const selectRes = await fetch(`${IDP_URL}/api/p/login`, {
+        method: 'POST',
+        headers: {
+          'User-Agent': DEFAULT_HEADERS['User-Agent'],
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'Cookie': idpCookies,
+          'Referer': `${IDP_URL}/login`,
+          'Origin': IDP_URL,
+        },
+        body: JSON.stringify({ _s_m: loginData.merchantId || '' }),
+      });
+
+      const selectData = await selectRes.json().catch(() => null);
+      const selectCookies = extractCookies(selectRes);
+      if (selectCookies) idpCookies = mergeCookies(idpCookies, selectCookies);
+      console.log(`[kaspiLogin] Merchant select: ${selectRes.status}`, JSON.stringify(selectData)?.substring(0, 200));
+
+      if (selectData?.redirectUrl) {
+        loginData.redirectUrl = selectData.redirectUrl;
+      }
     }
 
+    // === Шаг 4: Переходим по redirectUrl чтобы получить session cookies ===
+    const redirectUrl = loginData.redirectUrl;
+    if (!redirectUrl) {
+      return { success: false, error: 'Не получен URL перенаправления после входа' };
+    }
+
+    console.log(`[kaspiLogin] Step 4: Following redirect: ${redirectUrl.substring(0, 80)}...`);
+
+    // Следуем редиректам, собирая cookies
+    let nextUrl = redirectUrl;
+    for (let i = 0; i < 15; i++) {
+      // Определяем какие cookies отправлять
+      const isIdp = nextUrl.includes('idmc.shop.kaspi.kz');
+      const isMc = nextUrl.includes('mc.shop.kaspi.kz');
+      const cookiesToSend = isIdp ? idpCookies : isMc ? mcCookies : '';
+
+      const res = await fetch(nextUrl, {
+        method: 'GET',
+        headers: {
+          'User-Agent': DEFAULT_HEADERS['User-Agent'],
+          'Accept': 'text/html,*/*',
+          ...(cookiesToSend ? { 'Cookie': cookiesToSend } : {}),
+        },
+        redirect: 'manual',
+      });
+
+      const newCookies = extractCookies(res);
+      if (newCookies) {
+        if (nextUrl.includes('idmc.shop.kaspi.kz')) {
+          idpCookies = mergeCookies(idpCookies, newCookies);
+        } else {
+          mcCookies = mergeCookies(mcCookies, newCookies);
+        }
+        console.log(`[kaspiLogin] Redirect ${i} set cookies: ${cookieKeys(newCookies)}`);
+      }
+
+      const location = res.headers.get('location');
+      console.log(`[kaspiLogin] Redirect ${i}: ${res.status} → ${location?.substring(0, 80) || '(done)'}`);
+
+      if (res.status >= 300 && res.status < 400 && location) {
+        nextUrl = location.startsWith('http') ? location : new URL(location, nextUrl).href;
+        continue;
+      }
+
+      break;
+    }
+
+    console.log(`[kaspiLogin] MC cookies (${mcCookies.length} chars): ${cookieKeys(mcCookies)}`);
+
+    // === Шаг 5: Проверка и активация сессии ===
+    if (!mcCookies.includes('mc-sid=')) {
+      return { success: false, error: 'Сессия не создана после авторизации. Попробуйте ещё раз.' };
+    }
+
+    // Шаг 5a: Визит на главную страницу — может установить доп. cookies (XSRF-TOKEN и т.д.)
+    try {
+      const mainRes = await fetch(`${BASE_URL}/`, {
+        headers: {
+          'User-Agent': DEFAULT_HEADERS['User-Agent'],
+          'Accept': 'text/html,application/xhtml+xml,*/*',
+          'Cookie': mcCookies,
+        },
+        redirect: 'manual',
+      });
+      const mainCookies = extractCookies(mainRes);
+      if (mainCookies) {
+        mcCookies = mergeCookies(mcCookies, mainCookies);
+        console.log(`[kaspiLogin] Main page (${mainRes.status}) set cookies: ${cookieKeys(mainCookies)}`);
+      } else {
+        console.log(`[kaspiLogin] Main page: ${mainRes.status}, no new cookies`);
+      }
+    } catch (e) {
+      console.log(`[kaspiLogin] Main page error:`, e);
+    }
+
+    // Шаг 5b: Auth API — получаем merchant ID и доп. cookies
+    let merchantId = '';
+    try {
+      const authRes = await fetch(`${BASE_URL}/auth/api/oauth2`, {
+        headers: {
+          'User-Agent': DEFAULT_HEADERS['User-Agent'],
+          'Accept': 'application/json',
+          'Cookie': mcCookies,
+          'Referer': `${BASE_URL}/`,
+        },
+      });
+      const authCookies = extractCookies(authRes);
+      if (authCookies) {
+        mcCookies = mergeCookies(mcCookies, authCookies);
+        console.log(`[kaspiLogin] Auth API set cookies: ${cookieKeys(authCookies)}`);
+      }
+      console.log(`[kaspiLogin] Auth API: ${authRes.status}`);
+      if (authRes.ok) {
+        const authData = await authRes.json();
+        merchantId = authData.merchantId || authData.id || '';
+        console.log(`[kaspiLogin] Auth data:`, JSON.stringify(authData).substring(0, 300));
+      }
+    } catch (e) {
+      console.log(`[kaspiLogin] Auth API error:`, e);
+    }
+
+    // Шаг 5c: Проверка XSRF-TOKEN
+    const xsrfMatch = mcCookies.match(/XSRF-TOKEN=([^;]+)/);
+    if (xsrfMatch) {
+      console.log(`[kaspiLogin] Found XSRF-TOKEN: ${xsrfMatch[1].substring(0, 30)}...`);
+    }
+
+    // Шаг 5d: Получаем XSRF-TOKEN через BFF и проверяем сессию
+    try {
+      const bffHeaders: Record<string, string> = {
+        'User-Agent': DEFAULT_HEADERS['User-Agent'],
+        'Accept': 'application/json',
+        'Referer': 'https://kaspi.kz/mc/',
+        'Origin': 'https://kaspi.kz',
+        'Cookie': mcCookies,
+      };
+      if (xsrfMatch) {
+        bffHeaders['X-XSRF-TOKEN'] = xsrfMatch[1];
+      }
+      const checkRes = await fetch(`${BASE_URL}/bff/offer-view/count?m=${merchantId || '0'}`, {
+        headers: bffHeaders,
+      });
+
+      // Извлекаем cookies из BFF ответа (XSRF-TOKEN и т.д.)
+      const bffCookies = extractCookies(checkRes);
+      if (bffCookies) {
+        mcCookies = mergeCookies(mcCookies, bffCookies);
+        console.log(`[kaspiLogin] BFF set cookies: ${cookieKeys(bffCookies)}`);
+      }
+
+      const checkBody = await checkRes.text().catch(() => '');
+      console.log(`[kaspiLogin] BFF check: ${checkRes.status}, body: ${checkBody.substring(0, 200)}`);
+
+      // Если 403 и теперь есть XSRF-TOKEN — повторяем с ним
+      if (checkRes.status === 403) {
+        const newXsrf = mcCookies.match(/XSRF-TOKEN=([^;]+)/);
+        if (newXsrf && !xsrfMatch) {
+          console.log(`[kaspiLogin] Got XSRF-TOKEN from BFF, retrying...`);
+          const retryHeaders: Record<string, string> = {
+            ...bffHeaders,
+            'Cookie': mcCookies,
+            'X-XSRF-TOKEN': decodeURIComponent(newXsrf[1]),
+          };
+          const retryRes = await fetch(`${BASE_URL}/bff/offer-view/count?m=${merchantId || '0'}`, {
+            headers: retryHeaders,
+          });
+          const retryCookies = extractCookies(retryRes);
+          if (retryCookies) {
+            mcCookies = mergeCookies(mcCookies, retryCookies);
+          }
+          const retryBody = await retryRes.text().catch(() => '');
+          console.log(`[kaspiLogin] BFF retry: ${retryRes.status}, body: ${retryBody.substring(0, 200)}`);
+        }
+      }
+
+      if (checkRes.ok) {
+        console.log('[kaspiLogin] Session verified via BFF!');
+      } else {
+        const respHeaders: Record<string, string> = {};
+        checkRes.headers.forEach((v, k) => { respHeaders[k] = v; });
+        console.log('[kaspiLogin] BFF response headers:', JSON.stringify(respHeaders));
+      }
+    } catch (e) {
+      console.log(`[kaspiLogin] BFF check error:`, e);
+    }
+
+    // Возвращаем успех — логин прошёл, cookies получены
+    console.log(`[kaspiLogin] Login successful. Final cookies: ${cookieKeys(mcCookies)}`);
     return {
-      success: false,
-      error: `Ошибка проверки: ${checkResponse.status}`,
+      success: true,
+      cookies: mcCookies,
+      merchantId: merchantId || undefined,
     };
   } catch (error) {
+    console.error('[kaspiLogin] Error:', error);
     return {
       success: false,
       error: error instanceof Error ? error.message : 'Ошибка авторизации',
@@ -135,17 +352,12 @@ export async function kaspiCabinetLogin(
  * Проверка валидности cookies
  */
 export async function checkCabinetSession(cookies: string, merchantId: string): Promise<boolean> {
-  try {
-    const response = await fetch(`${BASE_URL}/bff/offer-view/count?m=${merchantId}`, {
-      headers: {
-        ...DEFAULT_HEADERS,
-        'Cookie': cookies,
-      },
-    });
-    return response.ok;
-  } catch {
+  // Если cookies содержат mc-sid — сессия считается активной
+  // BFF может возвращать 403 из-за CSRF, это не значит что сессия невалидна
+  if (!cookies || !cookies.includes('mc-sid=')) {
     return false;
   }
+  return true;
 }
 
 export class KaspiAPIClient {
@@ -158,9 +370,25 @@ export class KaspiAPIClient {
   }
 
   private get headers() {
-    return {
-      ...DEFAULT_HEADERS,
+    const h: Record<string, string> = {
+      'Accept': 'application/json',
+      'Referer': 'https://kaspi.kz/mc/',
+      'Origin': 'https://kaspi.kz',
+      'User-Agent': DEFAULT_HEADERS['User-Agent'],
       'Cookie': this.cookieString,
+    };
+    // XSRF-TOKEN → X-XSRF-TOKEN header (Spring Security CSRF, URL-decoded)
+    const xsrf = this.cookieString.match(/XSRF-TOKEN=([^;]+)/);
+    if (xsrf) {
+      h['X-XSRF-TOKEN'] = decodeURIComponent(xsrf[1]);
+    }
+    return h;
+  }
+
+  private get postHeaders() {
+    return {
+      ...this.headers,
+      'Content-Type': 'application/json',
     };
   }
 
@@ -173,7 +401,7 @@ export class KaspiAPIClient {
     const limit = 100;
 
     while (true) {
-      const products = await this.getProductsPage(page, limit);
+      const { products } = await this.getProductsPage(page, limit);
       if (products.length === 0) break;
       allProducts.push(...products);
       if (products.length < limit) break;
@@ -184,39 +412,59 @@ export class KaspiAPIClient {
   }
 
   /**
-   * Получить одну страницу товаров
+   * Сделать BFF запрос с автоматическим получением XSRF-TOKEN при 403
    */
-  async getProductsPage(page: number = 0, limit: number = 100): Promise<KaspiProduct[]> {
-    const url = `${BASE_URL}/bff/offer-view/list?m=${this.merchantId}&p=${page}&l=${limit}&a=true&t=&c=&lowStock=false&notSpecifiedStock=false`;
+  private async bffFetch(url: string, options?: RequestInit): Promise<Response> {
+    const response = await fetch(url, { ...options, headers: this.headers });
 
-    const response = await fetch(url, { headers: this.headers });
+    // Извлекаем cookies из ответа (XSRF-TOKEN и др.)
+    const setCookies = extractCookies(response);
+    if (setCookies) {
+      this.cookieString = mergeCookies(this.cookieString, setCookies);
+    }
+
+    // При 403 — попробуем ещё раз с обновлёнными cookies/XSRF
+    if (response.status === 403 && setCookies) {
+      console.log(`[BFF] Got 403, retrying with updated cookies...`);
+      const retryResponse = await fetch(url, { ...options, headers: this.headers });
+      const retryCookies = extractCookies(retryResponse);
+      if (retryCookies) {
+        this.cookieString = mergeCookies(this.cookieString, retryCookies);
+      }
+      return retryResponse;
+    }
+
+    return response;
+  }
+
+  /**
+   * Получить одну страницу товаров + total
+   */
+  async getProductsPage(page: number = 0, limit: number = 100, activeOnly?: boolean): Promise<{ products: KaspiProduct[]; total: number }> {
+    // a=true → active products, omit a → archive products
+    const aQuery = activeOnly === false ? '' : `&a=true`;
+    const url = `${BASE_URL}/bff/offer-view/list?m=${this.merchantId}&p=${page}&l=${limit}${aQuery}&t=&c=`;
+
+    const response = await this.bffFetch(url);
 
     if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      console.error(`[BFF] Products list failed: ${response.status}, body: ${body.substring(0, 300)}`);
       throw new Error(`API request failed: ${response.status} ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log(`[BFF] List response keys: ${Object.keys(data).join(', ')}, total: ${data.total ?? data.totalCount ?? 'n/a'}`);
 
     if (!data.data || !Array.isArray(data.data)) {
-      return [];
+      return { products: [], total: 0 };
     }
 
-    return data.data.map((item: any) => this.mapProduct(item));
-  }
+    const products = data.data.map((item: any) => this.mapProduct(item));
+    // BFF может вернуть total в разных полях
+    const total = data.total ?? data.totalCount ?? data.count ?? -1;
 
-  /**
-   * Получить количество товаров
-   */
-  async getProductsCount(): Promise<number> {
-    const url = `${BASE_URL}/bff/offer-view/count?m=${this.merchantId}`;
-
-    const response = await fetch(url, { headers: this.headers });
-    if (!response.ok) {
-      throw new Error(`Count request failed: ${response.status}`);
-    }
-
-    const data = await response.json();
-    return data.count || 0;
+    return { products, total };
   }
 
   /**
@@ -228,7 +476,7 @@ export class KaspiAPIClient {
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: this.headers,
+      headers: this.postHeaders,
       body: JSON.stringify({
         merchantId: this.merchantId,
         offerId,
@@ -255,7 +503,7 @@ export class KaspiAPIClient {
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: this.headers,
+      headers: this.postHeaders,
       body: JSON.stringify({
         merchantId: this.merchantId,
         offerId,
@@ -282,7 +530,7 @@ export class KaspiAPIClient {
 
     const response = await fetch(url, {
       method: 'POST',
-      headers: this.headers,
+      headers: this.postHeaders,
       body: JSON.stringify({
         merchantId: this.merchantId,
         offerId,
@@ -310,33 +558,60 @@ export class KaspiAPIClient {
       stockCount: a.stockCount || 0,
       available: a.available ?? (a.stockCount > 0),
       preorderPeriod: a.preorderPeriod ?? null,
+      stockSpecified: a.stockSpecified ?? true,
     }));
+
+    const allStockSpecified = availabilities.length === 0 || availabilities.some(a => a.stockSpecified);
 
     return {
       sku: item.sku || item.masterSku,
       name: item.title || item.masterTitle,
-      price: item.price || 0,
+      price: item.price || item.cityPrices?.[0]?.value || item.rangePrice?.MIN || item.minPrice || 0,
       stock: availabilities.reduce((sum, a) => sum + a.stockCount, 0),
       category: item.masterCategory || item.verticalCategory,
       brand: item.brand || null,
-      images: item.images || [],
+      images: (item.images || []).map((img: string) =>
+        img.startsWith('http') ? img : `https://resources.cdn-kaspi.kz/img/m/p/${img}`
+      ),
       offerId: item.offerId,
       masterSku: item.masterSku,
       shopLink: item.shopLink,
       availabilities,
       preorder: availabilities[0]?.preorderPeriod ?? null,
       active: item.active ?? true,
+      stockSpecified: allStockSpecified,
     };
   }
 }
 
 // --- Вспомогательные функции ---
 
+function cookieKeys(cookies: string): string {
+  return cookies.split('; ').map(c => {
+    const [k, v] = c.split('=');
+    return `${k}(${v?.length || 0})`;
+  }).join(', ');
+}
+
 function extractCookies(response: Response): string {
-  const setCookieHeaders = response.headers.getSetCookie?.() || [];
-  return setCookieHeaders
-    .map(cookie => cookie.split(';')[0])
+  // Метод 1: getSetCookie() (Node.js 18.14+)
+  let setCookieHeaders = response.headers.getSetCookie?.() || [];
+
+  // Метод 2: fallback через get('set-cookie') если getSetCookie не работает
+  if (setCookieHeaders.length === 0) {
+    const raw = response.headers.get('set-cookie');
+    if (raw) {
+      // split by comma, но аккуратно — не разрезать внутри Expires даты
+      setCookieHeaders = raw.split(/,(?=\s*[a-zA-Z_][a-zA-Z0-9_-]*=)/);
+    }
+  }
+
+  const result = setCookieHeaders
+    .map(cookie => cookie.split(';')[0].trim())
+    .filter(Boolean)
     .join('; ');
+
+  return result;
 }
 
 function mergeCookies(existing: string, incoming: string): string {
@@ -344,11 +619,19 @@ function mergeCookies(existing: string, incoming: string): string {
 
   for (const cookie of existing.split('; ').filter(Boolean)) {
     const [key, ...rest] = cookie.split('=');
-    map.set(key, rest.join('='));
+    if (key) map.set(key.trim(), rest.join('='));
   }
   for (const cookie of incoming.split('; ').filter(Boolean)) {
     const [key, ...rest] = cookie.split('=');
-    map.set(key, rest.join('='));
+    const value = rest.join('=');
+    if (key) {
+      if (value) {
+        map.set(key.trim(), value);
+      } else {
+        // Пустое значение = удаление cookie
+        map.delete(key.trim());
+      }
+    }
   }
 
   return Array.from(map.entries())

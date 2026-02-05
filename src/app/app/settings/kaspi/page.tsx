@@ -99,9 +99,7 @@ export default function KaspiSettingsPage() {
   const [cabinetLoading, setCabinetLoading] = useState(false);
 
   // Форма входа в кабинет
-  const [cabinetLoginMode, setCabinetLoginMode] = useState<'credentials' | 'cookies'>('credentials');
   const [cabinetCreds, setCabinetCreds] = useState({ username: '', password: '' });
-  const [cabinetCookies, setCabinetCookies] = useState({ cookies: '', merchantId: '' });
   const [cabinetLoginLoading, setCabinetLoginLoading] = useState(false);
   const [cabinetLoginError, setCabinetLoginError] = useState('');
   const [showCabinetForm, setShowCabinetForm] = useState(false);
@@ -325,48 +323,32 @@ export default function KaspiSettingsPage() {
     setCabinetLoginError('');
 
     try {
-      const body: Record<string, string> = { userId: user.id };
-
-      if (cabinetLoginMode === 'credentials') {
-        if (!cabinetCreds.username || !cabinetCreds.password) {
-          setCabinetLoginError('Заполните логин и пароль');
-          setCabinetLoginLoading(false);
-          return;
-        }
-        body.username = cabinetCreds.username;
-        body.password = cabinetCreds.password;
-      } else {
-        if (!cabinetCookies.cookies) {
-          setCabinetLoginError('Вставьте cookies');
-          setCabinetLoginLoading(false);
-          return;
-        }
-        body.cookies = cabinetCookies.cookies;
-        if (cabinetCookies.merchantId) {
-          body.merchantId = cabinetCookies.merchantId;
-        }
+      if (!cabinetCreds.username || !cabinetCreds.password) {
+        setCabinetLoginError('Заполните логин и пароль');
+        setCabinetLoginLoading(false);
+        return;
       }
 
       const res = await fetch('/api/kaspi/cabinet/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          userId: user.id,
+          username: cabinetCreds.username,
+          password: cabinetCreds.password,
+        }),
       });
 
       const data = await res.json();
 
       if (data.success) {
         setCabinetConnected(true);
-        setCabinetUsername(cabinetCreds.username || '');
+        setCabinetUsername(cabinetCreds.username);
         setCabinetConnectedAt(new Date().toISOString());
         setShowCabinetForm(false);
         setCabinetCreds({ username: '', password: '' });
-        setCabinetCookies({ cookies: '', merchantId: '' });
       } else {
         setCabinetLoginError(data.error || 'Не удалось войти');
-        if (data.needManualCookies && cabinetLoginMode === 'credentials') {
-          setCabinetLoginError('Автоматический вход не удался. Попробуйте через cookies.');
-        }
       }
     } catch {
       setCabinetLoginError('Ошибка соединения');
@@ -729,100 +711,42 @@ export default function KaspiSettingsPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {/* Tabs */}
-                  <div className="flex gap-1 bg-gray-100 dark:bg-gray-600 p-1 rounded-lg">
-                    <button
-                      onClick={() => { setCabinetLoginMode('credentials'); setCabinetLoginError(''); }}
-                      className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors cursor-pointer ${
-                        cabinetLoginMode === 'credentials'
-                          ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                      }`}
-                    >
-                      Логин / Пароль
-                    </button>
-                    <button
-                      onClick={() => { setCabinetLoginMode('cookies'); setCabinetLoginError(''); }}
-                      className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors cursor-pointer ${
-                        cabinetLoginMode === 'cookies'
-                          ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
-                          : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
-                      }`}
-                    >
-                      Через cookies
-                    </button>
+                  {/* Форма логина */}
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        Логин (телефон или email)
+                      </label>
+                      <input
+                        type="text"
+                        value={cabinetCreds.username}
+                        onChange={(e) => setCabinetCreds({ ...cabinetCreds, username: e.target.value })}
+                        className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#f14635] transition-colors"
+                        placeholder="+7 (XXX) XXX-XX-XX"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        Пароль
+                      </label>
+                      <div className="relative">
+                        <input
+                          type={showCabinetPassword ? 'text' : 'password'}
+                          value={cabinetCreds.password}
+                          onChange={(e) => setCabinetCreds({ ...cabinetCreds, password: e.target.value })}
+                          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#f14635] transition-colors pr-10"
+                          placeholder="Пароль от кабинета Kaspi"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowCabinetPassword(!showCabinetPassword)}
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
+                        >
+                          {showCabinetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
                   </div>
-
-                  {/* Credentials form */}
-                  {cabinetLoginMode === 'credentials' ? (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                          Логин (телефон или email)
-                        </label>
-                        <input
-                          type="text"
-                          value={cabinetCreds.username}
-                          onChange={(e) => setCabinetCreds({ ...cabinetCreds, username: e.target.value })}
-                          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#f14635] transition-colors"
-                          placeholder="+7 (XXX) XXX-XX-XX"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                          Пароль
-                        </label>
-                        <div className="relative">
-                          <input
-                            type={showCabinetPassword ? 'text' : 'password'}
-                            value={cabinetCreds.password}
-                            onChange={(e) => setCabinetCreds({ ...cabinetCreds, password: e.target.value })}
-                            className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#f14635] transition-colors pr-10"
-                            placeholder="Пароль от кабинета Kaspi"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowCabinetPassword(!showCabinetPassword)}
-                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
-                          >
-                            {showCabinetPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                          Cookies (из DevTools)
-                        </label>
-                        <textarea
-                          value={cabinetCookies.cookies}
-                          onChange={(e) => setCabinetCookies({ ...cabinetCookies, cookies: e.target.value })}
-                          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#f14635] transition-colors resize-none"
-                          rows={3}
-                          placeholder="Вставьте cookies из mc.shop.kaspi.kz"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
-                          Merchant ID (опционально)
-                        </label>
-                        <input
-                          type="text"
-                          value={cabinetCookies.merchantId}
-                          onChange={(e) => setCabinetCookies({ ...cabinetCookies, merchantId: e.target.value })}
-                          className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:border-[#f14635] transition-colors"
-                          placeholder="Если отличается от основного"
-                        />
-                      </div>
-                      <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
-                        <p className="text-xs text-amber-700 dark:text-amber-400">
-                          Откройте <a href="https://mc.shop.kaspi.kz" target="_blank" rel="noopener noreferrer" className="underline">mc.shop.kaspi.kz</a>, войдите в аккаунт, откройте DevTools (F12) → Application → Cookies и скопируйте все cookies.
-                        </p>
-                      </div>
-                    </div>
-                  )}
 
                   {/* Error */}
                   {cabinetLoginError && (

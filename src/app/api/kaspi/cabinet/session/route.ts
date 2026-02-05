@@ -96,7 +96,6 @@ export async function DELETE(request: NextRequest) {
       .from('stores')
       .update({
         kaspi_session: null,
-        updated_at: new Date().toISOString(),
       })
       .eq('user_id', userId);
 

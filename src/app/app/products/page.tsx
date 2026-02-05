@@ -35,12 +35,12 @@ export default function ProductsPage() {
   const [session, setSession] = useState<CabinetSession | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
 
-  // Товары
-  const [products, setProducts] = useState<KaspiProduct[]>([]);
-  const [total, setTotal] = useState(0);
+  // Товары (все загруженные)
+  const [allProducts, setAllProducts] = useState<KaspiProduct[]>([]);
+  const [stats, setStats] = useState<{ inStock: number; notSpecified: number; lowStock: number }>({ inStock: 0, notSpecified: 0, lowStock: 0 });
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
-  const limit = 50;
+  const limit = 20;
 
   // Фильтры
   const [searchTerm, setSearchTerm] = useState('');
@@ -54,12 +54,12 @@ export default function ProductsPage() {
   const [saving, setSaving] = useState(false);
   const editInputRef = useRef<HTMLInputElement>(null);
 
+  // Ошибка загрузки товаров
+  const [loadError, setLoadError] = useState('');
+
   // Логин
-  const [loginMode, setLoginMode] = useState<'credentials' | 'cookies'>('credentials');
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
-  const [loginCookies, setLoginCookies] = useState('');
-  const [loginMerchantId, setLoginMerchantId] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
 
@@ -78,7 +78,7 @@ export default function ProductsPage() {
     if (session?.connected && user?.id) {
       loadProducts();
     }
-  }, [session?.connected, user?.id, page]);
+  }, [session?.connected, user?.id]);
 
   const checkSession = async () => {
     if (!user?.id) return;
@@ -101,17 +101,23 @@ export default function ProductsPage() {
   const loadProducts = async () => {
     if (!user?.id) return;
     setLoading(true);
+    setLoadError('');
     try {
-      const res = await fetch(`/api/kaspi/cabinet/products?userId=${user.id}&page=${page}&limit=${limit}`);
+      const res = await fetch(`/api/kaspi/cabinet/products?userId=${user.id}`);
       const data = await res.json();
       if (data.success) {
-        setProducts(data.products || []);
-        setTotal(data.total || 0);
+        setAllProducts(data.products || []);
+        if (data.stats) {
+          setStats(data.stats);
+        }
       } else if (data.needLogin) {
         setSession({ connected: false });
+      } else {
+        setLoadError(data.error || 'Не удалось загрузить товары');
       }
     } catch (err) {
       console.error('Load products error:', err);
+      setLoadError('Ошибка соединения');
     } finally {
       setLoading(false);
     }
@@ -123,30 +129,20 @@ export default function ProductsPage() {
     setLoginError('');
 
     try {
-      const body: Record<string, string> = { userId: user.id };
-
-      if (loginMode === 'cookies') {
-        if (!loginCookies.trim()) {
-          setLoginError('Вставьте cookies');
-          setLoginLoading(false);
-          return;
-        }
-        body.cookies = loginCookies.trim();
-        if (loginMerchantId.trim()) body.merchantId = loginMerchantId.trim();
-      } else {
-        if (!loginUsername.trim() || !loginPassword.trim()) {
-          setLoginError('Введите логин и пароль');
-          setLoginLoading(false);
-          return;
-        }
-        body.username = loginUsername.trim();
-        body.password = loginPassword.trim();
+      if (!loginUsername.trim() || !loginPassword.trim()) {
+        setLoginError('Введите логин и пароль');
+        setLoginLoading(false);
+        return;
       }
 
       const res = await fetch('/api/kaspi/cabinet/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({
+          userId: user.id,
+          username: loginUsername.trim(),
+          password: loginPassword.trim(),
+        }),
       });
 
       const data = await res.json();
@@ -160,9 +156,6 @@ export default function ProductsPage() {
         setLoginError('');
       } else {
         setLoginError(data.error || 'Не удалось подключиться');
-        if (data.needManualCookies && loginMode === 'credentials') {
-          setLoginMode('cookies');
-        }
       }
     } catch {
       setLoginError('Ошибка подключения');
@@ -209,7 +202,7 @@ export default function ProductsPage() {
 
       if (data.success) {
         // Обновляем локально
-        setProducts(prev => prev.map(p => {
+        setAllProducts(prev => prev.map(p => {
           if (p.offerId !== editingCell.offerId) return p;
           const updated = { ...p };
           if (editingCell.field === 'price' && value !== null) updated.price = value;
@@ -240,6 +233,7 @@ export default function ProductsPage() {
       setSortBy(field);
       setSortDir('asc');
     }
+    setPage(0);
   };
 
   const SortIcon = ({ field }: { field: SortField }) => {
@@ -249,8 +243,8 @@ export default function ProductsPage() {
       : <ChevronDown className="w-3.5 h-3.5 inline ml-0.5" />;
   };
 
-  // Фильтрация и сортировка
-  const filteredProducts = products
+  // Фильтрация и сортировка по ВСЕМ товарам
+  const filteredSorted = allProducts
     .filter(p => {
       if (searchTerm && !p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !p.sku.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
@@ -268,7 +262,9 @@ export default function ProductsPage() {
       return 0;
     });
 
+  const total = filteredSorted.length;
   const totalPages = Math.ceil(total / limit);
+  const filteredProducts = filteredSorted.slice(page * limit, (page + 1) * limit);
 
   // === РЕНДЕР ===
 
@@ -373,87 +369,32 @@ export default function ProductsPage() {
               </p>
             </div>
 
-            {/* Tab переключатель */}
-            <div className="flex bg-gray-100 dark:bg-gray-700 rounded-xl p-1 mb-6">
-              <button
-                onClick={() => setLoginMode('credentials')}
-                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                  loginMode === 'credentials'
-                    ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Логин/пароль
-              </button>
-              <button
-                onClick={() => setLoginMode('cookies')}
-                className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
-                  loginMode === 'cookies'
-                    ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white'
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                Через cookies
-              </button>
-            </div>
-
             <div className="space-y-4">
-              {loginMode === 'credentials' ? (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Логин (телефон или email)
-                    </label>
-                    <input
-                      type="text"
-                      value={loginUsername}
-                      onChange={e => setLoginUsername(e.target.value)}
-                      placeholder="+7 (777) 123-45-67"
-                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Пароль
-                    </label>
-                    <input
-                      type="password"
-                      value={loginPassword}
-                      onChange={e => setLoginPassword(e.target.value)}
-                      placeholder="Пароль от Kaspi кабинета"
-                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
-                      onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                    />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Cookies
-                    </label>
-                    <textarea
-                      value={loginCookies}
-                      onChange={e => setLoginCookies(e.target.value)}
-                      placeholder="Вставьте cookies из DevTools (F12 → Application → Cookies → mc.shop.kaspi.kz)"
-                      rows={4}
-                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors resize-none font-mono"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                      Merchant ID (необязательно)
-                    </label>
-                    <input
-                      type="text"
-                      value={loginMerchantId}
-                      onChange={e => setLoginMerchantId(e.target.value)}
-                      placeholder="Например: 4929016"
-                      className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
-                    />
-                  </div>
-                </>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Логин (телефон или email)
+                </label>
+                <input
+                  type="text"
+                  value={loginUsername}
+                  onChange={e => setLoginUsername(e.target.value)}
+                  placeholder="+7 (777) 123-45-67"
+                  className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                  Пароль
+                </label>
+                <input
+                  type="password"
+                  value={loginPassword}
+                  onChange={e => setLoginPassword(e.target.value)}
+                  placeholder="Пароль от Kaspi кабинета"
+                  className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
+                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
+                />
+              </div>
 
               {loginError && (
                 <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
@@ -478,26 +419,6 @@ export default function ProductsPage() {
               </button>
             </div>
 
-            {loginMode === 'credentials' && (
-              <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-900/20 rounded-xl">
-                <p className="text-xs text-amber-700 dark:text-amber-400">
-                  Если автоматический вход не работает (требуется SMS/captcha),
-                  переключитесь на вкладку &quot;Через cookies&quot; и вставьте cookies из браузера.
-                </p>
-              </div>
-            )}
-
-            {loginMode === 'cookies' && (
-              <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
-                <p className="text-xs text-blue-700 dark:text-blue-400 font-medium mb-1">Как получить cookies:</p>
-                <ol className="text-xs text-blue-600 dark:text-blue-400 space-y-0.5 list-decimal list-inside">
-                  <li>Откройте mc.shop.kaspi.kz и войдите</li>
-                  <li>Нажмите F12 (DevTools)</li>
-                  <li>Вкладка Application &rarr; Cookies</li>
-                  <li>Скопируйте все cookies как строку</li>
-                </ol>
-              </div>
-            )}
           </div>
         </motion.div>
       </div>
@@ -535,19 +456,19 @@ export default function ProductsPage() {
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 mb-1">В наличии</p>
           <p className="text-2xl font-bold text-emerald-600">
-            {products.filter(p => p.stock > 0).length}
+            {stats.inStock}
           </p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Нет в наличии</p>
-          <p className="text-2xl font-bold text-red-500">
-            {products.filter(p => p.stock <= 0).length}
+          <p className="text-xs text-gray-500 mb-1">Осталось &lt; 5</p>
+          <p className="text-2xl font-bold text-amber-500">
+            {stats.lowStock}
           </p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">С предзаказом</p>
-          <p className="text-2xl font-bold text-purple-600">
-            {products.filter(p => p.preorder && p.preorder > 0).length}
+          <p className="text-xs text-gray-500 mb-1">Не указаны остатки</p>
+          <p className="text-2xl font-bold text-gray-400">
+            {stats.notSpecified}
           </p>
         </div>
       </div>
@@ -563,7 +484,7 @@ export default function ProductsPage() {
               <input
                 type="text"
                 value={searchTerm}
-                onChange={e => { setSearchTerm(e.target.value); }}
+                onChange={e => { setSearchTerm(e.target.value); setPage(0); }}
                 placeholder="Поиск по названию или SKU..."
                 className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 transition-colors"
               />
@@ -573,7 +494,7 @@ export default function ProductsPage() {
             {(['all', 'inStock', 'outOfStock'] as const).map(f => (
               <button
                 key={f}
-                onClick={() => setFilterStock(f)}
+                onClick={() => { setFilterStock(f); setPage(0); }}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
                   filterStock === f
                     ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
@@ -587,8 +508,27 @@ export default function ProductsPage() {
         </div>
       </div>
 
+      {/* Error */}
+      {loadError && !loading && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-2xl p-6 shadow-sm">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-red-800 dark:text-red-300">Не удалось загрузить товары</p>
+              <p className="text-sm text-red-600 dark:text-red-400 mt-1">{loadError}</p>
+              <button
+                onClick={loadProducts}
+                className="mt-3 px-4 py-2 bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-200 rounded-lg text-sm font-medium hover:bg-red-200 dark:hover:bg-red-700 transition-colors cursor-pointer"
+              >
+                Попробовать снова
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Loading */}
-      {loading && products.length === 0 && (
+      {loading && allProducts.length === 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 shadow-sm text-center">
           <Loader2 className="w-8 h-8 animate-spin text-gray-400 mx-auto mb-3" />
           <p className="text-gray-500">Загрузка товаров...</p>
@@ -779,9 +719,10 @@ export default function ProductsPage() {
                             <span className={`text-sm font-medium ${
                               product.stock > 10 ? 'text-emerald-600' :
                               product.stock > 0 ? 'text-amber-600' :
+                              product.stockSpecified === false ? 'text-gray-400' :
                               'text-red-500'
                             }`}>
-                              {product.stock} шт
+                              {product.stockSpecified === false ? '—' : `${product.stock} шт`}
                             </span>
                             <Edit3 className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </button>
@@ -791,11 +732,11 @@ export default function ProductsPage() {
                       {/* Наличие */}
                       <td className="py-3 px-4">
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          product.stock > 0
+                          product.stock > 0 || product.stockSpecified === false
                             ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
                             : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                         }`}>
-                          {product.stock > 0 ? 'В наличии' : 'Нет'}
+                          {product.stock > 0 || product.stockSpecified === false ? 'В наличии' : 'Нет'}
                         </span>
                       </td>
 
@@ -885,7 +826,7 @@ export default function ProductsPage() {
               <p className="text-sm text-gray-500">
                 Страница {page + 1} из {totalPages} ({total} товаров)
               </p>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5">
                 <button
                   onClick={() => setPage(p => Math.max(0, p - 1))}
                   disabled={page === 0}
@@ -897,6 +838,19 @@ export default function ProductsPage() {
                 >
                   Назад
                 </button>
+                {Array.from({ length: totalPages }, (_, i) => (
+                  <button
+                    key={i}
+                    onClick={() => setPage(i)}
+                    className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
+                      i === page
+                        ? 'bg-red-500 text-white'
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    {i + 1}
+                  </button>
+                ))}
                 <button
                   onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
                   disabled={page >= totalPages - 1}
