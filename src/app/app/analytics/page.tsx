@@ -1579,7 +1579,7 @@ function AnalyticsPageContent() {
                   </tr>
                 </thead>
                 <tbody>
-                  {data.dailyData.map((day, index) => {
+                  {data.dailyData.map((day: any, index: number) => {
                     const dayExpenses = day.cost + day.advertising + day.commissions + day.tax + day.delivery;
                     return (
                       <tr
