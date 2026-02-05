@@ -2014,9 +2014,9 @@ function AnalyticsPageContent() {
                       <div className="p-4 sm:p-5 bg-white/50">
                 {(() => {
                   // Расчёт данных для каждого товара
-                  const totalAdSales = data.topProducts.reduce((sum, p) => sum + (p.adSales || 0), 0);
+                  const totalAdSales = data.topProducts.reduce((sum: number, p: any) => sum + (p.adSales || 0), 0);
 
-                  const productsWithData = data.topProducts.map(product => {
+                  const productsWithData = data.topProducts.map((product: any) => {
                     // Используем реальные данные: sales и revenue из заказов
                     const margin = product.revenue > 0 && product.cost > 0
                       ? Math.round(((product.revenue - product.cost) / product.revenue) * 100)
@@ -2036,11 +2036,11 @@ function AnalyticsPageContent() {
                     };
                   })
                   // Фильтр по поиску
-                  .filter(product =>
+                  .filter((product: any) =>
                     !productSearch || product.name.toLowerCase().includes(productSearch.toLowerCase())
                   )
                   // Сортировка
-                  .sort((a, b) => {
+                  .sort((a: any, b: any) => {
                     if (productSort === 'margin') return b.displayMargin - a.displayMargin;
                     if (productSort === 'profit') return b.displayProfit - a.displayProfit;
                     return b.displayRevenue - a.displayRevenue;
@@ -2089,7 +2089,7 @@ function AnalyticsPageContent() {
                       </div>
                       {/* Карточки товаров */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-1.5 lg:gap-3">
-                        {displayedProducts.map((product) => (
+                        {displayedProducts.map((product: any) => (
                           <div key={product.id} className="bg-white rounded-lg px-2.5 py-1.5 lg:px-4 lg:py-3 shadow-sm">
                             <div className="flex items-center justify-between gap-2">
                               <p className="font-medium text-sm lg:text-base text-gray-900 truncate flex-1">{product.name}</p>
@@ -2253,7 +2253,7 @@ function AnalyticsPageContent() {
                           {/* Детализация */}
                           <div className="mt-1 sm:mt-2 lg:mt-3 space-y-0.5 lg:space-y-1">
                             {salesSourcesData.map((item, index) => {
-                              const total = salesSourcesData.reduce((sum, i) => sum + i.value, 0);
+                              const total = salesSourcesData.reduce((sum: number, i) => sum + i.value, 0);
                               const percent = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
                               return (
                                 <div
@@ -2309,7 +2309,7 @@ function AnalyticsPageContent() {
                           {/* Детализация */}
                           <div className="mt-1 sm:mt-2 lg:mt-3 space-y-0.5 lg:space-y-1">
                             {deliveryData.map((item, index) => {
-                              const total = deliveryData.reduce((sum, i) => sum + i.value, 0);
+                              const total = deliveryData.reduce((sum: number, i) => sum + i.value, 0);
                               const percent = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
                               const isIntercity = item.name === 'Межгород';
 
@@ -2495,15 +2495,15 @@ function AnalyticsPageContent() {
                 };
 
                 const reviewsData = generateReviewsDataForPeriod();
-                const totalPositive = reviewsData.reduce((sum, d) => sum + d.positive, 0);
-                const totalNeutral = reviewsData.reduce((sum, d) => sum + d.neutral, 0);
-                const totalNegative = reviewsData.reduce((sum, d) => sum + d.negative, 0);
+                const totalPositive = reviewsData.reduce((sum: number, d: any) => sum + d.positive, 0);
+                const totalNeutral = reviewsData.reduce((sum: number, d: any) => sum + d.neutral, 0);
+                const totalNegative = reviewsData.reduce((sum: number, d: any) => sum + d.negative, 0);
                 const totalReviews = totalPositive + totalNeutral + totalNegative;
 
                 // Данные для графика
-                const positiveData = reviewsData.map(d => d.positive);
-                const neutralData = reviewsData.map(d => d.neutral);
-                const negativeData = reviewsData.map(d => d.negative);
+                const positiveData = reviewsData.map((d: any) => d.positive);
+                const neutralData = reviewsData.map((d: any) => d.neutral);
+                const negativeData = reviewsData.map((d: any) => d.negative);
                 const allData = [...positiveData, ...neutralData, ...negativeData];
                 const maxVal = Math.max(...allData, 1);
                 // Широкий viewBox для правильных пропорций (3:1)
@@ -3132,7 +3132,7 @@ function AnalyticsPageContent() {
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Проданные товары</h3>
                     <div className="space-y-3">
-                      {data.topProducts.slice(0, 3).map((product) => (
+                      {data.topProducts.slice(0, 3).map((product: any) => (
                         <div key={product.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                           <div className="text-2xl">{product.image}</div>
                           <div className="flex-1">
@@ -3588,7 +3588,7 @@ function AnalyticsPageContent() {
                   <div>
                     <h3 className="text-lg font-semibold text-gray-900 mb-3">Топ товаров</h3>
                     <div className="space-y-2">
-                      {data.topProducts.slice(0, 3).map((product, i) => (
+                      {data.topProducts.slice(0, 3).map((product: any, i: number) => (
                         <div key={product.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                           <div className="text-lg font-bold text-gray-400 w-6">{i + 1}</div>
                           <div className="text-2xl">{product.image}</div>
