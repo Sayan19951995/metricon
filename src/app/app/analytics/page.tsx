@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, ChevronUp, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Plus, X, Trash2, HelpCircle, BarChart3 } from 'lucide-react';
+import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, ChevronUp, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Plus, X, Trash2, HelpCircle, BarChart3, RotateCcw } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 
 // Компонент подсказки (кликабельный для мобильных)
@@ -720,6 +720,9 @@ function AnalyticsPageContent() {
   // Модальное окно для детализации по городам (межгород)
   const [showCitiesModal, setShowCitiesModal] = useState(false);
 
+  // Модальное окно для возвратов
+  const [showReturnsModal, setShowReturnsModal] = useState(false);
+
   // Попап для детализации из таблицы "Детализация по дням"
   const [showTableDayPopup, setShowTableDayPopup] = useState(false);
   const [selectedTableDay, setSelectedTableDay] = useState<DailyData | null>(null);
@@ -980,10 +983,23 @@ function AnalyticsPageContent() {
       };
     });
 
+    // dailyDataByCreation — по дате создания заказа (для "Структура выручки")
+    const allDailyDataByCreation = (sourceData.dailyDataByCreation || sourceData.dailyData || []).map((day: any) => {
+      const totalExpenses = (day.cost || 0) + (day.advertising || 0) + (day.tax || 0) + (day.commissions || 0) + (day.delivery || 0);
+      const recalculatedProfit = (day.revenue || 0) - totalExpenses;
+      return {
+        ...day,
+        fullDate: day.fullDate instanceof Date ? day.fullDate : new Date(day.fullDate),
+        totalExpenses,
+        profit: recalculatedProfit,
+      };
+    });
+
     if (!startDate || !endDate) {
       return {
         ...sourceData,
         dailyData: allDailyData,
+        dailyDataByCreation: allDailyDataByCreation,
         reviewsData: mockAnalyticsData.reviewsData,
       };
     }
@@ -1000,9 +1016,16 @@ function AnalyticsPageContent() {
       return dayDate >= startTime && dayDate <= endTime;
     });
 
+    const filteredDailyDataByCreation = allDailyDataByCreation.filter((day: DailyData) => {
+      const dayDate = new Date(day.fullDate);
+      dayDate.setHours(12, 0, 0, 0);
+      return dayDate >= startTime && dayDate <= endTime;
+    });
+
     // Проверяем, если период больше 31 дня - группируем по месяцам
     const daysDifference = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
     const chartData = daysDifference > 31 ? groupByMonth(filteredDailyData) : filteredDailyData;
+    const chartDataByCreation = daysDifference > 31 ? groupByMonth(filteredDailyDataByCreation) : filteredDailyDataByCreation;
 
     // Пересчитываем метрики на основе отфильтрованных данных
     const totalOrders = filteredDailyData.reduce((sum: number, day: DailyData) => sum + day.orders, 0);
@@ -1026,8 +1049,9 @@ function AnalyticsPageContent() {
       totalProfit,
       avgOrderValue,
       dailyData: chartData,
+      dailyDataByCreation: chartDataByCreation,
       topProducts: sourceData.topProducts || [],
-      ordersByStatus: sourceData.ordersByStatus || { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0 },
+      ordersByStatus: sourceData.ordersByStatus || { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, returned: 0 },
       salesSources: sourceData.salesSources || { organic: totalOrders, advertising: 0 },
       ordersBySource: sourceData.ordersBySource || { organic: totalOrders, ads: 0, offline: 0 },
       deliveryModes: sourceData.deliveryModes || { intercity: 0, myDelivery: 0, expressDelivery: 0, pickup: 0 },
@@ -1089,7 +1113,7 @@ function AnalyticsPageContent() {
   const previousPeriodData = showPreviousPeriod ? getPreviousPeriodData() : [];
 
   // Объединяем текущие данные с предыдущим периодом для графика
-  const combinedChartData = data.dailyData.map((currentDay, index) => {
+  const combinedChartData = data.dailyData.map((currentDay: any, index: number) => {
     const prevDay = previousPeriodData[index];
     return {
       ...currentDay,
@@ -1659,18 +1683,28 @@ function AnalyticsPageContent() {
                 </div>
               </motion.div>
 
-              <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
+              <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowReturnsModal(true)}>
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
                   </div>
-                  <span className="text-xs sm:text-sm text-gray-600">Конверсия</span>
-                  <HelpTooltip text="Процент доставленных заказов от общего числа" />
+                  <span className="text-xs sm:text-sm text-gray-600">Возвраты</span>
+                  <HelpTooltip text="Процент возвращённых заказов от общего числа" />
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-blue-600">58%</div>
-                <div className="text-[10px] sm:text-xs mt-1">
-                  <span className="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
-                </div>
+                {(() => {
+                  const totalOrders = data.ordersByStatus.pending + data.ordersByStatus.processing + data.ordersByStatus.shipped + data.ordersByStatus.delivered + data.ordersByStatus.cancelled + (data.ordersByStatus.returned || 0);
+                  const returnedCount = data.ordersByStatus.returned || 0;
+                  const returnPercent = totalOrders > 0 ? ((returnedCount / totalOrders) * 100).toFixed(1) : '0';
+                  return (
+                    <>
+                      <div className="text-lg sm:text-2xl font-bold text-red-600">{returnPercent}%</div>
+                      <div className="text-[10px] sm:text-xs mt-1 flex items-center gap-2">
+                        <span className="bg-red-50 text-red-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
+                        <span className="text-gray-400">{returnedCount} из {totalOrders}</span>
+                      </div>
+                    </>
+                  );
+                })()}
               </motion.div>
 
               <motion.div
@@ -1748,10 +1782,10 @@ function AnalyticsPageContent() {
                     >
 
                 {(() => {
-                  // Подготовка данных для stacked bar chart
-                  const adsRatio = data.ordersBySource.ads / data.totalOrders; // Доля рекламных заказов
+                  // Подготовка данных для stacked bar chart (по дате создания заказа)
+                  const adsRatio = data.totalOrders > 0 ? data.ordersBySource.ads / data.totalOrders : 0;
 
-                  const chartData = data.dailyData.map(day => {
+                  const chartData = (data.dailyDataByCreation || data.dailyData).map((day: any) => {
                     // Если показываем только рекламу - берём пропорциональную часть
                     const multiplier = showAdsOnly ? adsRatio : 1;
                     const dayRevenue = day.revenue * multiplier;
@@ -1787,7 +1821,7 @@ function AnalyticsPageContent() {
                   return (
                     <>
                       <ResponsiveContainer width="100%" height={200} className="sm:!h-[220px] lg:!h-[320px]">
-                        <BarChart data={chartData} margin={{ top: 15, right: 5, left: -10, bottom: 0 }}>
+                        <BarChart data={chartData} margin={{ top: 30, right: 5, left: -10, bottom: 0 }}>
                           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                           <XAxis dataKey="date" stroke="#9ca3af" tick={{ fontSize: typeof window !== 'undefined' && window.innerWidth >= 1024 ? 12 : 9 }} />
                           <YAxis stroke="#9ca3af" tick={{ fontSize: typeof window !== 'undefined' && window.innerWidth >= 1024 ? 12 : 9 }} tickFormatter={(v) => fmtAxis(v)} />
@@ -1983,46 +2017,23 @@ function AnalyticsPageContent() {
                   const totalAdSales = data.topProducts.reduce((sum, p) => sum + (p.adSales || 0), 0);
 
                   const productsWithData = data.topProducts.map(product => {
-                    if (showAdsOnlyROI) {
-                      // Режим "только реклама" - показываем только рекламные продажи
-                      const adSales = product.adSales || 0;
-                      const adSalesRatio = product.sales > 0 ? adSales / product.sales : 0;
-                      const adRevenue = Math.round(product.revenue * adSalesRatio);
-                      const adCost = Math.round(product.cost * adSalesRatio);
-                      const adExpense = totalAdSales > 0 ? Math.round((adSales / totalAdSales) * data.totalAdvertising) : 0;
-                      const adProfit = adRevenue - adCost - adExpense;
-                      const margin = adRevenue > 0 ? Math.round((adProfit / adRevenue) * 100) : 0;
+                    // Используем реальные данные: sales и revenue из заказов
+                    const margin = product.revenue > 0 && product.cost > 0
+                      ? Math.round(((product.revenue - product.cost) / product.revenue) * 100)
+                      : 0;
+                    const profit = product.revenue - (product.cost || 0);
 
-                      return {
-                        ...product,
-                        displaySales: adSales,
-                        totalSales: product.sales,
-                        displayCost: adCost,
-                        displayRevenue: adRevenue,
-                        displayAdExpense: adExpense,
-                        displayProfit: adProfit,
-                        displayMargin: margin,
-                        isAdsMode: true
-                      };
-                    } else {
-                      // Режим "все продажи" - маржинальность
-                      const adSales = product.adSales || 0;
-                      const adExpense = totalAdSales > 0 ? Math.round((adSales / totalAdSales) * data.totalAdvertising) : 0;
-                      const totalProfit = product.profit;
-                      const margin = product.revenue > 0 ? Math.round((totalProfit / product.revenue) * 100) : 0;
-
-                      return {
-                        ...product,
-                        displaySales: product.sales,
-                        totalSales: product.sales,
-                        displayCost: product.cost,
-                        displayRevenue: product.revenue,
-                        displayAdExpense: adExpense,
-                        displayProfit: totalProfit,
-                        displayMargin: margin,
-                        isAdsMode: false
-                      };
-                    }
+                    return {
+                      ...product,
+                      displaySales: product.sales,
+                      totalSales: product.sales,
+                      displayCost: product.cost || 0,
+                      displayRevenue: product.revenue,
+                      displayAdExpense: 0,
+                      displayProfit: profit,
+                      displayMargin: margin,
+                      isAdsMode: showAdsOnlyROI
+                    };
                   })
                   // Фильтр по поиску
                   .filter(product =>
@@ -2210,15 +2221,15 @@ function AnalyticsPageContent() {
                         {/* Sales Sources Distribution */}
                         <div className="bg-white rounded-xl p-2 sm:p-3 lg:p-5 shadow-sm">
                           <h4 className="text-[11px] sm:text-sm lg:text-base font-semibold text-gray-900 mb-1 sm:mb-2 lg:mb-3">Источники продаж</h4>
-                          <ResponsiveContainer width="100%" height={110} className="sm:!h-[140px] lg:!h-[280px]">
-                            <PieChart>
+                          <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 300 : window.innerWidth >= 640 ? 140 : 110}>
+                            <PieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                               <Pie
                                 data={salesSourcesData}
                                 cx="50%"
                                 cy="50%"
                                 labelLine={false}
-                                outerRadius={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 120 : '90%'}
-                                innerRadius={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 35 : '25%'}
+                                outerRadius="90%"
+                                innerRadius="25%"
                                 fill="#8884d8"
                                 dataKey="value"
                               >
@@ -2266,15 +2277,15 @@ function AnalyticsPageContent() {
                         {/* Delivery Mode */}
                         <div className="bg-white rounded-xl p-2 sm:p-3 lg:p-5 shadow-sm">
                           <h4 className="text-[11px] sm:text-sm lg:text-base font-semibold text-gray-900 mb-1 sm:mb-2 lg:mb-3">Способы доставки</h4>
-                          <ResponsiveContainer width="100%" height={110} className="sm:!h-[140px] lg:!h-[280px]">
-                            <PieChart>
+                          <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 300 : window.innerWidth >= 640 ? 140 : 110}>
+                            <PieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                               <Pie
                                 data={deliveryData}
                                 cx="50%"
                                 cy="50%"
                                 labelLine={false}
-                                outerRadius={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 120 : '90%'}
-                                innerRadius={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 35 : '25%'}
+                                outerRadius="90%"
+                                innerRadius="25%"
                                 fill="#8884d8"
                                 dataKey="value"
                               >
@@ -3241,6 +3252,104 @@ function AnalyticsPageContent() {
                   <button
                     onClick={() => setShowCitiesModal(false)}
                     className="px-6 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-medium transition-colors"
+                  >
+                    Закрыть
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
+
+        {/* Returns Modal */}
+        <AnimatePresence>
+          {showReturnsModal && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setShowReturnsModal(false)}
+                className="fixed inset-0 bg-black/50 z-50"
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl z-50 w-full max-w-lg overflow-hidden max-h-[80vh] flex flex-col"
+              >
+                {/* Header */}
+                <div className="bg-gradient-to-r from-red-500 to-red-600 p-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-xl font-bold text-white">Возвраты</h2>
+                      <p className="text-white/80 text-sm mt-1">
+                        {(() => {
+                          const total = data.ordersByStatus.pending + data.ordersByStatus.processing + data.ordersByStatus.shipped + data.ordersByStatus.delivered + data.ordersByStatus.cancelled + (data.ordersByStatus.returned || 0);
+                          const ret = data.ordersByStatus.returned || 0;
+                          const pct = total > 0 ? ((ret / total) * 100).toFixed(1) : '0';
+                          return `${ret} из ${total} заказов (${pct}%)`;
+                        })()}
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowReturnsModal(false)}
+                      className="text-white/80 hover:text-white text-2xl leading-none"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="p-6 overflow-y-auto flex-1">
+                  {(sourceData.returnedOrders && sourceData.returnedOrders.length > 0) ? (
+                    <div className="space-y-3">
+                      {sourceData.returnedOrders.map((order: any, index: number) => (
+                        <div key={order.id || index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+                          <div className="w-7 h-7 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                            <RotateCcw className="w-3.5 h-3.5 text-red-500" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{order.product}</p>
+                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                              <span>{order.customer}</span>
+                              {order.date && <span className="text-gray-300">•</span>}
+                              {order.date && <span>{new Date(order.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>}
+                            </div>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <div className="text-sm font-semibold text-red-600">{fmt(order.amount)} ₸</div>
+                            <div className="text-xs text-gray-400">{order.itemsCount} шт</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      <RotateCcw className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                      <p className="text-sm">Возвратов не найдено</p>
+                    </div>
+                  )}
+
+                  {/* Summary */}
+                  {sourceData.returnedOrders && sourceData.returnedOrders.length > 0 && (
+                    <div className="mt-6 pt-4 border-t border-gray-200">
+                      <div className="flex justify-between items-center">
+                        <span className="text-gray-600">Сумма возвратов:</span>
+                        <span className="text-lg font-bold text-red-600">
+                          {fmt(sourceData.returnedOrders.reduce((sum: number, o: any) => sum + (o.amount || 0), 0))} ₸
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer */}
+                <div className="bg-gray-50 p-4 flex justify-end">
+                  <button
+                    onClick={() => setShowReturnsModal(false)}
+                    className="px-6 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl font-medium transition-colors"
                   >
                     Закрыть
                   </button>
