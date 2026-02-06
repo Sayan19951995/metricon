@@ -785,7 +785,7 @@ export class KaspiAPIClient {
     feedUrl: string,
     login?: string,
     password?: string
-  ): Promise<{ success: boolean; error?: string }> {
+  ): Promise<{ success: boolean; error?: string; data?: unknown }> {
     const url = `${BASE_URL}/pricefeed/upload/merchant/settings/auto/${this.merchantId}/check`;
 
     const payload: Record<string, unknown> = {
@@ -803,12 +803,15 @@ export class KaspiAPIClient {
         body: JSON.stringify(payload),
       });
       const text = await response.text().catch(() => '');
-      console.log(`[AutoLoad] CHECK ${url} → ${response.status}`, text.substring(0, 300));
+      console.log(`[AutoLoad] CHECK ${url} → ${response.status}`, text);
+
+      let data: unknown = null;
+      try { data = JSON.parse(text); } catch { data = text; }
 
       if (response.ok) {
-        return { success: true };
+        return { success: true, data };
       }
-      return { success: false, error: `${response.status}: ${text.substring(0, 200)}` };
+      return { success: false, error: `${response.status}: ${text.substring(0, 200)}`, data };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       return { success: false, error: msg };

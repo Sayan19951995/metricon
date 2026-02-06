@@ -115,7 +115,7 @@ export default function KaspiSettingsPage() {
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedSaving, setFeedSaving] = useState(false);
   const [feedChecking, setFeedChecking] = useState(false);
-  const [feedCheckResult, setFeedCheckResult] = useState<boolean | null>(null);
+  const [feedCheckResult, setFeedCheckResult] = useState<{ success: boolean; data?: any; error?: string } | null>(null);
   const [feedCopied, setFeedCopied] = useState(false);
   const [feedCachedAt, setFeedCachedAt] = useState('');
   const [showFeedPassword, setShowFeedPassword] = useState(false);
@@ -415,9 +415,9 @@ export default function KaspiSettingsPage() {
         }),
       });
       const data = await res.json();
-      setFeedCheckResult(data.success);
+      setFeedCheckResult(data);
     } catch {
-      setFeedCheckResult(false);
+      setFeedCheckResult({ success: false, error: 'Ошибка соединения' });
     } finally {
       setFeedChecking(false);
     }
@@ -1048,20 +1048,32 @@ export default function KaspiSettingsPage() {
               )}
 
               {/* Результат проверки */}
-              {feedCheckResult === true && (
+              {feedCheckResult?.success && (
                 <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 mb-4">
                   <div className="flex items-center gap-2">
                     <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
                     <p className="text-sm text-emerald-700 dark:text-emerald-300">Kaspi успешно прочитал прайс-лист</p>
                   </div>
+                  {feedCheckResult.data && (
+                    <pre className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg p-2 overflow-auto max-h-40">
+                      {JSON.stringify(feedCheckResult.data, null, 2)}
+                    </pre>
+                  )}
                 </div>
               )}
-              {feedCheckResult === false && (
+              {feedCheckResult && !feedCheckResult.success && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 mb-4">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                    <p className="text-sm text-red-700 dark:text-red-300">Kaspi не смог прочитать прайс-лист. Проверьте ссылку и авторизацию.</p>
+                    <p className="text-sm text-red-700 dark:text-red-300">
+                      {feedCheckResult.error || 'Kaspi не смог прочитать прайс-лист'}
+                    </p>
                   </div>
+                  {feedCheckResult.data && (
+                    <pre className="mt-2 text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 rounded-lg p-2 overflow-auto max-h-40">
+                      {JSON.stringify(feedCheckResult.data, null, 2)}
+                    </pre>
+                  )}
                 </div>
               )}
 
