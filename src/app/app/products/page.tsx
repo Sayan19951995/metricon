@@ -60,6 +60,7 @@ export default function ProductsPage() {
   const [editingCell, setEditingCell] = useState<{ offerId: string; field: 'price' | 'stock' | 'preorder' } | null>(null);
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
   // Ошибка загрузки товаров
@@ -245,13 +246,18 @@ export default function ProductsPage() {
           if (editingCell.field === 'preorder') updated.preorder = value !== null ? Math.round(value) : null;
           return updated;
         }));
+        const label = editingCell.field === 'price' ? 'Цена' : editingCell.field === 'preorder' ? 'Предзаказ' : 'Остаток';
+        setToast({ message: `${label} обновлён. Изменения на Kaspi в течение минуты`, type: 'success' });
+        setTimeout(() => setToast(null), 4000);
       } else {
         console.error('Save failed:', data);
-        alert(`Ошибка: ${data.error || data.message || 'Не удалось сохранить'}`);
+        setToast({ message: data.error || 'Не удалось сохранить', type: 'error' });
+        setTimeout(() => setToast(null), 5000);
       }
     } catch (err) {
       console.error('Save error:', err);
-      alert('Ошибка соединения при сохранении');
+      setToast({ message: 'Ошибка соединения', type: 'error' });
+      setTimeout(() => setToast(null), 5000);
     } finally {
       setSaving(false);
       setEditingCell(null);
@@ -586,7 +592,17 @@ export default function ProductsPage() {
 
   // === Товары загружены ===
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen relative">
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${
+          toast.type === 'success'
+            ? 'bg-emerald-500 text-white'
+            : 'bg-red-500 text-white'
+        }`}>
+          {toast.message}
+        </div>
+      )}
       {/* Header */}
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
