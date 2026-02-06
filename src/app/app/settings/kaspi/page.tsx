@@ -23,7 +23,9 @@ import {
   Check,
   LogIn,
   Plug,
-  PlugZap
+  PlugZap,
+  Link2,
+  FileText,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@/hooks/useUser';
@@ -105,11 +107,23 @@ export default function KaspiSettingsPage() {
   const [showCabinetForm, setShowCabinetForm] = useState(false);
   const [showCabinetPassword, setShowCabinetPassword] = useState(false);
 
+  // Автозагрузка прайс-листа
+  const [feedEnabled, setFeedEnabled] = useState(false);
+  const [feedToken, setFeedToken] = useState('');
+  const [feedAuthLogin, setFeedAuthLogin] = useState('');
+  const [feedAuthPassword, setFeedAuthPassword] = useState('');
+  const [feedLoading, setFeedLoading] = useState(false);
+  const [feedSaving, setFeedSaving] = useState(false);
+  const [feedCopied, setFeedCopied] = useState(false);
+  const [feedCachedAt, setFeedCachedAt] = useState('');
+  const [showFeedPassword, setShowFeedPassword] = useState(false);
+
   // Проверяем статус подключения при загрузке
   useEffect(() => {
     if (user?.id) {
       checkConnectionStatus();
       checkCabinetStatus();
+      loadFeedSettings();
     }
   }, [user?.id]);
 
@@ -317,6 +331,62 @@ export default function KaspiSettingsPage() {
     }
   };
 
+  // === Автозагрузка ===
+  const loadFeedSettings = async () => {
+    if (!user?.id) return;
+    setFeedLoading(true);
+    try {
+      const res = await fetch(`/api/kaspi/cabinet/feed?userId=${user.id}`);
+      const data = await res.json();
+      if (data.success && data.feed) {
+        setFeedEnabled(data.feed.enabled || false);
+        setFeedToken(data.feed.feed_token || '');
+        setFeedAuthLogin(data.feed.auth_login || '');
+        setFeedAuthPassword(data.feed.auth_password || '');
+        setFeedCachedAt(data.feed.cached_at || '');
+      }
+    } catch {
+      // No feed yet
+    } finally {
+      setFeedLoading(false);
+    }
+  };
+
+  const saveFeedSettings = async () => {
+    if (!user?.id) return;
+    setFeedSaving(true);
+    try {
+      const res = await fetch('/api/kaspi/cabinet/feed', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          authLogin: feedAuthLogin,
+          authPassword: feedAuthPassword,
+          enabled: feedEnabled,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.feedToken) {
+        setFeedToken(data.feedToken);
+      }
+    } catch (err) {
+      console.error('Save feed error:', err);
+    } finally {
+      setFeedSaving(false);
+    }
+  };
+
+  const feedUrl = feedToken ? `${typeof window !== 'undefined' ? window.location.origin : ''}/api/kaspi/feed?token=${feedToken}` : '';
+
+  const copyFeedUrl = () => {
+    if (feedUrl) {
+      navigator.clipboard.writeText(feedUrl);
+      setFeedCopied(true);
+      setTimeout(() => setFeedCopied(false), 2000);
+    }
+  };
+
   const handleCabinetLogin = async () => {
     if (!user?.id) return;
     setCabinetLoginLoading(true);
@@ -401,7 +471,7 @@ export default function KaspiSettingsPage() {
           className="space-y-6"
         >
           {/* Connection Status Card */}
-          <motion.div variants={itemVariants} className={`rounded-2xl p-6 shadow-sm ${
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className={`rounded-2xl p-6 shadow-sm ${
             status === 'connected' ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white' :
             status === 'error' ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' :
             'bg-white dark:bg-gray-800'
@@ -479,7 +549,7 @@ export default function KaspiSettingsPage() {
 
           {/* API Key Form (for disconnected/error state) */}
           {(status === 'disconnected' || status === 'error') && (
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Данные для подключения</h3>
               <div className="space-y-4">
                 <div>
@@ -576,7 +646,7 @@ export default function KaspiSettingsPage() {
 
           {/* Sync Settings */}
           {status === 'connected' && (
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-6">
                 <Settings className="w-5 h-5 text-gray-400" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Настройки синхронизации</h3>
@@ -647,7 +717,7 @@ export default function KaspiSettingsPage() {
           )}
 
           {/* Cabinet Connection */}
-          <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
               {cabinetConnected ? (
                 <PlugZap className="w-5 h-5 text-emerald-500" />
@@ -791,9 +861,154 @@ export default function KaspiSettingsPage() {
             </p>
           </motion.div>
 
+          {/* Автозагрузка прайс-листа */}
+          {cabinetConnected && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <FileText className="w-5 h-5 text-gray-400" />
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Автозагрузка прайс-листа</h3>
+              </div>
+
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+                Kaspi автоматически забирает прайс-лист по ссылке. Изменения предзаказов и цен
+                применяются при следующем обновлении.
+              </p>
+
+              {/* Тогл включения */}
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl mb-4">
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Автозагрузка</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    {feedEnabled ? 'Kaspi автоматически обновляет данные' : 'Включите для автоматических обновлений'}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setFeedEnabled(!feedEnabled)}
+                  className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${
+                    feedEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
+                    feedEnabled ? 'translate-x-7' : 'translate-x-1'
+                  }`} />
+                </button>
+              </div>
+
+              {/* Ссылка на фид */}
+              {feedToken && (
+                <div className="mb-4">
+                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
+                    Ссылка на прайс-лист
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={feedUrl}
+                      className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-xs text-gray-700 dark:text-gray-300 font-mono"
+                    />
+                    <button
+                      onClick={copyFeedUrl}
+                      className="px-3 py-2 bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 rounded-lg transition-colors cursor-pointer"
+                    >
+                      {feedCopied ? (
+                        <Check className="w-4 h-4 text-emerald-500" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-gray-500" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Авторизация */}
+              <div className="space-y-3 mb-4">
+                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Авторизация (опционально)
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Логин</label>
+                    <input
+                      type="text"
+                      value={feedAuthLogin}
+                      onChange={(e) => setFeedAuthLogin(e.target.value)}
+                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                      placeholder="Логин"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-gray-500 mb-1">Пароль</label>
+                    <div className="relative">
+                      <input
+                        type={showFeedPassword ? 'text' : 'password'}
+                        value={feedAuthPassword}
+                        onChange={(e) => setFeedAuthPassword(e.target.value)}
+                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors pr-10"
+                        placeholder="Пароль"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowFeedPassword(!showFeedPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
+                      >
+                        {showFeedPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Инструкция */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4">
+                <div className="flex items-start gap-3">
+                  <Link2 className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                  <div className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
+                    <p className="font-medium">Как настроить в Kaspi:</p>
+                    <ol className="list-decimal list-inside space-y-0.5">
+                      <li>Скопируйте ссылку выше</li>
+                      <li>В кабинете Kaspi: Товары → Загрузить прайс-лист → Автоматическая загрузка</li>
+                      <li>Вставьте ссылку и укажите логин/пароль (если задали)</li>
+                      <li>Нажмите «Проверить», затем «Сохранить»</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+
+              {feedCachedAt && (
+                <p className="text-xs text-gray-400 mb-4">
+                  Последнее обновление кэша: {new Date(feedCachedAt).toLocaleString('ru-RU')}
+                </p>
+              )}
+
+              {/* Кнопка сохранения */}
+              <button
+                onClick={saveFeedSettings}
+                disabled={feedSaving}
+                className="w-full px-4 py-2.5 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
+              >
+                {feedSaving ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Сохранение...
+                  </>
+                ) : feedToken ? (
+                  'Сохранить настройки'
+                ) : (
+                  'Включить автозагрузку'
+                )}
+              </button>
+            </motion.div>
+          )}
+
           {/* API Debug - всегда видно */}
           {user?.id && (
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Settings className="w-5 h-5 text-gray-400" />
@@ -830,7 +1045,7 @@ export default function KaspiSettingsPage() {
 
           {/* Sync History */}
           {status === 'connected' && syncHistory.length > 0 && (
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-4">
                 <Clock className="w-5 h-5 text-gray-400" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">История синхронизации</h3>

@@ -13,6 +13,11 @@ const DEFAULT_HEADERS = {
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
 };
 
+export interface KaspiCityPrice {
+  cityId: string;
+  value: number;
+}
+
 export interface KaspiProduct {
   sku: string;
   name: string;
@@ -25,6 +30,7 @@ export interface KaspiProduct {
   masterSku?: string;
   shopLink?: string;
   availabilities?: KaspiAvailability[];
+  cityPrices?: KaspiCityPrice[];
   preorder?: number | null;
   active?: boolean;
   stockSpecified?: boolean;
@@ -414,8 +420,9 @@ export class KaspiAPIClient {
   /**
    * Сделать BFF запрос с автоматическим получением XSRF-TOKEN при 403
    */
-  private async bffFetch(url: string, options?: RequestInit): Promise<Response> {
-    const response = await fetch(url, { ...options, headers: this.headers });
+  private async bffFetch(url: string, options?: RequestInit & { json?: boolean }): Promise<Response> {
+    const hdrs = options?.json ? this.postHeaders : this.headers;
+    const response = await fetch(url, { ...options, headers: hdrs });
 
     // Извлекаем cookies из ответа (XSRF-TOKEN и др.)
     const setCookies = extractCookies(response);
@@ -426,7 +433,8 @@ export class KaspiAPIClient {
     // При 403 — попробуем ещё раз с обновлёнными cookies/XSRF
     if (response.status === 403 && setCookies) {
       console.log(`[BFF] Got 403, retrying with updated cookies...`);
-      const retryResponse = await fetch(url, { ...options, headers: this.headers });
+      const retryHdrs = options?.json ? this.postHeaders : this.headers;
+      const retryResponse = await fetch(url, { ...options, headers: retryHdrs });
       const retryCookies = extractCookies(retryResponse);
       if (retryCookies) {
         this.cookieString = mergeCookies(this.cookieString, retryCookies);
@@ -474,9 +482,9 @@ export class KaspiAPIClient {
   async updateProductPrice(offerId: string, price: number): Promise<boolean> {
     const url = `${BASE_URL}/bff/offer-view/price`;
 
-    const response = await fetch(url, {
+    const response = await this.bffFetch(url, {
       method: 'POST',
-      headers: this.postHeaders,
+      json: true,
       body: JSON.stringify({
         merchantId: this.merchantId,
         offerId,
@@ -486,7 +494,8 @@ export class KaspiAPIClient {
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`Update price failed: ${response.status} — ${text}`);
+      console.error(`[BFF] Update price failed: ${response.status}`, text.substring(0, 300));
+      throw new Error(`Update price failed: ${response.status} — ${text.substring(0, 200)}`);
     }
 
     return true;
@@ -501,9 +510,9 @@ export class KaspiAPIClient {
   ): Promise<boolean> {
     const url = `${BASE_URL}/bff/offer-view/stock`;
 
-    const response = await fetch(url, {
+    const response = await this.bffFetch(url, {
       method: 'POST',
-      headers: this.postHeaders,
+      json: true,
       body: JSON.stringify({
         merchantId: this.merchantId,
         offerId,
@@ -513,7 +522,8 @@ export class KaspiAPIClient {
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`Update stock failed: ${response.status} — ${text}`);
+      console.error(`[BFF] Update stock failed: ${response.status}`, text.substring(0, 300));
+      throw new Error(`Update stock failed: ${response.status} — ${text.substring(0, 200)}`);
     }
 
     return true;
@@ -528,9 +538,9 @@ export class KaspiAPIClient {
   ): Promise<boolean> {
     const url = `${BASE_URL}/bff/offer-view/preorder`;
 
-    const response = await fetch(url, {
+    const response = await this.bffFetch(url, {
       method: 'POST',
-      headers: this.postHeaders,
+      json: true,
       body: JSON.stringify({
         merchantId: this.merchantId,
         offerId,
@@ -540,36 +550,242 @@ export class KaspiAPIClient {
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`Update preorder failed: ${response.status} — ${text}`);
+      console.error(`[BFF] Update preorder failed: ${response.status}`, text.substring(0, 300));
+      throw new Error(`Update preorder failed: ${response.status} — ${text.substring(0, 200)}`);
     }
 
     return true;
   }
 
+  // ===== Прайс-лист (Export / Import) =====
+
+  /**
+   * Запустить экспорт прайс-листа.
+   * Kaspi генерирует файл асинхронно — нужно потом проверять статус и скачивать.
+   */
+  async triggerPriceListExport(fileType: 'XML' | 'XLSX' = 'XML'): Promise<{ triggered: boolean; error?: string }> {
+    const url = `${BASE_URL}/offers/api/v1/offer/export/trigger?m=${this.merchantId}&available=ACTIVE&fileType=${fileType}`;
+
+    const response = await this.bffFetch(url);
+    const text = await response.text();
+    console.log(`[PriceList] Export trigger: ${response.status}`, text.substring(0, 300));
+
+    if (response.status === 429) {
+      return { triggered: false, error: 'Rate limit — подождите и попробуйте снова' };
+    }
+
+    if (!response.ok) {
+      return { triggered: false, error: `${response.status}: ${text.substring(0, 200)}` };
+    }
+
+    return { triggered: true };
+  }
+
+  /**
+   * Проверить статус экспорта прайс-листа.
+   * Пробуем несколько вариантов URL (endpoint точно не известен).
+   */
+  async checkExportStatus(): Promise<{ ready: boolean; downloadUrl?: string; data?: any }> {
+    // /status вернул 400 — пробуем с разными параметрами
+    const urls = [
+      `${BASE_URL}/offers/api/v1/offer/export/status?m=${this.merchantId}&available=ACTIVE&fileType=XML`,
+      `${BASE_URL}/offers/api/v1/offer/export/status?m=${this.merchantId}&fileType=XML`,
+      `${BASE_URL}/offers/api/v1/offer/export/status?m=${this.merchantId}`,
+    ];
+
+    for (const url of urls) {
+      try {
+        const response = await this.bffFetch(url);
+        const text = await response.text();
+        console.log(`[PriceList] ${url} → ${response.status}: ${text.substring(0, 500)}`);
+
+        if (response.ok) {
+          try {
+            const data = JSON.parse(text);
+            return { ready: true, data };
+          } catch {
+            return { ready: true, downloadUrl: url };
+          }
+        }
+      } catch (e) {
+        console.log(`[PriceList] ${url} error:`, e);
+      }
+    }
+
+    return { ready: false };
+  }
+
+  /**
+   * Сгенерировать XML прайс-лист из данных BFF.
+   * Формат: https://guide.kaspi.kz/partner/ru/shop/goods/price_list/q2962
+   *
+   * @param products — товары из BFF (getAllProducts)
+   * @param preorderOverrides — Map<sku, Map<storeId, days>> переопределения предзаказа
+   * @param companyName — название компании
+   */
+  generatePriceListXML(
+    products: KaspiProduct[],
+    preorderOverrides?: Map<string, Map<string, number>>,
+  ): string {
+    const lines: string[] = [];
+    lines.push('<?xml version="1.0" encoding="utf-8"?>');
+    lines.push('<kaspi_catalog date="' + new Date().toISOString().split('T')[0] + '"');
+    lines.push('    xmlns="kaspiShopping"');
+    lines.push('    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"');
+    lines.push('    xsi:schemaLocation="http://kaspi.kz/kaspishopping.xsd">');
+    lines.push(`  <company>${escapeXml(this.merchantId)}</company>`);
+    lines.push(`  <merchantid>${escapeXml(this.merchantId)}</merchantid>`);
+    lines.push('  <offers>');
+
+    for (const product of products) {
+      const sku = product.sku || product.masterSku || '';
+      if (!sku) continue;
+
+      lines.push(`    <offer sku="${escapeXml(sku)}">`);
+      lines.push(`      <model>${escapeXml(product.name)}</model>`);
+      const brand = product.brand;
+      lines.push(brand ? `      <brand>${escapeXml(brand)}</brand>` : '      <brand/>');
+      lines.push('      <availabilities>');
+
+      const avails = product.availabilities || [];
+      if (avails.length > 0) {
+        for (const a of avails) {
+          // Используем полный storeId как в оригинальном экспорте Kaspi (4929016_PP1)
+          const fullStoreId = a.storeId;
+          const shortStoreId = fullStoreId.includes('_') ? fullStoreId.split('_').pop()! : fullStoreId;
+          const available = a.available ? 'yes' : 'no';
+          const stockCount = a.stockCount || 0;
+
+          // Предзаказ: берём override если есть, иначе текущее значение
+          let preorder = a.preorderPeriod ?? null;
+          const skuOverrides = preorderOverrides?.get(sku);
+          if (skuOverrides?.has(shortStoreId) || skuOverrides?.has(fullStoreId)) {
+            preorder = skuOverrides.get(shortStoreId) ?? skuOverrides.get(fullStoreId)!;
+          } else if (skuOverrides?.has('*')) {
+            preorder = skuOverrides.get('*')!;
+          }
+
+          let attrs = `available="${available}" storeId="${escapeXml(fullStoreId)}"`;
+          const preorderVal = (preorder !== null && preorder > 0) ? Math.min(preorder, 30) : 0;
+          attrs += ` preOrder="${preorderVal}"`;
+          if (stockCount > 0) {
+            attrs += ` stockCount="${stockCount}.0"`;
+          }
+
+          lines.push(`        <availability ${attrs}/>`);
+        }
+      } else {
+        lines.push(`        <availability available="yes" storeId="${this.merchantId}_PP1" preOrder="0"/>`);
+      }
+
+      lines.push('      </availabilities>');
+
+      // cityprices если есть, иначе price
+      const cityPrices = product.cityPrices;
+      if (cityPrices && cityPrices.length > 0) {
+        lines.push('      <cityprices>');
+        for (const cp of cityPrices) {
+          lines.push(`        <cityprice cityId="${escapeXml(cp.cityId)}">${Math.round(cp.value)}</cityprice>`);
+        }
+        lines.push('      </cityprices>');
+      } else {
+        lines.push(`      <price>${Math.round(product.price)}</price>`);
+      }
+      lines.push('    </offer>');
+    }
+
+    lines.push('  </offers>');
+    lines.push('</kaspi_catalog>');
+
+    return lines.join('\n');
+  }
+
+  /**
+   * Загрузить XML прайс-лист в Kaspi через BFF.
+   * Endpoint: POST /offers/api/v1/offer/import/upload
+   */
+  async uploadPriceList(xmlContent: string): Promise<{ success: boolean; error?: string }> {
+    // Создаём multipart form data с файлом
+    const boundary = '----MetriconBoundary' + Date.now();
+    const fileName = `pricelist_${this.merchantId}.xml`;
+
+    const body = [
+      `--${boundary}`,
+      `Content-Disposition: form-data; name="file"; filename="${fileName}"`,
+      'Content-Type: application/xml',
+      '',
+      xmlContent,
+      `--${boundary}--`,
+    ].join('\r\n');
+
+    const url = `${BASE_URL}/offers/api/v1/offer/import/upload?merchantUid=${this.merchantId}`;
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        ...this.headers,
+        'Content-Type': `multipart/form-data; boundary=${boundary}`,
+      },
+      body,
+    });
+
+    const text = await response.text();
+    console.log(`[PriceList] Upload: ${response.status}`, text.substring(0, 500));
+
+    if (!response.ok) {
+      return { success: false, error: `${response.status}: ${text.substring(0, 200)}` };
+    }
+
+    return { success: true };
+  }
+
   /**
    * Преобразовать raw данные BFF в наш формат
    */
+  // Маппинг storeId → адрес точки продаж (из настроек Kaspi кабинета)
+  private static readonly POS_NAMES: Record<string, string> = {
+    'PP1': 'Осипенко, 35А',
+    'PP2': 'Казыбаева, 3',
+    'PP3': 'Ауэзова, 3/2А',
+    'PP4': 'Кабдолова, 1/8',
+    'PP5': 'Осипенко, 35А (2)',
+    'PP6': 'Маметовой, 76',
+    'PP7': 'Адилова, 3А',
+  };
+
   private mapProduct(item: any): KaspiProduct {
-    const availabilities: KaspiAvailability[] = (item.availabilities || []).map((a: any) => ({
-      storeId: a.storeId || a.pointOfServiceId || '',
-      storeName: a.storeName || a.pointOfServiceName || '',
-      cityId: a.cityId || '',
-      cityName: a.cityName || '',
-      stockCount: a.stockCount || 0,
-      available: a.available ?? (a.stockCount > 0),
-      preorderPeriod: a.preorderPeriod ?? null,
-      stockSpecified: a.stockSpecified ?? true,
-    }));
+    const availabilities: KaspiAvailability[] = (item.availabilities || []).map((a: any) => {
+      const rawId = a.storeId || a.pointOfServiceId || '';
+      const shortId = rawId.includes('_') ? rawId.split('_').pop() : rawId;
+      const posName = KaspiAPIClient.POS_NAMES[shortId] || shortId;
+      return {
+        storeId: rawId,
+        storeName: a.storeName || a.pointOfServiceName || posName,
+        cityId: a.cityId || '',
+        cityName: a.cityName || '',
+        stockCount: a.stockCount || 0,
+        available: a.available ?? (a.stockCount > 0),
+        preorderPeriod: a.preOrder ?? a.preorderPeriod ?? null,
+        stockSpecified: a.stockSpecified ?? true,
+      };
+    });
 
     const allStockSpecified = availabilities.length === 0 || availabilities.some(a => a.stockSpecified);
+
+    // Сохраняем cityPrices из BFF
+    const cityPrices: KaspiCityPrice[] = (item.cityPrices || []).map((cp: any) => ({
+      cityId: String(cp.cityId || cp.id || ''),
+      value: cp.value || cp.price || 0,
+    })).filter((cp: KaspiCityPrice) => cp.cityId && cp.value > 0);
 
     return {
       sku: item.sku || item.masterSku,
       name: item.title || item.masterTitle,
-      price: item.price || item.cityPrices?.[0]?.value || item.rangePrice?.MIN || item.minPrice || 0,
+      price: item.price || cityPrices[0]?.value || item.rangePrice?.MIN || item.minPrice || 0,
       stock: availabilities.reduce((sum, a) => sum + a.stockCount, 0),
       category: item.masterCategory || item.verticalCategory,
       brand: item.brand || null,
+      cityPrices: cityPrices.length > 0 ? cityPrices : undefined,
       images: (item.images || []).map((img: string) =>
         img.startsWith('http') ? img : `https://resources.cdn-kaspi.kz/img/m/p/${img}`
       ),
@@ -637,6 +853,15 @@ function mergeCookies(existing: string, incoming: string): string {
   return Array.from(map.entries())
     .map(([k, v]) => `${k}=${v}`)
     .join('; ');
+}
+
+function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
 async function extractMerchantId(cookies: string): Promise<string | null> {

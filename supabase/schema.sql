@@ -23,6 +23,7 @@ CREATE TABLE stores (
   whatsapp_connected BOOLEAN DEFAULT FALSE,
   whatsapp_phone VARCHAR(50),
   whatsapp_session JSONB,
+  kaspi_session JSONB,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );

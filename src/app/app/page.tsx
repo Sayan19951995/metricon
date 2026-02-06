@@ -646,13 +646,13 @@ export default function DashboardPage() {
 
             return (
               <div>
-                <div className="relative h-[140px] lg:h-[180px] flex">
+                <div className="relative h-[140px] lg:h-[180px] flex mb-4">
                 <div className="hidden sm:flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '32px' }}>
                   {yAxisValues.map((val, i) => (
                     <span key={i} className="text-right">{Math.round(val / 1000)}k</span>
                   ))}
                 </div>
-                <div className="flex-1 relative">
+                <div className="flex-1 relative overflow-visible">
                 <svg className="w-full h-full" viewBox="0 0 100 80" preserveAspectRatio="none">
                   {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
                     const y = padding + ratio * (chartHeight - padding * 2);
@@ -718,10 +718,10 @@ export default function DashboardPage() {
                       />
                       {isSelected && (
                         <div
-                          className="absolute pointer-events-none text-[10px] font-semibold text-emerald-700 bg-emerald-50 px-1 rounded"
+                          className="absolute pointer-events-none text-[10px] font-semibold text-emerald-700 bg-emerald-50/90 px-1 rounded z-30 shadow-sm"
                           style={{
-                            left: `${xPercent}%`, top: `${(y / 80) * 100 - 12}%`,
-                            transform: 'translate(-50%, -50%)',
+                            left: `${xPercent}%`, top: `${(y / 80) * 100 - 14}%`,
+                            transform: 'translate(-50%, -100%)',
                           }}
                         >
                           {(val / 1000).toFixed(0)}k
@@ -759,10 +759,10 @@ export default function DashboardPage() {
                       />
                       {isSelected && (
                         <div
-                          className="absolute pointer-events-none text-[10px] font-semibold text-blue-700 bg-blue-50 px-1 rounded"
+                          className="absolute pointer-events-none text-[10px] font-semibold text-blue-700 bg-blue-50/90 px-1 rounded z-30 shadow-sm"
                           style={{
-                            left: `${xPercent}%`, top: `${(y / 80) * 100 + 12}%`,
-                            transform: 'translate(-50%, -50%)',
+                            left: `${xPercent}%`, top: `${(y / 80) * 100 + 14}%`,
+                            transform: 'translate(-50%, 0%)',
                           }}
                         >
                           {(val / 1000).toFixed(0)}k
@@ -774,7 +774,7 @@ export default function DashboardPage() {
                 </div>
                 </div>
 
-                <div className="flex justify-between mt-2 sm:ml-8" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
+                <div className="flex justify-between mt-2 sm:ml-8 relative z-20" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
                   {currentWeekData.map((currentValue, idx) => {
                     const isToday = idx === currentWeekData.length - 1;
                     const isSelected = idx === selectedDayIdx;
@@ -983,7 +983,7 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
-                <div className="flex justify-between mt-2 sm:ml-8" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
+                <div className="flex justify-between mt-2 sm:ml-8 relative z-20" style={{ paddingLeft: '2%', paddingRight: '2%' }}>
                   {payments.map((val, idx) => {
                     const date = new Date();
                     date.setDate(date.getDate() - (6 - idx));

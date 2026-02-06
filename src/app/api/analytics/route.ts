@@ -26,36 +26,52 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // === 1. Вся история daily_stats ===
-    const { data: allDailyStats } = await supabase
-      .from('daily_stats')
-      .select('*')
+    // === 1. Поступления по дате выдачи (completed_at) ===
+    const { data: completedOrders } = await supabase
+      .from('orders')
+      .select('total_amount, completed_at, status')
       .eq('store_id', store.id)
-      .order('date', { ascending: true });
+      .not('completed_at', 'is', null)
+      .eq('status', 'completed')
+      .order('completed_at', { ascending: true });
 
-    const dailyStats = allDailyStats || [];
-
-    // Формируем dailyData в формате, совместимом с фронтендом
+    // Группируем по дате completed_at в UTC+5 (Казахстан)
     const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-    const dailyData = dailyStats.map(stat => {
-      const d = new Date(stat.date + 'T12:00:00');
-      const dayOfWeek = d.getDay();
-      const dd = String(d.getDate()).padStart(2, '0');
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      return {
-        date: `${dd}.${mm}`,
-        fullDate: stat.date + 'T12:00:00',  // ISO string, будет преобразовано в Date на клиенте
-        day: dayNames[dayOfWeek],
-        orders: stat.orders_count || 0,
-        revenue: stat.revenue || 0,
-        cost: stat.cost || 0,
-        advertising: stat.advertising || 0,
-        commissions: stat.commissions || 0,
-        tax: 0,
-        delivery: stat.delivery_cost || 0,
-        profit: stat.profit || 0,
-      };
-    });
+    const paymentsByDate = new Map<string, { revenue: number; count: number }>();
+    for (const order of (completedOrders || [])) {
+      const utcMs = new Date(order.completed_at).getTime();
+      const kzDate = new Date(utcMs + 5 * 3600000).toISOString().split('T')[0];
+      const existing = paymentsByDate.get(kzDate);
+      if (existing) {
+        existing.revenue += order.total_amount || 0;
+        existing.count += 1;
+      } else {
+        paymentsByDate.set(kzDate, { revenue: order.total_amount || 0, count: 1 });
+      }
+    }
+
+    // Формируем dailyData из выданных заказов
+    const dailyData = Array.from(paymentsByDate.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([dateStr, data]) => {
+        const d = new Date(dateStr + 'T12:00:00');
+        const dayOfWeek = d.getDay();
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        return {
+          date: `${dd}.${mm}`,
+          fullDate: dateStr + 'T12:00:00',
+          day: dayNames[dayOfWeek],
+          orders: data.count,
+          revenue: data.revenue,
+          cost: 0,
+          advertising: 0,
+          commissions: 0,
+          tax: 0,
+          delivery: 0,
+          profit: data.revenue,
+        };
+      });
 
     // === 2. Топ товары — агрегируем из заказов за всю историю ===
     const { data: allOrders } = await supabase
@@ -108,6 +124,43 @@ export async function GET(request: NextRequest) {
         profit: 0,
       }));
 
+    // === 2b. Выручка по дате создания заказа (для "Структура выручки") ===
+    const ordersByCreationDate = new Map<string, { revenue: number; count: number }>();
+    for (const order of (allOrders || [])) {
+      if (!order.created_at) continue;
+      const utcMs = new Date(order.created_at).getTime();
+      const kzDate = new Date(utcMs + 5 * 3600000).toISOString().split('T')[0];
+      const existing = ordersByCreationDate.get(kzDate);
+      if (existing) {
+        existing.revenue += order.total_amount || 0;
+        existing.count += 1;
+      } else {
+        ordersByCreationDate.set(kzDate, { revenue: order.total_amount || 0, count: 1 });
+      }
+    }
+
+    const dailyDataByCreation = Array.from(ordersByCreationDate.entries())
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([dateStr, data]) => {
+        const d = new Date(dateStr + 'T12:00:00');
+        const dayOfWeek = d.getDay();
+        const dd = String(d.getDate()).padStart(2, '0');
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        return {
+          date: `${dd}.${mm}`,
+          fullDate: dateStr + 'T12:00:00',
+          day: dayNames[dayOfWeek],
+          orders: data.count,
+          revenue: data.revenue,
+          cost: 0,
+          advertising: 0,
+          commissions: 0,
+          tax: 0,
+          delivery: 0,
+          profit: data.revenue,
+        };
+      });
+
     // === 3. Статусы заказов ===
     const { data: ordersByStatusRaw } = await supabase
       .from('orders')
@@ -130,7 +183,8 @@ export async function GET(request: NextRequest) {
                     (statusCounts['kaspi_delivery_transmitted'] || 0) +
                     (statusCounts['pickup'] || 0);
     const delivered = (statusCounts['completed'] || 0) + (statusCounts['delivered'] || 0);
-    const cancelled = (statusCounts['cancelled'] || 0) + (statusCounts['returned'] || 0);
+    const cancelled = (statusCounts['cancelled'] || 0);
+    const returned = (statusCounts['returned'] || 0);
 
     // === 4. Активные заказы (pending orders — ожидают поступления) ===
     const completedStatuses = ['completed', 'delivered', 'cancelled', 'returned', 'archive'];
@@ -154,9 +208,32 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // === 5. Итоговые цифры ===
-    const totalRevenue = dailyStats.reduce((sum, s) => sum + (s.revenue || 0), 0);
-    const totalOrders = dailyStats.reduce((sum, s) => sum + (s.orders_count || 0), 0);
+    // === 5. Возвратные заказы ===
+    const { data: returnedOrdersRaw } = await supabase
+      .from('orders')
+      .select('kaspi_order_id, customer_name, total_amount, created_at, items')
+      .eq('store_id', store.id)
+      .eq('status', 'returned')
+      .order('created_at', { ascending: false })
+      .limit(50);
+
+    const returnedOrders = (returnedOrdersRaw || []).map(o => {
+      const items = o.items as Array<{ product_name: string; quantity: number; price: number }> | null;
+      const productName = items && items.length > 0 ? items[0].product_name : 'Товар';
+      const itemsCount = items ? items.reduce((sum, i) => sum + (i.quantity || 1), 0) : 1;
+      return {
+        id: o.kaspi_order_id,
+        product: productName,
+        itemsCount,
+        amount: o.total_amount,
+        date: o.created_at ? o.created_at.split('T')[0] : '',
+        customer: o.customer_name || '',
+      };
+    });
+
+    // === 6. Итоговые цифры (из выданных заказов) ===
+    const totalRevenue = dailyData.reduce((sum, d) => sum + d.revenue, 0);
+    const totalOrders = dailyData.reduce((sum, d) => sum + d.orders, 0);
     const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
 
     return NextResponse.json({
@@ -182,6 +259,7 @@ export async function GET(request: NextRequest) {
           orders: pendingOrdersList,
         },
         dailyData,
+        dailyDataByCreation,
         topProducts,
         ordersByStatus: {
           pending,
@@ -189,7 +267,9 @@ export async function GET(request: NextRequest) {
           shipped,
           delivered,
           cancelled,
+          returned,
         },
+        returnedOrders,
         salesSources: {
           organic: totalOrders,
           advertising: 0,

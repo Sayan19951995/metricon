@@ -15,6 +15,9 @@ import {
   Loader2,
   Clock,
   Edit3,
+  Download,
+  FileText,
+  Save,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import type { KaspiProduct, KaspiAvailability } from '@/lib/kaspi/api-client';
@@ -45,6 +48,11 @@ export default function ProductsPage() {
   // Фильтры
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStock, setFilterStock] = useState<'all' | 'inStock' | 'outOfStock'>('all');
+  const [filterLowStock, setFilterLowStock] = useState(false);
+  const [lowStockThreshold, setLowStockThreshold] = useState(5);
+  const [editingThreshold, setEditingThreshold] = useState(false);
+  const [thresholdValue, setThresholdValue] = useState('5');
+  const thresholdInputRef = useRef<HTMLInputElement>(null);
   const [sortBy, setSortBy] = useState<SortField>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -56,6 +64,10 @@ export default function ProductsPage() {
 
   // Ошибка загрузки товаров
   const [loadError, setLoadError] = useState('');
+
+  // Preorder changes (sku → days для всех складов)
+  const [preorderChanges, setPreorderChanges] = useState<Record<string, number>>({});
+  const [generatingXml, setGeneratingXml] = useState(false);
 
   // Логин
   const [loginUsername, setLoginUsername] = useState('');
@@ -201,7 +213,6 @@ export default function ProductsPage() {
       const data = await res.json();
 
       if (data.success) {
-        // Обновляем локально
         setAllProducts(prev => prev.map(p => {
           if (p.offerId !== editingCell.offerId) return p;
           const updated = { ...p };
@@ -210,9 +221,13 @@ export default function ProductsPage() {
           if (editingCell.field === 'preorder') updated.preorder = value !== null ? Math.round(value) : null;
           return updated;
         }));
+      } else {
+        console.error('Save failed:', data);
+        alert(`Ошибка: ${data.error || data.message || 'Не удалось сохранить'}`);
       }
     } catch (err) {
       console.error('Save error:', err);
+      alert('Ошибка соединения при сохранении');
     } finally {
       setSaving(false);
       setEditingCell(null);
@@ -224,6 +239,99 @@ export default function ProductsPage() {
     if (e.key === 'Enter') saveEdit();
     if (e.key === 'Escape') cancelEdit();
   };
+
+  // Preorder: сохранить изменение локально
+  const setPreorder = (sku: string, days: number | null) => {
+    setPreorderChanges(prev => {
+      if (days === null || days <= 0) {
+        const next = { ...prev };
+        delete next[sku];
+        return next;
+      }
+      return { ...prev, [sku]: Math.min(days, 30) };
+    });
+    // Обновляем в allProducts для отображения
+    setAllProducts(prev => prev.map(p => {
+      if (p.sku !== sku) return p;
+      return { ...p, preorder: days !== null && days > 0 ? Math.min(days, 30) : null };
+    }));
+  };
+
+  // Сохранить предзаказы в БД (для автозагрузки)
+  const [savingPreorders, setSavingPreorders] = useState(false);
+  const [preorderSaved, setPreorderSaved] = useState(false);
+
+  const savePreorderOverrides = async () => {
+    if (!user?.id || Object.keys(preorderChanges).length === 0) return;
+    setSavingPreorders(true);
+    try {
+      // Сохраняем overrides в БД и перегенерируем кэш XML для автозагрузки
+      const res = await fetch('/api/kaspi/cabinet/feed', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          preorderOverrides: preorderChanges,
+          regenerate: true,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setPreorderSaved(true);
+        setTimeout(() => setPreorderSaved(false), 3000);
+        setPreorderChanges({});
+      } else {
+        alert(data.error || 'Не удалось сохранить предзаказы');
+      }
+    } catch (err) {
+      console.error('Save preorder error:', err);
+      alert('Ошибка сохранения');
+    } finally {
+      setSavingPreorders(false);
+    }
+  };
+
+  // Скачать прайс-лист XML
+  const downloadPriceList = async () => {
+    if (!user?.id) return;
+    setGeneratingXml(true);
+    try {
+      // POST с overrides → получаем XML (+ сохраняет overrides в БД)
+      const res = await fetch('/api/kaspi/cabinet/pricelist', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          overrides: preorderChanges,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Ошибка генерации' }));
+        alert(data.error || 'Не удалось сгенерировать прайс-лист');
+        return;
+      }
+
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'pricelist.xml';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      setPreorderChanges({});
+    } catch (err) {
+      console.error('Download error:', err);
+      alert('Ошибка при скачивании прайс-листа');
+    } finally {
+      setGeneratingXml(false);
+    }
+  };
+
+  const hasPreorderChanges = Object.keys(preorderChanges).length > 0;
 
   // Сортировка
   const handleSort = (field: SortField) => {
@@ -243,11 +351,17 @@ export default function ProductsPage() {
       : <ChevronDown className="w-3.5 h-3.5 inline ml-0.5" />;
   };
 
+  // Динамический подсчёт товаров с низким остатком
+  const lowStockCount = allProducts.filter(p => p.stock > 0 && p.stock < lowStockThreshold && p.stockSpecified !== false).length;
+
   // Фильтрация и сортировка по ВСЕМ товарам
   const filteredSorted = allProducts
     .filter(p => {
       if (searchTerm && !p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !p.sku.toLowerCase().includes(searchTerm.toLowerCase())) {
         return false;
+      }
+      if (filterLowStock) {
+        return p.stock > 0 && p.stock < lowStockThreshold && p.stockSpecified !== false;
       }
       if (filterStock === 'inStock' && p.stock <= 0) return false;
       if (filterStock === 'outOfStock' && p.stock > 0) return false;
@@ -437,14 +551,47 @@ export default function ProductsPage() {
             {total} товаров в кабинете Kaspi
           </p>
         </div>
-        <button
-          onClick={loadProducts}
-          disabled={loading}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-sm font-medium transition-colors cursor-pointer border border-gray-200 dark:border-gray-700"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-          Обновить
-        </button>
+        <div className="flex gap-2">
+          {hasPreorderChanges && (
+            <button
+              onClick={savePreorderOverrides}
+              disabled={savingPreorders}
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer border bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600"
+            >
+              {savingPreorders ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4" />
+              )}
+              Сохранить ({Object.keys(preorderChanges).length})
+            </button>
+          )}
+          {preorderSaved && (
+            <span className="flex items-center gap-1 text-sm text-emerald-600 font-medium self-center">
+              <Check className="w-4 h-4" /> Сохранено
+            </span>
+          )}
+          <button
+            onClick={downloadPriceList}
+            disabled={generatingXml}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer border bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 border-gray-200 dark:border-gray-700"
+          >
+            {generatingXml ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            Прайс-лист
+          </button>
+          <button
+            onClick={loadProducts}
+            disabled={loading}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-sm font-medium transition-colors cursor-pointer border border-gray-200 dark:border-gray-700"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            Обновить
+          </button>
+        </div>
       </div>
 
       {/* Stats */}
@@ -455,21 +602,68 @@ export default function ProductsPage() {
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 mb-1">В наличии</p>
-          <p className="text-2xl font-bold text-emerald-600">
-            {stats.inStock}
-          </p>
+          <p className="text-2xl font-bold">{stats.inStock}</p>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-          <p className="text-xs text-gray-500 mb-1">Осталось &lt; 5</p>
-          <p className="text-2xl font-bold text-amber-500">
-            {stats.lowStock}
-          </p>
+        <div
+          onClick={() => {
+            if (!editingThreshold) {
+              setFilterLowStock(prev => !prev);
+              setFilterStock('all');
+              setPage(0);
+            }
+          }}
+          className={`rounded-xl p-4 shadow-sm cursor-pointer transition-all ${
+            filterLowStock
+              ? 'bg-amber-500 text-white ring-2 ring-amber-400'
+              : 'bg-white dark:bg-gray-800 hover:ring-2 hover:ring-amber-300'
+          }`}
+        >
+          <div className="flex items-center gap-1">
+            <p className={`text-xs mb-1 ${filterLowStock ? 'text-amber-100' : 'text-gray-500'}`}>
+              Осталось &lt;
+            </p>
+            {editingThreshold ? (
+              <input
+                ref={thresholdInputRef}
+                type="number"
+                value={thresholdValue}
+                onChange={e => setThresholdValue(e.target.value)}
+                onBlur={() => {
+                  const v = parseInt(thresholdValue);
+                  if (v > 0) setLowStockThreshold(v);
+                  setEditingThreshold(false);
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    const v = parseInt(thresholdValue);
+                    if (v > 0) setLowStockThreshold(v);
+                    setEditingThreshold(false);
+                  }
+                  if (e.key === 'Escape') setEditingThreshold(false);
+                }}
+                onClick={e => e.stopPropagation()}
+                className="w-12 px-1 py-0 text-xs border border-amber-400 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none mb-1"
+                min="1"
+              />
+            ) : (
+              <button
+                onClick={e => {
+                  e.stopPropagation();
+                  setThresholdValue(lowStockThreshold.toString());
+                  setEditingThreshold(true);
+                  setTimeout(() => thresholdInputRef.current?.focus(), 50);
+                }}
+                className={`text-xs mb-1 underline decoration-dashed cursor-pointer ${filterLowStock ? 'text-amber-100' : 'text-gray-500'}`}
+              >
+                {lowStockThreshold} шт
+              </button>
+            )}
+          </div>
+          <p className="text-2xl font-bold">{lowStockCount}</p>
         </div>
         <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
           <p className="text-xs text-gray-500 mb-1">Не указаны остатки</p>
-          <p className="text-2xl font-bold text-gray-400">
-            {stats.notSpecified}
-          </p>
+          <p className="text-2xl font-bold">{stats.notSpecified}</p>
         </div>
       </div>
 
@@ -494,7 +688,7 @@ export default function ProductsPage() {
             {(['all', 'inStock', 'outOfStock'] as const).map(f => (
               <button
                 key={f}
-                onClick={() => { setFilterStock(f); setPage(0); }}
+                onClick={() => { setFilterStock(f); setFilterLowStock(false); setPage(0); }}
                 className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
                   filterStock === f
                     ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
@@ -572,16 +766,19 @@ export default function ProductsPage() {
                     <p className="text-xs text-gray-400 mt-0.5">{product.sku} {product.category && `/ ${product.category}`}</p>
                     <div className="flex items-center gap-3 mt-2">
                       <span className="text-sm font-semibold">{product.price.toLocaleString('ru-RU')} &#8376;</span>
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${
-                        product.stock > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'
-                      }`}>
+                      <span className="text-xs font-medium text-gray-600 dark:text-gray-300">
                         {product.stock} шт
                       </span>
                       {product.preorder && product.preorder > 0 && (
-                        <span className="flex items-center gap-1 text-xs text-purple-600">
+                        <button
+                          onClick={() => startEdit(product.offerId || '', 'preorder', product.preorder ?? null)}
+                          className={`flex items-center gap-1 text-xs cursor-pointer ${
+                            preorderChanges[product.sku] ? 'text-amber-600' : 'text-gray-500 dark:text-gray-400'
+                          }`}
+                        >
                           <Clock className="w-3 h-3" />
                           {product.preorder} д.
-                        </span>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -594,17 +791,21 @@ export default function ProductsPage() {
                 </div>
 
                 {/* Availabilities */}
-                {product.availabilities && product.availabilities.length > 0 && (
-                  <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                    <div className="flex flex-wrap gap-2">
-                      {product.availabilities.map((a: KaspiAvailability, i: number) => (
-                        <span key={i} className="text-xs bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded">
-                          {a.storeName || a.cityName || `#${i+1}`}: {a.stockCount} шт
-                        </span>
-                      ))}
+                {(() => {
+                  const nonZero = (product.availabilities || []).filter((a: KaspiAvailability) => a.stockCount > 0);
+                  if (nonZero.length === 0) return null;
+                  return (
+                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                      <div className="flex flex-wrap gap-2">
+                        {nonZero.map((a: KaspiAvailability, i: number) => (
+                          <span key={i} className="text-xs bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded">
+                            {a.storeName || a.cityName || `#${i+1}`}: {a.stockCount} шт
+                          </span>
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </motion.div>
             ))}
           </div>
@@ -621,17 +822,11 @@ export default function ProductsPage() {
                     >
                       Товар<SortIcon field="name" />
                     </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">
-                      Город / Склад
-                    </th>
                     <th
                       onClick={() => handleSort('stock')}
                       className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none"
                     >
-                      Остаток<SortIcon field="stock" />
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase">
-                      Наличие
+                      Остатки по складам<SortIcon field="stock" />
                     </th>
                     <th
                       onClick={() => handleSort('price')}
@@ -654,7 +849,11 @@ export default function ProductsPage() {
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       transition={{ duration: 0.2, delay: index * 0.02 }}
-                      className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
+                      className={`border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors ${
+                        product.stock > 0 && product.stock < lowStockThreshold && product.stockSpecified !== false
+                          ? 'bg-amber-50/50 dark:bg-amber-900/10'
+                          : ''
+                      }`}
                     >
                       {/* Товар */}
                       <td className="py-3 px-4">
@@ -673,71 +872,40 @@ export default function ProductsPage() {
                         </div>
                       </td>
 
-                      {/* Город/Склад */}
+                      {/* Остатки по складам */}
                       <td className="py-3 px-4">
-                        <div className="flex flex-col gap-0.5">
-                          {product.availabilities && product.availabilities.length > 0 ? (
-                            product.availabilities.slice(0, 3).map((a: KaspiAvailability, i: number) => (
-                              <span key={i} className="text-xs text-gray-500 truncate max-w-[150px]">
-                                {a.storeName || a.cityName || `Точка ${i+1}`}
-                              </span>
-                            ))
-                          ) : (
-                            <span className="text-xs text-gray-400">-</span>
-                          )}
-                          {product.availabilities && product.availabilities.length > 3 && (
-                            <span className="text-xs text-gray-400">+{product.availabilities.length - 3} ещё</span>
-                          )}
-                        </div>
-                      </td>
-
-                      {/* Остаток */}
-                      <td className="py-3 px-4">
-                        {editingCell !== null && editingCell.offerId === product.offerId && editingCell.field === 'stock' ? (
-                          <div className="flex items-center gap-1">
-                            <input
-                              ref={editInputRef}
-                              type="number"
-                              value={editValue}
-                              onChange={e => setEditValue(e.target.value)}
-                              onKeyDown={handleEditKeyDown}
-                              className="w-20 px-2 py-1 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white dark:bg-gray-700"
-                              min="0"
-                            />
-                            <button onClick={saveEdit} disabled={saving} className="p-1 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded cursor-pointer">
-                              <Check className="w-3.5 h-3.5" />
-                            </button>
-                            <button onClick={cancelEdit} className="p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
-                              <X className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        ) : (
-                          <button
-                            onClick={() => startEdit(product.offerId || '', 'stock', product.stock)}
-                            className="group flex items-center gap-1 cursor-pointer"
-                          >
-                            <span className={`text-sm font-medium ${
-                              product.stock > 10 ? 'text-emerald-600' :
-                              product.stock > 0 ? 'text-amber-600' :
-                              product.stockSpecified === false ? 'text-gray-400' :
-                              'text-red-500'
-                            }`}>
-                              {product.stockSpecified === false ? '—' : `${product.stock} шт`}
+                        {(() => {
+                          const nonZero = (product.availabilities || []).filter((a: KaspiAvailability) => a.stockCount > 0);
+                          if (nonZero.length > 0) {
+                            return (
+                              <div className="flex flex-col gap-1">
+                                {nonZero.map((a: KaspiAvailability, i: number) => (
+                                  <div key={i} className="flex items-center justify-between gap-2 text-xs">
+                                    <span className="text-gray-500 truncate max-w-[140px]" title={a.storeName || a.storeId}>
+                                      {a.storeName || a.cityName || `Точка ${i+1}`}
+                                    </span>
+                                    <span className="font-medium whitespace-nowrap text-gray-700 dark:text-gray-200">
+                                      {a.stockCount} шт
+                                    </span>
+                                  </div>
+                                ))}
+                                {nonZero.length > 1 && (
+                                  <div className="flex items-center justify-between gap-2 text-xs border-t border-gray-100 dark:border-gray-700 pt-1 mt-0.5">
+                                    <span className="text-gray-400 font-medium">Итого</span>
+                                    <span className="font-semibold text-gray-700 dark:text-gray-300">
+                                      {product.stock} шт
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          return (
+                            <span className="text-sm font-medium text-gray-400">
+                              {product.stockSpecified === false ? '—' : '0 шт'}
                             </span>
-                            <Edit3 className="w-3 h-3 text-gray-300 opacity-0 group-hover:opacity-100 transition-opacity" />
-                          </button>
-                        )}
-                      </td>
-
-                      {/* Наличие */}
-                      <td className="py-3 px-4">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          product.stock > 0 || product.stockSpecified === false
-                            ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
-                            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                        }`}>
-                          {product.stock > 0 || product.stockSpecified === false ? 'В наличии' : 'Нет'}
-                        </span>
+                          );
+                        })()}
                       </td>
 
                       {/* Цена */}
@@ -754,7 +922,7 @@ export default function ProductsPage() {
                               min="0"
                             />
                             <span className="text-xs text-gray-400">&#8376;</span>
-                            <button onClick={saveEdit} disabled={saving} className="p-1 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded cursor-pointer">
+                            <button onClick={saveEdit} disabled={saving} className="p-1 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
                               <Check className="w-3.5 h-3.5" />
                             </button>
                             <button onClick={cancelEdit} className="p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
@@ -783,13 +951,30 @@ export default function ProductsPage() {
                               type="number"
                               value={editValue}
                               onChange={e => setEditValue(e.target.value)}
-                              onKeyDown={handleEditKeyDown}
-                              placeholder="0"
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  const v = editValue.trim() === '' ? null : parseInt(editValue);
+                                  setPreorder(product.sku, v);
+                                  setEditingCell(null);
+                                  setEditValue('');
+                                }
+                                if (e.key === 'Escape') cancelEdit();
+                              }}
                               className="w-16 px-2 py-1 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white dark:bg-gray-700"
                               min="0"
+                              max="30"
+                              placeholder="0-30"
                             />
                             <span className="text-xs text-gray-400">д.</span>
-                            <button onClick={saveEdit} disabled={saving} className="p-1 text-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded cursor-pointer">
+                            <button
+                              onClick={() => {
+                                const v = editValue.trim() === '' ? null : parseInt(editValue);
+                                setPreorder(product.sku, v);
+                                setEditingCell(null);
+                                setEditValue('');
+                              }}
+                              className="p-1 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
+                            >
                               <Check className="w-3.5 h-3.5" />
                             </button>
                             <button onClick={cancelEdit} className="p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
@@ -799,12 +984,17 @@ export default function ProductsPage() {
                         ) : (
                           <button
                             onClick={() => startEdit(product.offerId || '', 'preorder', product.preorder ?? null)}
-                            className="group flex items-center gap-1 cursor-pointer"
+                            className={`group flex items-center gap-1 cursor-pointer ${
+                              preorderChanges[product.sku] ? 'text-amber-600 dark:text-amber-400' : ''
+                            }`}
                           >
                             {product.preorder && product.preorder > 0 ? (
-                              <span className="flex items-center gap-1 text-sm text-purple-600 font-medium">
+                              <span className="flex items-center gap-1 text-sm font-medium">
                                 <Clock className="w-3.5 h-3.5" />
                                 {product.preorder} д.
+                                {preorderChanges[product.sku] && (
+                                  <span className="text-[10px] bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 px-1 rounded">изм.</span>
+                                )}
                               </span>
                             ) : (
                               <span className="text-sm text-gray-400">-</span>
