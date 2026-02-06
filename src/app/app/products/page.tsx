@@ -200,13 +200,17 @@ export default function ProductsPage() {
       if (!product) throw new Error('Товар не найден');
 
       // Собираем availabilities с обновлёнными данными
-      const availabilities = (product.availabilities || []).map(a => ({
-        available: a.available ? 'yes' : 'no',
-        storeId: a.storeId,
-        ...(editingCell.field === 'preorder' && value !== null
-          ? { preOrder: Math.min(Math.round(value), 30) }
-          : a.preorderPeriod ? { preOrder: a.preorderPeriod } : {}),
-      }));
+      const availabilities = (product.availabilities || []).map(a => {
+        let preOrder = a.preorderPeriod ?? 0;
+        if (editingCell.field === 'preorder') {
+          preOrder = value !== null && value > 0 ? Math.min(Math.round(value), 30) : 0;
+        }
+        return {
+          available: a.available ? 'yes' : 'no',
+          storeId: a.storeId,
+          preOrder,
+        };
+      });
 
       // Собираем cityPrices с обновлённой ценой
       let cityPrices = product.cityPrices?.map(cp => ({ cityId: cp.cityId, value: cp.value }));
