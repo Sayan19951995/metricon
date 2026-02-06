@@ -996,15 +996,7 @@ export default function ProductsPage() {
                               type="number"
                               value={editValue}
                               onChange={e => setEditValue(e.target.value)}
-                              onKeyDown={e => {
-                                if (e.key === 'Enter') {
-                                  const v = editValue.trim() === '' ? null : parseInt(editValue);
-                                  setPreorder(product.sku, v);
-                                  setEditingCell(null);
-                                  setEditValue('');
-                                }
-                                if (e.key === 'Escape') cancelEdit();
-                              }}
+                              onKeyDown={handleEditKeyDown}
                               className="w-16 px-2 py-1 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white dark:bg-gray-700"
                               min="0"
                               max="30"
@@ -1012,12 +1004,7 @@ export default function ProductsPage() {
                             />
                             <span className="text-xs text-gray-400">д.</span>
                             <button
-                              onClick={() => {
-                                const v = editValue.trim() === '' ? null : parseInt(editValue);
-                                setPreorder(product.sku, v);
-                                setEditingCell(null);
-                                setEditValue('');
-                              }}
+                              onClick={saveEdit}
                               className="p-1 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
                             >
                               <Check className="w-3.5 h-3.5" />
