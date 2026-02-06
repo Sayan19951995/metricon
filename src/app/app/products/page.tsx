@@ -289,23 +289,44 @@ export default function ProductsPage() {
     if (!user?.id || Object.keys(preorderChanges).length === 0) return;
     setSavingPreorders(true);
     try {
-      // Сохраняем overrides в БД и перегенерируем кэш XML для автозагрузки
-      const res = await fetch('/api/kaspi/cabinet/feed', {
+      // Собираем batch для pricefeed API
+      const products = Object.entries(preorderChanges).map(([sku, days]) => {
+        const product = allProducts.find(p => p.sku === sku);
+        if (!product) return null;
+        return {
+          sku: product.sku || product.masterSku || sku,
+          model: product.name,
+          availabilities: (product.availabilities || []).map(a => ({
+            available: a.available ? 'yes' : 'no',
+            storeId: a.storeId,
+            preOrder: days > 0 ? Math.min(days, 30) : 0,
+          })),
+          cityPrices: product.cityPrices?.map(cp => ({ cityId: cp.cityId, value: cp.value })),
+        };
+      }).filter(Boolean);
+
+      if (products.length === 0) {
+        alert('Не найдены товары для обновления');
+        return;
+      }
+
+      // Отправляем batch через pricefeed API
+      const res = await fetch('/api/kaspi/cabinet/products', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.id,
-          preorderOverrides: preorderChanges,
-          regenerate: true,
+          products,
         }),
       });
       const data = await res.json();
+
       if (data.success) {
         setPreorderSaved(true);
         setTimeout(() => setPreorderSaved(false), 3000);
         setPreorderChanges({});
       } else {
-        alert(data.error || 'Не удалось сохранить предзаказы');
+        alert(`Ошибка Kaspi: ${data.error || 'Не удалось обновить'}`);
       }
     } catch (err) {
       console.error('Save preorder error:', err);
