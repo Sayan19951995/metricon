@@ -51,13 +51,13 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/kaspi/cabinet/feed
- * Создать или обновить настройки автозагрузки
- * Body: { userId, authLogin?, authPassword?, enabled? }
+ * Создать или обновить настройки автозагрузки + автоматически зарегистрировать URL в Kaspi
+ * Body: { userId, authLogin?, authPassword?, enabled?, feedUrl? }
  */
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, authLogin, authPassword, enabled } = body;
+    const { userId, authLogin, authPassword, enabled, feedUrl } = body;
 
     if (!userId) {
       return NextResponse.json({ success: false, error: 'userId required' }, { status: 400 });
@@ -75,6 +75,8 @@ export async function POST(request: NextRequest) {
       .eq('store_id', storeId)
       .single();
 
+    let feedToken: string | undefined;
+
     if (existing) {
       // Обновляем
       const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -87,32 +89,68 @@ export async function POST(request: NextRequest) {
         .update(updates)
         .eq('id', existing.id);
 
-      return NextResponse.json({
-        success: true,
-        feedToken: existing.feed_token,
-      });
+      feedToken = existing.feed_token;
+    } else {
+      // Создаём новый фид
+      const { data: newFeed, error } = await supabase
+        .from('pricelist_feeds')
+        .insert({
+          store_id: storeId,
+          auth_login: authLogin || null,
+          auth_password: authPassword || null,
+          enabled: enabled !== false,
+        })
+        .select('feed_token')
+        .single();
+
+      if (error) {
+        console.error('[Feed settings] Create error:', error);
+        return NextResponse.json({ success: false, error: 'Failed to create feed' }, { status: 500 });
+      }
+
+      feedToken = newFeed?.feed_token;
     }
 
-    // Создаём новый фид
-    const { data: newFeed, error } = await supabase
-      .from('pricelist_feeds')
-      .insert({
-        store_id: storeId,
-        auth_login: authLogin || null,
-        auth_password: authPassword || null,
-        enabled: enabled !== false,
-      })
-      .select('feed_token')
-      .single();
+    // Авто-регистрация URL в Kaspi кабинете
+    let registration: { success: boolean; error?: string; endpoint?: string } | null = null;
 
-    if (error) {
-      console.error('[Feed settings] Create error:', error);
-      return NextResponse.json({ success: false, error: 'Failed to create feed' }, { status: 500 });
+    if (enabled && feedToken) {
+      // Определяем URL фида
+      const resolvedFeedUrl = feedUrl || (feedToken ? `/api/kaspi/feed?token=${feedToken}` : null);
+
+      if (resolvedFeedUrl) {
+        try {
+          // Получаем сессию Kaspi для этого магазина
+          const { data: store } = await supabase
+            .from('stores')
+            .select('kaspi_session, kaspi_merchant_id')
+            .eq('id', storeId)
+            .single();
+
+          const session = store?.kaspi_session as KaspiSession | null;
+          if (session?.cookies) {
+            const merchantId = session.merchant_id || store?.kaspi_merchant_id;
+            const client = new KaspiAPIClient(session.cookies, merchantId);
+            registration = await client.registerAutoLoadUrl(
+              resolvedFeedUrl,
+              authLogin || undefined,
+              authPassword || undefined,
+            );
+            console.log('[Feed] Auto-registration result:', registration);
+          } else {
+            registration = { success: false, error: 'Нет активной сессии Kaspi кабинета' };
+          }
+        } catch (err) {
+          console.error('[Feed] Auto-registration error:', err);
+          registration = { success: false, error: err instanceof Error ? err.message : 'Ошибка регистрации' };
+        }
+      }
     }
 
     return NextResponse.json({
       success: true,
-      feedToken: newFeed?.feed_token,
+      feedToken,
+      registration,
     });
   } catch (error) {
     console.error('[Feed settings] POST error:', error);

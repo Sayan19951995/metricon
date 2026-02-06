@@ -740,6 +740,61 @@ export class KaspiAPIClient {
   }
 
   /**
+   * Зарегистрировать URL автозагрузки прайс-листа в Kaspi кабинете.
+   * Пробует несколько известных endpoint-ов.
+   */
+  async registerAutoLoadUrl(
+    feedUrl: string,
+    login?: string,
+    password?: string
+  ): Promise<{ success: boolean; error?: string; endpoint?: string }> {
+    const payload: Record<string, unknown> = {
+      url: feedUrl,
+      merchantId: this.merchantId,
+    };
+    if (login) payload.login = login;
+    if (password) payload.password = password;
+
+    // Попробуем разные endpoint-ы
+    const endpoints = [
+      { url: `${BASE_URL}/bff/offer-view/import/auto-load?m=${this.merchantId}`, method: 'POST' },
+      { url: `${BASE_URL}/bff/offer-view/import/auto-load`, method: 'POST' },
+      { url: `${BASE_URL}/bff/offer-view/import/settings?m=${this.merchantId}`, method: 'POST' },
+      { url: `${BASE_URL}/offers/api/v1/offer/import/auto-load?m=${this.merchantId}`, method: 'POST' },
+      { url: `${BASE_URL}/offers/api/v1/offer/import/settings?m=${this.merchantId}`, method: 'POST' },
+      { url: `${BASE_URL}/offers/api/v1/offer/import/auto-load?merchantUid=${this.merchantId}`, method: 'PUT' },
+    ];
+
+    const results: string[] = [];
+
+    for (const ep of endpoints) {
+      try {
+        const response = await this.bffFetch(ep.url, {
+          method: ep.method,
+          json: true,
+          body: JSON.stringify(payload),
+        });
+        const text = await response.text().catch(() => '');
+        results.push(`${ep.method} ${ep.url} → ${response.status}: ${text.substring(0, 200)}`);
+        console.log(`[AutoLoad] ${ep.method} ${ep.url} → ${response.status}`, text.substring(0, 300));
+
+        if (response.ok || response.status === 200 || response.status === 201 || response.status === 204) {
+          return { success: true, endpoint: ep.url };
+        }
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        results.push(`${ep.method} ${ep.url} → ERROR: ${msg}`);
+        console.error(`[AutoLoad] ${ep.method} ${ep.url} error:`, msg);
+      }
+    }
+
+    return {
+      success: false,
+      error: `Не удалось найти endpoint. Попробовано:\n${results.join('\n')}`,
+    };
+  }
+
+  /**
    * Преобразовать raw данные BFF в наш формат
    */
   // Маппинг storeId → адрес точки продаж (из настроек Kaspi кабинета)

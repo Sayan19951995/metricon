@@ -117,6 +117,8 @@ export default function KaspiSettingsPage() {
   const [feedCopied, setFeedCopied] = useState(false);
   const [feedCachedAt, setFeedCachedAt] = useState('');
   const [showFeedPassword, setShowFeedPassword] = useState(false);
+  const [feedRegistered, setFeedRegistered] = useState<boolean | null>(null);
+  const [feedRegError, setFeedRegError] = useState('');
 
   // Проверяем статус подключения при загрузке
   useEffect(() => {
@@ -355,7 +357,14 @@ export default function KaspiSettingsPage() {
   const saveFeedSettings = async () => {
     if (!user?.id) return;
     setFeedSaving(true);
+    setFeedRegistered(null);
+    setFeedRegError('');
     try {
+      // Формируем URL фида для передачи бэкенду
+      const currentFeedUrl = feedToken
+        ? `${window.location.origin}/api/kaspi/feed?token=${feedToken}`
+        : undefined;
+
       const res = await fetch('/api/kaspi/cabinet/feed', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -364,11 +373,20 @@ export default function KaspiSettingsPage() {
           authLogin: feedAuthLogin,
           authPassword: feedAuthPassword,
           enabled: feedEnabled,
+          feedUrl: currentFeedUrl,
         }),
       });
       const data = await res.json();
       if (data.success && data.feedToken) {
         setFeedToken(data.feedToken);
+      }
+
+      // Результат авто-регистрации в Kaspi
+      if (data.registration) {
+        setFeedRegistered(data.registration.success);
+        if (!data.registration.success) {
+          setFeedRegError(data.registration.error || 'Не удалось зарегистрировать');
+        }
       }
     } catch (err) {
       console.error('Save feed error:', err);
@@ -964,21 +982,58 @@ export default function KaspiSettingsPage() {
                 </div>
               </div>
 
-              {/* Инструкция */}
-              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4">
-                <div className="flex items-start gap-3">
-                  <Link2 className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                  <div className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
-                    <p className="font-medium">Как настроить в Kaspi:</p>
-                    <ol className="list-decimal list-inside space-y-0.5">
-                      <li>Скопируйте ссылку выше</li>
-                      <li>В кабинете Kaspi: Товары → Загрузить прайс-лист → Автоматическая загрузка</li>
-                      <li>Вставьте ссылку и укажите логин/пароль (если задали)</li>
-                      <li>Нажмите «Проверить», затем «Сохранить»</li>
-                    </ol>
+              {/* Инструкция — показываем если автоматическая регистрация не удалась или ещё не пробовали */}
+              {feedRegistered !== true && (
+                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4">
+                  <div className="flex items-start gap-3">
+                    <Link2 className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                    <div className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
+                      <p className="font-medium">
+                        {feedRegistered === null
+                          ? 'При сохранении URL автоматически зарегистрируется в Kaspi. Если не получится — настройте вручную:'
+                          : 'Настройте вручную в Kaspi:'}
+                      </p>
+                      <ol className="list-decimal list-inside space-y-0.5">
+                        <li>Скопируйте ссылку выше</li>
+                        <li>В кабинете Kaspi: Товары → Загрузить прайс-лист → Автоматическая загрузка</li>
+                        <li>Вставьте ссылку и укажите логин/пароль (если задали)</li>
+                        <li>Нажмите «Проверить», затем «Сохранить»</li>
+                      </ol>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
+
+              {/* Результат авто-регистрации */}
+              {feedRegistered === true && (
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 mb-4">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                    <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium">
+                      URL зарегистрирован в Kaspi. Данные будут обновляться автоматически каждые 60 минут.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {feedRegistered === false && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-4">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-sm text-amber-700 dark:text-amber-300 font-medium mb-1">
+                        Настройки сохранены, но автоматическая регистрация в Kaspi не удалась
+                      </p>
+                      <p className="text-xs text-amber-600 dark:text-amber-400">
+                        Скопируйте ссылку и вставьте вручную: Товары → Загрузить прайс-лист → Автоматическая загрузка
+                      </p>
+                      {feedRegError && (
+                        <p className="text-xs text-amber-500 dark:text-amber-500 mt-1 font-mono">{feedRegError}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {feedCachedAt && (
                 <p className="text-xs text-gray-400 mb-4">
@@ -995,10 +1050,10 @@ export default function KaspiSettingsPage() {
                 {feedSaving ? (
                   <>
                     <Loader2 className="w-4 h-4 animate-spin" />
-                    Сохранение...
+                    Сохранение и регистрация в Kaspi...
                   </>
                 ) : feedToken ? (
-                  'Сохранить настройки'
+                  'Сохранить и зарегистрировать в Kaspi'
                 ) : (
                   'Включить автозагрузку'
                 )}
