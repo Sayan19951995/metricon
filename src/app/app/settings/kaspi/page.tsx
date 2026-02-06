@@ -114,6 +114,8 @@ export default function KaspiSettingsPage() {
   const [feedAuthPassword, setFeedAuthPassword] = useState('');
   const [feedLoading, setFeedLoading] = useState(false);
   const [feedSaving, setFeedSaving] = useState(false);
+  const [feedChecking, setFeedChecking] = useState(false);
+  const [feedCheckResult, setFeedCheckResult] = useState<boolean | null>(null);
   const [feedCopied, setFeedCopied] = useState(false);
   const [feedCachedAt, setFeedCachedAt] = useState('');
   const [showFeedPassword, setShowFeedPassword] = useState(false);
@@ -396,6 +398,30 @@ export default function KaspiSettingsPage() {
   };
 
   const feedUrl = feedToken ? `${typeof window !== 'undefined' ? window.location.origin : ''}/api/kaspi/feed?token=${feedToken}` : '';
+
+  const checkFeedUrl = async () => {
+    if (!user?.id || !feedToken) return;
+    setFeedChecking(true);
+    setFeedCheckResult(null);
+    try {
+      const res = await fetch('/api/kaspi/cabinet/feed/check', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          feedUrl: `${window.location.origin}/api/kaspi/feed?token=${feedToken}`,
+          authLogin: feedAuthLogin,
+          authPassword: feedAuthPassword,
+        }),
+      });
+      const data = await res.json();
+      setFeedCheckResult(data.success);
+    } catch {
+      setFeedCheckResult(false);
+    } finally {
+      setFeedChecking(false);
+    }
+  };
 
   const copyFeedUrl = () => {
     if (feedUrl) {
@@ -897,26 +923,6 @@ export default function KaspiSettingsPage() {
                 применяются при следующем обновлении.
               </p>
 
-              {/* Тогл включения */}
-              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl mb-4">
-                <div>
-                  <p className="font-medium text-gray-900 dark:text-white">Автозагрузка</p>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
-                    {feedEnabled ? 'Kaspi автоматически обновляет данные' : 'Включите для автоматических обновлений'}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setFeedEnabled(!feedEnabled)}
-                  className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${
-                    feedEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
-                  }`}
-                >
-                  <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                    feedEnabled ? 'translate-x-7' : 'translate-x-1'
-                  }`} />
-                </button>
-              </div>
-
               {/* Ссылка на фид */}
               {feedToken && (
                 <div className="mb-4">
@@ -1041,23 +1047,57 @@ export default function KaspiSettingsPage() {
                 </p>
               )}
 
-              {/* Кнопка сохранения */}
-              <button
-                onClick={saveFeedSettings}
-                disabled={feedSaving}
-                className="w-full px-4 py-2.5 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
-              >
-                {feedSaving ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Сохранение и регистрация в Kaspi...
-                  </>
-                ) : feedToken ? (
-                  'Сохранить и зарегистрировать в Kaspi'
-                ) : (
-                  'Включить автозагрузку'
-                )}
-              </button>
+              {/* Результат проверки */}
+              {feedCheckResult === true && (
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <p className="text-sm text-emerald-700 dark:text-emerald-300">Kaspi успешно прочитал прайс-лист</p>
+                  </div>
+                </div>
+              )}
+              {feedCheckResult === false && (
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 mb-4">
+                  <div className="flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
+                    <p className="text-sm text-red-700 dark:text-red-300">Kaspi не смог прочитать прайс-лист. Проверьте ссылку и авторизацию.</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Кнопки */}
+              <div className="flex gap-3">
+                <button
+                  onClick={checkFeedUrl}
+                  disabled={feedChecking || !feedToken}
+                  className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                >
+                  {feedChecking ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Проверка...
+                    </>
+                  ) : (
+                    'Проверить'
+                  )}
+                </button>
+                <button
+                  onClick={saveFeedSettings}
+                  disabled={feedSaving}
+                  className="flex-1 px-4 py-2.5 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
+                >
+                  {feedSaving ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Сохранение...
+                    </>
+                  ) : feedToken ? (
+                    'Сохранить в Kaspi'
+                  ) : (
+                    'Включить автозагрузку'
+                  )}
+                </button>
+              </div>
             </motion.div>
           )}
 
