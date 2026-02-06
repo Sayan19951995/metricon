@@ -195,14 +195,34 @@ export default function ProductsPage() {
     const value = editValue.trim() === '' ? null : parseFloat(editValue);
 
     try {
+      // Находим продукт для обновления
+      const product = allProducts.find(p => p.offerId === editingCell.offerId);
+      if (!product) throw new Error('Товар не найден');
+
+      // Собираем availabilities с обновлёнными данными
+      const availabilities = (product.availabilities || []).map(a => ({
+        available: a.available ? 'yes' : 'no',
+        storeId: a.storeId,
+        ...(editingCell.field === 'preorder' && value !== null
+          ? { preOrder: Math.min(Math.round(value), 30) }
+          : a.preorderPeriod ? { preOrder: a.preorderPeriod } : {}),
+      }));
+
+      // Собираем cityPrices с обновлённой ценой
+      let cityPrices = product.cityPrices?.map(cp => ({ cityId: cp.cityId, value: cp.value }));
+      if (editingCell.field === 'price' && value !== null) {
+        if (cityPrices && cityPrices.length > 0) {
+          cityPrices = cityPrices.map(cp => ({ ...cp, value: Math.round(value) }));
+        }
+      }
+
       const body: Record<string, unknown> = {
         userId: user.id,
-        offerId: editingCell.offerId,
+        sku: product.sku || product.masterSku,
+        model: product.name,
+        availabilities,
+        cityPrices,
       };
-
-      if (editingCell.field === 'price') body.price = value;
-      if (editingCell.field === 'stock') body.stock = value !== null ? Math.round(value) : 0;
-      if (editingCell.field === 'preorder') body.preorder = value !== null ? Math.round(value) : null;
 
       const res = await fetch('/api/kaspi/cabinet/products', {
         method: 'PATCH',

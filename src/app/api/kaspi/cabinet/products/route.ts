@@ -172,12 +172,12 @@ export async function GET(request: NextRequest) {
 export async function PATCH(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, offerId, price, stock, preorder } = body;
+    const { userId } = body;
 
-    if (!userId || !offerId) {
+    if (!userId) {
       return NextResponse.json({
         success: false,
-        error: 'userId и offerId обязательны',
+        error: 'userId обязателен',
       }, { status: 400 });
     }
 
@@ -205,51 +205,27 @@ export async function PATCH(request: NextRequest) {
 
     const { client } = clientResult;
 
-    const results: Record<string, boolean> = {};
-
-    if (price !== undefined && price !== null) {
-      try {
-        await client.updateProductPrice(offerId, price);
-        results.price = true;
-      } catch (err) {
-        console.error('Price update error:', err);
-        results.price = false;
-      }
+    // Новый формат: прямое обновление через pricefeed API
+    if (body.sku && body.model) {
+      const result = await client.updateProduct({
+        sku: body.sku,
+        model: body.model,
+        availabilities: body.availabilities || [],
+        cityPrices: body.cityPrices,
+      });
+      return NextResponse.json(result);
     }
 
-    if (stock !== undefined && stock !== null) {
-      try {
-        if (Array.isArray(stock)) {
-          await client.updateProductStock(offerId, stock);
-        } else {
-          await client.updateProductStock(offerId, [
-            { storeId: 'default', stockCount: stock },
-          ]);
-        }
-        results.stock = true;
-      } catch (err) {
-        console.error('Stock update error:', err);
-        results.stock = false;
-      }
+    // Batch обновление
+    if (body.products && Array.isArray(body.products)) {
+      const result = await client.updateProductsBatch(body.products);
+      return NextResponse.json(result);
     }
-
-    if (preorder !== undefined) {
-      try {
-        await client.updatePreorder(offerId, preorder);
-        results.preorder = true;
-      } catch (err) {
-        console.error('Preorder update error:', err);
-        results.preorder = false;
-      }
-    }
-
-    const allSuccess = Object.values(results).every(v => v);
 
     return NextResponse.json({
-      success: allSuccess,
-      results,
-      message: allSuccess ? 'Обновлено' : 'Некоторые операции не удались',
-    });
+      success: false,
+      error: 'Нужен sku+model или products[] для обновления',
+    }, { status: 400 });
   } catch (error) {
     console.error('Cabinet products PATCH error:', error);
     return NextResponse.json({

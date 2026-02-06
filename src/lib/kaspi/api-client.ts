@@ -477,84 +477,82 @@ export class KaspiAPIClient {
 
   /**
    * Обновить цену товара
-   * BFF endpoint для обновления цены оффера
+   * Обновить товар напрямую через Kaspi pricefeed API.
+   * Endpoint: POST mc.shop.kaspi.kz/pricefeed/upload/merchant/process
+   * Это тот же API что использует SPA кабинета при сохранении товара.
    */
-  async updateProductPrice(offerId: string, price: number): Promise<boolean> {
-    const url = `${BASE_URL}/bff/offer-view/price`;
+  async updateProduct(product: {
+    sku: string;
+    model: string;
+    availabilities: Array<{ available: string; storeId: string; preOrder?: number }>;
+    cityPrices?: Array<{ cityId: string; value: number }>;
+  }): Promise<{ success: boolean; error?: string; data?: unknown }> {
+    const url = `${BASE_URL}/pricefeed/upload/merchant/process`;
 
-    const response = await this.bffFetch(url, {
-      method: 'POST',
-      json: true,
-      body: JSON.stringify({
-        merchantId: this.merchantId,
-        offerId,
-        price,
-      }),
-    });
+    const payload = {
+      merchantUid: this.merchantId,
+      ...product,
+    };
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error(`[BFF] Update price failed: ${response.status}`, text.substring(0, 300));
-      throw new Error(`Update price failed: ${response.status} — ${text.substring(0, 200)}`);
+    try {
+      const response = await this.bffFetch(url, {
+        method: 'POST',
+        json: true,
+        body: JSON.stringify(payload),
+      });
+      const text = await response.text().catch(() => '');
+      console.log(`[Pricefeed] Process ${product.sku} → ${response.status}`, text.substring(0, 300));
+
+      let data: unknown = null;
+      try { data = JSON.parse(text); } catch { data = text; }
+
+      if (response.ok) {
+        return { success: true, data };
+      }
+      return { success: false, error: `${response.status}: ${text.substring(0, 200)}`, data };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false, error: msg };
     }
-
-    return true;
   }
 
   /**
-   * Обновить остатки товара по точкам
+   * Batch-обновление нескольких товаров за один запрос.
+   * Endpoint: POST mc.shop.kaspi.kz/pricefeed/upload/merchant/process/process/batch
    */
-  async updateProductStock(
-    offerId: string,
-    availabilities: Array<{ storeId: string; stockCount: number }>
-  ): Promise<boolean> {
-    const url = `${BASE_URL}/bff/offer-view/stock`;
+  async updateProductsBatch(products: Array<{
+    sku: string;
+    model: string;
+    availabilities: Array<{ available: string; storeId: string; preOrder?: number }>;
+    cityPrices?: Array<{ cityId: string; value: number }>;
+  }>): Promise<{ success: boolean; error?: string; data?: unknown }> {
+    const url = `${BASE_URL}/pricefeed/upload/merchant/process/process/batch`;
 
-    const response = await this.bffFetch(url, {
-      method: 'POST',
-      json: true,
-      body: JSON.stringify({
-        merchantId: this.merchantId,
-        offerId,
-        availabilities,
-      }),
-    });
+    const payload = products.map(p => ({
+      merchantUid: this.merchantId,
+      ...p,
+    }));
 
-    if (!response.ok) {
-      const text = await response.text();
-      console.error(`[BFF] Update stock failed: ${response.status}`, text.substring(0, 300));
-      throw new Error(`Update stock failed: ${response.status} — ${text.substring(0, 200)}`);
+    try {
+      const response = await this.bffFetch(url, {
+        method: 'POST',
+        json: true,
+        body: JSON.stringify(payload),
+      });
+      const text = await response.text().catch(() => '');
+      console.log(`[Pricefeed] Batch ${products.length} items → ${response.status}`, text.substring(0, 500));
+
+      let data: unknown = null;
+      try { data = JSON.parse(text); } catch { data = text; }
+
+      if (response.ok) {
+        return { success: true, data };
+      }
+      return { success: false, error: `${response.status}: ${text.substring(0, 200)}`, data };
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      return { success: false, error: msg };
     }
-
-    return true;
-  }
-
-  /**
-   * Обновить предзаказ товара
-   */
-  async updatePreorder(
-    offerId: string,
-    preorderDays: number | null
-  ): Promise<boolean> {
-    const url = `${BASE_URL}/bff/offer-view/preorder`;
-
-    const response = await this.bffFetch(url, {
-      method: 'POST',
-      json: true,
-      body: JSON.stringify({
-        merchantId: this.merchantId,
-        offerId,
-        preorderPeriod: preorderDays,
-      }),
-    });
-
-    if (!response.ok) {
-      const text = await response.text();
-      console.error(`[BFF] Update preorder failed: ${response.status}`, text.substring(0, 300));
-      throw new Error(`Update preorder failed: ${response.status} — ${text.substring(0, 200)}`);
-    }
-
-    return true;
   }
 
   // ===== Прайс-лист (Export / Import) =====
