@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
+import { POST as syncHandler } from '@/app/api/kaspi/sync/route';
 
 export const maxDuration = 300; // 5 мин макс для cron
 export const dynamic = 'force-dynamic';
@@ -29,17 +30,14 @@ export async function GET(request: NextRequest) {
 
     for (const store of stores) {
       try {
-        // Вызываем существующий sync endpoint
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.VERCEL_URL
-          ? `https://${process.env.VERCEL_URL}`
-          : 'http://localhost:3000';
-
-        const res = await fetch(`${baseUrl}/api/kaspi/sync`, {
+        // Вызываем sync handler напрямую (без HTTP — обходим Deployment Protection)
+        const mockReq = new NextRequest(new URL('/api/kaspi/sync', 'https://localhost'), {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ userId: store.user_id }),
         });
 
+        const res = await syncHandler(mockReq);
         const data = await res.json();
         results.push({ userId: store.user_id, success: data.success });
       } catch (err) {
