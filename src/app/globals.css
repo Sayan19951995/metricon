@@ -1,5 +1,8 @@
 @import "tailwindcss";
 
+/* Dark mode configuration for Tailwind CSS v4 - class-based */
+@variant dark (&:where(.dark, .dark *));
+
 :root {
   /* Минималистичная цветовая схема */
   --background: #fafafa;

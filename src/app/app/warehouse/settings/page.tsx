@@ -172,35 +172,35 @@ export default function WarehouseSettingsPage() {
   const availableKaspiWarehouses = kaspiWarehouses.filter(kw => !kw.isLinked);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Header */}
       <div className="mb-6 lg:mb-8">
         <Link
           href="/app/warehouse"
-          className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4 transition-colors"
+          className="inline-flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4 transition-colors"
         >
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm">Назад к складу</span>
         </Link>
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Настройки складов</h1>
-        <p className="text-gray-500 text-sm">Управление складами и интеграция с Kaspi</p>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-900 dark:text-white">Настройки складов</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm">Управление складами и интеграция с Kaspi</p>
       </div>
 
       {/* Kaspi Integration Card */}
-      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm mb-6">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center shrink-0">
-            <span className="text-red-600 font-bold text-sm">K</span>
+          <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center shrink-0">
+            <span className="text-red-600 dark:text-red-400 font-bold text-sm">K</span>
           </div>
           <div className="flex-1">
-            <h2 className="font-semibold text-gray-900">Интеграция с Kaspi</h2>
-            <p className="text-sm text-gray-500">Синхронизация складов и остатков</p>
+            <h2 className="font-semibold text-gray-900 dark:text-white">Интеграция с Kaspi</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Синхронизация складов и остатков</p>
           </div>
           {/* Desktop button */}
           <button
             onClick={handleSyncKaspi}
             disabled={isSyncing}
-            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
+            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-red-300 dark:disabled:bg-red-800 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
             {isSyncing ? 'Синхронизация...' : 'Синхронизировать'}
@@ -211,19 +211,19 @@ export default function WarehouseSettingsPage() {
         <button
           onClick={handleSyncKaspi}
           disabled={isSyncing}
-          className="sm:hidden w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 disabled:bg-red-300 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer mb-4"
+          className="sm:hidden w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 disabled:bg-red-300 dark:disabled:bg-red-800 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer mb-4"
         >
           <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
           {isSyncing ? 'Синхронизация...' : 'Синхронизировать'}
         </button>
 
         <div className="flex flex-wrap gap-3 sm:gap-4 text-sm">
-          <div className="flex items-center gap-2 text-gray-600">
-            <Check className="w-4 h-4 text-emerald-500" />
+          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+            <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
             <span>Подключено складов: {warehouses.filter(w => w.isKaspiLinked).length}</span>
           </div>
-          <div className="flex items-center gap-2 text-gray-600">
-            <AlertCircle className="w-4 h-4 text-amber-500" />
+          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
+            <AlertCircle className="w-4 h-4 text-amber-500 dark:text-amber-400" />
             <span>Не подключено: {warehouses.filter(w => !w.isKaspiLinked).length}</span>
           </div>
           <div className="text-gray-400">
@@ -233,9 +233,9 @@ export default function WarehouseSettingsPage() {
       </div>
 
       {/* Warehouses List */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-gray-100 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900">Мои склады</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
+          <h2 className="font-semibold text-gray-900 dark:text-white">Мои склады</h2>
           <button
             onClick={() => setShowAddModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors"
@@ -245,38 +245,36 @@ export default function WarehouseSettingsPage() {
           </button>
         </div>
 
-        <div className="divide-y divide-gray-100">
+        <div className="divide-y divide-gray-100 dark:divide-gray-700">
           {warehouses.map((warehouse) => (
-            <motion.div
+            <div
               key={warehouse.id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="p-4 sm:p-6 hover:bg-gray-50 transition-colors"
+              className="p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <div className="w-10 h-10 bg-gray-100 rounded-xl flex items-center justify-center shrink-0">
-                    <Building2 className="w-5 h-5 text-gray-600" />
+                  <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center shrink-0">
+                    <Building2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900">{warehouse.name}</h3>
-                    <div className="flex items-center gap-1 text-sm text-gray-500 mt-0.5">
+                    <h3 className="font-semibold text-gray-900 dark:text-white">{warehouse.name}</h3>
+                    <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 mt-0.5">
                       <MapPin className="w-3 h-3 shrink-0" />
                       <span className="truncate">{warehouse.city}{warehouse.address && ` • ${warehouse.address}`}</span>
                     </div>
 
                     <div className="flex flex-wrap gap-2 mt-2">
-                      <span className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-medium">
+                      <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-xs font-medium">
                         {warehouse.productCount} товаров
                       </span>
 
                       {warehouse.isKaspiLinked ? (
-                        <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-medium">
+                        <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium">
                           <LinkIcon className="w-3 h-3" />
                           {warehouse.kaspiWarehouseName}
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 text-amber-700 rounded-lg text-xs font-medium">
+                        <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-medium">
                           <AlertCircle className="w-3 h-3" />
                           Не привязан
                         </span>
@@ -289,7 +287,7 @@ export default function WarehouseSettingsPage() {
                   {warehouse.isKaspiLinked ? (
                     <button
                       onClick={() => handleUnlinkKaspi(warehouse.id)}
-                      className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                      className="p-2 text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg transition-colors"
                       title="Отвязать от Kaspi"
                     >
                       <Unlink className="w-5 h-5" />
@@ -300,7 +298,7 @@ export default function WarehouseSettingsPage() {
                         setSelectedWarehouse(warehouse);
                         setShowLinkModal(true);
                       }}
-                      className="p-2 text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                      className="p-2 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
                       title="Привязать к Kaspi"
                     >
                       <LinkIcon className="w-5 h-5" />
@@ -308,14 +306,14 @@ export default function WarehouseSettingsPage() {
                   )}
                   <button
                     onClick={() => handleDeleteWarehouse(warehouse.id)}
-                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                    className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
                     title="Удалить склад"
                   >
                     <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
               </div>
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
@@ -326,13 +324,13 @@ export default function WarehouseSettingsPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl p-6 w-full max-w-md"
+            className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md"
           >
-            <h3 className="text-lg font-semibold mb-4">Добавить склад</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Добавить склад</h3>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Название склада *
                 </label>
                 <input
@@ -340,18 +338,18 @@ export default function WarehouseSettingsPage() {
                   value={newWarehouse.name}
                   onChange={(e) => setNewWarehouse({ ...newWarehouse, name: e.target.value })}
                   placeholder="Например: Основной склад"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Город *
                 </label>
                 <select
                   value={newWarehouse.city}
                   onChange={(e) => setNewWarehouse({ ...newWarehouse, city: e.target.value })}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 >
                   <option value="">Выберите город</option>
                   <option value="Алматы">Алматы</option>
@@ -365,7 +363,7 @@ export default function WarehouseSettingsPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                   Адрес
                 </label>
                 <input
@@ -373,7 +371,7 @@ export default function WarehouseSettingsPage() {
                   value={newWarehouse.address}
                   onChange={(e) => setNewWarehouse({ ...newWarehouse, address: e.target.value })}
                   placeholder="ул. Пример 123"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300"
+                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 />
               </div>
             </div>
@@ -384,14 +382,14 @@ export default function WarehouseSettingsPage() {
                   setShowAddModal(false);
                   setNewWarehouse({ name: '', city: '', address: '' });
                 }}
-                className="flex-1 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+                className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 Отмена
               </button>
               <button
                 onClick={handleAddWarehouse}
                 disabled={!newWarehouse.name || !newWarehouse.city}
-                className="flex-1 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-200 disabled:text-gray-400 text-white rounded-xl text-sm font-medium transition-colors"
+                className="flex-1 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:text-gray-400 text-white rounded-xl text-sm font-medium transition-colors"
               >
                 Добавить
               </button>
@@ -406,10 +404,10 @@ export default function WarehouseSettingsPage() {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl p-6 w-full max-w-md"
+            className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md"
           >
-            <h3 className="text-lg font-semibold mb-2">Привязать к Kaspi</h3>
-            <p className="text-sm text-gray-500 mb-4">
+            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Привязать к Kaspi</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
               Выберите склад Kaspi для привязки к &quot;{selectedWarehouse.name}&quot;
             </p>
 
@@ -419,21 +417,21 @@ export default function WarehouseSettingsPage() {
                   <button
                     key={kw.id}
                     onClick={() => handleLinkKaspi(kw)}
-                    className="w-full flex items-center gap-3 p-3 border border-gray-200 rounded-xl hover:border-red-300 hover:bg-red-50 transition-colors text-left"
+                    className="w-full flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-red-300 dark:hover:border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left"
                   >
-                    <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
-                      <span className="text-red-600 font-bold text-xs">K</span>
+                    <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
+                      <span className="text-red-600 dark:text-red-400 font-bold text-xs">K</span>
                     </div>
                     <div>
-                      <p className="font-medium text-sm text-gray-900">{kw.name}</p>
-                      <p className="text-xs text-gray-500">{kw.city}</p>
+                      <p className="font-medium text-sm text-gray-900 dark:text-white">{kw.name}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{kw.city}</p>
                     </div>
                   </button>
                 ))}
               </div>
             ) : (
-              <div className="text-center py-8 text-gray-500">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
                 <p className="text-sm">Все склады Kaspi уже привязаны</p>
               </div>
             )}
@@ -443,7 +441,7 @@ export default function WarehouseSettingsPage() {
                 setShowLinkModal(false);
                 setSelectedWarehouse(null);
               }}
-              className="w-full mt-4 px-4 py-2.5 border border-gray-200 text-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors"
+              className="w-full mt-4 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               Отмена
             </button>

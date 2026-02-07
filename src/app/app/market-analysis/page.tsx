@@ -198,16 +198,15 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.05 }
+    transition: { duration: 0.15 }
   }
 };
 
 const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    y: 0,
-    transition: { duration: 0.3 }
+    transition: { duration: 0.15 }
   }
 };
 
@@ -260,18 +259,14 @@ export default function MarketAnalysisPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-4 sm:mb-6"
-        >
+        <div className="mb-4 sm:mb-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4 mb-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Анализ рынка Kaspi</h1>
-              <p className="text-gray-500 mt-1 text-sm">Статистика продаж, категории и товары маркетплейса</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Анализ рынка Kaspi</h1>
+              <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">Статистика продаж, категории и товары маркетплейса</p>
             </div>
             <a
               href="https://kaspi.kz/shop"
@@ -285,15 +280,15 @@ export default function MarketAnalysisPage() {
           </div>
 
           {/* Search & Filters */}
-          <div className="bg-white rounded-2xl p-3 sm:p-4 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 sm:p-4 shadow-sm">
             <div className="flex flex-col sm:flex-row gap-3 mb-4">
               {/* Search Type Toggle & Period - Mobile row */}
               <div className="flex gap-2 sm:gap-3">
-                <div className="flex bg-gray-100 rounded-xl p-1">
+                <div className="flex bg-gray-100 dark:bg-gray-700 rounded-xl p-1">
                   <button
                     onClick={() => setSearchType('text')}
                     className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                      searchType === 'text' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'
+                      searchType === 'text' ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'
                     }`}
                   >
                     <Search className="w-4 h-4" />
@@ -301,7 +296,7 @@ export default function MarketAnalysisPage() {
                   <button
                     onClick={() => setSearchType('link')}
                     className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                      searchType === 'link' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'
+                      searchType === 'link' ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'
                     }`}
                   >
                     <LinkIcon className="w-4 h-4" />
@@ -309,7 +304,7 @@ export default function MarketAnalysisPage() {
                   <button
                     onClick={() => setSearchType('sku')}
                     className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
-                      searchType === 'sku' ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'
+                      searchType === 'sku' ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'
                     }`}
                   >
                     SKU
@@ -317,13 +312,13 @@ export default function MarketAnalysisPage() {
                 </div>
 
                 {/* Period Filter - visible on mobile */}
-                <div className="flex bg-gray-100 rounded-xl p-1 overflow-x-auto flex-1 sm:flex-none">
+                <div className="flex bg-gray-100 dark:bg-gray-700 rounded-xl p-1 overflow-x-auto flex-1 sm:flex-none">
                   {(['week', 'month', '3months', 'year'] as Period[]).map((p) => (
                     <button
                       key={p}
                       onClick={() => setPeriod(p)}
                       className={`px-2 sm:px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
-                        period === p ? 'bg-white shadow-sm text-gray-900' : 'text-gray-600'
+                        period === p ? 'bg-white dark:bg-gray-600 shadow-sm text-gray-900 dark:text-white' : 'text-gray-600 dark:text-gray-400'
                       }`}
                     >
                       {p === 'week' && '7д'}
@@ -346,7 +341,7 @@ export default function MarketAnalysisPage() {
                     searchType === 'link' ? 'Вставьте ссылку на товар kaspi.kz...' :
                     'Введите артикул товара...'
                   }
-                  className="w-full pl-4 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                  className="w-full pl-4 pr-10 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
                 />
                 <Search className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
               </div>
@@ -355,7 +350,7 @@ export default function MarketAnalysisPage() {
               <button
                 onClick={() => setShowFilters(!showFilters)}
                 className={`px-4 py-2 rounded-xl text-sm font-medium transition-all cursor-pointer flex items-center justify-center gap-2 ${
-                  showFilters ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  showFilters ? 'bg-emerald-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
               >
                 <Filter className="w-4 h-4" />
@@ -370,36 +365,36 @@ export default function MarketAnalysisPage() {
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: 'auto' }}
                   exit={{ opacity: 0, height: 0 }}
-                  className="pt-4 border-t border-gray-100"
+                  className="pt-4 border-t border-gray-100 dark:border-gray-700"
                 >
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">Цена от</label>
+                      <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Цена от</label>
                       <input
                         type="number"
                         placeholder="0"
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">Цена до</label>
+                      <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Цена до</label>
                       <input
                         type="number"
                         placeholder="1000000"
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">Продаж от</label>
+                      <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Продаж от</label>
                       <input
                         type="number"
                         placeholder="0"
-                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm"
+                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white"
                       />
                     </div>
                     <div>
-                      <label className="text-xs text-gray-500 mb-1 block">Рейтинг от</label>
-                      <select className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm cursor-pointer">
+                      <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Рейтинг от</label>
+                      <select className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg text-sm text-gray-900 dark:text-white cursor-pointer">
                         <option value="">Любой</option>
                         <option value="4.5">4.5+</option>
                         <option value="4">4+</option>
@@ -411,7 +406,7 @@ export default function MarketAnalysisPage() {
               )}
             </AnimatePresence>
           </div>
-        </motion.div>
+        </div>
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -422,30 +417,30 @@ export default function MarketAnalysisPage() {
             animate="visible"
             className="lg:col-span-2"
           >
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-3 sm:p-4 border-b border-gray-100">
-                <h2 className="text-base sm:text-lg font-semibold text-gray-900">Категории маркетплейса</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+              <div className="p-3 sm:p-4 border-b border-gray-100 dark:border-gray-700">
+                <h2 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Категории маркетплейса</h2>
               </div>
 
-              <div className="divide-y divide-gray-50">
+              <div className="divide-y divide-gray-50 dark:divide-gray-700">
                 {categoriesData.map((category) => (
                   <div key={category.id}>
                     {/* Category Row */}
                     <div
                       onClick={() => toggleCategory(category.id)}
-                      className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-gray-50 transition-colors cursor-pointer"
+                      className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors cursor-pointer"
                     >
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gray-100 rounded-xl flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
                         {category.icon}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <span className="font-medium text-gray-900 text-sm sm:text-base">{category.name}</span>
+                          <span className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">{category.name}</span>
                           {category.subcategories.length > 0 && (
-                            <span className="text-xs text-gray-400">({category.subcategories.length})</span>
+                            <span className="text-xs text-gray-400 dark:text-gray-500">({category.subcategories.length})</span>
                           )}
                         </div>
-                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-gray-500">
+                        <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                           <span className="flex items-center gap-1">
                             <DollarSign className="w-3 h-3" />
                             {formatCurrency(category.totalSales)}
@@ -467,7 +462,7 @@ export default function MarketAnalysisPage() {
                           {category.growth > 0 ? <TrendingUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                           {category.growth > 0 ? '+' : ''}{category.growth}%
                         </div>
-                        <div className="text-xs text-gray-400 mt-1 hidden sm:block">за период</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500 mt-1 hidden sm:block">за период</div>
                       </div>
                       {category.subcategories.length > 0 && (
                         <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform flex-shrink-0 ${
@@ -483,17 +478,17 @@ export default function MarketAnalysisPage() {
                           initial={{ opacity: 0, height: 0 }}
                           animate={{ opacity: 1, height: 'auto' }}
                           exit={{ opacity: 0, height: 0 }}
-                          className="bg-gray-50"
+                          className="bg-gray-50 dark:bg-gray-900"
                         >
                           {category.subcategories.map((sub) => (
                             <div key={sub.id}>
                               <div
                                 onClick={() => toggleSubcategory(sub.id)}
-                                className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 pl-10 sm:pl-16 hover:bg-gray-100 transition-colors cursor-pointer"
+                                className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 pl-10 sm:pl-16 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors cursor-pointer"
                               >
                                 <div className="flex-1 min-w-0">
-                                  <span className="font-medium text-gray-800 text-sm sm:text-base">{sub.name}</span>
-                                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-gray-500">
+                                  <span className="font-medium text-gray-800 dark:text-gray-200 text-sm sm:text-base">{sub.name}</span>
+                                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 mt-1 text-xs sm:text-sm text-gray-500 dark:text-gray-400">
                                     <span>{formatCurrency(sub.totalSales)}</span>
                                     <span>{formatUnits(sub.totalUnits)} шт</span>
                                     <span className="hidden sm:inline">{sub.sellersCount} продавцов</span>
@@ -518,24 +513,24 @@ export default function MarketAnalysisPage() {
                                     initial={{ opacity: 0, height: 0 }}
                                     animate={{ opacity: 1, height: 'auto' }}
                                     exit={{ opacity: 0, height: 0 }}
-                                    className="bg-white"
+                                    className="bg-white dark:bg-gray-800"
                                   >
                                     {sub.products.map((product) => (
                                       <div
                                         key={product.id}
                                         onClick={() => setSelectedProduct(product)}
-                                        className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 pl-14 sm:pl-24 hover:bg-emerald-50 transition-colors cursor-pointer border-l-2 border-transparent hover:border-emerald-500"
+                                        className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4 pl-14 sm:pl-24 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 transition-colors cursor-pointer border-l-2 border-transparent hover:border-emerald-500"
                                       >
-                                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 rounded-lg flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
+                                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center text-lg sm:text-xl flex-shrink-0">
                                           {product.image}
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                          <div className="font-medium text-gray-900 truncate text-sm sm:text-base">{product.name}</div>
-                                          <div className="text-xs text-gray-400">SKU: {product.sku}</div>
+                                          <div className="font-medium text-gray-900 dark:text-white truncate text-sm sm:text-base">{product.name}</div>
+                                          <div className="text-xs text-gray-400 dark:text-gray-500">SKU: {product.sku}</div>
                                         </div>
                                         <div className="text-right flex-shrink-0">
-                                          <div className="font-medium text-gray-900 text-sm sm:text-base">{product.price.toLocaleString()} ₸</div>
-                                          <div className="text-xs text-gray-500 hidden sm:block">{product.sales.toLocaleString()} продаж</div>
+                                          <div className="font-medium text-gray-900 dark:text-white text-sm sm:text-base">{product.price.toLocaleString()} ₸</div>
+                                          <div className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">{product.sales.toLocaleString()} продаж</div>
                                         </div>
                                         <div className="flex items-center gap-1 text-amber-500 flex-shrink-0">
                                           <Star className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-amber-400" />
@@ -565,31 +560,31 @@ export default function MarketAnalysisPage() {
             className="space-y-4 sm:space-y-6"
           >
             {/* Market Summary */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Статистика рынка</h3>
+            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 shadow-sm">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Статистика рынка</h3>
               <div className="space-y-3 sm:space-y-4">
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500 text-sm">Общий оборот</span>
-                  <span className="font-bold text-gray-900 text-sm sm:text-base">6.6 млрд ₸</span>
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">Общий оборот</span>
+                  <span className="font-bold text-gray-900 dark:text-white text-sm sm:text-base">6.6 млрд ₸</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500 text-sm">Всего продаж</span>
-                  <span className="font-bold text-gray-900 text-sm sm:text-base">833K шт</span>
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">Всего продаж</span>
+                  <span className="font-bold text-gray-900 dark:text-white text-sm sm:text-base">833K шт</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500 text-sm">Активных продавцов</span>
-                  <span className="font-bold text-gray-900 text-sm sm:text-base">5,650</span>
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">Активных продавцов</span>
+                  <span className="font-bold text-gray-900 dark:text-white text-sm sm:text-base">5,650</span>
                 </div>
                 <div className="flex justify-between items-center">
-                  <span className="text-gray-500 text-sm">Средний чек</span>
-                  <span className="font-bold text-gray-900 text-sm sm:text-base">7,920 ₸</span>
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">Средний чек</span>
+                  <span className="font-bold text-gray-900 dark:text-white text-sm sm:text-base">7,920 ₸</span>
                 </div>
               </div>
             </motion.div>
 
             {/* Sales Trend Chart */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Тренд продаж</h3>
+            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 shadow-sm">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Тренд продаж</h3>
               <ResponsiveContainer width="100%" height={150} className="sm:!h-[180px]">
                 <LineChart data={salesTrendData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
@@ -602,19 +597,19 @@ export default function MarketAnalysisPage() {
             </motion.div>
 
             {/* Top Categories */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-5 shadow-sm">
-              <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">Топ категорий по росту</h3>
+            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 shadow-sm">
+              <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-3 sm:mb-4">Топ категорий по росту</h3>
               <div className="space-y-2.5 sm:space-y-3">
                 {categoriesData
                   .sort((a, b) => b.growth - a.growth)
                   .slice(0, 5)
                   .map((cat, index) => (
                     <div key={cat.id} className="flex items-center gap-2 sm:gap-3">
-                      <span className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-100 rounded-full flex items-center justify-center text-xs font-medium text-gray-600">
+                      <span className="w-5 h-5 sm:w-6 sm:h-6 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-400">
                         {index + 1}
                       </span>
                       <span className="text-base sm:text-lg">{cat.icon}</span>
-                      <span className="flex-1 text-xs sm:text-sm text-gray-900">{cat.name}</span>
+                      <span className="flex-1 text-xs sm:text-sm text-gray-900 dark:text-white">{cat.name}</span>
                       <span className={`text-xs sm:text-sm font-medium ${cat.growth > 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                         {cat.growth > 0 ? '+' : ''}{cat.growth}%
                       </span>
@@ -640,7 +635,7 @@ export default function MarketAnalysisPage() {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.95, opacity: 0 }}
                 onClick={(e) => e.stopPropagation()}
-                className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden max-h-[90vh] overflow-y-auto"
+                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden max-h-[90vh] overflow-y-auto"
               >
                 {/* Header */}
                 <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 sm:px-6 py-3 sm:py-4 sticky top-0">
@@ -659,23 +654,23 @@ export default function MarketAnalysisPage() {
                 <div className="p-4 sm:p-6">
                   {/* Product Info */}
                   <div className="flex flex-col sm:flex-row gap-4 mb-4 sm:mb-6">
-                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 rounded-xl flex items-center justify-center text-3xl sm:text-4xl flex-shrink-0 mx-auto sm:mx-0">
+                    <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center text-3xl sm:text-4xl flex-shrink-0 mx-auto sm:mx-0">
                       {selectedProduct.image}
                     </div>
                     <div className="flex-1 text-center sm:text-left">
-                      <h4 className="text-lg sm:text-xl font-bold text-gray-900">{selectedProduct.name}</h4>
-                      <p className="text-gray-500 text-sm">SKU: {selectedProduct.sku}</p>
+                      <h4 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{selectedProduct.name}</h4>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm">SKU: {selectedProduct.sku}</p>
                       <div className="flex items-center justify-center sm:justify-start gap-2 mt-2">
                         <div className="flex items-center gap-1 text-amber-500">
                           <Star className="w-4 h-4 fill-amber-400" />
                           <span className="font-medium">{selectedProduct.rating}</span>
                         </div>
-                        <span className="text-gray-300">•</span>
-                        <span className="text-gray-500 text-sm">{selectedProduct.sellers} продавцов</span>
+                        <span className="text-gray-300 dark:text-gray-600">•</span>
+                        <span className="text-gray-500 dark:text-gray-400 text-sm">{selectedProduct.sellers} продавцов</span>
                       </div>
                     </div>
                     <div className="text-center sm:text-right">
-                      <div className="text-xl sm:text-2xl font-bold text-gray-900">{selectedProduct.price.toLocaleString()} ₸</div>
+                      <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{selectedProduct.price.toLocaleString()} ₸</div>
                       <a
                         href={`https://kaspi.kz/shop/p/${selectedProduct.sku}`}
                         target="_blank"
@@ -689,34 +684,34 @@ export default function MarketAnalysisPage() {
 
                   {/* Stats Grid */}
                   <div className="grid grid-cols-2 gap-3 sm:gap-4 mb-4 sm:mb-6">
-                    <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
-                      <div className="text-gray-500 text-xs sm:text-sm mb-1">Продажи</div>
-                      <div className="text-lg sm:text-xl font-bold text-gray-900">{selectedProduct.sales.toLocaleString()}</div>
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3 sm:p-4">
+                      <div className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mb-1">Продажи</div>
+                      <div className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{selectedProduct.sales.toLocaleString()}</div>
                       <div className="text-xs text-emerald-500">за период</div>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
-                      <div className="text-gray-500 text-xs sm:text-sm mb-1">Выручка</div>
-                      <div className="text-lg sm:text-xl font-bold text-gray-900">{formatCurrency(selectedProduct.revenue)}</div>
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3 sm:p-4">
+                      <div className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mb-1">Выручка</div>
+                      <div className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{formatCurrency(selectedProduct.revenue)}</div>
                       <div className="text-xs text-emerald-500">за период</div>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
-                      <div className="text-gray-500 text-xs sm:text-sm mb-1">Продавцов</div>
-                      <div className="text-lg sm:text-xl font-bold text-gray-900">{selectedProduct.sellers}</div>
-                      <div className="text-xs text-gray-400">активных</div>
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3 sm:p-4">
+                      <div className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mb-1">Продавцов</div>
+                      <div className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{selectedProduct.sellers}</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500">активных</div>
                     </div>
-                    <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
-                      <div className="text-gray-500 text-xs sm:text-sm mb-1">Рейтинг</div>
-                      <div className="text-lg sm:text-xl font-bold text-gray-900 flex items-center gap-1">
+                    <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3 sm:p-4">
+                      <div className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm mb-1">Рейтинг</div>
+                      <div className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white flex items-center gap-1">
                         {selectedProduct.rating}
                         <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                       </div>
-                      <div className="text-xs text-gray-400">на основе отзывов</div>
+                      <div className="text-xs text-gray-400 dark:text-gray-500">на основе отзывов</div>
                     </div>
                   </div>
 
                   {/* Sales Trend */}
-                  <div className="bg-gray-50 rounded-xl p-3 sm:p-4">
-                    <h5 className="font-medium text-gray-900 mb-3 text-sm sm:text-base">Динамика продаж</h5>
+                  <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3 sm:p-4">
+                    <h5 className="font-medium text-gray-900 dark:text-white mb-3 text-sm sm:text-base">Динамика продаж</h5>
                     <ResponsiveContainer width="100%" height={120} className="sm:!h-[150px]">
                       <BarChart data={salesTrendData}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />

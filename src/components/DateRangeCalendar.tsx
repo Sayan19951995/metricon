@@ -101,20 +101,20 @@ export default function DateRangeCalendar({
           {!isSecond && (
             <button
               onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
-              <ChevronLeft className="w-5 h-5 text-gray-600" />
+              <ChevronLeft className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </button>
           )}
-          <h3 className="text-base font-semibold text-gray-900 capitalize">
+          <h3 className="text-base font-semibold text-gray-900 dark:text-white capitalize">
             {format(month, 'LLLL yyyy', { locale: ru })}
           </h3>
           {isSecond && (
             <button
               onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-              className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
             >
-              <ChevronRight className="w-5 h-5 text-gray-600" />
+              <ChevronRight className="w-5 h-5 text-gray-600 dark:text-gray-400" />
             </button>
           )}
           {!isSecond && <div className="w-9" />}
@@ -126,7 +126,7 @@ export default function DateRangeCalendar({
           {weekDays.map((day) => (
             <div
               key={day}
-              className="text-center text-xs font-medium text-gray-500 uppercase py-2"
+              className="text-center text-xs font-medium text-gray-500 dark:text-gray-400 uppercase py-2"
             >
               {day}
             </div>
@@ -151,9 +151,9 @@ export default function DateRangeCalendar({
                 disabled={!isCurrentMonth}
                 className={`
                   relative h-9 w-9 text-sm font-medium rounded-lg transition-all
-                  ${!isCurrentMonth ? 'text-gray-300 cursor-default' : 'text-gray-900 hover:bg-gray-100'}
+                  ${!isCurrentMonth ? 'text-gray-300 dark:text-gray-600 cursor-default' : 'text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700'}
                   ${isStart || isEnd ? 'bg-emerald-600 text-white hover:bg-emerald-700' : ''}
-                  ${inRange && !isStart && !isEnd ? 'bg-emerald-100 text-emerald-900' : ''}
+                  ${inRange && !isStart && !isEnd ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-900 dark:text-emerald-400' : ''}
                   ${isToday && !isStart && !isEnd && !inRange ? 'border-2 border-emerald-500' : ''}
                 `}
               >
@@ -172,7 +172,7 @@ export default function DateRangeCalendar({
       animate={{ opacity: 1, scale: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.95, y: -10 }}
       transition={{ duration: 0.2 }}
-      className="absolute top-full right-0 mt-2 bg-white rounded-2xl shadow-2xl p-6 z-50 border border-gray-200"
+      className="absolute top-full right-0 mt-2 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl p-6 z-50 border border-gray-200 dark:border-gray-700"
       style={{ minWidth: '680px' }}
     >
       {/* Два месяца рядом */}
@@ -182,10 +182,10 @@ export default function DateRangeCalendar({
       </div>
 
       {/* Кнопки действий */}
-      <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200">
+      <div className="flex items-center justify-end gap-3 pt-4 border-t border-gray-200 dark:border-gray-700">
         <button
           onClick={onCancel}
-          className="px-6 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors"
+          className="px-6 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium transition-colors"
         >
           Отмена
         </button>

@@ -7,20 +7,6 @@ import Link from 'next/link';
 import CreateOrderModal from '@/components/warehouse/CreateOrderModal';
 import { useWarehouseProducts } from '@/hooks/useWarehouseProducts';
 
-// Анимации
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 }
-};
-
 type WarehouseTab = 'all' | 'almaty' | 'astana' | 'karaganda' | 'shymkent';
 
 export default function WarehousePage() {
@@ -115,41 +101,41 @@ export default function WarehousePage() {
   };
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Header */}
       <div className="mb-6 lg:mb-8 flex items-start justify-between">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold mb-2">Склад</h1>
-          <p className="text-gray-500 text-sm">Остатки товаров на складах</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">Остатки товаров на складах</p>
         </div>
         <div className="flex items-center gap-2">
           <Link
             href="/app/warehouse/history"
-            className="flex items-center gap-2 px-4 py-2.5 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-colors text-sm font-medium text-gray-700"
+            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
           >
             <History className="w-4 h-4" />
             <span className="hidden sm:inline">История приёмок</span>
           </Link>
           <Link
             href="/app/warehouse/settings"
-            className="p-2.5 bg-white hover:bg-gray-50 border border-gray-200 rounded-xl transition-colors"
+            className="p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors"
             title="Настройки складов"
           >
-            <Settings className="w-5 h-5 text-gray-600" />
+            <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </Link>
         </div>
       </div>
 
       {/* Stats Blocks */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 items-stretch">
-        <div className="bg-white rounded-xl p-3 lg:p-4 shadow-sm relative h-full">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm relative h-full">
           <div className="flex items-center gap-2 lg:gap-3">
-            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-50 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-50 dark:bg-blue-900/30 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
               <Package className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1">
-                <p className="text-[10px] lg:text-xs text-gray-500 leading-tight">Себестоимость</p>
+                <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 leading-tight">Себестоимость</p>
                 <button
                   data-tooltip-trigger
                   onClick={() => toggleTooltip('header')}
@@ -158,7 +144,7 @@ export default function WarehousePage() {
                   <HelpCircle className="w-3.5 h-3.5" />
                 </button>
               </div>
-              <p className="text-sm lg:text-base font-bold text-gray-900">{totalCost.toLocaleString()} ₸</p>
+              <p className="text-sm lg:text-base font-bold text-gray-900 dark:text-white">{totalCost.toLocaleString()} ₸</p>
             </div>
           </div>
           {/* Tooltip */}
@@ -180,14 +166,14 @@ export default function WarehousePage() {
             )}
           </AnimatePresence>
         </div>
-        <div className="bg-white rounded-xl p-3 lg:p-4 shadow-sm relative h-full">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm relative h-full">
           <div className="flex items-center gap-2 lg:gap-3">
-            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-emerald-50 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
               <Package className="w-4 h-4 lg:w-5 lg:h-5 text-emerald-600" />
             </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1">
-                <p className="text-[10px] lg:text-xs text-gray-500 leading-tight">Оценоч. стоимость</p>
+                <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 leading-tight">Оценоч. стоимость</p>
                 <button
                   data-tooltip-trigger
                   onClick={() => toggleTooltip('estimated')}
@@ -219,17 +205,17 @@ export default function WarehousePage() {
         <div className="relative h-full">
           <button
             onClick={() => setShowCriticalOnly(!showCriticalOnly)}
-            className={`w-full h-full bg-white rounded-xl p-3 lg:p-4 shadow-sm text-left transition-all cursor-pointer ${
+            className={`w-full h-full bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm text-left transition-all cursor-pointer ${
               showCriticalOnly ? 'ring-2 ring-amber-500' : 'hover:shadow-md'
             }`}
           >
             <div className="flex items-center gap-2 lg:gap-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-amber-50 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-amber-50 dark:bg-amber-900/30 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
                 <AlertTriangle className="w-4 h-4 lg:w-5 lg:h-5 text-amber-600" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
-                  <p className="text-[10px] lg:text-xs text-gray-500 leading-tight">Критич. остаток</p>
+                  <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 leading-tight">Критич. остаток</p>
                   <span
                     data-tooltip-trigger
                     onClick={(e) => { e.stopPropagation(); toggleTooltip('critical'); }}
@@ -262,15 +248,15 @@ export default function WarehousePage() {
         <div className="relative h-full">
           <Link
             href="/app/warehouse/history"
-            className="bg-white rounded-xl p-3 lg:p-4 shadow-sm hover:shadow-md transition-all cursor-pointer block h-full"
+            className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm hover:shadow-md transition-all cursor-pointer block h-full"
           >
             <div className="flex items-center gap-2 lg:gap-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-purple-50 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
+              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-purple-50 dark:bg-purple-900/30 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
                 <Truck className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
-                  <p className="text-[10px] lg:text-xs text-gray-500 leading-tight">В пути</p>
+                  <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 leading-tight">В пути</p>
                   <span
                     data-tooltip-trigger
                     onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleTooltip('transit'); }}
@@ -302,18 +288,18 @@ export default function WarehousePage() {
         </div>
         {/* Kaspi Sync Status - отдельный ряд на мобильном, в общем ряду на десктопе */}
         <div className="relative h-full col-span-2 lg:col-span-4">
-          <div className={`w-full h-full bg-white rounded-xl p-3 lg:p-4 shadow-sm transition-all ${
+          <div className={`w-full h-full bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm transition-all ${
             diffCount > 0 ? 'ring-2 ring-red-400' : ''
           }`}>
             <div className="flex items-center gap-2 lg:gap-3">
               <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0 ${
-                diffCount > 0 ? 'bg-red-50' : 'bg-emerald-50'
+                diffCount > 0 ? 'bg-red-50 dark:bg-red-900/30' : 'bg-emerald-50 dark:bg-emerald-900/30'
               }`}>
                 <RefreshCw className={`w-4 h-4 lg:w-5 lg:h-5 ${diffCount > 0 ? 'text-red-600' : 'text-emerald-600'}`} />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1">
-                  <p className="text-[10px] lg:text-xs text-gray-500 leading-tight">Синхронизация с Kaspi</p>
+                  <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 leading-tight">Синхронизация с Kaspi</p>
                   <span
                     data-tooltip-trigger
                     onClick={() => toggleTooltip('kaspi-sync')}
@@ -327,7 +313,7 @@ export default function WarehousePage() {
                 </p>
               </div>
               {diffCount > 0 && (
-                <div className="hidden lg:flex items-center gap-2 text-sm text-gray-500">
+                <div className="hidden lg:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
                   <span>Нажмите 🔄 у товара для синхронизации</span>
                 </div>
               )}
@@ -354,7 +340,7 @@ export default function WarehousePage() {
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm mb-4 sm:mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm mb-4 sm:mb-6">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1">
@@ -368,7 +354,7 @@ export default function WarehousePage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Поиск по названию или артикулу..."
                 style={{ paddingLeft: '2.5rem' }}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 transition-colors"
+                className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 transition-colors dark:text-white dark:placeholder-gray-500"
               />
             </div>
           </div>
@@ -388,8 +374,8 @@ export default function WarehousePage() {
             onClick={() => setActiveTab('all')}
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               activeTab === 'all'
-                ? 'bg-gray-900 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
             Все склады <span className={`text-xs ${activeTab === 'all' ? 'text-gray-300' : 'text-gray-400'}`}>{warehouseCounts.all}</span>
@@ -399,7 +385,7 @@ export default function WarehousePage() {
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               activeTab === 'almaty'
                 ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
             Алматы <span className={`text-xs ${activeTab === 'almaty' ? 'text-blue-200' : 'text-gray-400'}`}>{warehouseCounts.almaty}</span>
@@ -409,7 +395,7 @@ export default function WarehousePage() {
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               activeTab === 'astana'
                 ? 'bg-purple-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
             Астана <span className={`text-xs ${activeTab === 'astana' ? 'text-purple-200' : 'text-gray-400'}`}>{warehouseCounts.astana}</span>
@@ -419,7 +405,7 @@ export default function WarehousePage() {
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               activeTab === 'karaganda'
                 ? 'bg-orange-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
             Караганда <span className={`text-xs ${activeTab === 'karaganda' ? 'text-orange-200' : 'text-gray-400'}`}>{warehouseCounts.karaganda}</span>
@@ -429,7 +415,7 @@ export default function WarehousePage() {
             className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
               activeTab === 'shymkent'
                 ? 'bg-emerald-500 text-white'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
             }`}
           >
             Шымкент <span className={`text-xs ${activeTab === 'shymkent' ? 'text-emerald-200' : 'text-gray-400'}`}>{warehouseCounts.shymkent}</span>
@@ -440,21 +426,15 @@ export default function WarehousePage() {
       <div>
         {/* Products - Mobile Cards */}
         <div className="lg:hidden space-y-3">
-          <AnimatePresence mode="popLayout">
             {filteredProducts.map((product) => (
-              <motion.div
+              <div
                 key={product.id}
-                layout
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.2 }}
-                className="bg-white rounded-xl p-4 shadow-sm"
+                className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"
               >
               <div className="flex items-start justify-between mb-3">
                 <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate">{product.name}</p>
-                  <p className="text-xs text-gray-500">{product.sku}</p>
+                  <p className="font-semibold text-sm truncate dark:text-white">{product.name}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{product.sku}</p>
                 </div>
                 <div className="flex items-center gap-1.5 ml-2">
                   {(() => {
@@ -468,8 +448,8 @@ export default function WarehousePage() {
                               onClick={() => toggleTooltip(`sync-${product.id}`)}
                               className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium cursor-pointer transition-colors ${
                                 diff > 0
-                                  ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                                  : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                  ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50'
+                                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
                               }`}
                             >
                               <AlertTriangle className="w-3 h-3" />
@@ -500,7 +480,7 @@ export default function WarehousePage() {
                           <button
                             onClick={() => handleSyncProduct(product.id)}
                             disabled={syncingProductId === product.id}
-                            className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
+                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
                             title="Отправить остаток в Kaspi"
                           >
                             <RefreshCw className={`w-4 h-4 ${syncingProductId === product.id ? 'animate-spin' : ''}`} />
@@ -510,15 +490,15 @@ export default function WarehousePage() {
                     }
                     return null;
                   })()}
-                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                     {getWarehouseName(product.warehouse)}
                   </span>
                 </div>
               </div>
               <div className="flex items-center justify-between text-sm">
                 <div className="flex items-center gap-3">
-                  <span className="font-medium text-gray-900">{product.qty} шт</span>
-                  <span className="text-gray-500 flex items-center gap-0.5 relative">
+                  <span className="font-medium text-gray-900 dark:text-white">{product.qty} шт</span>
+                  <span className="text-gray-500 dark:text-gray-400 flex items-center gap-0.5 relative">
                       <span className="text-[10px] opacity-60">себ.</span>
                       <button
                         data-tooltip-trigger
@@ -549,28 +529,27 @@ export default function WarehousePage() {
                 </div>
                 <span className="text-emerald-600"><span className="text-[10px] opacity-60 font-normal">сумма</span> <span className="font-semibold">{product.price.toLocaleString()} ₸</span></span>
               </div>
-            </motion.div>
+            </div>
           ))}
-          </AnimatePresence>
 
           {/* Mobile Total */}
-          <div className="bg-white rounded-xl p-4 shadow-sm border-t-2 border-gray-200">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border-t-2 border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-gray-700">Итого: {totalQty} шт.</span>
-              <span className="text-sm font-bold text-gray-900">{totalCost.toLocaleString()} ₸</span>
+              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Итого: {totalQty} шт.</span>
+              <span className="text-sm font-bold text-gray-900 dark:text-white">{totalCost.toLocaleString()} ₸</span>
             </div>
           </div>
         </div>
 
         {/* Products Table - Desktop */}
-        <motion.div variants={itemVariants} className="hidden lg:block bg-white rounded-2xl shadow-sm overflow-hidden">
+        <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
           <table className="w-full">
-            <thead className="bg-gray-50 border-b border-gray-200">
+            <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
               <tr>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Товар</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Остаток</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">В пути</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">
+                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Товар</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Остаток</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">В пути</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">
                   <div className="flex items-center gap-1 relative">
                     <span>Себест. общ.</span>
                     <button
@@ -599,23 +578,20 @@ export default function WarehousePage() {
                     </AnimatePresence>
                   </div>
                 </th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Цена общ.</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Склад</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Действия</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Цена общ.</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Склад</th>
+                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Действия</th>
               </tr>
             </thead>
             <tbody>
-              {filteredProducts.map((product, index) => (
-                <motion.tr
+              {filteredProducts.map((product) => (
+                <tr
                   key={product.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: index * 0.03 }}
-                  className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                  className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                 >
                   <td className="py-4 px-6">
                     <div className="flex items-center gap-2">
-                      <p className="font-medium text-sm text-gray-900">{product.name}</p>
+                      <p className="font-medium text-sm text-gray-900 dark:text-white">{product.name}</p>
                       {(() => {
                         const diff = getStockDiff(product);
                         if (diff !== null && diff !== 0) {
@@ -626,8 +602,8 @@ export default function WarehousePage() {
                                 onClick={() => toggleTooltip(`table-sync-${product.id}`)}
                                 className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium cursor-pointer transition-colors ${
                                   diff > 0
-                                    ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
-                                    : 'bg-red-100 text-red-700 hover:bg-red-200'
+                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50'
+                                    : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
                                 }`}
                               >
                                 <AlertTriangle className="w-3 h-3" />
@@ -662,7 +638,7 @@ export default function WarehousePage() {
                     </div>
                   </td>
                   <td className="py-4 px-6">
-                    <span className="text-sm font-semibold text-gray-900">
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
                       {product.qty} шт
                     </span>
                   </td>
@@ -672,17 +648,17 @@ export default function WarehousePage() {
                         {product.inTransit} шт
                       </span>
                     ) : (
-                      <span className="text-sm text-gray-400">—</span>
+                      <span className="text-sm text-gray-400 dark:text-gray-500">—</span>
                     )}
                   </td>
                   <td className="py-4 px-6">
-                    <span className="text-sm text-gray-600">{(product.costPrice * product.qty).toLocaleString()} ₸</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">{(product.costPrice * product.qty).toLocaleString()} ₸</span>
                   </td>
                   <td className="py-4 px-6">
                     <span className="text-sm font-semibold text-emerald-600">{(product.price * product.qty).toLocaleString()} ₸</span>
                   </td>
                   <td className="py-4 px-6">
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
                       {getWarehouseName(product.warehouse)}
                     </span>
                   </td>
@@ -695,7 +671,7 @@ export default function WarehousePage() {
                             <button
                               onClick={() => handleSyncProduct(product.id)}
                               disabled={syncingProductId === product.id}
-                              className="p-1.5 hover:bg-red-50 rounded-lg transition-colors group cursor-pointer disabled:opacity-50"
+                              className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors group cursor-pointer disabled:opacity-50"
                               title="Отправить остаток в Kaspi"
                             >
                               <RefreshCw className={`w-4 h-4 text-red-500 group-hover:text-red-600 ${syncingProductId === product.id ? 'animate-spin' : ''}`} />
@@ -705,41 +681,41 @@ export default function WarehousePage() {
                         return null;
                       })()}
                       <button
-                        className="p-1.5 hover:bg-blue-50 rounded-lg transition-colors group cursor-pointer"
+                        className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors group cursor-pointer"
                         title="Переместить"
                       >
                         <ArrowRightLeft className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
                       </button>
                       <button
-                        className="p-1.5 hover:bg-red-50 rounded-lg transition-colors group cursor-pointer"
+                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors group cursor-pointer"
                         title="Списать"
                       >
                         <Minus className="w-4 h-4 text-gray-400 group-hover:text-red-600" />
                       </button>
                       <button
-                        className="p-1.5 hover:bg-emerald-50 rounded-lg transition-colors group cursor-pointer"
+                        className="p-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors group cursor-pointer"
                         title="Добавить"
                       >
                         <Plus className="w-4 h-4 text-gray-400 group-hover:text-emerald-600" />
                       </button>
                     </div>
                   </td>
-                </motion.tr>
+                </tr>
               ))}
             </tbody>
-            <tfoot className="bg-gray-50 border-t border-gray-200">
+            <tfoot className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
               <tr>
                 <td className="py-4 px-6">
-                  <span className="text-sm font-semibold text-gray-700">Итого:</span>
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Итого:</span>
                 </td>
                 <td className="py-4 px-6">
-                  <span className="text-sm font-semibold text-gray-900">{totalQty} шт</span>
+                  <span className="text-sm font-semibold text-gray-900 dark:text-white">{totalQty} шт</span>
                 </td>
                 <td className="py-4 px-6">
                   <span className="text-sm font-semibold text-purple-600">{totalInTransit} шт</span>
                 </td>
                 <td className="py-4 px-6">
-                  <span className="text-sm font-bold text-gray-900">{totalCost.toLocaleString()} ₸</span>
+                  <span className="text-sm font-bold text-gray-900 dark:text-white">{totalCost.toLocaleString()} ₸</span>
                 </td>
                 <td className="py-4 px-6">
                   <span className="text-sm font-bold text-emerald-600">{totalPrice.toLocaleString()} ₸</span>
@@ -749,7 +725,7 @@ export default function WarehousePage() {
               </tr>
             </tfoot>
           </table>
-        </motion.div>
+        </div>
       </div>
 
       {/* Модальное окно создания заказа */}

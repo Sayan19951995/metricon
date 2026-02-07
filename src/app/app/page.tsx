@@ -23,6 +23,7 @@ import {
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { getCached, setCache } from '@/lib/cache';
+import { getSmoothPath, getSmoothAreaPath } from '@/lib/smoothPath';
 
 interface DashboardData {
   sales: {
@@ -194,39 +195,39 @@ export default function DashboardPage() {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.1 }
+      transition: { duration: 0.15 }
     }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { duration: 0.15 } }
   };
 
   // Скелетон-заглушка дашборда
   const DashboardSkeleton = () => (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Header skeleton */}
       <div className="flex justify-between items-start gap-4 mb-6 lg:mb-8">
         <div>
-          <div className="h-8 w-40 bg-gray-200 rounded-lg animate-pulse" />
-          <div className="h-4 w-64 bg-gray-100 rounded-lg animate-pulse mt-2" />
+          <div className="h-8 w-40 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+          <div className="h-4 w-64 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse mt-2" />
         </div>
         <div className="flex gap-2">
-          <div className="w-10 h-10 bg-gray-200 rounded-xl animate-pulse" />
-          <div className="w-10 h-10 bg-gray-200 rounded-xl animate-pulse" />
+          <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />
+          <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />
         </div>
       </div>
 
       {/* Cards grid skeleton */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 lg:gap-4">
         {/* Sales chart skeleton */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 bg-emerald-100 rounded-lg animate-pulse" />
+            <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg animate-pulse" />
             <div className="flex-1">
-              <div className="h-3 w-24 bg-gray-100 rounded animate-pulse" />
-              <div className="h-6 w-36 bg-gray-200 rounded animate-pulse mt-1" />
+              <div className="h-3 w-24 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="h-6 w-36 bg-gray-200 dark:bg-gray-600 rounded animate-pulse mt-1" />
             </div>
           </div>
           {/* Chart area */}
@@ -261,22 +262,22 @@ export default function DashboardPage() {
         </div>
 
         {/* Payments skeleton */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-indigo-100 rounded-lg animate-pulse" />
+            <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/30 rounded-lg animate-pulse" />
             <div className="flex-1">
-              <div className="h-3 w-28 bg-gray-100 rounded animate-pulse" />
-              <div className="h-6 w-40 bg-gray-200 rounded animate-pulse mt-1" />
+              <div className="h-3 w-28 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="h-6 w-40 bg-gray-200 dark:bg-gray-600 rounded animate-pulse mt-1" />
             </div>
           </div>
           <div className="space-y-2 mb-3">
             <div className="flex justify-between">
-              <div className="h-3 w-20 bg-gray-100 rounded animate-pulse" />
-              <div className="h-3 w-28 bg-gray-100 rounded animate-pulse" />
+              <div className="h-3 w-20 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="h-3 w-28 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
             </div>
             <div className="flex justify-between">
-              <div className="h-3 w-24 bg-gray-100 rounded animate-pulse" />
-              <div className="h-3 w-24 bg-gray-100 rounded animate-pulse" />
+              <div className="h-3 w-24 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="h-3 w-24 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
             </div>
           </div>
           <div className="relative h-[120px] lg:h-[160px] overflow-hidden rounded-lg">
@@ -296,40 +297,40 @@ export default function DashboardPage() {
         </div>
 
         {/* Month stats skeleton */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-blue-100 rounded-lg animate-pulse" />
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg animate-pulse" />
             <div className="flex-1">
-              <div className="h-3 w-32 bg-gray-100 rounded animate-pulse" />
-              <div className="h-6 w-44 bg-gray-200 rounded animate-pulse mt-1" />
+              <div className="h-3 w-32 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="h-6 w-44 bg-gray-200 dark:bg-gray-600 rounded animate-pulse mt-1" />
             </div>
           </div>
           <div className="space-y-3">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="flex justify-between">
-                <div className="h-3 bg-gray-100 rounded animate-pulse" style={{ width: `${60 + Math.random() * 40}px` }} />
-                <div className="h-3 bg-gray-200 rounded animate-pulse" style={{ width: `${30 + Math.random() * 30}px` }} />
+                <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" style={{ width: `${60 + Math.random() * 40}px` }} />
+                <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded animate-pulse" style={{ width: `${30 + Math.random() * 30}px` }} />
               </div>
             ))}
           </div>
         </div>
 
         {/* Top products skeleton */}
-        <div className="bg-white rounded-xl p-4 shadow-sm">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
           <div className="flex items-center gap-3 mb-3">
-            <div className="w-10 h-10 bg-purple-100 rounded-lg animate-pulse" />
+            <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg animate-pulse" />
             <div className="flex-1">
-              <div className="h-3 w-24 bg-gray-100 rounded animate-pulse" />
-              <div className="h-6 w-28 bg-gray-200 rounded animate-pulse mt-1" />
+              <div className="h-3 w-24 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="h-6 w-28 bg-gray-200 dark:bg-gray-600 rounded animate-pulse mt-1" />
             </div>
           </div>
           <div className="space-y-2.5">
             {[...Array(5)].map((_, i) => (
               <div key={i} className="flex items-center gap-2">
-                <div className="w-5 h-5 rounded-full bg-gray-200 animate-pulse" />
-                <div className="flex-1 h-3 bg-gray-100 rounded animate-pulse" />
-                <div className="h-3 w-12 bg-gray-200 rounded animate-pulse" />
-                <div className="h-3 w-14 bg-gray-100 rounded animate-pulse" />
+                <div className="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-600 animate-pulse" />
+                <div className="flex-1 h-3 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
+                <div className="h-3 w-12 bg-gray-200 dark:bg-gray-600 rounded animate-pulse" />
+                <div className="h-3 w-14 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
               </div>
             ))}
           </div>
@@ -339,11 +340,11 @@ export default function DashboardPage() {
       {/* Quick actions skeleton */}
       <div className="mt-4 lg:mt-6 grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="flex items-center gap-3 p-3 sm:p-4 bg-white rounded-xl shadow-sm">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gray-200 rounded-lg animate-pulse" />
+          <div key={i} className="flex items-center gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 bg-gray-200 dark:bg-gray-600 rounded-lg animate-pulse" />
             <div className="flex-1">
-              <div className="h-4 w-16 bg-gray-200 rounded animate-pulse" />
-              <div className="h-3 w-24 bg-gray-100 rounded animate-pulse mt-1 hidden sm:block" />
+              <div className="h-4 w-16 bg-gray-200 dark:bg-gray-600 rounded animate-pulse" />
+              <div className="h-3 w-24 bg-gray-100 dark:bg-gray-700 rounded animate-pulse mt-1 hidden sm:block" />
             </div>
           </div>
         ))}
@@ -359,11 +360,11 @@ export default function DashboardPage() {
   // Kaspi не подключен — показываем призыв подключить
   if (!dataLoading && !kaspiConnected) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+      <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
         <div className="flex justify-between items-start gap-4 mb-6 lg:mb-8">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Дашборд</h1>
-            <p className="text-gray-500 mt-1 text-sm sm:text-base">Обзор ключевых показателей магазина</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Дашборд</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm sm:text-base">Обзор ключевых показателей магазина</p>
           </div>
         </div>
 
@@ -372,12 +373,12 @@ export default function DashboardPage() {
           animate={{ opacity: 1, y: 0 }}
           className="max-w-lg mx-auto mt-12"
         >
-          <div className="bg-white rounded-2xl p-8 shadow-sm text-center">
-            <div className="w-16 h-16 bg-amber-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <AlertCircle className="w-8 h-8 text-amber-600" />
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-8 shadow-sm text-center">
+            <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <AlertCircle className="w-8 h-8 text-amber-600 dark:text-amber-400" />
             </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Kaspi не подключен</h2>
-            <p className="text-gray-500 mb-6">
+            <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Kaspi не подключен</h2>
+            <p className="text-gray-500 dark:text-gray-400 mb-6">
               Чтобы видеть данные на дашборде, подключите свой Kaspi магазин через API
             </p>
             <button
@@ -406,14 +407,14 @@ export default function DashboardPage() {
             <button
               key={item.label}
               onClick={() => router.push(item.href)}
-              className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+              className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
             >
-              <div className={`w-9 h-9 sm:w-10 sm:h-10 bg-${item.color}-100 group-hover:bg-${item.color}-200 rounded-lg flex items-center justify-center transition-colors flex-shrink-0`}>
-                <item.icon className={`w-4 h-4 sm:w-5 sm:h-5 text-${item.color}-600`} />
+              <div className={`w-9 h-9 sm:w-10 sm:h-10 bg-${item.color}-100 dark:bg-${item.color}-900/30 group-hover:bg-${item.color}-200 dark:group-hover:bg-${item.color}-900/50 rounded-lg flex items-center justify-center transition-colors flex-shrink-0`}>
+                <item.icon className={`w-4 h-4 sm:w-5 sm:h-5 text-${item.color}-600 dark:text-${item.color}-400`} />
               </div>
               <div className="text-left flex-1 min-w-0">
-                <span className="text-sm font-medium text-gray-900 block truncate">{item.label}</span>
-                <span className="text-xs text-gray-500 hidden sm:block">{item.desc}</span>
+                <span className="text-sm font-medium text-gray-900 dark:text-white block truncate">{item.label}</span>
+                <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">{item.desc}</span>
               </div>
               <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
             </button>
@@ -426,11 +427,11 @@ export default function DashboardPage() {
   // Ошибка
   if (dataError) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
-          <p className="text-gray-700 font-medium">Ошибка загрузки</p>
-          <p className="text-gray-500 text-sm mt-1">{dataError}</p>
+          <p className="text-gray-700 dark:text-gray-200 font-medium">Ошибка загрузки</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">{dataError}</p>
         </div>
       </div>
     );
@@ -439,11 +440,11 @@ export default function DashboardPage() {
   // Если данных нет вообще
   if (!dashboardData) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="text-center">
           <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
-          <p className="text-gray-700 font-medium">Нет данных</p>
-          <p className="text-gray-500 text-sm mt-1">Синхронизируйте данные из Kaspi в настройках</p>
+          <p className="text-gray-700 dark:text-gray-200 font-medium">Нет данных</p>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Синхронизируйте данные из Kaspi в настройках</p>
           <button
             onClick={() => router.push('/app/settings/kaspi')}
             className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors cursor-pointer text-sm"
@@ -461,13 +462,13 @@ export default function DashboardPage() {
   const hasData = sales.weekData.some(v => v > 0);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen lg:max-h-screen lg:overflow-hidden">
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen lg:max-h-screen lg:overflow-hidden">
       {/* Header */}
       <div className="flex justify-between items-start gap-4 mb-6 lg:mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Дашборд</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Дашборд</h1>
           <div className="flex items-center gap-2 mt-1">
-            <p className="text-gray-500 text-sm sm:text-base">Обзор ключевых показателей магазина</p>
+            <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">Обзор ключевых показателей магазина</p>
             {syncing && (
               <span className="inline-flex items-center gap-1 text-xs text-blue-500">
                 <RefreshCw className="w-3 h-3 animate-spin" />
@@ -481,9 +482,9 @@ export default function DashboardPage() {
           <div className="relative" ref={notificationsRef}>
             <button
               onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2 hover:bg-white rounded-xl transition-colors relative cursor-pointer"
+              className="p-2 hover:bg-white dark:hover:bg-gray-800 rounded-xl transition-colors relative cursor-pointer"
             >
-              <Bell className="w-6 h-6 text-gray-600" />
+              <Bell className="w-6 h-6 text-gray-600 dark:text-gray-400" />
             </button>
 
             {showNotifications && (
@@ -491,10 +492,10 @@ export default function DashboardPage() {
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.2 }}
-                className="fixed sm:absolute right-2 sm:right-0 left-2 sm:left-auto top-16 sm:top-12 w-auto sm:w-80 bg-white rounded-xl shadow-xl border border-gray-200 z-50"
+                className="fixed sm:absolute right-2 sm:right-0 left-2 sm:left-auto top-16 sm:top-12 w-auto sm:w-80 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 z-50"
               >
-                <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                  <h3 className="font-semibold text-lg">Уведомления</h3>
+                <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white">Уведомления</h3>
                 </div>
                 <div className="p-6 text-center text-gray-400 text-sm">
                   Нет новых уведомлений
@@ -502,8 +503,8 @@ export default function DashboardPage() {
               </motion.div>
             )}
           </div>
-          <button className="p-2 hover:bg-white rounded-xl transition-colors cursor-pointer">
-            <LogOut className="w-6 h-6 text-gray-600" />
+          <button className="p-2 hover:bg-white dark:hover:bg-gray-800 rounded-xl transition-colors cursor-pointer">
+            <LogOut className="w-6 h-6 text-gray-600 dark:text-gray-400" />
           </button>
         </div>
       </div>
@@ -513,12 +514,12 @@ export default function DashboardPage() {
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3"
+          className="mb-6 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 flex items-center gap-3"
         >
-          <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+          <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0" />
           <div>
-            <p className="text-sm font-medium text-amber-800">Данные ещё не синхронизированы</p>
-            <p className="text-xs text-amber-600 mt-0.5">
+            <p className="text-sm font-medium text-amber-800 dark:text-amber-300">Данные ещё не синхронизированы</p>
+            <p className="text-xs text-amber-600 dark:text-amber-400 mt-0.5">
               Перейдите в{' '}
               <button onClick={() => router.push('/app/settings/kaspi')} className="underline cursor-pointer">
                 настройки Kaspi
@@ -539,7 +540,7 @@ export default function DashboardPage() {
         {/* Продажи - объединённый блок */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-xl p-4 shadow-sm overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm overflow-hidden"
         >
           {(() => {
             const selectedRevenue = sales.weekData[selectedDayIdx] || 0;
@@ -555,16 +556,16 @@ export default function DashboardPage() {
 
             return (
               <div
-                className="flex items-center justify-between mb-4 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
+                className="flex items-center justify-between mb-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 -m-2 p-2 rounded-lg transition-colors"
                 onClick={() => router.push('/app/analytics')}
               >
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
-                    <TrendingUp className="w-5 h-5 text-emerald-600" />
+                  <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
+                    <TrendingUp className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <div>
-                    <h3 className="text-gray-500 text-xs">{dayLabel}</h3>
-                    <div className="text-xl font-bold text-gray-900">
+                    <h3 className="text-gray-500 dark:text-gray-400 text-xs">{dayLabel}</h3>
+                    <div className="text-xl font-bold text-gray-900 dark:text-white">
                       {selectedRevenue.toLocaleString('ru-RU')} ₸
                     </div>
                   </div>
@@ -574,8 +575,8 @@ export default function DashboardPage() {
                     <div className="flex items-center gap-1.5">
                       <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs font-medium ${
                         growth >= 0
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-red-100 text-red-700'
+                          ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                          : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
                       }`}>
                         {growth >= 0 ? (
                           <ArrowUpRight className="w-3 h-3" />
@@ -605,7 +606,7 @@ export default function DashboardPage() {
                   )}
                   <div className="flex items-center gap-1 mt-1">
                     <ShoppingCart className="w-3.5 h-3.5 text-blue-500" />
-                    <span className="text-sm font-semibold text-gray-700">{selectedOrders}</span>
+                    <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{selectedOrders}</span>
                     <span className="text-xs text-gray-400">заказов</span>
                   </div>
                 </div>
@@ -614,7 +615,7 @@ export default function DashboardPage() {
           })()}
 
           {/* Линейный график - текущая vs прошлая неделя */}
-          <div className="text-[10px] text-gray-400 mb-2 flex items-center gap-4">
+          <div className="text-[10px] text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-4">
             <span className="flex items-center gap-1">
               <span className="w-3 h-0.5 bg-emerald-500 rounded-full"></span>
               Эта неделя
@@ -647,7 +648,7 @@ export default function DashboardPage() {
             return (
               <div>
                 <div className="relative h-[140px] lg:h-[180px] flex mb-4">
-                <div className="hidden sm:flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '32px' }}>
+                <div className="hidden sm:flex flex-col justify-between text-[9px] text-gray-400 dark:text-gray-500 pr-1 py-1" style={{ minWidth: '32px' }}>
                   {yAxisValues.map((val, i) => (
                     <span key={i} className="text-right">{Math.round(val / 1000)}k</span>
                   ))}
@@ -664,21 +665,19 @@ export default function DashboardPage() {
                       />
                     );
                   })}
-                  <polyline
-                    points={prevWeekData.map((val, i) => {
-                      const x = 2 + (i / (pointsCount - 1)) * 96;
-                      const y = getY(val);
-                      return `${x},${y}`;
-                    }).join(' ')}
+                  <path
+                    d={getSmoothPath(prevWeekData.map((val, i) => ({
+                      x: 2 + (i / (pointsCount - 1)) * 96,
+                      y: getY(val)
+                    })))}
                     fill="none" stroke="#3b82f6" strokeWidth="2"
                     vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round" opacity="0.7"
                   />
-                  <polyline
-                    points={currentWeekData.map((val, i) => {
-                      const x = 2 + (i / (pointsCount - 1)) * 96;
-                      const y = getY(val);
-                      return `${x},${y}`;
-                    }).join(' ')}
+                  <path
+                    d={getSmoothPath(currentWeekData.map((val, i) => ({
+                      x: 2 + (i / (pointsCount - 1)) * 96,
+                      y: getY(val)
+                    })))}
                     fill="none" stroke="#10b981" strokeWidth="2"
                     vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round"
                   />
@@ -786,13 +785,13 @@ export default function DashboardPage() {
                         key={idx}
                         onClick={(e) => { e.stopPropagation(); setSelectedDayIdx(idx); }}
                         className={`flex flex-col items-center py-1 rounded-lg transition-all cursor-pointer ${
-                          isSelected ? 'bg-emerald-100 shadow-sm px-1.5' : 'hover:bg-gray-100'
+                          isSelected ? 'bg-emerald-100 dark:bg-emerald-900/30 shadow-sm px-1.5' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        <span className={`text-[9px] sm:text-[10px] ${isSelected ? 'text-emerald-700 font-semibold' : 'text-emerald-600'}`}>
+                        <span className={`text-[9px] sm:text-[10px] ${isSelected ? 'text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-emerald-600 dark:text-emerald-500'}`}>
                           {Math.round(currentValue / 1000)}k
                         </span>
-                        <span className={`text-[10px] sm:text-xs ${isSelected ? 'text-emerald-700 font-semibold' : isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
+                        <span className={`text-[10px] sm:text-xs ${isSelected ? 'text-emerald-700 dark:text-emerald-400 font-semibold' : isToday ? 'text-gray-700 dark:text-gray-300 font-semibold' : 'text-gray-400'}`}>
                           {dayNum}
                         </span>
                       </button>
@@ -807,7 +806,7 @@ export default function DashboardPage() {
         {/* Ожидаем платежа / Поступления */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-xl p-4 shadow-sm overflow-hidden"
+          className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm overflow-hidden"
         >
           {(() => {
             const payments = awaitingPayment.weeklyPayments;
@@ -821,40 +820,40 @@ export default function DashboardPage() {
 
             return (
               <div
-                className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
+                className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 -m-2 p-2 rounded-lg transition-colors"
                 onClick={() => router.push('/app/orders')}
               >
-                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isShowingPayment ? 'bg-emerald-100' : 'bg-indigo-100'}`}>
-                  <Truck className={`w-5 h-5 ${isShowingPayment ? 'text-emerald-600' : 'text-indigo-600'}`} />
+                <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isShowingPayment ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-indigo-100 dark:bg-indigo-900/30'}`}>
+                  <Truck className={`w-5 h-5 ${isShowingPayment ? 'text-emerald-600 dark:text-emerald-400' : 'text-indigo-600 dark:text-indigo-400'}`} />
                 </div>
                 <div className="flex-1">
-                  <h3 className="text-gray-500 text-xs">
+                  <h3 className="text-gray-500 dark:text-gray-400 text-xs">
                     {isShowingPayment
                       ? `Поступило ${dayNames[selectedDate.getDay()]}, ${selectedDate.getDate()}.${String(selectedDate.getMonth() + 1).padStart(2, '0')}`
                       : 'Ожидаем платежа'
                     }
                   </h3>
-                  <div className={`text-xl font-bold ${isShowingPayment ? 'text-emerald-600' : 'text-gray-900'}`}>
+                  <div className={`text-xl font-bold ${isShowingPayment ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-900 dark:text-white'}`}>
                     {isShowingPayment
                       ? (payments[selectedPaymentDayIdx!] || 0).toLocaleString('ru-RU')
                       : awaitingPayment.totalAmount.toLocaleString('ru-RU')
                     } ₸
                   </div>
                   {isShowingPayment && (
-                    <div className="mt-1 text-xs text-gray-500">
-                      Завершено: <span className="font-medium text-gray-700">{completedCount[selectedPaymentDayIdx!] || 0}</span>
+                    <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                      Завершено: <span className="font-medium text-gray-700 dark:text-gray-300">{completedCount[selectedPaymentDayIdx!] || 0}</span>
                     </div>
                   )}
                 </div>
                 {!isShowingPayment && (
-                  <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-lg">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-lg">
                     {awaitingPayment.ordersCount} заказов
                   </div>
                 )}
                 {isShowingPayment && (
                   <button
                     onClick={(e) => { e.stopPropagation(); setSelectedPaymentDayIdx(null); }}
-                    className="text-xs text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg hover:bg-indigo-100"
+                    className="text-xs text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-2 py-1 rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50"
                   >
                     Сбросить
                   </button>
@@ -866,18 +865,18 @@ export default function DashboardPage() {
           {selectedPaymentDayIdx === null && (
             <div className="space-y-1.5 text-xs mb-3">
               <div className="flex items-center justify-between">
-                <span className="text-gray-500">Не выдано</span>
-                <span className="font-medium text-gray-700">{awaitingPayment.notSentCount} шт · {awaitingPayment.notSent.toLocaleString('ru-RU')} ₸</span>
+                <span className="text-gray-500 dark:text-gray-400">Не выдано</span>
+                <span className="font-medium text-gray-700 dark:text-gray-300">{awaitingPayment.notSentCount} шт · {awaitingPayment.notSent.toLocaleString('ru-RU')} ₸</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-500">В доставке</span>
-                <span className="font-medium text-gray-700">{awaitingPayment.inDeliveryCount} шт · {awaitingPayment.inDelivery.toLocaleString('ru-RU')} ₸</span>
+                <span className="text-gray-500 dark:text-gray-400">В доставке</span>
+                <span className="font-medium text-gray-700 dark:text-gray-300">{awaitingPayment.inDeliveryCount} шт · {awaitingPayment.inDelivery.toLocaleString('ru-RU')} ₸</span>
               </div>
             </div>
           )}
 
           {/* График поступлений за неделю */}
-          <div className="text-[10px] text-gray-400 mb-1">Поступления за неделю</div>
+          <div className="text-[10px] text-gray-400 dark:text-gray-500 mb-1">Поступления за неделю</div>
           {(() => {
             const payments = awaitingPayment.weeklyPayments;
             const nonZero = payments.filter(v => v > 0);
@@ -900,7 +899,7 @@ export default function DashboardPage() {
             return (
               <div>
                 <div className="relative h-[120px] lg:h-[160px] flex">
-                  <div className="hidden sm:flex flex-col justify-between text-[9px] text-gray-400 pr-1 py-1" style={{ minWidth: '32px' }}>
+                  <div className="hidden sm:flex flex-col justify-between text-[9px] text-gray-400 dark:text-gray-500 pr-1 py-1" style={{ minWidth: '32px' }}>
                     {yAxisValues.map((val, i) => (
                       <span key={i} className="text-right">{Math.round(val / 1000)}k</span>
                     ))}
@@ -922,19 +921,20 @@ export default function DashboardPage() {
                         </linearGradient>
                       </defs>
                       <path
-                        d={`M 2,${getY(payments[0])} ${payments.map((val, i) => {
-                          const x = 2 + (i / (pointsCount - 1)) * 96;
-                          const y = getY(val);
-                          return `L ${x},${y}`;
-                        }).join(' ')} L 98,${chartH} L 2,${chartH} Z`}
+                        d={getSmoothAreaPath(
+                          payments.map((val, i) => ({
+                            x: 2 + (i / (pointsCount - 1)) * 96,
+                            y: getY(val)
+                          })),
+                          chartH, 2, 98
+                        )}
                         fill="url(#paymentGradient)"
                       />
-                      <polyline
-                        points={payments.map((val, i) => {
-                          const x = 2 + (i / (pointsCount - 1)) * 96;
-                          const y = getY(val);
-                          return `${x},${y}`;
-                        }).join(' ')}
+                      <path
+                        d={getSmoothPath(payments.map((val, i) => ({
+                          x: 2 + (i / (pointsCount - 1)) * 96,
+                          y: getY(val)
+                        })))}
                         fill="none" stroke="#6366f1" strokeWidth="2"
                         vectorEffect="non-scaling-stroke" strokeLinecap="round" strokeLinejoin="round"
                       />
@@ -994,13 +994,13 @@ export default function DashboardPage() {
                         key={idx}
                         onClick={(e) => { e.stopPropagation(); setSelectedPaymentDayIdx(isSelected ? null : idx); }}
                         className={`flex flex-col items-center py-1 rounded-lg transition-all cursor-pointer ${
-                          isSelected ? 'bg-indigo-100 shadow-sm px-1' : 'hover:bg-gray-100'
+                          isSelected ? 'bg-indigo-100 dark:bg-indigo-900/30 shadow-sm px-1' : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
-                        <span className={`text-[8px] sm:text-[9px] ${isSelected ? 'text-indigo-700 font-semibold' : 'text-indigo-600'}`}>
+                        <span className={`text-[8px] sm:text-[9px] ${isSelected ? 'text-indigo-700 dark:text-indigo-400 font-semibold' : 'text-indigo-600 dark:text-indigo-500'}`}>
                           {Math.round(val / 1000)}k
                         </span>
-                        <span className={`text-[9px] sm:text-[10px] ${isSelected ? 'text-indigo-700 font-semibold' : isToday ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
+                        <span className={`text-[9px] sm:text-[10px] ${isSelected ? 'text-indigo-700 dark:text-indigo-400 font-semibold' : isToday ? 'text-gray-700 dark:text-gray-300 font-semibold' : 'text-gray-400'}`}>
                           {date.getDate()}
                         </span>
                       </button>
@@ -1015,18 +1015,18 @@ export default function DashboardPage() {
         {/* Оборот за месяц */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-xl p-4 shadow-sm"
+          className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"
         >
           <div
-            className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
+            className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 -m-2 p-2 rounded-lg transition-colors"
             onClick={() => router.push('/app/analytics')}
           >
-            <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-              <BarChart3 className="w-5 h-5 text-blue-600" />
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+              <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
             <div className="flex-1">
-              <h3 className="text-gray-500 text-xs">Оборот за 30 дней</h3>
-              <div className="text-xl font-bold text-gray-900">
+              <h3 className="text-gray-500 dark:text-gray-400 text-xs">Оборот за 30 дней</h3>
+              <div className="text-xl font-bold text-gray-900 dark:text-white">
                 {dashboardData.month.revenue.toLocaleString('ru-RU')} ₸
               </div>
             </div>
@@ -1034,28 +1034,28 @@ export default function DashboardPage() {
 
           <div className="space-y-2 text-xs">
             <div className="flex items-center justify-between">
-              <span className="text-gray-500">Заказов</span>
-              <span className="font-medium text-gray-700">{dashboardData.month.orders}</span>
+              <span className="text-gray-500 dark:text-gray-400">Заказов</span>
+              <span className="font-medium text-gray-700 dark:text-gray-300">{dashboardData.month.orders}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-500">Товаров продано</span>
-              <span className="font-medium text-gray-700">{dashboardData.month.productsSold}</span>
+              <span className="text-gray-500 dark:text-gray-400">Товаров продано</span>
+              <span className="font-medium text-gray-700 dark:text-gray-300">{dashboardData.month.productsSold}</span>
             </div>
             {dashboardData.month.orders > 0 && (
               <div className="flex items-center justify-between">
-                <span className="text-gray-500">Средний чек</span>
-                <span className="font-medium text-gray-700">
+                <span className="text-gray-500 dark:text-gray-400">Средний чек</span>
+                <span className="font-medium text-gray-700 dark:text-gray-300">
                   {Math.round(dashboardData.month.revenue / dashboardData.month.orders).toLocaleString('ru-RU')} ₸
                 </span>
               </div>
             )}
-            <div className="flex items-center justify-between pt-1 border-t border-gray-100">
-              <span className="text-gray-500">Всего заказов в системе</span>
-              <span className="font-medium text-gray-700">{dashboardData.totals.orders}</span>
+            <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-700">
+              <span className="text-gray-500 dark:text-gray-400">Всего заказов в системе</span>
+              <span className="font-medium text-gray-700 dark:text-gray-300">{dashboardData.totals.orders}</span>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-gray-500">Всего товаров</span>
-              <span className="font-medium text-gray-700">{dashboardData.totals.products}</span>
+              <span className="text-gray-500 dark:text-gray-400">Всего товаров</span>
+              <span className="font-medium text-gray-700 dark:text-gray-300">{dashboardData.totals.products}</span>
             </div>
           </div>
         </motion.div>
@@ -1063,18 +1063,18 @@ export default function DashboardPage() {
         {/* Топ товаров за неделю */}
         <motion.div
           variants={itemVariants}
-          className="bg-white rounded-xl p-4 shadow-sm"
+          className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"
         >
           <div
-            className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-gray-50 -m-2 p-2 rounded-lg transition-colors"
+            className="flex items-center gap-3 mb-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 -m-2 p-2 rounded-lg transition-colors"
             onClick={() => router.push('/app/products')}
           >
-            <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-              <Trophy className="w-5 h-5 text-purple-600" />
+            <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+              <Trophy className="w-5 h-5 text-purple-600 dark:text-purple-400" />
             </div>
             <div className="flex-1">
-              <h3 className="text-gray-500 text-xs">Топ товаров</h3>
-              <div className="text-xl font-bold text-gray-900">
+              <h3 className="text-gray-500 dark:text-gray-400 text-xs">Топ товаров</h3>
+              <div className="text-xl font-bold text-gray-900 dark:text-white">
                 за неделю
               </div>
             </div>
@@ -1084,18 +1084,18 @@ export default function DashboardPage() {
               {topProducts.map((product, index) => (
                 <div key={index} className="flex items-center gap-2">
                   <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                    index === 0 ? 'bg-amber-100 text-amber-700' :
-                    index === 1 ? 'bg-gray-200 text-gray-600' :
-                    index === 2 ? 'bg-orange-100 text-orange-700' :
-                    'bg-gray-100 text-gray-500'
+                    index === 0 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
+                    index === 1 ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300' :
+                    index === 2 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' :
+                    'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                   }`}>
                     {index + 1}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <span className="text-gray-700 truncate block">{product.name}</span>
+                    <span className="text-gray-700 dark:text-gray-300 truncate block">{product.name}</span>
                   </div>
                   <div className="text-right flex-shrink-0 flex items-center gap-2">
-                    <span className="font-medium text-gray-900 min-w-[40px] text-right">{product.sold} шт</span>
+                    <span className="font-medium text-gray-900 dark:text-white min-w-[40px] text-right">{product.sold} шт</span>
                     <span className="text-gray-400 min-w-[50px] text-right">
                       · {product.revenue >= 1000000
                         ? `${(product.revenue / 1000000).toFixed(1)}M`
@@ -1115,68 +1115,65 @@ export default function DashboardPage() {
       </motion.div>
 
       {/* Quick Actions */}
-      <motion.div
+      <div
         className="mt-4 lg:mt-6 grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4"
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
       >
         <button
           onClick={() => router.push('/app/orders')}
-          className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
         >
-          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 group-hover:bg-blue-200 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
-            <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900/30 group-hover:bg-blue-200 dark:group-hover:bg-blue-900/50 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+            <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div className="text-left flex-1 min-w-0">
-            <span className="text-sm font-medium text-gray-900 block truncate">Заказы</span>
-            <span className="text-xs text-gray-500 hidden sm:block">Управление заказами</span>
+            <span className="text-sm font-medium text-gray-900 dark:text-white block truncate">Заказы</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Управление заказами</span>
           </div>
           <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
         </button>
 
         <button
           onClick={() => router.push('/app/products')}
-          className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
         >
-          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-emerald-100 group-hover:bg-emerald-200 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
-            <Package className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-emerald-100 dark:bg-emerald-900/30 group-hover:bg-emerald-200 dark:group-hover:bg-emerald-900/50 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+            <Package className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
           </div>
           <div className="text-left flex-1 min-w-0">
-            <span className="text-sm font-medium text-gray-900 block truncate">Товары</span>
-            <span className="text-xs text-gray-500 hidden sm:block">Каталог товаров</span>
+            <span className="text-sm font-medium text-gray-900 dark:text-white block truncate">Товары</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Каталог товаров</span>
           </div>
           <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
         </button>
 
         <button
           onClick={() => router.push('/app/analytics')}
-          className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
         >
-          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-purple-100 group-hover:bg-purple-200 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
-            <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-purple-100 dark:bg-purple-900/30 group-hover:bg-purple-200 dark:group-hover:bg-purple-900/50 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+            <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
           </div>
           <div className="text-left flex-1 min-w-0">
-            <span className="text-sm font-medium text-gray-900 block truncate">Аналитика</span>
-            <span className="text-xs text-gray-500 hidden sm:block">Отчёты и статистика</span>
+            <span className="text-sm font-medium text-gray-900 dark:text-white block truncate">Аналитика</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Отчёты и статистика</span>
           </div>
           <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
         </button>
 
         <button
           onClick={() => router.push('/app/warehouse')}
-          className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
+          className="flex items-center gap-2 sm:gap-3 p-3 sm:p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm hover:shadow-md transition-all cursor-pointer group"
         >
-          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-amber-100 group-hover:bg-amber-200 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
-            <Warehouse className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 bg-amber-100 dark:bg-amber-900/30 group-hover:bg-amber-200 dark:group-hover:bg-amber-900/50 rounded-lg flex items-center justify-center transition-colors flex-shrink-0">
+            <Warehouse className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
           </div>
           <div className="text-left flex-1 min-w-0">
-            <span className="text-sm font-medium text-gray-900 block truncate">Склад</span>
-            <span className="text-xs text-gray-500 hidden sm:block">Управление запасами</span>
+            <span className="text-sm font-medium text-gray-900 dark:text-white block truncate">Склад</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Управление запасами</span>
           </div>
           <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
         </button>
-      </motion.div>
+      </div>
     </div>
   );
 }

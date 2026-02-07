@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
 import {
   Shield,
   Lock,
@@ -390,9 +389,7 @@ export default function SecretAnalyticsPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="bg-gray-800 rounded-xl p-5 border border-gray-700"
         >
           <div className="flex items-center justify-between mb-3">
@@ -408,12 +405,9 @@ export default function SecretAnalyticsPage() {
           </div>
           <div className="text-2xl font-bold text-white">{totals.totalSales.toLocaleString()}</div>
           <div className="text-sm text-gray-400">Всего продаж</div>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.1 }}
+        <div
           className="bg-gray-800 rounded-xl p-5 border border-gray-700"
         >
           <div className="flex items-center justify-between mb-3">
@@ -429,12 +423,9 @@ export default function SecretAnalyticsPage() {
           </div>
           <div className="text-2xl font-bold text-white">{formatAmount(totals.totalAmount)}</div>
           <div className="text-sm text-gray-400">Общий оборот</div>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.2 }}
+        <div
           className="bg-gray-800 rounded-xl p-5 border border-gray-700"
         >
           <div className="w-10 h-10 bg-purple-500/20 rounded-lg flex items-center justify-center mb-3">
@@ -442,12 +433,9 @@ export default function SecretAnalyticsPage() {
           </div>
           <div className="text-2xl font-bold text-white">{formatAmount(totals.avgOrder)}</div>
           <div className="text-sm text-gray-400">Средний чек</div>
-        </motion.div>
+        </div>
 
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+        <div
           className="bg-gray-800 rounded-xl p-5 border border-gray-700"
         >
           <div className="w-10 h-10 bg-amber-500/20 rounded-lg flex items-center justify-center mb-3">
@@ -455,16 +443,13 @@ export default function SecretAnalyticsPage() {
           </div>
           <div className="text-2xl font-bold text-white">{totals.uniqueMerchants}</div>
           <div className="text-sm text-gray-400">Активных мерчантов</div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
         {/* Sales Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+        <div
           className="bg-gray-800 rounded-xl p-5 border border-gray-700"
         >
           <div className="flex items-center justify-between mb-4">
@@ -489,13 +474,10 @@ export default function SecretAnalyticsPage() {
             <span>{aggregatedData[Math.max(0, aggregatedData.length - 30)]?.date}</span>
             <span>{aggregatedData[aggregatedData.length - 1]?.date}</span>
           </div>
-        </motion.div>
+        </div>
 
         {/* Revenue Chart */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.5 }}
+        <div
           className="bg-gray-800 rounded-xl p-5 border border-gray-700"
         >
           <div className="flex items-center justify-between mb-4">
@@ -520,14 +502,11 @@ export default function SecretAnalyticsPage() {
             <span>{aggregatedData[Math.max(0, aggregatedData.length - 30)]?.date}</span>
             <span>{aggregatedData[aggregatedData.length - 1]?.date}</span>
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Category Stats */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.6 }}
+      <div
         className="bg-gray-800 rounded-xl p-5 border border-gray-700"
       >
         <h3 className="text-lg font-semibold text-white mb-4">Статистика по категориям</h3>
@@ -563,13 +542,10 @@ export default function SecretAnalyticsPage() {
             </tbody>
           </table>
         </div>
-      </motion.div>
+      </div>
 
       {/* Product Details */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.7 }}
+      <div
         className="bg-gray-800 rounded-xl p-5 border border-gray-700 mt-6"
       >
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4">
@@ -716,7 +692,7 @@ export default function SecretAnalyticsPage() {
             </div>
           </div>
         )}
-      </motion.div>
+      </div>
 
       {/* Footer Warning */}
       <div className="mt-6 flex items-center justify-center gap-2 text-gray-600 text-xs">

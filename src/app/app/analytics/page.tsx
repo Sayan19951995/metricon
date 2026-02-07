@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, ChevronUp, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Plus, X, Trash2, HelpCircle, BarChart3, RotateCcw } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { getSmoothPath } from '@/lib/smoothPath';
 
 // Компонент подсказки (кликабельный для мобильных)
 const HelpTooltip = ({ text }: { text: string }) => {
@@ -21,7 +22,7 @@ const HelpTooltip = ({ text }: { text: string }) => {
         onBlur={() => setTimeout(() => setIsOpen(false), 150)}
         className="focus:outline-none"
       >
-        <HelpCircle className="w-3.5 h-3.5 text-gray-400 hover:text-gray-600 cursor-help flex-shrink-0" />
+        <HelpCircle className="w-3.5 h-3.5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-help flex-shrink-0" />
       </button>
       {isOpen && (
         <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg w-[180px] text-left z-[9999] shadow-xl">
@@ -609,16 +610,16 @@ export default function AnalyticsPage() {
 // Скелетон загрузки
 function AnalyticsPageSkeleton() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pt-16 lg:pt-0 lg:pl-64">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 pt-16 lg:pt-0 lg:pl-64">
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-48 mb-4"></div>
+          <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded w-48 mb-4"></div>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {[1, 2, 3, 4].map(i => (
-              <div key={i} className="bg-white rounded-xl p-4 h-24"></div>
+              <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-4 h-24"></div>
             ))}
           </div>
-          <div className="bg-white rounded-xl p-6 h-80"></div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 h-80"></div>
         </div>
       </div>
     </div>
@@ -1157,40 +1158,18 @@ function AnalyticsPageContent() {
   // Расчет процента рентабельности
   const profitMargin = ((data.totalProfit / data.totalRevenue) * 100).toFixed(1);
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-    },
-  };
-
   if (userLoading || dataLoading) {
     return <AnalyticsPageSkeleton />;
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-6 lg:mb-8"
-        >
+        <div className="mb-6 lg:mb-8">
           <div className="mb-4 lg:mb-6">
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">Аналитика</h1>
-            <p className="text-gray-500 text-xs sm:text-sm">Детальная статистика по вашим заказам</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">Аналитика</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">Детальная статистика по вашим заказам</p>
           </div>
 
           {/* Tabs - horizontal scroll on mobile */}
@@ -1202,7 +1181,7 @@ function AnalyticsPageContent() {
                   className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === 'finances'
                       ? 'bg-emerald-500 text-white shadow-sm'
-                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   Финансы
@@ -1212,7 +1191,7 @@ function AnalyticsPageContent() {
                   className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === 'sales'
                       ? 'bg-emerald-500 text-white shadow-sm'
-                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   Заказы и реклама
@@ -1222,7 +1201,7 @@ function AnalyticsPageContent() {
                   className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
                     activeTab === 'reviews'
                       ? 'bg-emerald-500 text-white shadow-sm'
-                      : 'bg-white text-gray-700 hover:bg-gray-50'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
                   }`}
                 >
                   Отзывы
@@ -1231,14 +1210,14 @@ function AnalyticsPageContent() {
             </div>
 
             {/* Date Range Selector */}
-            <div className="bg-white p-3 sm:p-4 rounded-xl shadow-sm relative w-full lg:w-auto" ref={calendarRef}>
+            <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl shadow-sm relative w-full lg:w-auto" ref={calendarRef}>
               <div className="mb-2 sm:mb-3">
                 <button
                   onClick={() => setShowCalendar(!showCalendar)}
-                  className="w-full flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-4 py-2 border border-gray-200 rounded-lg text-xs sm:text-sm hover:border-emerald-500 transition-colors cursor-pointer"
+                  className="w-full flex items-center justify-center sm:justify-start gap-2 px-3 sm:px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-xs sm:text-sm hover:border-emerald-500 dark:hover:border-emerald-500 transition-colors cursor-pointer"
                 >
-                  <Calendar className="w-4 h-4 text-gray-500" />
-                  <span className={startDate && endDate ? 'text-gray-900 font-medium' : 'text-gray-500'}>
+                  <Calendar className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                  <span className={startDate && endDate ? 'text-gray-900 dark:text-white font-medium' : 'text-gray-500 dark:text-gray-400'}>
                     {formatDateRange()}
                   </span>
                 </button>
@@ -1248,25 +1227,25 @@ function AnalyticsPageContent() {
               <div className="flex gap-1.5 sm:gap-2 overflow-x-auto pb-1">
                 <button
                   onClick={() => handleQuickFilter('yesterday')}
-                  className="px-2.5 sm:px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                  className="px-2.5 sm:px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   Вчера
                 </button>
                 <button
                   onClick={() => handleQuickFilter('week')}
-                  className="px-2.5 sm:px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                  className="px-2.5 sm:px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   Неделя
                 </button>
                 <button
                   onClick={() => handleQuickFilter('month')}
-                  className="px-2.5 sm:px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                  className="px-2.5 sm:px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   Месяц
                 </button>
                 <button
                   onClick={() => handleQuickFilter('year')}
-                  className="px-2.5 sm:px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
+                  className="px-2.5 sm:px-3 py-1.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-xs font-medium transition-colors cursor-pointer whitespace-nowrap flex-shrink-0"
                 >
                   Год
                 </button>
@@ -1285,53 +1264,48 @@ function AnalyticsPageContent() {
               </AnimatePresence>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Tab Content */}
         {activeTab === 'finances' && (
           <>
             {/* Period Info */}
-            <div className="mb-4 sm:mb-6 flex items-center gap-2 text-xs sm:text-sm text-gray-400">
+            <div className="mb-4 sm:mb-6 flex items-center gap-2 text-xs sm:text-sm text-gray-400 dark:text-gray-500">
               <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              <span>Период: <span className="text-gray-500">{formatShortPeriod()}</span></span>
-              <span className="text-gray-300">|</span>
+              <span>Период: <span className="text-gray-500 dark:text-gray-400">{formatShortPeriod()}</span></span>
+              <span className="text-gray-300 dark:text-gray-600">|</span>
               <span>{startDate && endDate ? Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24)) + 1 : 0} дн.</span>
             </div>
 
             {/* Finance Stats Cards */}
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8"
-            >
-              <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
+            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
+              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-sky-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-sky-100 dark:bg-sky-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600 dark:text-sky-400" />
                   </div>
-                  <span className="text-xs sm:text-sm text-gray-600">Поступления</span>
+                  <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Поступления</span>
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-gray-900">{fmt(data.totalRevenue)} ₸</div>
+                <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{fmt(data.totalRevenue)} ₸</div>
                 <div className="text-[10px] sm:text-xs mt-1">
-                  <span className="bg-sky-50 text-sky-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
+                  <span className="bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
                 </div>
-              </motion.div>
+              </div>
 
-              <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
+              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-rose-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 rotate-180" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-rose-100 dark:bg-rose-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 dark:text-rose-400 rotate-180" />
                   </div>
-                  <span className="text-xs sm:text-sm text-gray-600">Расходы</span>
+                  <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Расходы</span>
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-gray-900">
+                <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
                   {fmt(data.totalCost + data.totalAdvertising + data.totalTax + data.totalCommissions + data.totalDelivery)} ₸
                 </div>
                 <div className="text-[10px] sm:text-xs mt-1">
                   <button
                     onClick={() => setShowExpenseDetails(!showExpenseDetails)}
-                    className="flex items-center gap-0.5 bg-rose-50 text-rose-600 px-1.5 py-0.5 rounded font-medium hover:bg-rose-100 transition-colors cursor-pointer"
+                    className="flex items-center gap-0.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded font-medium hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors cursor-pointer"
                   >
                     <span>Детали</span>
                     <ChevronDown className={`w-3 h-3 transition-transform ${showExpenseDetails ? 'rotate-180' : ''}`} />
@@ -1347,24 +1321,24 @@ function AnalyticsPageContent() {
                       transition={{ duration: 0.2 }}
                       className="overflow-hidden"
                     >
-                      <div className="space-y-1 sm:space-y-1.5 text-[10px] sm:text-xs mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200">
-                        <div className="flex justify-between text-gray-600">
+                      <div className="space-y-1 sm:space-y-1.5 text-[10px] sm:text-xs mt-2 sm:mt-3 pt-2 sm:pt-3 border-t border-gray-200 dark:border-gray-700">
+                        <div className="flex justify-between text-gray-600 dark:text-gray-400">
                           <span>Себест.</span>
                           <span className="font-medium">{fmt(data.totalCost)} ₸</span>
                         </div>
-                        <div className="flex justify-between text-gray-600">
+                        <div className="flex justify-between text-gray-600 dark:text-gray-400">
                           <span>Реклама</span>
                           <span className="font-medium">{fmt(data.totalAdvertising)} ₸</span>
                         </div>
-                        <div className="flex justify-between text-gray-600">
+                        <div className="flex justify-between text-gray-600 dark:text-gray-400">
                           <span>Налог</span>
                           <span className="font-medium">{fmt(data.totalTax)} ₸</span>
                         </div>
-                        <div className="flex justify-between text-gray-600">
+                        <div className="flex justify-between text-gray-600 dark:text-gray-400">
                           <span>Комиссия</span>
                           <span className="font-medium">{fmt(data.totalCommissions)} ₸</span>
                         </div>
-                        <div className="flex justify-between text-gray-600">
+                        <div className="flex justify-between text-gray-600 dark:text-gray-400">
                           <span>Доставка</span>
                           <span className="font-medium">{fmt(data.totalDelivery)} ₸</span>
                         </div>
@@ -1372,35 +1346,30 @@ function AnalyticsPageContent() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </motion.div>
+              </div>
 
-              <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
+              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <span className="text-xs sm:text-sm text-gray-600">Прибыль</span>
+                  <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Прибыль</span>
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-emerald-600">{fmt(data.totalProfit)} ₸</div>
+                <div className="text-lg sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{fmt(data.totalProfit)} ₸</div>
                 <div className="text-[10px] sm:text-xs mt-1">
-                  <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-medium">{profitMargin}% маржа</span>
+                  <span className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-medium">{profitMargin}% маржа</span>
                 </div>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
 
         {/* Financial Charts */}
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-          className="grid grid-cols-1 gap-3 sm:gap-6 mb-6 sm:mb-8"
-        >
+        <div className="grid grid-cols-1 gap-3 sm:gap-6 mb-6 sm:mb-8">
           {/* Money Flow Chart - Line */}
-          <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-6 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-6 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-0 mb-3 sm:mb-6">
               <div className="flex items-center gap-2">
-                <h3 className="text-base sm:text-xl font-semibold text-gray-900">Движение денег</h3>
-                <span className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-medium">{formatShortPeriod()}</span>
+                <h3 className="text-base sm:text-xl font-semibold text-gray-900 dark:text-white">Движение денег</h3>
+                <span className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-medium">{formatShortPeriod()}</span>
                 {/* Help Icon with Tooltip */}
                 <div className="relative">
                   <button
@@ -1408,14 +1377,14 @@ function AnalyticsPageContent() {
                     onClick={() => setShowChartHelp(!showChartHelp)}
                     className="focus:outline-none"
                   >
-                    <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 hover:text-gray-600 cursor-help" />
+                    <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 cursor-help" />
                   </button>
                 </div>
               </div>
 
               {/* Previous Period Toggle */}
               <div className="flex items-center gap-1.5">
-                <span className="text-[10px] sm:text-sm text-gray-500">Прошлый период</span>
+                <span className="text-[10px] sm:text-sm text-gray-500 dark:text-gray-400">Прошлый период</span>
                 <button
                   onClick={() => setShowPreviousPeriod(!showPreviousPeriod)}
                   className={`relative inline-flex h-4 w-7 sm:h-6 sm:w-11 items-center rounded-full transition-colors cursor-pointer ${
@@ -1437,33 +1406,33 @@ function AnalyticsPageContent() {
                 onClick={() => setShowRevenueLine(!showRevenueLine)}
                 className={`flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all ${
                   showRevenueLine
-                    ? 'bg-sky-100 text-sky-700 border border-sky-200'
-                    : 'bg-gray-100 text-gray-400 border border-gray-200'
+                    ? 'bg-sky-100 dark:bg-sky-900/30 text-sky-700 dark:text-sky-400 border border-sky-200 dark:border-sky-800'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 border border-gray-200 dark:border-gray-600'
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full ${showRevenueLine ? 'bg-sky-500' : 'bg-gray-300'}`} />
+                <span className={`w-2 h-2 rounded-full ${showRevenueLine ? 'bg-sky-500' : 'bg-gray-300 dark:bg-gray-500'}`} />
                 Поступления
               </button>
               <button
                 onClick={() => setShowExpensesLine(!showExpensesLine)}
                 className={`flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all ${
                   showExpensesLine
-                    ? 'bg-rose-100 text-rose-700 border border-rose-200'
-                    : 'bg-gray-100 text-gray-400 border border-gray-200'
+                    ? 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 border border-gray-200 dark:border-gray-600'
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full ${showExpensesLine ? 'bg-rose-400' : 'bg-gray-300'}`} />
+                <span className={`w-2 h-2 rounded-full ${showExpensesLine ? 'bg-rose-400' : 'bg-gray-300 dark:bg-gray-500'}`} />
                 Расходы
               </button>
               <button
                 onClick={() => setShowProfitLine(!showProfitLine)}
                 className={`flex items-center gap-1.5 px-2 py-1 sm:px-3 sm:py-1.5 rounded-lg text-[10px] sm:text-xs font-medium transition-all ${
                   showProfitLine
-                    ? 'bg-teal-100 text-teal-700 border border-teal-200'
-                    : 'bg-gray-100 text-gray-400 border border-gray-200'
+                    ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 border border-teal-200 dark:border-teal-800'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 border border-gray-200 dark:border-gray-600'
                 }`}
               >
-                <span className={`w-2 h-2 rounded-full ${showProfitLine ? 'bg-teal-400' : 'bg-gray-300'}`} />
+                <span className={`w-2 h-2 rounded-full ${showProfitLine ? 'bg-teal-400' : 'bg-gray-300 dark:bg-gray-500'}`} />
                 Прибыль
               </button>
             </div>
@@ -1560,22 +1529,22 @@ function AnalyticsPageContent() {
                 )}
               </LineChart>
             </ResponsiveContainer>
-          </motion.div>
+          </div>
 
           {/* Детализация данных графика */}
-          <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-6 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-3 sm:mb-4">
-              <h3 className="text-sm sm:text-lg font-semibold text-gray-900">Детализация по дням</h3>
-              <span className="bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-medium">{formatShortPeriod()}</span>
+              <h3 className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-white">Детализация по дням</h3>
+              <span className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-medium">{formatShortPeriod()}</span>
             </div>
             <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
               <table className="w-full text-xs sm:text-sm min-w-[320px]">
                 <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 text-left">Дата</th>
-                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 text-right">Поступ.</th>
-                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 text-right">Расходы</th>
-                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 text-right">Прибыль</th>
+                  <tr className="border-b border-gray-200 dark:border-gray-700">
+                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 dark:text-gray-400 text-left">Дата</th>
+                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 dark:text-gray-400 text-right">Поступ.</th>
+                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 dark:text-gray-400 text-right">Расходы</th>
+                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 dark:text-gray-400 text-right">Прибыль</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1584,20 +1553,20 @@ function AnalyticsPageContent() {
                     return (
                       <tr
                         key={index}
-                        className="border-b border-gray-100 hover:bg-gray-50 cursor-pointer transition-colors"
+                        className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
                         onClick={() => {
                           setSelectedTableDay({ ...day, totalExpenses: dayExpenses } as DailyData);
                           setShowTableDayPopup(true);
                         }}
                       >
-                        <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 text-left whitespace-nowrap">{day.date}{day.day ? ` (${day.day})` : ''}</td>
-                        <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-700 font-medium text-right whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 dark:text-white text-left whitespace-nowrap">{day.date}{day.day ? ` (${day.day})` : ''}</td>
+                        <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-700 dark:text-gray-300 font-medium text-right whitespace-nowrap">
                           {day.revenue.toLocaleString('ru-RU')} ₸
                         </td>
-                        <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-700 font-medium text-right whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-700 dark:text-gray-300 font-medium text-right whitespace-nowrap">
                           {dayExpenses.toLocaleString('ru-RU')} ₸
                         </td>
-                        <td className="py-2 sm:py-3 px-1 sm:px-2 text-emerald-600 font-medium text-right whitespace-nowrap">
+                        <td className="py-2 sm:py-3 px-1 sm:px-2 text-emerald-600 dark:text-emerald-400 font-medium text-right whitespace-nowrap">
                           {day.profit.toLocaleString('ru-RU')} ₸
                         </td>
                       </tr>
@@ -1606,25 +1575,25 @@ function AnalyticsPageContent() {
                 </tbody>
                 <tfoot>
                   <tr
-                    className="bg-gray-50 font-semibold hover:bg-gray-100 cursor-pointer transition-colors"
+                    className="bg-gray-50 dark:bg-gray-700 font-semibold hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors"
                     onClick={() => setShowTotalPopup(true)}
                   >
-                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 text-left whitespace-nowrap">Итого</td>
-                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 text-right whitespace-nowrap">
+                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 dark:text-white text-left whitespace-nowrap">Итого</td>
+                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 dark:text-white text-right whitespace-nowrap">
                       {data.totalRevenue.toLocaleString('ru-RU')} ₸
                     </td>
-                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 text-right whitespace-nowrap">
+                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 dark:text-white text-right whitespace-nowrap">
                       {(data.totalCost + data.totalAdvertising + data.totalCommissions + data.totalTax + data.totalDelivery).toLocaleString('ru-RU')} ₸
                     </td>
-                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-emerald-600 text-right whitespace-nowrap">
+                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-emerald-600 dark:text-emerald-400 text-right whitespace-nowrap">
                       {data.totalProfit.toLocaleString('ru-RU')} ₸
                     </td>
                   </tr>
                 </tfoot>
               </table>
             </div>
-          </motion.div>
-        </motion.div>
+          </div>
+        </div>
           </>
         )}
 
@@ -1633,10 +1602,10 @@ function AnalyticsPageContent() {
           <>
             {/* Period Info + кнопка расходов */}
             <div className="mb-4 sm:mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <div className="flex items-center gap-2 text-xs sm:text-sm lg:text-base text-gray-400">
+              <div className="flex items-center gap-2 text-xs sm:text-sm lg:text-base text-gray-400 dark:text-gray-500">
                 <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4 lg:w-5 lg:h-5" />
-                <span>Период: <span className="text-gray-500">{formatShortPeriod()}</span></span>
-                <span className="text-gray-300">|</span>
+                <span>Период: <span className="text-gray-500 dark:text-gray-400">{formatShortPeriod()}</span></span>
+                <span className="text-gray-300 dark:text-gray-600">|</span>
                 <span>{data.totalOrders} заказов</span>
               </div>
               <button
@@ -1649,46 +1618,41 @@ function AnalyticsPageContent() {
             </div>
 
             {/* Sales Stats Cards */}
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8"
-            >
-              <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6 sm:mb-8">
+              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                    <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
                   </div>
-                  <span className="text-xs sm:text-sm text-gray-600">Заказов</span>
+                  <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Заказов</span>
                   <HelpTooltip text="Общее количество заказов за выбранный период" />
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-gray-900">{data.totalOrders}</div>
+                <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{data.totalOrders}</div>
                 <div className="text-[10px] sm:text-xs mt-1">
-                  <span className="bg-emerald-50 text-emerald-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
+                  <span className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
                 </div>
-              </motion.div>
+              </div>
 
-              <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
+              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                    <Calculator className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <Calculator className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
                   </div>
-                  <span className="text-xs sm:text-sm text-gray-600">Ср. чек</span>
+                  <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Ср. чек</span>
                   <HelpTooltip text="Средняя сумма одного заказа (выручка ÷ количество заказов)" />
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-gray-900">{fmt(data.avgOrderValue)} ₸</div>
+                <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{fmt(data.avgOrderValue)} ₸</div>
                 <div className="text-[10px] sm:text-xs mt-1">
-                  <span className="bg-purple-50 text-purple-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
+                  <span className="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
                 </div>
-              </motion.div>
+              </div>
 
-              <motion.div variants={itemVariants} className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowReturnsModal(true)}>
+              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowReturnsModal(true)}>
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                    <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-red-100 dark:bg-red-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <RotateCcw className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400" />
                   </div>
-                  <span className="text-xs sm:text-sm text-gray-600">Возвраты</span>
+                  <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Возвраты</span>
                   <HelpTooltip text="Процент возвращённых заказов от общего числа" />
                 </div>
                 {(() => {
@@ -1697,54 +1661,48 @@ function AnalyticsPageContent() {
                   const returnPercent = totalOrders > 0 ? ((returnedCount / totalOrders) * 100).toFixed(1) : '0';
                   return (
                     <>
-                      <div className="text-lg sm:text-2xl font-bold text-red-600">{returnPercent}%</div>
+                      <div className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400">{returnPercent}%</div>
                       <div className="text-[10px] sm:text-xs mt-1 flex items-center gap-2">
-                        <span className="bg-red-50 text-red-600 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
+                        <span className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
                         <span className="text-gray-400">{returnedCount} из {totalOrders}</span>
                       </div>
                     </>
                   );
                 })()}
-              </motion.div>
+              </div>
 
-              <motion.div
-                variants={itemVariants}
-                className="bg-white rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+              <div
+                className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
                 onClick={() => setShowPendingOrdersPopup(true)}
               >
                 <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                    <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
+                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 dark:bg-amber-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                    <Truck className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
                   </div>
-                  <span className="text-xs sm:text-sm text-gray-600">В пути</span>
+                  <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">В пути</span>
                   <HelpTooltip text="Заказы в процессе доставки до клиента" />
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-gray-900">{data.pendingOrders?.count || 0}</div>
+                <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{data.pendingOrders?.count || 0}</div>
                 <div className="text-[10px] sm:text-xs mt-1">
-                  <span className="bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded font-medium">{fmt(data.pendingOrders?.totalAmount || 0)} ₸ ожидает</span>
+                  <span className="bg-amber-50 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">{fmt(data.pendingOrders?.totalAmount || 0)} ₸ ожидает</span>
                 </div>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
 
             {/* Orders Chart - Full Width with Cost/Ads/Profit breakdown */}
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="mb-6 sm:mb-8"
-            >
-              <motion.div variants={itemVariants} className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl overflow-hidden">
+            <div className="mb-6 sm:mb-8">
+              <div className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-2xl overflow-hidden">
                 {/* Заголовок - кликабельный для сворачивания */}
                 <div
                   onClick={() => toggleSection('revenue')}
-                  className="w-full flex items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-white/30 transition-colors"
+                  className="w-full flex items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-white/30 dark:hover:bg-white/5 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center">
                       <BarChart3 className="w-5 h-5 text-white" />
                     </div>
                     <div className="text-left">
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">Структура выручки</h3>
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Структура выручки</h3>
                       <p className="text-[10px] lg:text-xs text-gray-400">{startDate && endDate ? `${startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} - ${endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}` : ''}</p>
                     </div>
                   </div>
@@ -1897,27 +1855,27 @@ function AnalyticsPageContent() {
 
                       {/* Итоги под графиком */}
                       <div className="mt-3 lg:mt-4 grid grid-cols-4 gap-1.5 lg:gap-3">
-                        <div className="bg-white rounded-lg px-2 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg px-2 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
                           <div className="text-[9px] lg:text-sm text-gray-400">себест.</div>
-                          <div className="text-xs lg:text-base font-semibold text-rose-500">
+                          <div className="text-xs lg:text-base font-semibold text-rose-500 dark:text-rose-400">
                             {fmt(showAdsOnly ? data.totalCost * adsRatio : data.totalCost)} ₸
                           </div>
                           <div className="text-[8px] lg:text-xs text-rose-400">
                             {(((showAdsOnly ? data.totalCost * adsRatio : data.totalCost) / (showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue)) * 100).toFixed(0)}%
                           </div>
                         </div>
-                        <div className="bg-white rounded-lg px-2 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg px-2 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
                           <div className="text-[9px] lg:text-sm text-gray-400">реклама</div>
-                          <div className="text-xs lg:text-base font-semibold text-amber-500">
+                          <div className="text-xs lg:text-base font-semibold text-amber-500 dark:text-amber-400">
                             {fmt(data.totalAdvertising)} ₸
                           </div>
                           <div className="text-[8px] lg:text-xs text-amber-400">
                             {((data.totalAdvertising / (showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue)) * 100).toFixed(0)}%
                           </div>
                         </div>
-                        <div className="bg-white rounded-lg px-2 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg px-2 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
                           <div className="text-[9px] lg:text-sm text-gray-400">цена клиента</div>
-                          <div className="text-xs lg:text-base font-semibold text-sky-500">
+                          <div className="text-xs lg:text-base font-semibold text-sky-500 dark:text-sky-400">
                             {(() => {
                               const orders = showAdsOnly ? data.ordersBySource.ads : data.totalOrders;
                               const cac = orders > 0 ? data.totalAdvertising / orders : 0;
@@ -1928,9 +1886,9 @@ function AnalyticsPageContent() {
                             {showAdsOnly ? data.ordersBySource.ads : data.totalOrders} зак.
                           </div>
                         </div>
-                        <div className="bg-white rounded-lg px-2 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg px-2 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
                           <div className="text-[9px] lg:text-sm text-gray-400">прибыль</div>
-                          <div className="text-xs lg:text-base font-semibold text-emerald-500">
+                          <div className="text-xs lg:text-base font-semibold text-emerald-500 dark:text-emerald-400">
                             {(() => {
                               const rev = showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue;
                               const cost = showAdsOnly ? data.totalCost * adsRatio : data.totalCost;
@@ -1954,28 +1912,23 @@ function AnalyticsPageContent() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
 
             {/* Рентабельность по товарам */}
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="mb-6 sm:mb-8"
-            >
-              <motion.div variants={itemVariants} className="bg-gradient-to-br from-indigo-50 to-purple-50 rounded-2xl overflow-hidden">
+            <div className="mb-6 sm:mb-8">
+              <div className="bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-2xl overflow-hidden">
                 {/* Заголовок - кликабельный для сворачивания */}
                 <div
                   onClick={() => toggleSection('adProducts')}
-                  className="w-full flex items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-white/30 transition-colors"
+                  className="w-full flex items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-white/30 dark:hover:bg-white/5 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-indigo-500 rounded-xl flex items-center justify-center">
                       <TrendingUp className="w-5 h-5 text-white" />
                     </div>
                     <div className="text-left">
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">Маржинальность по товарам</h3>
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Маржинальность по товарам</h3>
                       <p className="text-[10px] lg:text-xs text-gray-400">{startDate && endDate ? `${startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} - ${endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}` : ''}</p>
                     </div>
                   </div>
@@ -2011,7 +1964,7 @@ function AnalyticsPageContent() {
                       transition={{ duration: 0.3 }}
                       className="overflow-hidden"
                     >
-                      <div className="p-4 sm:p-5 bg-white/50">
+                      <div className="p-4 sm:p-5 bg-white/50 dark:bg-gray-800/50">
                 {(() => {
                   // Расчёт данных для каждого товара
                   const totalAdSales = data.topProducts.reduce((sum: number, p: any) => sum + (p.adSales || 0), 0);
@@ -2063,7 +2016,7 @@ function AnalyticsPageContent() {
                             setProductSearch(e.target.value);
                             setProductPage(1); // Сброс на первую страницу при поиске
                           }}
-                          className="flex-1 max-w-[120px] lg:max-w-[200px] h-5 lg:h-8 px-1.5 lg:px-3 text-[9px] lg:text-sm border border-gray-200 rounded lg:rounded-lg bg-white focus:outline-none focus:border-indigo-400"
+                          className="flex-1 max-w-[120px] lg:max-w-[200px] h-5 lg:h-8 px-1.5 lg:px-3 text-[9px] lg:text-sm border border-gray-200 dark:border-gray-600 rounded lg:rounded-lg bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:border-indigo-400"
                         />
                         <span className="text-[9px] lg:text-sm text-gray-400">сорт:</span>
                         {[
@@ -2080,7 +2033,7 @@ function AnalyticsPageContent() {
                             className={`px-2 py-0.5 lg:px-3 lg:py-1 rounded lg:rounded-lg text-[9px] lg:text-sm transition-colors ${
                               productSort === opt.key
                                 ? 'bg-indigo-500 text-white'
-                                : 'bg-white text-gray-500 hover:bg-gray-100'
+                                : 'bg-white dark:bg-gray-700 text-gray-500 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
                             }`}
                           >
                             {opt.label}
@@ -2090,29 +2043,29 @@ function AnalyticsPageContent() {
                       {/* Карточки товаров */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-1.5 lg:gap-3">
                         {displayedProducts.map((product: any) => (
-                          <div key={product.id} className="bg-white rounded-lg px-2.5 py-1.5 lg:px-4 lg:py-3 shadow-sm">
+                          <div key={product.id} className="bg-white dark:bg-gray-800 rounded-lg px-2.5 py-1.5 lg:px-4 lg:py-3 shadow-sm">
                             <div className="flex items-center justify-between gap-2">
-                              <p className="font-medium text-sm lg:text-base text-gray-900 truncate flex-1">{product.name}</p>
-                              <span className="text-xs lg:text-sm text-gray-600 whitespace-nowrap">{product.displaySales} шт</span>
+                              <p className="font-medium text-sm lg:text-base text-gray-900 dark:text-white truncate flex-1">{product.name}</p>
+                              <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">{product.displaySales} шт</span>
                             </div>
-                            <div className="flex items-center justify-between text-[11px] lg:text-sm text-gray-500 mt-0.5 lg:mt-1">
+                            <div className="flex items-center justify-between text-[11px] lg:text-sm text-gray-500 dark:text-gray-400 mt-0.5 lg:mt-1">
                               <div className="flex items-center gap-2 lg:gap-3">
                                 <span className={`font-semibold ${
-                                  product.displayMargin >= 40 ? 'text-emerald-600' :
-                                  product.displayMargin >= 20 ? 'text-amber-600' :
-                                  product.displayMargin >= 0 ? 'text-orange-500' :
-                                  'text-red-500'
+                                  product.displayMargin >= 40 ? 'text-emerald-600 dark:text-emerald-400' :
+                                  product.displayMargin >= 20 ? 'text-amber-600 dark:text-amber-400' :
+                                  product.displayMargin >= 0 ? 'text-orange-500 dark:text-orange-400' :
+                                  'text-red-500 dark:text-red-400'
                                 }`}>
-                                  <span className="text-[9px] lg:text-xs opacity-50 font-normal text-gray-500">маржа</span> {product.displayMargin}%
+                                  <span className="text-[9px] lg:text-xs opacity-50 font-normal text-gray-500 dark:text-gray-400">маржа</span> {product.displayMargin}%
                                 </span>
                                 {product.displayAdExpense > 0 && (
-                                  <span className="text-amber-600"><span className="text-[9px] lg:text-xs opacity-50">рекл</span> {fmt(product.displayAdExpense)} ₸</span>
+                                  <span className="text-amber-600 dark:text-amber-400"><span className="text-[9px] lg:text-xs opacity-50">рекл</span> {fmt(product.displayAdExpense)} ₸</span>
                                 )}
                                 <span><span className="text-[9px] lg:text-xs opacity-50">цена 1 клиента</span> {product.displaySales > 0 ? fmt(product.displayRevenue / product.displaySales) : '0'} ₸</span>
                               </div>
                               <div className="flex items-center gap-2 lg:gap-3">
                                 <span><span className="text-[9px] lg:text-xs opacity-50">выр</span> {fmt(product.displayRevenue)} ₸</span>
-                                <span className={product.displayProfit >= 0 ? 'text-emerald-600 font-medium' : 'text-red-500 font-medium'}>
+                                <span className={product.displayProfit >= 0 ? 'text-emerald-600 dark:text-emerald-400 font-medium' : 'text-red-500 dark:text-red-400 font-medium'}>
                                   <span className="text-[9px] lg:text-xs opacity-50 font-normal">приб</span> {product.displayProfit >= 0 ? '+' : ''}{fmt(product.displayProfit)} ₸
                                 </span>
                               </div>
@@ -2126,7 +2079,7 @@ function AnalyticsPageContent() {
                           <button
                             onClick={() => setProductPage(p => Math.max(1, p - 1))}
                             disabled={productPage === 1}
-                            className="px-2 py-0.5 lg:px-3 lg:py-1 text-[10px] lg:text-sm text-indigo-600 hover:bg-indigo-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="px-2 py-0.5 lg:px-3 lg:py-1 text-[10px] lg:text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
                           >
                             ←
                           </button>
@@ -2149,7 +2102,7 @@ function AnalyticsPageContent() {
                                 className={`w-6 h-6 lg:w-8 lg:h-8 text-[10px] lg:text-sm rounded transition-colors ${
                                   productPage === pageNum
                                     ? 'bg-indigo-500 text-white'
-                                    : 'text-gray-500 hover:bg-gray-100'
+                                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                                 }`}
                               >
                                 {pageNum}
@@ -2159,7 +2112,7 @@ function AnalyticsPageContent() {
                           <button
                             onClick={() => setProductPage(p => Math.min(totalPages, p + 1))}
                             disabled={productPage === totalPages}
-                            className="px-2 py-0.5 lg:px-3 lg:py-1 text-[10px] lg:text-sm text-indigo-600 hover:bg-indigo-50 rounded disabled:opacity-30 disabled:cursor-not-allowed"
+                            className="px-2 py-0.5 lg:px-3 lg:py-1 text-[10px] lg:text-sm text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded disabled:opacity-30 disabled:cursor-not-allowed"
                           >
                             →
                           </button>
@@ -2178,28 +2131,23 @@ function AnalyticsPageContent() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
 
             {/* Pie Charts - Side by Side */}
-            <motion.div
-              variants={containerVariants}
-              initial="hidden"
-              animate="visible"
-              className="mb-6 sm:mb-8"
-            >
-              <motion.div variants={itemVariants} className="bg-gradient-to-br from-sky-50 to-cyan-50 rounded-2xl overflow-hidden">
+            <div className="mb-6 sm:mb-8">
+              <div className="bg-gradient-to-br from-sky-50 to-cyan-50 dark:from-sky-900/20 dark:to-cyan-900/20 rounded-2xl overflow-hidden">
                 {/* Заголовок - кликабельный для сворачивания */}
                 <div
                   onClick={() => toggleSection('sources')}
-                  className="w-full flex items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-white/30 transition-colors"
+                  className="w-full flex items-center justify-between p-4 sm:p-5 cursor-pointer hover:bg-white/30 dark:hover:bg-white/5 transition-colors"
                 >
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 bg-sky-500 rounded-xl flex items-center justify-center">
                       <Truck className="w-5 h-5 text-white" />
                     </div>
                     <div className="text-left">
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900">Источники и способы доставки</h3>
+                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white">Источники и способы доставки</h3>
                       <p className="text-[10px] lg:text-xs text-gray-400">{startDate && endDate ? `${startDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })} - ${endDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}` : ''}</p>
                     </div>
                   </div>
@@ -2216,11 +2164,11 @@ function AnalyticsPageContent() {
                       transition={{ duration: 0.3 }}
                       className="overflow-hidden"
                     >
-                      <div className="p-3 sm:p-5 lg:p-6 bg-white/50">
+                      <div className="p-3 sm:p-5 lg:p-6 bg-white/50 dark:bg-gray-800/50">
                       <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:gap-6">
                         {/* Sales Sources Distribution */}
-                        <div className="bg-white rounded-xl p-2 sm:p-3 lg:p-5 shadow-sm">
-                          <h4 className="text-[11px] sm:text-sm lg:text-base font-semibold text-gray-900 mb-1 sm:mb-2 lg:mb-3">Источники продаж</h4>
+                        <div className="bg-white dark:bg-gray-800 rounded-xl p-2 sm:p-3 lg:p-5 shadow-sm">
+                          <h4 className="text-[11px] sm:text-sm lg:text-base font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2 lg:mb-3">Источники продаж</h4>
                           <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 300 : window.innerWidth >= 640 ? 140 : 110}>
                             <PieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                               <Pie
@@ -2258,15 +2206,15 @@ function AnalyticsPageContent() {
                               return (
                                 <div
                                   key={item.name}
-                                  className="flex items-center gap-1 sm:gap-2 lg:gap-3 px-1 lg:px-2 py-0.5 lg:py-1 rounded hover:bg-gray-50"
+                                  className="flex items-center gap-1 sm:gap-2 lg:gap-3 px-1 lg:px-2 py-0.5 lg:py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
                                 >
                                   <div
                                     className="w-2 h-2 sm:w-2.5 sm:h-2.5 lg:w-3 lg:h-3 rounded-full flex-shrink-0"
                                     style={{ backgroundColor: SALES_SOURCE_COLORS[index] }}
                                   />
                                   <div className="flex-1 flex justify-between items-center min-w-0">
-                                    <span className="text-[10px] sm:text-xs lg:text-sm text-gray-700 truncate">{item.name}</span>
-                                    <span className="text-[9px] sm:text-[11px] lg:text-sm font-medium text-gray-900 ml-1">{item.value} <span className="text-gray-400">({percent}%)</span></span>
+                                    <span className="text-[10px] sm:text-xs lg:text-sm text-gray-700 dark:text-gray-300 truncate">{item.name}</span>
+                                    <span className="text-[9px] sm:text-[11px] lg:text-sm font-medium text-gray-900 dark:text-white ml-1">{item.value} <span className="text-gray-400">({percent}%)</span></span>
                                   </div>
                                 </div>
                               );
@@ -2275,8 +2223,8 @@ function AnalyticsPageContent() {
                         </div>
 
                         {/* Delivery Mode */}
-                        <div className="bg-white rounded-xl p-2 sm:p-3 lg:p-5 shadow-sm">
-                          <h4 className="text-[11px] sm:text-sm lg:text-base font-semibold text-gray-900 mb-1 sm:mb-2 lg:mb-3">Способы доставки</h4>
+                        <div className="bg-white dark:bg-gray-800 rounded-xl p-2 sm:p-3 lg:p-5 shadow-sm">
+                          <h4 className="text-[11px] sm:text-sm lg:text-base font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2 lg:mb-3">Способы доставки</h4>
                           <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 300 : window.innerWidth >= 640 ? 140 : 110}>
                             <PieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                               <Pie
@@ -2316,7 +2264,7 @@ function AnalyticsPageContent() {
                               return (
                                 <div key={item.name}>
                                   <div
-                                    className={`flex items-center gap-1 sm:gap-2 lg:gap-3 px-1 lg:px-2 py-0.5 lg:py-1 rounded transition-colors ${isIntercity ? 'cursor-pointer hover:bg-gray-50' : ''}`}
+                                    className={`flex items-center gap-1 sm:gap-2 lg:gap-3 px-1 lg:px-2 py-0.5 lg:py-1 rounded transition-colors ${isIntercity ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700' : ''}`}
                                     onClick={isIntercity ? () => setShowCitiesDropdown(!showCitiesDropdown) : undefined}
                                   >
                                     <div
@@ -2324,9 +2272,9 @@ function AnalyticsPageContent() {
                                       style={{ backgroundColor: DELIVERY_COLORS[index] }}
                                     />
                                     <div className="flex-1 flex justify-between items-center min-w-0">
-                                      <span className="text-[10px] sm:text-xs lg:text-sm text-gray-700 truncate">{item.name}</span>
+                                      <span className="text-[10px] sm:text-xs lg:text-sm text-gray-700 dark:text-gray-300 truncate">{item.name}</span>
                                       <div className="flex items-center gap-1">
-                                        <span className="text-[9px] sm:text-[11px] lg:text-sm font-medium text-gray-900">{item.value} <span className="text-gray-400">({percent}%)</span></span>
+                                        <span className="text-[9px] sm:text-[11px] lg:text-sm font-medium text-gray-900 dark:text-white">{item.value} <span className="text-gray-400">({percent}%)</span></span>
                                         {isIntercity && <ChevronDown className={`w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400 transition-transform ${showCitiesDropdown ? 'rotate-180' : ''}`} />}
                                       </div>
                                     </div>
@@ -2339,15 +2287,15 @@ function AnalyticsPageContent() {
                                         initial={{ height: 0, opacity: 0 }}
                                         animate={{ height: 'auto', opacity: 1 }}
                                         exit={{ height: 0, opacity: 0 }}
-                                        className="overflow-hidden ml-3 sm:ml-4 lg:ml-5 border-l border-sky-200 pl-1.5 sm:pl-2 lg:pl-3"
+                                        className="overflow-hidden ml-3 sm:ml-4 lg:ml-5 border-l border-sky-200 dark:border-sky-800 pl-1.5 sm:pl-2 lg:pl-3"
                                       >
                                         {citiesData.map((city) => (
                                             <div
                                               key={city.name}
                                               className="flex items-center justify-between py-0.5 lg:py-1 px-1 lg:px-2 rounded"
                                             >
-                                              <span className="text-[9px] sm:text-[11px] lg:text-sm text-gray-600 truncate">{city.name}</span>
-                                              <span className="text-[9px] sm:text-[11px] lg:text-sm text-gray-900">{city.orders}</span>
+                                              <span className="text-[9px] sm:text-[11px] lg:text-sm text-gray-600 dark:text-gray-400 truncate">{city.name}</span>
+                                              <span className="text-[9px] sm:text-[11px] lg:text-sm text-gray-900 dark:text-white">{city.orders}</span>
                                             </div>
                                           ))}
                                       </motion.div>
@@ -2363,22 +2311,17 @@ function AnalyticsPageContent() {
                     </motion.div>
                   )}
                 </AnimatePresence>
-              </motion.div>
-            </motion.div>
+              </div>
+            </div>
 
           </>
         )}
 
         {/* Reviews Tab */}
         {activeTab === 'reviews' && (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="mt-6"
-          >
+          <div className="mt-6">
             {/* Метрики отзывов - горизонтальный скролл на мобильных */}
-            <motion.div variants={itemVariants} className="mb-4 sm:mb-6">
+            <div className="mb-4 sm:mb-6">
               {(() => {
                 // Вычисляем данные на основе периода
                 const getDaysInPeriod = () => {
@@ -2398,66 +2341,66 @@ function AnalyticsPageContent() {
 
                 return (
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-                    <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                          <Star className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 dark:bg-amber-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                          <Star className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
                         </div>
-                        <span className="text-gray-600 text-xs sm:text-sm">Средний рейтинг</span>
+                        <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Средний рейтинг</span>
                       </div>
-                      <div className="text-xl sm:text-2xl font-bold text-gray-900 flex items-center gap-1.5">
+                      <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
                         {avgRating.toFixed(1)}
                         <div className="flex">
                           {[1, 2, 3, 4, 5].map((star) => (
                             <Star
                               key={star}
-                              className={`w-3 h-3 sm:w-4 sm:h-4 ${star <= Math.round(avgRating) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                              className={`w-3 h-3 sm:w-4 sm:h-4 ${star <= Math.round(avgRating) ? 'text-amber-400 fill-amber-400' : 'text-gray-300 dark:text-gray-600'}`}
                             />
                           ))}
                         </div>
                       </div>
-                      <div className="text-[10px] sm:text-xs text-emerald-500 mt-1">+0.2 vs прошлый период</div>
+                      <div className="text-[10px] sm:text-xs text-emerald-500 dark:text-emerald-400 mt-1">+0.2 vs прошлый период</div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                          <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                          <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                         </div>
-                        <span className="text-gray-600 text-xs sm:text-sm">Всего отзывов</span>
+                        <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Всего отзывов</span>
                       </div>
-                      <div className="text-xl sm:text-2xl font-bold text-gray-900">{totalReviews}</div>
-                      <div className="text-[10px] sm:text-xs text-emerald-500 mt-1">+{Math.round(totalReviews * 0.12)} за период</div>
+                      <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{totalReviews}</div>
+                      <div className="text-[10px] sm:text-xs text-emerald-500 dark:text-emerald-400 mt-1">+{Math.round(totalReviews * 0.12)} за период</div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                          <ThumbsUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                          <ThumbsUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
                         </div>
-                        <span className="text-gray-600 text-xs sm:text-sm">Положительные</span>
+                        <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Положительные</span>
                       </div>
-                      <div className="text-xl sm:text-2xl font-bold text-emerald-600">{basePositive}</div>
-                      <div className="text-[10px] sm:text-xs text-gray-500 mt-1">{Math.round((basePositive / totalReviews) * 100)}% от всех</div>
+                      <div className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{basePositive}</div>
+                      <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">{Math.round((basePositive / totalReviews) * 100)}% от всех</div>
                     </div>
 
-                    <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm">
                       <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 rounded-lg sm:rounded-xl flex items-center justify-center">
-                          <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
+                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                          <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
                         </div>
-                        <span className="text-gray-600 text-xs sm:text-sm">За период</span>
+                        <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">За период</span>
                       </div>
-                      <div className="text-xl sm:text-2xl font-bold text-purple-600">{totalReviews}</div>
-                      <div className="text-[10px] sm:text-xs text-emerald-500 mt-1">+{Math.round(totalReviews * 0.1)} vs прошлый</div>
+                      <div className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">{totalReviews}</div>
+                      <div className="text-[10px] sm:text-xs text-emerald-500 dark:text-emerald-400 mt-1">+{Math.round(totalReviews * 0.1)} vs прошлый</div>
                     </div>
                   </div>
                 );
               })()}
-            </motion.div>
+            </div>
 
             {/* Блок сводки отзывов с графиком */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm mb-6">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm mb-6">
               {(() => {
                 // Генерируем данные на основе выбранного периода
                 const generateReviewsDataForPeriod = () => {
@@ -2523,13 +2466,13 @@ function AnalyticsPageContent() {
                   return padX + (i / Math.max(pointsCount - 1, 1)) * (viewW - padX * 2);
                 };
 
-                // Простая линия
+                // Плавная линия
                 const generatePath = (data: number[]) => {
-                  return data.map((val, i) => {
-                    const x = getX(i);
-                    const y = getY(val);
-                    return `${i === 0 ? 'M' : 'L'} ${x} ${y}`;
-                  }).join(' ');
+                  const points = data.map((val, i) => ({
+                    x: getX(i),
+                    y: getY(val)
+                  }));
+                  return getSmoothPath(points);
                 };
 
                 return (
@@ -2537,12 +2480,12 @@ function AnalyticsPageContent() {
                     {/* Левая часть - статистика */}
                     <div className="lg:w-1/3">
                       <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 bg-amber-100 rounded-xl flex items-center justify-center">
+                        <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center">
                           <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
                         </div>
                         <div>
-                          <p className="text-sm text-gray-500">Отзывы за период</p>
-                          <p className="text-3xl font-bold text-gray-900">{totalReviews}</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Отзывы за период</p>
+                          <p className="text-3xl font-bold text-gray-900 dark:text-white">{totalReviews}</p>
                         </div>
                       </div>
 
@@ -2550,23 +2493,23 @@ function AnalyticsPageContent() {
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                            <span className="text-sm text-gray-600">Положительные</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Положительные</span>
                           </div>
-                          <span className="text-sm font-semibold text-gray-900">{totalPositive}</span>
+                          <span className="text-sm font-semibold text-gray-900 dark:text-white">{totalPositive}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                            <span className="text-sm text-gray-600">Хорошие</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Хорошие</span>
                           </div>
-                          <span className="text-sm font-semibold text-gray-900">{totalNeutral}</span>
+                          <span className="text-sm font-semibold text-gray-900 dark:text-white">{totalNeutral}</span>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-2">
                             <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                            <span className="text-sm text-gray-600">Отрицательные</span>
+                            <span className="text-sm text-gray-600 dark:text-gray-400">Отрицательные</span>
                           </div>
-                          <span className="text-sm font-semibold text-gray-900">{totalNegative}</span>
+                          <span className="text-sm font-semibold text-gray-900 dark:text-white">{totalNegative}</span>
                         </div>
                       </div>
                     </div>
@@ -2757,10 +2700,10 @@ function AnalyticsPageContent() {
                   </div>
                 );
               })()}
-            </motion.div>
+            </div>
 
             {/* Распределение по рейтингу */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm p-6 mb-6">
+            <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
               <h3 className="text-xl font-semibold text-gray-900 mb-4">Распределение по рейтингу</h3>
               <div className="space-y-3">
                 {mockAnalyticsData.reviewsData.ratingDistribution.map((item) => {
@@ -2789,58 +2732,58 @@ function AnalyticsPageContent() {
                   );
                 })}
               </div>
-            </motion.div>
+            </div>
 
             {/* Список отзывов */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm overflow-hidden">
+            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
               <div className="p-6 border-b border-gray-200">
                 <h3 className="text-xl font-semibold text-gray-900">Последние отзывы</h3>
                 <p className="text-sm text-gray-500 mt-1">Отзывы покупателей за выбранный период</p>
               </div>
 
-              <div className="divide-y divide-gray-100">
+              <div className="divide-y divide-gray-100 dark:divide-gray-700">
                 {mockAnalyticsData.reviewsData.recentReviews.map((review) => (
-                  <div key={review.id} className="p-6 hover:bg-gray-50 transition-colors">
+                  <div key={review.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-lg font-medium text-gray-600">
+                        <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-lg font-medium text-gray-600 dark:text-gray-300">
                           {review.customerName.charAt(0)}
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="font-medium text-gray-900">{review.customerName}</span>
+                            <span className="font-medium text-gray-900 dark:text-white">{review.customerName}</span>
                             <div className="flex">
                               {[1, 2, 3, 4, 5].map((star) => (
                                 <Star
                                   key={star}
-                                  className={`w-4 h-4 ${star <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                                  className={`w-4 h-4 ${star <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300 dark:text-gray-600'}`}
                                 />
                               ))}
                             </div>
                           </div>
-                          <div className="text-sm text-gray-500">{review.productName}</div>
+                          <div className="text-sm text-gray-500 dark:text-gray-400">{review.productName}</div>
                           <div className="text-xs text-gray-400 mt-0.5">{review.date}</div>
                         </div>
                       </div>
                     </div>
 
                     <div className="ml-14">
-                      <p className="text-gray-700">{review.text}</p>
+                      <p className="text-gray-700 dark:text-gray-300">{review.text}</p>
                     </div>
                   </div>
                 ))}
               </div>
 
-              <div className="p-4 border-t border-gray-200 bg-gray-50">
-                <button className="w-full py-2 text-emerald-600 hover:text-emerald-700 font-medium text-sm cursor-pointer">
+              <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
+                <button className="w-full py-2 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium text-sm cursor-pointer">
                   Показать все отзывы →
                 </button>
               </div>
-            </motion.div>
+            </div>
 
             {/* Топ товаров по отзывам */}
-            <motion.div variants={itemVariants} className="bg-white rounded-2xl shadow-sm p-6 mt-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Топ товаров по отзывам</h3>
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 mt-6">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Топ товаров по отзывам</h3>
               <div className="space-y-4">
                 {[
                   { name: 'iPhone 14 Pro 256GB', totalReviews: 48, avgRating: 4.9, positive: 46, neutral: 2, negative: 0 },
@@ -2849,23 +2792,23 @@ function AnalyticsPageContent() {
                   { name: 'MacBook Pro 14" M2', totalReviews: 22, avgRating: 4.6, positive: 19, neutral: 2, negative: 1 },
                   { name: 'Apple Watch Ultra', totalReviews: 18, avgRating: 4.5, positive: 15, neutral: 2, negative: 1 },
                 ].map((product, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
                     <div className="flex items-center gap-4">
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
-                        index === 0 ? 'bg-amber-100 text-amber-600' :
-                        index === 1 ? 'bg-gray-200 text-gray-600' :
-                        index === 2 ? 'bg-orange-100 text-orange-600' :
-                        'bg-gray-100 text-gray-500'
+                        index === 0 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' :
+                        index === 1 ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300' :
+                        index === 2 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' :
+                        'bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
                       }`}>
                         {index + 1}
                       </div>
                       <div>
-                        <div className="font-medium text-gray-900">{product.name}</div>
-                        <div className="flex items-center gap-3 text-sm text-gray-500">
+                        <div className="font-medium text-gray-900 dark:text-white">{product.name}</div>
+                        <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
                           <span>{product.totalReviews} отзывов</span>
-                          <span className="text-emerald-600">+{product.positive}</span>
-                          {product.neutral > 0 && <span className="text-amber-600">~{product.neutral}</span>}
-                          {product.negative > 0 && <span className="text-red-600">-{product.negative}</span>}
+                          <span className="text-emerald-600 dark:text-emerald-400">+{product.positive}</span>
+                          {product.neutral > 0 && <span className="text-amber-600 dark:text-amber-400">~{product.neutral}</span>}
+                          {product.negative > 0 && <span className="text-red-600 dark:text-red-400">-{product.negative}</span>}
                         </div>
                       </div>
                     </div>
@@ -2874,17 +2817,17 @@ function AnalyticsPageContent() {
                         {[1, 2, 3, 4, 5].map((star) => (
                           <Star
                             key={star}
-                            className={`w-4 h-4 ${star <= Math.round(product.avgRating) ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                            className={`w-4 h-4 ${star <= Math.round(product.avgRating) ? 'text-amber-400 fill-amber-400' : 'text-gray-300 dark:text-gray-600'}`}
                           />
                         ))}
                       </div>
-                      <span className="font-semibold text-gray-900">{product.avgRating}</span>
+                      <span className="font-semibold text-gray-900 dark:text-white">{product.avgRating}</span>
                     </div>
                   </div>
                 ))}
               </div>
-            </motion.div>
-          </motion.div>
+            </div>
+          </div>
         )}
 
         {/* Popup отзывов за день */}
@@ -2905,7 +2848,7 @@ function AnalyticsPageContent() {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white rounded-2xl shadow-2xl z-50 overflow-hidden max-h-[80vh] flex flex-col"
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl z-50 overflow-hidden max-h-[80vh] flex flex-col"
               >
                 {/* Header */}
                 <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 flex items-center justify-between">
@@ -2930,22 +2873,22 @@ function AnalyticsPageContent() {
                 </div>
 
                 {/* Stats */}
-                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
                   {(() => {
                     const dayData = mockAnalyticsData.reviewsData.dailyReviews.find(d => d.date === selectedReviewsDay);
                     return (
                       <div className="flex gap-4">
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                          <span className="text-sm text-gray-600">Положительные: <strong className="text-emerald-600">{dayData?.positive || 0}</strong></span>
+                          <span className="text-sm text-gray-600 dark:text-gray-300">Положительные: <strong className="text-emerald-600 dark:text-emerald-400">{dayData?.positive || 0}</strong></span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-                          <span className="text-sm text-gray-600">Нейтральные: <strong className="text-amber-600">{dayData?.neutral || 0}</strong></span>
+                          <span className="text-sm text-gray-600 dark:text-gray-300">Нейтральные: <strong className="text-amber-600 dark:text-amber-400">{dayData?.neutral || 0}</strong></span>
                         </div>
                         <div className="flex items-center gap-2">
                           <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                          <span className="text-sm text-gray-600">Негативные: <strong className="text-red-600">{dayData?.negative || 0}</strong></span>
+                          <span className="text-sm text-gray-600 dark:text-gray-300">Негативные: <strong className="text-red-600 dark:text-red-400">{dayData?.negative || 0}</strong></span>
                         </div>
                       </div>
                     );
@@ -2965,25 +2908,25 @@ function AnalyticsPageContent() {
                         return reviewDay === day && reviewMonth === month;
                       })
                       .map((review) => (
-                        <div key={review.id} className="p-4 bg-gray-50 rounded-xl">
+                        <div key={review.id} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
                           <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center text-lg font-medium text-gray-600">
+                            <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-lg font-medium text-gray-600 dark:text-gray-300">
                               {review.customerName.charAt(0)}
                             </div>
                             <div className="flex-1">
                               <div className="flex items-center gap-2 mb-1">
-                                <span className="font-medium text-gray-900">{review.customerName}</span>
+                                <span className="font-medium text-gray-900 dark:text-white">{review.customerName}</span>
                                 <div className="flex">
                                   {[1, 2, 3, 4, 5].map((star) => (
                                     <Star
                                       key={star}
-                                      className={`w-4 h-4 ${star <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300'}`}
+                                      className={`w-4 h-4 ${star <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300 dark:text-gray-600'}`}
                                     />
                                   ))}
                                 </div>
                               </div>
-                              <div className="text-sm text-gray-500 mb-2">{review.productName}</div>
-                              <p className="text-gray-700">{review.text}</p>
+                              <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">{review.productName}</div>
+                              <p className="text-gray-700 dark:text-gray-300">{review.text}</p>
                             </div>
                           </div>
                         </div>
@@ -2995,8 +2938,8 @@ function AnalyticsPageContent() {
                       const reviewMonth = String(reviewDate.getMonth() + 1).padStart(2, '0');
                       return reviewDay === day && reviewMonth === month;
                     }).length === 0 && (
-                      <div className="text-center py-8 text-gray-500">
-                        <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+                        <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
                         <p>Нет отзывов за этот день</p>
                       </div>
                     )}
@@ -3004,10 +2947,10 @@ function AnalyticsPageContent() {
                 </div>
 
                 {/* Footer */}
-                <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
                   <button
                     onClick={() => setShowReviewsDayPopup(false)}
-                    className="w-full py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-xl font-medium transition-colors cursor-pointer"
+                    className="w-full py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-colors cursor-pointer"
                   >
                     Закрыть
                   </button>

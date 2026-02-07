@@ -4,7 +4,7 @@ export default function AdvertisingPage() {
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold">Реклама</h1>
-          <p className="text-gray-600 mt-1">Учет рекламных расходов и аналитика</p>
+          <p className="text-gray-600 dark:text-gray-400 mt-1">Учет рекламных расходов и аналитика</p>
         </div>
         <div className="flex gap-3">
           <a
@@ -15,7 +15,7 @@ export default function AdvertisingPage() {
           </a>
           <a
             href="/app/advertising/analytics"
-            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
+            className="px-4 py-2 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600"
           >
             Аналитика
           </a>
@@ -28,9 +28,9 @@ export default function AdvertisingPage() {
         </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div className="p-6">
-          <div className="text-center text-gray-500 py-8">
+          <div className="text-center text-gray-500 dark:text-gray-400 py-8">
             Рекламных расходов пока нет
           </div>
         </div>

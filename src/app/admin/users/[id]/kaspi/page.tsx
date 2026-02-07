@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
 import {
   ArrowLeft,
   Package,
@@ -151,7 +150,7 @@ export default function KaspiCabinetPage() {
       {/* Content */}
       <div className="max-w-7xl mx-auto px-4 py-6">
         {activeTab === 'overview' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+          <div className="space-y-6">
             {/* Stats Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <div className="bg-white rounded-xl p-4 shadow-sm">
@@ -231,11 +230,11 @@ export default function KaspiCabinetPage() {
                 })}
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {activeTab === 'orders' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <div>
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -274,11 +273,11 @@ export default function KaspiCabinetPage() {
                 </table>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {activeTab === 'products' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+          <div>
             <div className="bg-white rounded-xl shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -323,11 +322,11 @@ export default function KaspiCabinetPage() {
                 </table>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {activeTab === 'reviews' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+          <div className="space-y-4">
             {data.reviews.map(review => (
               <div key={review.id} className="bg-white rounded-xl p-4 shadow-sm">
                 <div className="flex items-start justify-between mb-2">
@@ -347,11 +346,11 @@ export default function KaspiCabinetPage() {
                 <p className="text-sm text-gray-600">{review.text}</p>
               </div>
             ))}
-          </motion.div>
+          </div>
         )}
 
         {activeTab === 'finance' && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+          <div className="space-y-6">
             {/* Balance Card */}
             <div className="bg-white rounded-xl p-5 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Текущий баланс</h3>
@@ -392,7 +391,7 @@ export default function KaspiCabinetPage() {
                 </div>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
       </div>
     </div>

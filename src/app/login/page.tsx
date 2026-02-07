@@ -85,7 +85,7 @@ export default function LoginPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 flex">
+    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex">
       {/* Left Side - Branding */}
       <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-emerald-500 to-emerald-600 p-12 flex-col justify-between relative overflow-hidden">
         {/* Background Pattern */}
@@ -153,18 +153,18 @@ export default function LoginPage() {
               <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
                 <BarChart3 className="w-7 h-7 text-emerald-600" />
               </div>
-              <span className="text-2xl font-bold text-gray-900">Metricon</span>
+              <span className="text-2xl font-bold text-gray-900 dark:text-white">Metricon</span>
             </Link>
           </div>
 
-          <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl shadow-xl p-8 border border-gray-100 dark:border-gray-700">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Добро пожаловать</h2>
-              <p className="text-gray-500">Войдите в свой аккаунт</p>
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">Добро пожаловать</h2>
+              <p className="text-gray-500 dark:text-gray-400">Войдите в свой аккаунт</p>
             </div>
 
             {errors.general && (
-              <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm text-center">
+              <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800 rounded-xl text-red-600 dark:text-red-400 text-sm text-center">
                 {errors.general}
               </div>
             )}
@@ -172,20 +172,20 @@ export default function LoginPage() {
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Email
                 </label>
                 <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
-                  errors.email ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                  errors.email ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/20' : 'border-gray-200 dark:border-gray-700'
                 }`}>
                   <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
-                    <Mail className="w-4 h-4 text-gray-400" />
+                    <Mail className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                   </div>
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="flex-1 py-3 pr-4 bg-transparent focus:outline-none"
+                    className="flex-1 py-3 pr-4 bg-transparent focus:outline-none dark:text-white dark:placeholder-gray-500"
                     placeholder="example@mail.com"
                   />
                 </div>
@@ -196,26 +196,26 @@ export default function LoginPage() {
 
               {/* Password */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Пароль
                 </label>
                 <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
-                  errors.password ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                  errors.password ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/20' : 'border-gray-200 dark:border-gray-700'
                 }`}>
                   <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
-                    <Lock className="w-4 h-4 text-gray-400" />
+                    <Lock className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                   </div>
                   <input
                     type={showPassword ? 'text' : 'password'}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="flex-1 py-3 bg-transparent focus:outline-none"
+                    className="flex-1 py-3 bg-transparent focus:outline-none dark:text-white dark:placeholder-gray-500"
                     placeholder="••••••••"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="flex items-center justify-center w-12 h-12 flex-shrink-0 text-gray-400 hover:text-gray-600 cursor-pointer"
+                    className="flex items-center justify-center w-12 h-12 flex-shrink-0 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -234,7 +234,7 @@ export default function LoginPage() {
                     onChange={(e) => setFormData({ ...formData, remember: e.target.checked })}
                     className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
                   />
-                  <span className="text-sm text-gray-600">Запомнить меня</span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Запомнить меня</span>
                 </label>
                 <Link href="/forgot-password" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
                   Забыли пароль?
@@ -260,9 +260,9 @@ export default function LoginPage() {
 
             {/* Divider */}
             <div className="my-6 flex items-center gap-4">
-              <div className="flex-1 h-px bg-gray-200"></div>
-              <span className="text-sm text-gray-400">или</span>
-              <div className="flex-1 h-px bg-gray-200"></div>
+              <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
+              <span className="text-sm text-gray-400 dark:text-gray-500">или</span>
+              <div className="flex-1 h-px bg-gray-200 dark:bg-gray-700"></div>
             </div>
 
             {/* Google Login */}
@@ -270,7 +270,7 @@ export default function LoginPage() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={isGoogleLoading}
-              className="w-full py-3.5 bg-white hover:bg-gray-50 border border-gray-200 text-gray-700 rounded-xl font-medium transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+              className="w-full py-3.5 bg-white hover:bg-gray-50 dark:bg-gray-700 dark:hover:bg-gray-600 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-all flex items-center justify-center gap-3 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
             >
               {isGoogleLoading ? (
                 <div className="w-5 h-5 border-2 border-gray-300 border-t-gray-600 rounded-full animate-spin"></div>
@@ -290,7 +290,7 @@ export default function LoginPage() {
             <div className="mt-6"></div>
 
             {/* Register Link */}
-            <p className="text-center text-gray-600">
+            <p className="text-center text-gray-600 dark:text-gray-400">
               Нет аккаунта?{' '}
               <Link href="/register" className="text-emerald-600 hover:text-emerald-700 font-medium">
                 Зарегистрироваться

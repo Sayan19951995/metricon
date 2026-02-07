@@ -11,21 +11,16 @@ import {
   Eye,
   EyeOff,
   Clock,
-  ShoppingBag,
-  Package,
   ChevronLeft,
   Loader2,
   Unlink,
   Settings,
-  ExternalLink,
   Key,
   Copy,
   Check,
   LogIn,
   Plug,
   PlugZap,
-  Link2,
-  FileText,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@/hooks/useUser';
@@ -37,16 +32,7 @@ const containerVariants = {
   hidden: { opacity: 0 },
   visible: {
     opacity: 1,
-    transition: { staggerChildren: 0.05 }
-  }
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.3 }
+    transition: { duration: 0.15 }
   }
 };
 
@@ -85,15 +71,6 @@ export default function KaspiSettingsPage() {
   const [debugData, setDebugData] = useState<any>(null);
   const [debugLoading, setDebugLoading] = useState(false);
 
-  const [syncSettings, setSyncSettings] = useState({
-    autoSync: true,
-    syncInterval: '30',
-    syncOrders: true,
-    syncProducts: true,
-    syncPrices: true,
-    syncStock: true,
-  });
-
   // Кабинет Kaspi
   const [cabinetConnected, setCabinetConnected] = useState(false);
   const [cabinetUsername, setCabinetUsername] = useState('');
@@ -107,27 +84,11 @@ export default function KaspiSettingsPage() {
   const [showCabinetForm, setShowCabinetForm] = useState(false);
   const [showCabinetPassword, setShowCabinetPassword] = useState(false);
 
-  // Автозагрузка прайс-листа
-  const [feedEnabled, setFeedEnabled] = useState(false);
-  const [feedToken, setFeedToken] = useState('');
-  const [feedAuthLogin, setFeedAuthLogin] = useState('');
-  const [feedAuthPassword, setFeedAuthPassword] = useState('');
-  const [feedLoading, setFeedLoading] = useState(false);
-  const [feedSaving, setFeedSaving] = useState(false);
-  const [feedChecking, setFeedChecking] = useState(false);
-  const [feedCheckResult, setFeedCheckResult] = useState<{ success: boolean; data?: any; error?: string } | null>(null);
-  const [feedCopied, setFeedCopied] = useState(false);
-  const [feedCachedAt, setFeedCachedAt] = useState('');
-  const [showFeedPassword, setShowFeedPassword] = useState(false);
-  const [feedRegistered, setFeedRegistered] = useState<boolean | null>(null);
-  const [feedRegError, setFeedRegError] = useState('');
-
   // Проверяем статус подключения при загрузке
   useEffect(() => {
     if (user?.id) {
       checkConnectionStatus();
       checkCabinetStatus();
-      loadFeedSettings();
     }
   }, [user?.id]);
 
@@ -335,102 +296,6 @@ export default function KaspiSettingsPage() {
     }
   };
 
-  // === Автозагрузка ===
-  const loadFeedSettings = async () => {
-    if (!user?.id) return;
-    setFeedLoading(true);
-    try {
-      const res = await fetch(`/api/kaspi/cabinet/feed?userId=${user.id}`);
-      const data = await res.json();
-      if (data.success && data.feed) {
-        setFeedEnabled(data.feed.enabled || false);
-        setFeedToken(data.feed.feed_token || '');
-        setFeedAuthLogin(data.feed.auth_login || '');
-        setFeedAuthPassword(data.feed.auth_password || '');
-        setFeedCachedAt(data.feed.cached_at || '');
-      }
-    } catch {
-      // No feed yet
-    } finally {
-      setFeedLoading(false);
-    }
-  };
-
-  const saveFeedSettings = async () => {
-    if (!user?.id) return;
-    setFeedSaving(true);
-    setFeedRegistered(null);
-    setFeedRegError('');
-    try {
-      // Формируем URL фида для передачи бэкенду
-      const currentFeedUrl = feedToken
-        ? `${window.location.origin}/api/kaspi/feed?token=${feedToken}`
-        : undefined;
-
-      const res = await fetch('/api/kaspi/cabinet/feed', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          authLogin: feedAuthLogin,
-          authPassword: feedAuthPassword,
-          enabled: feedEnabled,
-          feedUrl: currentFeedUrl,
-        }),
-      });
-      const data = await res.json();
-      if (data.success && data.feedToken) {
-        setFeedToken(data.feedToken);
-      }
-
-      // Результат авто-регистрации в Kaspi
-      if (data.registration) {
-        setFeedRegistered(data.registration.success);
-        if (!data.registration.success) {
-          setFeedRegError(data.registration.error || 'Не удалось зарегистрировать');
-        }
-      }
-    } catch (err) {
-      console.error('Save feed error:', err);
-    } finally {
-      setFeedSaving(false);
-    }
-  };
-
-  const feedUrl = feedToken ? `${typeof window !== 'undefined' ? window.location.origin : ''}/api/kaspi/feed?token=${feedToken}` : '';
-
-  const checkFeedUrl = async () => {
-    if (!user?.id || !feedToken) return;
-    setFeedChecking(true);
-    setFeedCheckResult(null);
-    try {
-      const res = await fetch('/api/kaspi/cabinet/feed/check', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          feedUrl: `${window.location.origin}/api/kaspi/feed?token=${feedToken}`,
-          authLogin: feedAuthLogin,
-          authPassword: feedAuthPassword,
-        }),
-      });
-      const data = await res.json();
-      setFeedCheckResult(data);
-    } catch {
-      setFeedCheckResult({ success: false, error: 'Ошибка соединения' });
-    } finally {
-      setFeedChecking(false);
-    }
-  };
-
-  const copyFeedUrl = () => {
-    if (feedUrl) {
-      navigator.clipboard.writeText(feedUrl);
-      setFeedCopied(true);
-      setTimeout(() => setFeedCopied(false), 2000);
-    }
-  };
-
   const handleCabinetLogin = async () => {
     if (!user?.id) return;
     setCabinetLoginLoading(true);
@@ -479,11 +344,7 @@ export default function KaspiSettingsPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 p-8">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
+        <div className="mb-8">
           <Link
             href="/app/settings"
             className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 mb-4 cursor-pointer"
@@ -491,22 +352,11 @@ export default function KaspiSettingsPage() {
             <ChevronLeft className="w-4 h-4" />
             Назад к настройкам
           </Link>
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Подключение Kaspi</h1>
-              <p className="text-gray-500 dark:text-gray-400 mt-1">Интеграция с Kaspi Merchant API</p>
-            </div>
-            <a
-              href="https://kaspi.kz/mc"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-2 px-4 py-2 bg-[#f14635] text-white rounded-xl hover:bg-[#d93d2e] transition-colors cursor-pointer"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Кабинет Kaspi
-            </a>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Подключение Kaspi</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm">Интеграция с Kaspi Merchant API</p>
           </div>
-        </motion.div>
+        </div>
 
         <motion.div
           variants={containerVariants}
@@ -515,54 +365,54 @@ export default function KaspiSettingsPage() {
           className="space-y-6"
         >
           {/* Connection Status Card */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className={`rounded-2xl p-6 shadow-sm ${
+          <div className={`rounded-2xl p-6 shadow-sm ${
             status === 'connected' ? 'bg-gradient-to-r from-emerald-500 to-emerald-600 text-white' :
             status === 'error' ? 'bg-gradient-to-r from-red-500 to-red-600 text-white' :
             'bg-white dark:bg-gray-800'
           }`}>
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-4">
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${
+                <div className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl flex items-center justify-center flex-shrink-0 ${
                   status === 'connected' || status === 'error' ? 'bg-white/20' : 'bg-[#f14635]/10 dark:bg-[#f14635]/20'
                 }`}>
-                  <Store className={`w-7 h-7 ${
+                  <Store className={`w-6 h-6 sm:w-7 sm:h-7 ${
                     status === 'connected' || status === 'error' ? 'text-white' : 'text-[#f14635]'
                   }`} />
                 </div>
-                <div>
-                  <h2 className={`text-xl font-bold ${
+                <div className="min-w-0">
+                  <h2 className={`text-lg sm:text-xl font-bold ${
                     status === 'connected' || status === 'error' ? 'text-white' : 'text-gray-900 dark:text-white'
                   }`}>
-                    {status === 'connected' && 'Kaspi подключён'}
+                    {status === 'connected' && 'Kaspi API подключён'}
                     {status === 'connecting' && 'Подключение...'}
-                    {status === 'disconnected' && 'Kaspi не подключён'}
+                    {status === 'disconnected' && 'Kaspi API не подключён'}
                     {status === 'error' && 'Ошибка подключения'}
                   </h2>
-                  <p className={status === 'connected' || status === 'error' ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}>
-                    {status === 'connected' && syncStats.lastSync && `Последняя синхронизация: ${syncStats.lastSync}`}
+                  <p className={`text-sm ${status === 'connected' || status === 'error' ? 'text-white/80' : 'text-gray-500 dark:text-gray-400'}`}>
+                    {status === 'connected' && syncStats.lastSync && `Синхронизация: ${syncStats.lastSync}`}
                     {status === 'connecting' && 'Проверяем API ключ...'}
                     {status === 'disconnected' && 'Введите API ключ для подключения'}
                     {status === 'error' && (error || 'Проверьте API ключ')}
                   </p>
                 </div>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 {status === 'connected' && (
                   <>
                     <button
                       onClick={handleSync}
                       disabled={isSyncing}
-                      className="flex items-center gap-2 px-4 py-2 bg-white/20 hover:bg-white/30 rounded-xl font-medium transition-colors cursor-pointer disabled:opacity-50"
+                      className="flex items-center justify-center gap-2 px-3 py-2 bg-white/20 hover:bg-white/30 rounded-xl text-sm font-medium transition-colors cursor-pointer disabled:opacity-50"
                     >
-                      <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-                      {isSyncing ? 'Синхронизация...' : 'Синхронизировать'}
+                      <RefreshCw className={`w-4 h-4 flex-shrink-0 ${isSyncing ? 'animate-spin' : ''}`} />
+                      <span>{isSyncing ? 'Синхр...' : 'Синхр.'}</span>
                     </button>
                     <button
                       onClick={() => setShowDisconnectModal(true)}
-                      className="flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl font-medium transition-colors cursor-pointer"
+                      className="flex items-center justify-center p-2 bg-white/10 hover:bg-white/20 rounded-xl font-medium transition-colors cursor-pointer"
+                      title="Отключить"
                     >
                       <Unlink className="w-4 h-4" />
-                      Отключить
                     </button>
                   </>
                 )}
@@ -574,26 +424,26 @@ export default function KaspiSettingsPage() {
 
             {/* Stats for connected state */}
             {status === 'connected' && (
-              <div className="grid grid-cols-3 gap-4 mt-6 pt-6 border-t border-white/20">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4 mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-white/20">
                 <div className="text-center">
-                  <div className="text-3xl font-bold">{syncStats.ordersCount.toLocaleString()}</div>
-                  <div className="text-white/80 text-sm">Заказов</div>
+                  <div className="text-xl sm:text-3xl font-bold">{syncStats.ordersCount.toLocaleString()}</div>
+                  <div className="text-white/80 text-xs sm:text-sm">Заказов</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold">{syncStats.productsCount}</div>
-                  <div className="text-white/80 text-sm">Товаров</div>
+                  <div className="text-xl sm:text-3xl font-bold">{syncStats.productsCount}</div>
+                  <div className="text-white/80 text-xs sm:text-sm">Товаров</div>
                 </div>
                 <div className="text-center">
-                  <div className="text-3xl font-bold">{(syncStats.revenue / 1000000).toFixed(1)}M</div>
-                  <div className="text-white/80 text-sm">Выручка ₸</div>
+                  <div className="text-xl sm:text-3xl font-bold">{(syncStats.revenue / 1000000).toFixed(1)}M</div>
+                  <div className="text-white/80 text-xs sm:text-sm">Выручка ₸</div>
                 </div>
               </div>
             )}
-          </motion.div>
+          </div>
 
           {/* API Key Form (for disconnected/error state) */}
           {(status === 'disconnected' || status === 'error') && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Данные для подключения</h3>
               <div className="space-y-4">
                 <div>
@@ -685,83 +535,11 @@ export default function KaspiSettingsPage() {
                   Подключить Kaspi
                 </button>
               </div>
-            </motion.div>
-          )}
-
-          {/* Sync Settings */}
-          {status === 'connected' && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center gap-3 mb-6">
-                <Settings className="w-5 h-5 text-gray-400" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Настройки синхронизации</h3>
-              </div>
-
-              <div className="space-y-4">
-                {/* Auto Sync Toggle */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                  <div>
-                    <p className="font-medium text-gray-900 dark:text-white">Автоматическая синхронизация</p>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">Загружать данные автоматически</p>
-                  </div>
-                  <button
-                    onClick={() => setSyncSettings({...syncSettings, autoSync: !syncSettings.autoSync})}
-                    className={`relative w-12 h-6 rounded-full transition-colors cursor-pointer ${
-                      syncSettings.autoSync ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
-                    }`}
-                  >
-                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                      syncSettings.autoSync ? 'translate-x-7' : 'translate-x-1'
-                    }`} />
-                  </button>
-                </div>
-
-                {/* Sync Interval */}
-                {syncSettings.autoSync && (
-                  <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                    <div>
-                      <p className="font-medium text-gray-900 dark:text-white">Интервал синхронизации</p>
-                      <p className="text-sm text-gray-500 dark:text-gray-400">Как часто обновлять данные</p>
-                    </div>
-                    <select
-                      value={syncSettings.syncInterval}
-                      onChange={(e) => setSyncSettings({...syncSettings, syncInterval: e.target.value})}
-                      className="px-4 py-2 bg-white dark:bg-gray-600 border border-gray-200 dark:border-gray-500 rounded-xl text-sm text-gray-900 dark:text-white cursor-pointer"
-                    >
-                      <option value="15">Каждые 15 минут</option>
-                      <option value="30">Каждые 30 минут</option>
-                      <option value="60">Каждый час</option>
-                      <option value="180">Каждые 3 часа</option>
-                    </select>
-                  </div>
-                )}
-
-                {/* What to sync */}
-                <div className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                  <p className="font-medium text-gray-900 dark:text-white mb-3">Что синхронизировать</p>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { key: 'syncOrders', label: 'Заказы', icon: ShoppingBag },
-                      { key: 'syncProducts', label: 'Товары', icon: Package },
-                    ].map((item) => (
-                      <label key={item.key} className="flex items-center gap-3 p-3 bg-white dark:bg-gray-600 rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-500 transition-colors">
-                        <input
-                          type="checkbox"
-                          checked={syncSettings[item.key as keyof typeof syncSettings] as boolean}
-                          onChange={(e) => setSyncSettings({...syncSettings, [item.key]: e.target.checked})}
-                          className="w-4 h-4 text-emerald-500 rounded cursor-pointer"
-                        />
-                        <item.icon className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-700 dark:text-gray-200">{item.label}</span>
-                      </label>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </motion.div>
+            </div>
           )}
 
           {/* Cabinet Connection */}
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
             <div className="flex items-center gap-3 mb-4">
               {cabinetConnected ? (
                 <PlugZap className="w-5 h-5 text-emerald-500" />
@@ -779,45 +557,49 @@ export default function KaspiSettingsPage() {
               {cabinetLoading ? (
                 <div className="flex items-center gap-3">
                   <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
-                  <span className="text-sm text-gray-500">Проверка...</span>
+                  <span className="text-sm text-gray-500 dark:text-gray-400">Проверка...</span>
                 </div>
               ) : cabinetConnected ? (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center flex-shrink-0">
                       <CheckCircle className="w-5 h-5 text-white" />
                     </div>
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-medium text-emerald-800 dark:text-emerald-300">Кабинет подключён</p>
                       <p className="text-xs text-emerald-600 dark:text-emerald-400">
-                        {cabinetUsername && `${cabinetUsername} — `}
-                        {cabinetConnectedAt && `подключено ${new Date(cabinetConnectedAt).toLocaleDateString('ru-RU')}`}
+                        {cabinetUsername}
                       </p>
+                      {cabinetConnectedAt && (
+                        <p className="text-xs text-emerald-600 dark:text-emerald-400">
+                          {new Date(cabinetConnectedAt).toLocaleDateString('ru-RU')}
+                        </p>
+                      )}
                     </div>
                   </div>
                   <button
                     onClick={disconnectCabinet}
-                    className="px-3 py-1.5 bg-emerald-100 dark:bg-emerald-800/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-sm font-medium hover:bg-emerald-200 dark:hover:bg-emerald-800/50 transition-colors cursor-pointer"
+                    className="self-end sm:self-auto px-3 py-1.5 bg-emerald-100 dark:bg-emerald-800/30 text-emerald-700 dark:text-emerald-300 rounded-lg text-sm font-medium hover:bg-emerald-200 dark:hover:bg-emerald-800/50 transition-colors cursor-pointer flex-shrink-0"
                   >
                     Отключить
                   </button>
                 </div>
               ) : !showCabinetForm ? (
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-xl flex items-center justify-center">
+                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-xl flex items-center justify-center flex-shrink-0">
                       <LogIn className="w-5 h-5 text-gray-500 dark:text-gray-400" />
                     </div>
                     <div>
                       <p className="font-medium text-gray-700 dark:text-gray-300">Кабинет не подключён</p>
                       <p className="text-xs text-gray-500 dark:text-gray-400">
-                        Подключите для управления ценами, остатками и предзаказами
+                        Для управления ценами и остатками
                       </p>
                     </div>
                   </div>
                   <button
                     onClick={() => setShowCabinetForm(true)}
-                    className="px-3 py-1.5 bg-[#f14635] text-white rounded-lg text-sm font-medium hover:bg-[#d93d2e] transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                    className="self-end sm:self-auto px-3 py-1.5 bg-[#f14635] text-white rounded-lg text-sm font-medium hover:bg-[#d93d2e] transition-colors cursor-pointer inline-flex items-center gap-1.5 flex-shrink-0"
                   >
                     <LogIn className="w-3.5 h-3.5" />
                     Подключить
@@ -903,219 +685,11 @@ export default function KaspiSettingsPage() {
               Кабинет используется для изменения цен, остатков и предзаказов напрямую на Kaspi.
               API ключ даёт только чтение данных.
             </p>
-          </motion.div>
-
-          {/* Автозагрузка прайс-листа */}
-          {cabinetConnected && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm"
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <FileText className="w-5 h-5 text-gray-400" />
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Автозагрузка прайс-листа</h3>
-              </div>
-
-              <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                Kaspi автоматически забирает прайс-лист по ссылке. Изменения предзаказов и цен
-                применяются при следующем обновлении.
-              </p>
-
-              {/* Ссылка на фид */}
-              {feedToken && (
-                <div className="mb-4">
-                  <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1.5">
-                    Ссылка на прайс-лист
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={feedUrl}
-                      className="flex-1 px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-xs text-gray-700 dark:text-gray-300 font-mono"
-                    />
-                    <button
-                      onClick={copyFeedUrl}
-                      className="px-3 py-2 bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 rounded-lg transition-colors cursor-pointer"
-                    >
-                      {feedCopied ? (
-                        <Check className="w-4 h-4 text-emerald-500" />
-                      ) : (
-                        <Copy className="w-4 h-4 text-gray-500" />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-
-              {/* Авторизация */}
-              <div className="space-y-3 mb-4">
-                <p className="text-xs font-medium text-gray-600 dark:text-gray-400">
-                  Авторизация (опционально)
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Логин</label>
-                    <input
-                      type="text"
-                      value={feedAuthLogin}
-                      onChange={(e) => setFeedAuthLogin(e.target.value)}
-                      className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                      placeholder="Логин"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-gray-500 mb-1">Пароль</label>
-                    <div className="relative">
-                      <input
-                        type={showFeedPassword ? 'text' : 'password'}
-                        value={feedAuthPassword}
-                        onChange={(e) => setFeedAuthPassword(e.target.value)}
-                        className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors pr-10"
-                        placeholder="Пароль"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowFeedPassword(!showFeedPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
-                      >
-                        {showFeedPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Инструкция — показываем если автоматическая регистрация не удалась или ещё не пробовали */}
-              {feedRegistered !== true && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 mb-4">
-                  <div className="flex items-start gap-3">
-                    <Link2 className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
-                    <div className="text-xs text-blue-700 dark:text-blue-400 space-y-1">
-                      <p className="font-medium">
-                        {feedRegistered === null
-                          ? 'При сохранении URL автоматически зарегистрируется в Kaspi. Если не получится — настройте вручную:'
-                          : 'Настройте вручную в Kaspi:'}
-                      </p>
-                      <ol className="list-decimal list-inside space-y-0.5">
-                        <li>Скопируйте ссылку выше</li>
-                        <li>В кабинете Kaspi: Товары → Загрузить прайс-лист → Автоматическая загрузка</li>
-                        <li>Вставьте ссылку и укажите логин/пароль (если задали)</li>
-                        <li>Нажмите «Проверить», затем «Сохранить»</li>
-                      </ol>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Результат авто-регистрации */}
-              {feedRegistered === true && (
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-4 mb-4">
-                  <div className="flex items-center gap-3">
-                    <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
-                    <p className="text-sm text-emerald-700 dark:text-emerald-300 font-medium">
-                      URL зарегистрирован в Kaspi. Данные будут обновляться автоматически каждые 60 минут.
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {feedRegistered === false && (
-                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4 mb-4">
-                  <div className="flex items-start gap-3">
-                    <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
-                    <div>
-                      <p className="text-sm text-amber-700 dark:text-amber-300 font-medium mb-1">
-                        Настройки сохранены, но автоматическая регистрация в Kaspi не удалась
-                      </p>
-                      <p className="text-xs text-amber-600 dark:text-amber-400">
-                        Скопируйте ссылку и вставьте вручную: Товары → Загрузить прайс-лист → Автоматическая загрузка
-                      </p>
-                      {feedRegError && (
-                        <p className="text-xs text-amber-500 dark:text-amber-500 mt-1 font-mono">{feedRegError}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {feedCachedAt && (
-                <p className="text-xs text-gray-400 mb-4">
-                  Последнее обновление кэша: {new Date(feedCachedAt).toLocaleString('ru-RU')}
-                </p>
-              )}
-
-              {/* Результат проверки */}
-              {feedCheckResult?.success && (
-                <div className="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl p-3 mb-4">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
-                    <p className="text-sm text-emerald-700 dark:text-emerald-300">Kaspi успешно прочитал прайс-лист</p>
-                  </div>
-                  {feedCheckResult.data && (
-                    <pre className="mt-2 text-xs text-emerald-600 dark:text-emerald-400 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg p-2 overflow-auto max-h-40">
-                      {JSON.stringify(feedCheckResult.data, null, 2)}
-                    </pre>
-                  )}
-                </div>
-              )}
-              {feedCheckResult && !feedCheckResult.success && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-3 mb-4">
-                  <div className="flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-red-600 dark:text-red-400" />
-                    <p className="text-sm text-red-700 dark:text-red-300">
-                      {feedCheckResult.error || 'Kaspi не смог прочитать прайс-лист'}
-                    </p>
-                  </div>
-                  {feedCheckResult.data && (
-                    <pre className="mt-2 text-xs text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30 rounded-lg p-2 overflow-auto max-h-40">
-                      {JSON.stringify(feedCheckResult.data, null, 2)}
-                    </pre>
-                  )}
-                </div>
-              )}
-
-              {/* Кнопки */}
-              <div className="flex gap-3">
-                <button
-                  onClick={checkFeedUrl}
-                  disabled={feedChecking || !feedToken}
-                  className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
-                >
-                  {feedChecking ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Проверка...
-                    </>
-                  ) : (
-                    'Проверить'
-                  )}
-                </button>
-                <button
-                  onClick={saveFeedSettings}
-                  disabled={feedSaving}
-                  className="flex-1 px-4 py-2.5 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors cursor-pointer disabled:opacity-50 inline-flex items-center justify-center gap-2"
-                >
-                  {feedSaving ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      Сохранение...
-                    </>
-                  ) : feedToken ? (
-                    'Сохранить в Kaspi'
-                  ) : (
-                    'Включить автозагрузку'
-                  )}
-                </button>
-              </div>
-            </motion.div>
-          )}
+          </div>
 
           {/* API Debug - всегда видно */}
           {user?.id && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-3">
                   <Settings className="w-5 h-5 text-gray-400" />
@@ -1147,19 +721,19 @@ export default function KaspiSettingsPage() {
                   </pre>
                 </div>
               )}
-            </motion.div>
+            </div>
           )}
 
           {/* Sync History */}
           {status === 'connected' && syncHistory.length > 0 && (
-            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
               <div className="flex items-center gap-3 mb-4">
                 <Clock className="w-5 h-5 text-gray-400" />
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">История синхронизации</h3>
               </div>
               <div className="space-y-3">
                 {syncHistory.map((item, index) => (
-                  <div key={index} className="flex items-start gap-3 py-3 border-b border-gray-50 dark:border-gray-700 last:border-0">
+                  <div key={index} className="flex items-start gap-3 py-3 border-b border-gray-100 dark:border-gray-700 last:border-0">
                     <div className={`w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 ${
                       item.status === 'success' ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30'
                     }`}>
@@ -1176,7 +750,7 @@ export default function KaspiSettingsPage() {
                   </div>
                 ))}
               </div>
-            </motion.div>
+            </div>
           )}
         </motion.div>
 

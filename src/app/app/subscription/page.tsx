@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { motion } from 'framer-motion';
 import Link from 'next/link';
 
 // Интерфейсы
@@ -188,24 +187,20 @@ export default function SubscriptionPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 pt-16 lg:pt-0 lg:pl-64">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16 lg:pt-0 lg:pl-64">
       <div className="p-4 sm:p-6 lg:p-8">
         {/* Header */}
         <div className="mb-6 lg:mb-8">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <Link href="/app" className="hover:text-gray-700">Дашборд</Link>
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-2">
+            <Link href="/app" className="hover:text-gray-700 dark:hover:text-gray-300">Дашборд</Link>
             <span>/</span>
-            <span className="text-gray-900">Подписка</span>
+            <span className="text-gray-900 dark:text-white">Подписка</span>
           </div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900">Управление подпиской</h1>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 dark:text-white">Управление подпиской</h1>
         </div>
 
         {/* Текущий план */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 lg:p-8 mb-8 text-white"
-        >
+        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 lg:p-8 mb-8 text-white">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
             <div>
               <div className="flex items-center gap-3 mb-2">
@@ -261,17 +256,17 @@ export default function SubscriptionPage() {
               />
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Переключатель периода */}
         <div className="flex justify-center mb-8">
-          <div className="bg-white rounded-xl p-1 shadow-sm inline-flex">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-1 shadow-sm inline-flex">
             <button
               onClick={() => setBillingPeriod('monthly')}
               className={`px-6 py-2 rounded-lg text-sm font-medium transition-all ${
                 billingPeriod === 'monthly'
-                  ? 'bg-gray-900 text-white'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-gray-900 dark:bg-gray-700 text-white'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               Ежемесячно
@@ -280,12 +275,12 @@ export default function SubscriptionPage() {
               onClick={() => setBillingPeriod('yearly')}
               className={`px-6 py-2 rounded-lg text-sm font-medium transition-all flex items-center gap-2 ${
                 billingPeriod === 'yearly'
-                  ? 'bg-gray-900 text-white'
-                  : 'text-gray-600 hover:text-gray-900'
+                  ? 'bg-gray-900 dark:bg-gray-700 text-white'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               Ежегодно
-              <span className="bg-emerald-100 text-emerald-700 text-xs px-2 py-0.5 rounded-full">
+              <span className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs px-2 py-0.5 rounded-full">
                 -17%
               </span>
             </button>
@@ -294,18 +289,15 @@ export default function SubscriptionPage() {
 
         {/* Планы */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {subscriptionPlans.map((plan, index) => (
-            <motion.div
+          {subscriptionPlans.map((plan) => (
+            <div
               key={plan.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: index * 0.1 }}
-              className={`relative bg-white rounded-2xl p-6 lg:p-8 shadow-sm border-2 transition-all hover:shadow-lg ${
+              className={`relative bg-white dark:bg-gray-800 rounded-2xl p-6 lg:p-8 shadow-sm border-2 transition-all hover:shadow-lg ${
                 plan.current
                   ? 'border-emerald-500 ring-2 ring-emerald-500/20'
                   : plan.popular
-                  ? 'border-gray-200'
-                  : 'border-gray-100'
+                  ? 'border-gray-200 dark:border-gray-700'
+                  : 'border-gray-100 dark:border-gray-700'
               }`}
             >
               {plan.popular && (
@@ -333,28 +325,28 @@ export default function SubscriptionPage() {
               )}
 
               <div className="text-center mb-6">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">{plan.name}</h3>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{plan.name}</h3>
                 <div className="flex items-baseline justify-center gap-2">
                   {plan.oldPrice && (
-                    <span className="text-lg text-gray-400 line-through">
+                    <span className="text-lg text-gray-400 dark:text-gray-500 line-through">
                       {plan.oldPrice.toLocaleString('ru-RU')} ₸
                     </span>
                   )}
-                  <span className="text-4xl font-bold text-gray-900">
+                  <span className="text-4xl font-bold text-gray-900 dark:text-white">
                     {getPrice(plan).toLocaleString('ru-RU')}
                   </span>
-                  <span className="text-gray-500">₸</span>
+                  <span className="text-gray-500 dark:text-gray-400">₸</span>
                 </div>
-                <p className="text-gray-500 text-sm mt-1">
+                <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">
                   {billingPeriod === 'yearly' ? 'в год' : 'в месяц'}
                 </p>
                 {billingPeriod === 'yearly' && (
-                  <p className="text-emerald-600 text-sm mt-1">
+                  <p className="text-emerald-600 dark:text-emerald-400 text-sm mt-1">
                     {Math.round(plan.price * 10 / 12).toLocaleString('ru-RU')} ₸/мес
                   </p>
                 )}
                 {plan.badge && plan.popular && (
-                  <div className="mt-2 inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                  <div className="mt-2 inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium rounded-full">
                     {plan.badge}
                   </div>
                 )}
@@ -366,15 +358,15 @@ export default function SubscriptionPage() {
                     <svg className="w-5 h-5 text-emerald-500 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span className="text-gray-600 text-sm">{feature}</span>
+                    <span className="text-gray-600 dark:text-gray-400 text-sm">{feature}</span>
                   </li>
                 ))}
                 {plan.limitations?.map((limitation, i) => (
                   <li key={`lim-${i}`} className="flex items-start gap-3">
-                    <svg className="w-5 h-5 text-gray-300 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg className="w-5 h-5 text-gray-300 dark:text-gray-600 shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                    <span className="text-gray-400 text-sm">{limitation}</span>
+                    <span className="text-gray-400 dark:text-gray-500 text-sm">{limitation}</span>
                   </li>
                 ))}
               </ul>
@@ -382,41 +374,33 @@ export default function SubscriptionPage() {
               <button
                 className={`w-full py-3 rounded-xl font-medium transition-all ${
                   plan.current
-                    ? 'bg-gray-100 text-gray-500 cursor-default'
+                    ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-default'
                     : plan.popular
                     ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:shadow-lg hover:shadow-emerald-500/25'
-                    : 'bg-gray-900 text-white hover:bg-gray-800'
+                    : 'bg-gray-900 dark:bg-gray-700 text-white hover:bg-gray-800 dark:hover:bg-gray-600'
                 }`}
                 disabled={plan.current}
               >
                 {plan.current ? 'Текущий план' : 'Выбрать план'}
               </button>
-            </motion.div>
+            </div>
           ))}
         </div>
 
         {/* Дополнительные опции */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
-          className="mt-12"
-        >
-          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 text-center mb-2">
+        <div className="mt-12">
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white text-center mb-2">
             Дополнительные опции
           </h2>
-          <p className="text-gray-500 text-center mb-8">
+          <p className="text-gray-500 dark:text-gray-400 text-center mb-8">
             Подключите к любому тарифу для расширения возможностей
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            {addOnOptions.map((addon, index) => (
-              <motion.div
+            {addOnOptions.map((addon) => (
+              <div
                 key={addon.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 + index * 0.1 }}
-                className={`relative bg-white rounded-xl p-6 shadow-sm border-2 transition-all hover:shadow-lg ${
-                  addon.active ? 'border-emerald-500' : 'border-gray-100'
+                className={`relative bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border-2 transition-all hover:shadow-lg ${
+                  addon.active ? 'border-emerald-500' : 'border-gray-100 dark:border-gray-700'
                 }`}
               >
                 {addon.active && (
@@ -429,18 +413,18 @@ export default function SubscriptionPage() {
 
                 <div className="flex items-start justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-bold text-gray-900">{addon.name}</h3>
-                    <p className="text-gray-500 text-sm">{addon.description}</p>
+                    <h3 className="text-lg font-bold text-gray-900 dark:text-white">{addon.name}</h3>
+                    <p className="text-gray-500 dark:text-gray-400 text-sm">{addon.description}</p>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <span className="text-xl font-bold text-emerald-600">+{getAddonPrice(addon).toLocaleString('ru-RU')} ₸</span>
-                    <span className="text-gray-400 text-sm">/мес</span>
+                    <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400">+{getAddonPrice(addon).toLocaleString('ru-RU')} ₸</span>
+                    <span className="text-gray-400 dark:text-gray-500 text-sm">/мес</span>
                   </div>
                 </div>
 
                 <ul className="space-y-2 mb-6">
                   {addon.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
+                    <li key={i} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
                       <svg className="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                       </svg>
@@ -452,20 +436,20 @@ export default function SubscriptionPage() {
                 <button
                   className={`w-full py-2.5 rounded-lg font-medium transition-all ${
                     addon.active
-                      ? 'bg-gray-100 text-gray-500'
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                       : 'bg-emerald-500 text-white hover:bg-emerald-600'
                   }`}
                 >
                   {addon.active ? 'Отключить' : 'Подключить'}
                 </button>
-              </motion.div>
+              </div>
             ))}
           </div>
-        </motion.div>
+        </div>
 
         {/* FAQ */}
         <div className="mt-12 lg:mt-16">
-          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 text-center mb-8">
+          <h2 className="text-xl lg:text-2xl font-bold text-gray-900 dark:text-white text-center mb-8">
             Часто задаваемые вопросы
           </h2>
           <div className="max-w-3xl mx-auto space-y-4">
@@ -487,26 +471,23 @@ export default function SubscriptionPage() {
                 a: 'Да, для новых пользователей доступен бесплатный пробный период 14 дней на плане Pro с полным доступом ко всем функциям.',
               },
             ].map((item, index) => (
-              <motion.div
+              <div
                 key={index}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 + index * 0.1 }}
-                className="bg-white rounded-xl p-6 shadow-sm"
+                className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm"
               >
-                <h3 className="font-semibold text-gray-900 mb-2">{item.q}</h3>
-                <p className="text-gray-600 text-sm">{item.a}</p>
-              </motion.div>
+                <h3 className="font-semibold text-gray-900 dark:text-white mb-2">{item.q}</h3>
+                <p className="text-gray-600 dark:text-gray-400 text-sm">{item.a}</p>
+              </div>
             ))}
           </div>
         </div>
 
         {/* Контакт */}
         <div className="mt-12 text-center">
-          <p className="text-gray-600 mb-4">
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
             Нужна помощь с выбором плана?
           </p>
-          <button className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 text-white rounded-xl font-medium hover:bg-gray-800 transition-colors">
+          <button className="inline-flex items-center gap-2 px-6 py-3 bg-gray-900 dark:bg-gray-700 text-white rounded-xl font-medium hover:bg-gray-800 dark:hover:bg-gray-600 transition-colors">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>

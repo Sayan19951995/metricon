@@ -85,13 +85,13 @@ export default function AdminDashboard() {
     hidden: { opacity: 0 },
     visible: {
       opacity: 1,
-      transition: { staggerChildren: 0.1 }
+      transition: { duration: 0.15 }
     }
   };
 
   const itemVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
+    hidden: { opacity: 0 },
+    visible: { opacity: 1 }
   };
 
   const formatRevenue = (amount: number) => {
@@ -230,10 +230,7 @@ export default function AdminDashboard() {
       {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
         {/* Регистрации */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+        <div
           className="bg-white rounded-xl p-5 shadow-sm"
           key={`reg-${period}`}
         >
@@ -274,13 +271,10 @@ export default function AdminDashboard() {
               <span>{periodDays}</span>
             </div>
           )}
-        </motion.div>
+        </div>
 
         {/* Выручка */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.4 }}
+        <div
           className="bg-white rounded-xl p-5 shadow-sm"
           key={`rev-${period}`}
         >
@@ -321,14 +315,11 @@ export default function AdminDashboard() {
               <span>{periodDays}</span>
             </div>
           )}
-        </motion.div>
+        </div>
       </div>
 
       {/* Plan Distribution */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.5 }}
+      <div
         className="bg-white rounded-xl p-5 shadow-sm"
       >
         <h3 className="text-lg font-semibold text-gray-900 mb-4">Распределение по тарифам</h3>
@@ -348,7 +339,7 @@ export default function AdminDashboard() {
             </div>
           ))}
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 }

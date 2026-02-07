@@ -41,7 +41,7 @@ export default function BrandLoader({ text = 'Загрузка...' }: { text?: s
   }, []);
 
   return (
-    <div className="min-h-screen bg-[#fafafa] flex items-center justify-center">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center transition-colors">
       <div
         className="flex flex-col items-center gap-5"
         style={{ animation: 'bl-float 3s ease-in-out infinite' }}
@@ -50,12 +50,12 @@ export default function BrandLoader({ text = 'Загрузка...' }: { text?: s
         <div className="relative" style={{ width: '72px', height: '72px' }}>
           {/* Glow ring */}
           <div
-            className="absolute inset-0 bg-emerald-400/15 rounded-2xl"
+            className="absolute inset-0 bg-emerald-400/15 dark:bg-emerald-400/20 rounded-2xl"
             style={{ animation: 'bl-glow 2s ease-in-out infinite' }}
           />
 
           {/* Main container */}
-          <div className="relative w-full h-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-500/20">
+          <div className="relative w-full h-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-500/20 dark:shadow-emerald-500/30">
             {/* M as chart line */}
             <svg width="36" height="36" viewBox="0 0 32 32" fill="none">
               <path
@@ -86,7 +86,7 @@ export default function BrandLoader({ text = 'Загрузка...' }: { text?: s
 
         {/* Text */}
         {text && (
-          <span className="text-sm text-gray-400 font-medium tracking-wide">{text}</span>
+          <span className="text-sm text-gray-400 dark:text-gray-500 font-medium tracking-wide">{text}</span>
         )}
       </div>
     </div>

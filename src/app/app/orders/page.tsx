@@ -15,12 +15,9 @@ import {
   MapPin,
   Package,
   ArrowRightLeft,
-  Store,
-  CheckCircle2,
   ShoppingBag,
   Loader2,
   RefreshCw,
-  Info
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { supabase } from '@/lib/supabase';
@@ -277,14 +274,14 @@ export default function OrdersPage() {
 
   // Статистические карточки — все статусы из Kaspi API (state)
   const statsCards = [
-    { key: 'all' as const, label: 'Все заказы', icon: ShoppingBag, color: 'bg-gray-100', iconColor: 'text-gray-600', borderColor: 'border-gray-200' },
-    { key: 'new' as const, label: 'Новые', icon: Zap, color: 'bg-orange-50', iconColor: 'text-orange-600', borderColor: 'border-orange-200' },
-    { key: 'sign_required' as const, label: 'Подписание', icon: ArrowRightLeft, color: 'bg-yellow-50', iconColor: 'text-yellow-600', borderColor: 'border-yellow-200' },
-    { key: 'pickup' as const, label: 'Самовывоз', icon: MapPin, color: 'bg-purple-50', iconColor: 'text-purple-600', borderColor: 'border-purple-200' },
-    { key: 'delivery' as const, label: 'Моя доставка', icon: Truck, color: 'bg-blue-50', iconColor: 'text-blue-600', borderColor: 'border-blue-200' },
-    { key: 'awaiting' as const, label: 'Ожидает сборки', icon: Package, color: 'bg-amber-50', iconColor: 'text-amber-600', borderColor: 'border-amber-200' },
-    { key: 'transfer' as const, label: 'Экспресс', icon: ArrowRightLeft, color: 'bg-teal-50', iconColor: 'text-teal-600', borderColor: 'border-teal-200' },
-    { key: 'transmitted' as const, label: 'Переданы на доставку', icon: Truck, color: 'bg-sky-50', iconColor: 'text-sky-600', borderColor: 'border-sky-200' },
+    { key: 'all' as const, label: 'Все заказы', icon: ShoppingBag, color: 'bg-gray-100 dark:bg-gray-800', iconColor: 'text-gray-600 dark:text-gray-400', borderColor: 'border-gray-200 dark:border-gray-600' },
+    { key: 'new' as const, label: 'Новые', icon: Zap, color: 'bg-orange-50 dark:bg-orange-900/30', iconColor: 'text-orange-600 dark:text-orange-400', borderColor: 'border-orange-200 dark:border-orange-700' },
+    { key: 'sign_required' as const, label: 'Подписание', icon: ArrowRightLeft, color: 'bg-yellow-50 dark:bg-yellow-900/30', iconColor: 'text-yellow-600 dark:text-yellow-400', borderColor: 'border-yellow-200 dark:border-yellow-700' },
+    { key: 'pickup' as const, label: 'Самовывоз', icon: MapPin, color: 'bg-purple-50 dark:bg-purple-900/30', iconColor: 'text-purple-600 dark:text-purple-400', borderColor: 'border-purple-200 dark:border-purple-700' },
+    { key: 'delivery' as const, label: 'Моя доставка', icon: Truck, color: 'bg-blue-50 dark:bg-blue-900/30', iconColor: 'text-blue-600 dark:text-blue-400', borderColor: 'border-blue-200 dark:border-blue-700' },
+    { key: 'awaiting' as const, label: 'Ожидает сборки', icon: Package, color: 'bg-amber-50 dark:bg-amber-900/30', iconColor: 'text-amber-600 dark:text-amber-400', borderColor: 'border-amber-200 dark:border-amber-700' },
+    { key: 'transfer' as const, label: 'Экспресс', icon: ArrowRightLeft, color: 'bg-teal-50 dark:bg-teal-900/30', iconColor: 'text-teal-600 dark:text-teal-400', borderColor: 'border-teal-200 dark:border-teal-700' },
+    { key: 'transmitted' as const, label: 'Переданы на доставку', icon: Truck, color: 'bg-sky-50 dark:bg-sky-900/30', iconColor: 'text-sky-600 dark:text-sky-400', borderColor: 'border-sky-200 dark:border-sky-700' },
   ];
 
   const getStatusColor = (status: OrderStatus) => {
@@ -323,36 +320,26 @@ export default function OrdersPage() {
 
   if (userLoading || loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
       </div>
     );
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Header */}
-      <div className="mb-6 lg:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Заказы</h1>
-        <p className="text-gray-500 text-sm">Управление заказами и доставкой — {orders.length} заказов из Kaspi</p>
-      </div>
-
-      {/* Sync Delay Notice */}
-      <div className="mb-4 sm:mb-6 bg-blue-50 border border-blue-100 rounded-xl p-3 sm:p-4 flex items-center gap-3">
-        <Info className="w-4 h-4 text-blue-400 shrink-0" />
-        <p className="text-xs text-blue-600">Данные из Kaspi API обновляются с задержкой до 2 часов. Если заказ не отображается — повторите синхронизацию позже.</p>
+      <div className="mb-6">
+        <h1 className="text-2xl sm:text-3xl font-bold dark:text-white">Заказы</h1>
       </div>
 
       {/* Stats Cards */}
       <div className="flex flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6">
-        {statsCards.filter(card => card.key === 'all' || countByStatus(card.key) > 0).map((card, index) => {
+        {statsCards.filter(card => card.key === 'all' || countByStatus(card.key) > 0).map((card) => {
           const Icon = card.icon;
           return (
-            <motion.div
+            <div
               key={card.key}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
               onClick={() => setFilterStatus(card.key)}
               className={`flex-1 min-w-[140px] ${card.color} ${filterStatus === card.key ? `border-2 ${card.borderColor}` : 'border border-transparent'} rounded-xl p-3 sm:p-4 cursor-pointer hover:shadow-md transition-all`}
             >
@@ -360,19 +347,19 @@ export default function OrdersPage() {
                 <div className={`p-1.5 rounded-lg ${card.color}`}>
                   <Icon className={`w-4 h-4 ${card.iconColor}`} />
                 </div>
-                <span className="text-xs font-medium text-gray-600 truncate">{card.label}</span>
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-300 truncate">{card.label}</span>
               </div>
               <div className="space-y-1">
-                <p className="text-lg sm:text-xl font-bold text-gray-900">{countByStatus(card.key)}</p>
-                <p className="text-xs text-gray-500">{totalByStatus(card.key).toLocaleString()} ₸</p>
+                <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{countByStatus(card.key)}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{totalByStatus(card.key).toLocaleString()} ₸</p>
               </div>
-            </motion.div>
+            </div>
           );
         })}
       </div>
 
       {/* Filters and Search */}
-      <div className="bg-white rounded-2xl p-4 sm:p-6 shadow-sm mb-4 sm:mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm mb-4 sm:mb-6">
         <div className="flex flex-col lg:flex-row gap-4">
           {/* Search */}
           <div className="flex-1">
@@ -386,7 +373,7 @@ export default function OrdersPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Поиск по номеру заказа или клиенту..."
                 style={{ paddingLeft: '2.5rem' }}
-                className="w-full bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 transition-colors"
+                className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 dark:focus:border-gray-500 transition-colors"
               />
             </div>
           </div>
@@ -396,7 +383,7 @@ export default function OrdersPage() {
             <button
               onClick={handleSync}
               disabled={syncing}
-              className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-2 disabled:opacity-50"
+              className="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-2 disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
               {syncing ? 'Синхр...' : 'Обновить'}
@@ -426,10 +413,10 @@ export default function OrdersPage() {
               key={btn.key}
               onClick={() => setFilterStatus(btn.key)}
               className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-                filterStatus === btn.key ? btn.active : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                filterStatus === btn.key ? btn.active : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
-              {btn.label} <span className={`text-xs ${filterStatus === btn.key ? btn.activeCount : 'text-gray-400'}`}>{countByStatus(btn.key)}</span>
+              {btn.label} <span className={`text-xs ${filterStatus === btn.key ? btn.activeCount : 'text-gray-400 dark:text-gray-500'}`}>{countByStatus(btn.key)}</span>
             </button>
           ))}
         </div>
@@ -437,33 +424,30 @@ export default function OrdersPage() {
 
       {/* Orders - Mobile Cards */}
       <div className="lg:hidden space-y-3">
-        {filteredOrders.map((order, index) => (
-          <motion.div
+        {filteredOrders.map((order) => (
+          <div
             key={order.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.05 }}
-            className="bg-white rounded-xl p-4 shadow-sm"
+            className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"
             onClick={() => setSelectedOrder(order)}
           >
             <div className="flex items-start justify-between mb-2">
               <div>
-                <p className="text-xs font-bold text-gray-900">№ {order.code}</p>
-                <p className="text-sm text-gray-700 mt-0.5">{order.customer}</p>
+                <p className="text-xs font-bold text-gray-900 dark:text-white">№ {order.code}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300 mt-0.5">{order.customer}</p>
                 <p className="text-xs text-gray-400 mt-1">{order.date} • {order.time}</p>
                 {order.completed_date && (
-                  <p className="text-xs text-emerald-600 mt-0.5">Выдан: {order.completed_date} • {order.completed_time}</p>
+                  <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">Выдан: {order.completed_date} • {order.completed_time}</p>
                 )}
               </div>
               <span className={`px-2 py-1 rounded-full text-xs font-semibold whitespace-nowrap ${getStatusColor(order.status)}`}>
                 {getStatusText(order.status, order.rawStatus)}
               </span>
             </div>
-            <div className="pt-2 border-t border-gray-100">
+            <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
               <div className="space-y-1.5 mb-2">
                 {order.itemsList.length > 0 ? order.itemsList.map((item: any, i: number) => (
                   <div key={i}>
-                    <p className="text-xs text-gray-700 truncate">
+                    <p className="text-xs text-gray-700 dark:text-gray-300 truncate">
                       {item.product_name || 'Товар'} — {item.quantity || 1} шт.
                     </p>
                     <p className="text-[11px] text-gray-400">
@@ -471,34 +455,34 @@ export default function OrdersPage() {
                     </p>
                   </div>
                 )) : (
-                  <p className="text-xs text-gray-500">{order.items} шт.</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{order.items} шт.</p>
                 )}
               </div>
-              <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                <span className="text-xs text-gray-500">Итого</span>
-                <span className="text-sm font-bold text-gray-900">{order.total.toLocaleString()} ₸</span>
+              <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">
+                <span className="text-xs text-gray-500 dark:text-gray-400">Итого</span>
+                <span className="text-sm font-bold text-gray-900 dark:text-white">{order.total.toLocaleString()} ₸</span>
               </div>
             </div>
-          </motion.div>
+          </div>
         ))}
 
         {/* Mobile Total */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border-t-2 border-gray-200">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border-t-2 border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
-            <span className="text-sm font-semibold text-gray-700">Итого: {filteredOrders.reduce((sum, o) => sum + o.items, 0)} шт.</span>
-            <span className="text-sm font-bold text-gray-900">{filteredOrders.reduce((sum, o) => sum + o.total, 0).toLocaleString()} ₸</span>
+            <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Итого: {filteredOrders.reduce((sum, o) => sum + o.items, 0)} шт.</span>
+            <span className="text-sm font-bold text-gray-900 dark:text-white">{filteredOrders.reduce((sum, o) => sum + o.total, 0).toLocaleString()} ₸</span>
           </div>
         </div>
       </div>
 
       {/* Orders Table - Desktop */}
-      <div className="hidden lg:block bg-white rounded-2xl shadow-sm overflow-hidden">
+      <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
         <table className="w-full">
-          <thead className="bg-gray-50 border-b border-gray-200">
+          <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
             <tr>
               <th
                 onClick={() => handleSort('code')}
-                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <span>Номер заказа</span>
@@ -507,7 +491,7 @@ export default function OrdersPage() {
               </th>
               <th
                 onClick={() => handleSort('customer')}
-                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <span>Клиент</span>
@@ -516,7 +500,7 @@ export default function OrdersPage() {
               </th>
               <th
                 onClick={() => handleSort('date')}
-                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <span>Дата и время</span>
@@ -525,7 +509,7 @@ export default function OrdersPage() {
               </th>
               <th
                 onClick={() => handleSort('items')}
-                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <span>Товары</span>
@@ -534,7 +518,7 @@ export default function OrdersPage() {
               </th>
               <th
                 onClick={() => handleSort('total')}
-                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <span>Сумма</span>
@@ -543,54 +527,51 @@ export default function OrdersPage() {
               </th>
               <th
                 onClick={() => handleSort('status')}
-                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 uppercase cursor-pointer hover:bg-gray-100 transition-colors"
+                className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
               >
                 <div className="flex items-center gap-2">
                   <span>Статус</span>
                   {getSortIcon('status')}
                 </div>
               </th>
-              <th className="text-right py-4 px-6 text-xs font-semibold text-gray-600 uppercase">Действия</th>
+              <th className="text-right py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Действия</th>
             </tr>
           </thead>
           <tbody>
-            {filteredOrders.map((order, index) => (
-              <motion.tr
+            {filteredOrders.map((order) => (
+              <tr
                 key={order.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.05 }}
-                className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
               >
                 <td className="py-4 px-6">
-                  <p className="font-semibold text-sm text-gray-900">{order.code}</p>
+                  <p className="font-semibold text-sm text-gray-900 dark:text-white">{order.code}</p>
                 </td>
                 <td className="py-4 px-6">
-                  <p className="text-sm font-medium text-gray-900">{order.customer}</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{order.customer}</p>
                 </td>
                 <td className="py-4 px-6">
                   <div>
-                    <p className="text-sm text-gray-900">{order.date}</p>
-                    <p className="text-xs text-gray-500">{order.time}</p>
+                    <p className="text-sm text-gray-900 dark:text-white">{order.date}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{order.time}</p>
                     {order.completed_date && (
-                      <p className="text-xs text-emerald-600 mt-0.5">Выдан: {order.completed_date} {order.completed_time}</p>
+                      <p className="text-xs text-emerald-600 dark:text-emerald-400 mt-0.5">Выдан: {order.completed_date} {order.completed_time}</p>
                     )}
                   </div>
                 </td>
                 <td className="py-4 px-6">
                   <div className="space-y-0.5">
                     {order.itemsList.length > 0 ? order.itemsList.map((item: any, i: number) => (
-                      <p key={i} className="text-sm text-gray-700 truncate max-w-[250px]">
+                      <p key={i} className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[250px]">
                         {item.product_name || 'Товар'} — {item.quantity || 1} шт.
                       </p>
                     )) : (
-                      <span className="text-sm text-gray-700">{order.items} шт.</span>
+                      <span className="text-sm text-gray-700 dark:text-gray-300">{order.items} шт.</span>
                     )}
                   </div>
                 </td>
                 <td className="py-4 px-6">
                   <div>
-                    <span className="text-sm font-semibold text-gray-900">{order.total.toLocaleString()} ₸</span>
+                    <span className="text-sm font-semibold text-gray-900 dark:text-white">{order.total.toLocaleString()} ₸</span>
                     {order.itemsList.length > 0 && order.itemsList[0]?.price > 0 && (
                       <p className="text-xs text-gray-400">{Number(order.itemsList[0].price).toLocaleString()} ₸ / шт.</p>
                     )}
@@ -605,25 +586,25 @@ export default function OrdersPage() {
                   <div className="flex items-center justify-end gap-2">
                     <button
                       onClick={() => setSelectedOrder(order)}
-                      className="p-2 hover:bg-gray-100 rounded-lg transition-colors group cursor-pointer"
+                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors group cursor-pointer"
                     >
-                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-colors" />
+                      <ChevronRight className="w-4 h-4 text-gray-400 group-hover:text-gray-600 dark:group-hover:text-gray-300 transition-colors" />
                     </button>
                   </div>
                 </td>
-              </motion.tr>
+              </tr>
             ))}
           </tbody>
-          <tfoot className="bg-gray-50 border-t border-gray-200">
+          <tfoot className="bg-gray-50 dark:bg-gray-700/50 border-t border-gray-200 dark:border-gray-700">
             <tr>
               <td colSpan={3} className="py-4 px-6">
-                <span className="text-sm font-semibold text-gray-700">Итого:</span>
+                <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Итого:</span>
               </td>
               <td className="py-4 px-6">
-                <span className="text-sm font-semibold text-gray-900">{filteredOrders.reduce((sum, o) => sum + o.items, 0)} шт.</span>
+                <span className="text-sm font-semibold text-gray-900 dark:text-white">{filteredOrders.reduce((sum, o) => sum + o.items, 0)} шт.</span>
               </td>
               <td className="py-4 px-6">
-                <span className="text-sm font-bold text-gray-900">{filteredOrders.reduce((sum, o) => sum + o.total, 0).toLocaleString()} ₸</span>
+                <span className="text-sm font-bold text-gray-900 dark:text-white">{filteredOrders.reduce((sum, o) => sum + o.total, 0).toLocaleString()} ₸</span>
               </td>
               <td colSpan={2}></td>
             </tr>
@@ -638,19 +619,19 @@ export default function OrdersPage() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.2 }}
-            className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+            className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
           >
             {/* Header */}
-            <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
+            <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between rounded-t-2xl">
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">Детали заказа</h2>
-                <p className="text-sm text-gray-600 font-medium mt-1">№ {selectedOrder.code}</p>
+                <h2 className="text-2xl font-bold text-gray-900 dark:text-white">Детали заказа</h2>
+                <p className="text-sm text-gray-600 dark:text-gray-400 font-medium mt-1">№ {selectedOrder.code}</p>
               </div>
               <button
                 onClick={() => setSelectedOrder(null)}
-                className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
               >
-                <X className="w-5 h-5 text-gray-600" />
+                <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
               </button>
             </div>
 
@@ -658,84 +639,84 @@ export default function OrdersPage() {
             <div className="p-6 space-y-6">
               {/* Status Badge */}
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">Статус заказа</span>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Статус заказа</span>
                 <span className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap ${getStatusColor(selectedOrder.status)}`}>
                   {getStatusText(selectedOrder.status, selectedOrder.rawStatus)}
                 </span>
               </div>
 
               {/* Customer Info */}
-              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                <h3 className="font-semibold text-gray-900">Информация о клиенте</h3>
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 space-y-3">
+                <h3 className="font-semibold text-gray-900 dark:text-white">Информация о клиенте</h3>
                 <div>
-                  <p className="text-xs text-gray-500">Имя клиента</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedOrder.customer || 'Не указан'}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Имя клиента</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedOrder.customer || 'Не указан'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Телефон</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedOrder.phone || 'Не указан'}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Телефон</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedOrder.phone || 'Не указан'}</p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-500">Адрес доставки</p>
-                  <p className="text-sm font-medium text-gray-900">{selectedOrder.delivery_address || 'Не указан'}</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Адрес доставки</p>
+                  <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedOrder.delivery_address || 'Не указан'}</p>
                 </div>
               </div>
 
               {/* Order Items */}
-              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                <h3 className="font-semibold text-gray-900">Товары</h3>
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 space-y-3">
+                <h3 className="font-semibold text-gray-900 dark:text-white">Товары</h3>
                 <div className="space-y-2">
                   {selectedOrder.itemsList && selectedOrder.itemsList.length > 0 ? (
                     selectedOrder.itemsList.map((item: any, i: number) => (
-                      <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                      <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-600 last:border-0">
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">{item.product_name || 'Товар'}</p>
-                          <p className="text-xs text-gray-500">{item.quantity || 1} шт. x {Number(item.price || 0).toLocaleString()} ₸</p>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">{item.product_name || 'Товар'}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{item.quantity || 1} шт. x {Number(item.price || 0).toLocaleString()} ₸</p>
                         </div>
-                        <p className="text-sm font-semibold text-gray-900">{Number(item.total || 0).toLocaleString()} ₸</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{Number(item.total || 0).toLocaleString()} ₸</p>
                       </div>
                     ))
                   ) : (
-                    <p className="text-sm text-gray-500">{selectedOrder.items} шт.</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{selectedOrder.items} шт.</p>
                   )}
                 </div>
               </div>
 
               {/* Order Info */}
-              <div className="bg-gray-50 rounded-xl p-4 space-y-3">
-                <h3 className="font-semibold text-gray-900">Детали заказа</h3>
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 space-y-3">
+                <h3 className="font-semibold text-gray-900 dark:text-white">Детали заказа</h3>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <p className="text-xs text-gray-500">Дата заказа</p>
-                    <p className="text-sm font-medium text-gray-900">{selectedOrder.date}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Дата заказа</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedOrder.date}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Время заказа</p>
-                    <p className="text-sm font-medium text-gray-900">{selectedOrder.time}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Время заказа</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedOrder.time}</p>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-500">Количество товаров</p>
-                    <p className="text-sm font-medium text-gray-900">{selectedOrder.items} шт.</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Количество товаров</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedOrder.items} шт.</p>
                   </div>
                   {selectedOrder.completed_date ? (
                     <div>
-                      <p className="text-xs text-gray-500">Время выдачи</p>
-                      <p className="text-sm font-medium text-emerald-600">{selectedOrder.completed_date} • {selectedOrder.completed_time}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Время выдачи</p>
+                      <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">{selectedOrder.completed_date} • {selectedOrder.completed_time}</p>
                     </div>
                   ) : selectedOrder.delivery_date ? (
                     <div>
-                      <p className="text-xs text-gray-500">Дата доставки</p>
-                      <p className="text-sm font-medium text-gray-900">{new Date(selectedOrder.delivery_date).toLocaleDateString('ru-RU')}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Дата доставки</p>
+                      <p className="text-sm font-medium text-gray-900 dark:text-white">{new Date(selectedOrder.delivery_date).toLocaleDateString('ru-RU')}</p>
                     </div>
                   ) : null}
                 </div>
               </div>
 
               {/* Price Info */}
-              <div className="bg-emerald-50 rounded-xl p-4 space-y-2">
+              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-4 space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-sm text-gray-600">Общая сумма</span>
-                  <span className="text-2xl font-bold text-emerald-600">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Общая сумма</span>
+                  <span className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
                     {selectedOrder.total.toLocaleString()} ₸
                   </span>
                 </div>
@@ -745,7 +726,7 @@ export default function OrdersPage() {
               <div className="pt-4">
                 <button
                   onClick={() => setSelectedOrder(null)}
-                  className="w-full px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                  className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium transition-colors cursor-pointer"
                 >
                   Закрыть
                 </button>

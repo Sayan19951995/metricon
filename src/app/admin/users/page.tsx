@@ -186,9 +186,7 @@ export default function UsersPage() {
       </div>
 
       {/* Table */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
+      <div
         className="bg-white rounded-xl shadow-sm overflow-hidden"
       >
         <div className="overflow-x-auto">
@@ -341,7 +339,7 @@ export default function UsersPage() {
             </button>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Модалка изменения тарифа */}
       {planModal && (

@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { motion } from 'framer-motion';
 import {
   Search,
   Filter,
@@ -225,9 +224,7 @@ export default function SubscriptionsPage() {
           </div>
 
           {/* Table */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
+          <div
             className="bg-white rounded-xl shadow-sm overflow-hidden"
           >
             <div className="overflow-x-auto">
@@ -323,14 +320,12 @@ export default function SubscriptionsPage() {
                 </button>
               </div>
             </div>
-          </motion.div>
+          </div>
         </>
       )}
 
       {activeTab === 'payments' && (
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className="bg-white rounded-xl shadow-sm overflow-hidden"
         >
           <div className="overflow-x-auto">
@@ -373,7 +368,7 @@ export default function SubscriptionsPage() {
               </tbody>
             </table>
           </div>
-        </motion.div>
+        </div>
       )}
     </div>
   );

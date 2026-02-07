@@ -192,9 +192,9 @@ export default function AutoMailingPage() {
 
   const getStatusColor = (status: MailingStatus) => {
     switch (status) {
-      case 'active': return 'bg-emerald-100 text-emerald-700';
-      case 'paused': return 'bg-yellow-100 text-yellow-700';
-      case 'draft': return 'bg-gray-100 text-gray-700';
+      case 'active': return 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400';
+      case 'paused': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
+      case 'draft': return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
     }
   };
 
@@ -311,52 +311,49 @@ export default function AutoMailingPage() {
       label: 'Всего отправлено',
       value: stats.totalSent.toLocaleString(),
       icon: Send,
-      color: 'bg-blue-50',
-      iconColor: 'text-blue-600'
+      color: 'bg-blue-50 dark:bg-blue-900/30',
+      iconColor: 'text-blue-600 dark:text-blue-400'
     },
     {
       label: 'Доставлено',
       value: `${deliveryRate}%`,
       subValue: stats.totalDelivered.toLocaleString(),
       icon: CheckCircle2,
-      color: 'bg-emerald-50',
-      iconColor: 'text-emerald-600'
+      color: 'bg-emerald-50 dark:bg-emerald-900/30',
+      iconColor: 'text-emerald-600 dark:text-emerald-400'
     },
     {
       label: 'Открыто',
       value: `${openRate}%`,
       subValue: stats.totalOpened.toLocaleString(),
       icon: Mail,
-      color: 'bg-purple-50',
-      iconColor: 'text-purple-600'
+      color: 'bg-purple-50 dark:bg-purple-900/30',
+      iconColor: 'text-purple-600 dark:text-purple-400'
     },
     {
       label: 'Активных рассылок',
       value: stats.activeMailings.toString(),
       icon: TrendingUp,
-      color: 'bg-orange-50',
-      iconColor: 'text-orange-600'
+      color: 'bg-orange-50 dark:bg-orange-900/30',
+      iconColor: 'text-orange-600 dark:text-orange-400'
     }
   ];
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Header */}
       <div className="mb-6 lg:mb-8">
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2">Авторассылка</h1>
-        <p className="text-gray-500 text-sm">Автоматические уведомления клиентам</p>
+        <h1 className="text-2xl sm:text-3xl font-bold mb-2 dark:text-white">Авторассылка</h1>
+        <p className="text-gray-500 dark:text-gray-400 text-sm">Автоматические уведомления клиентам</p>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
-        {statsCards.map((card, index) => {
+        {statsCards.map((card) => {
           const Icon = card.icon;
           return (
-            <motion.div
+            <div
               key={card.label}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
               className={`${card.color} rounded-xl p-4`}
             >
               <div className="flex items-center gap-2 mb-3">
@@ -364,12 +361,12 @@ export default function AutoMailingPage() {
                   <Icon className={`w-5 h-5 ${card.iconColor}`} />
                 </div>
               </div>
-              <p className="text-2xl font-bold text-gray-900">{card.value}</p>
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">{card.value}</p>
               {card.subValue && (
-                <p className="text-xs text-gray-500 mt-1">{card.subValue} сообщений</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{card.subValue} сообщений</p>
               )}
-              <p className="text-xs text-gray-600 mt-1">{card.label}</p>
-            </motion.div>
+              <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">{card.label}</p>
+            </div>
           );
         })}
       </div>
@@ -385,14 +382,14 @@ export default function AutoMailingPage() {
         </button>
         <button
           onClick={() => setActiveModal('templates')}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium transition-colors cursor-pointer"
         >
           <MessageSquare className="w-4 h-4" />
           Шаблоны сообщений
         </button>
         <button
           onClick={() => setActiveModal('settings')}
-          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium transition-colors cursor-pointer"
         >
           <Settings className="w-4 h-4" />
           Настройки
@@ -400,49 +397,46 @@ export default function AutoMailingPage() {
       </div>
 
       {/* Mailings List */}
-      <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-gray-100">
-          <h2 className="text-lg font-semibold">Рассылки</h2>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+        <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
+          <h2 className="text-lg font-semibold dark:text-white">Рассылки</h2>
         </div>
 
-        <div className="divide-y divide-gray-100">
-          {mailings.map((mailing, index) => (
-            <motion.div
+        <div className="divide-y divide-gray-100 dark:divide-gray-700">
+          {mailings.map((mailing) => (
+            <div
               key={mailing.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-              className="p-4 sm:p-6 hover:bg-gray-50 transition-colors"
+              className="p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
             >
               <div className="flex flex-col lg:flex-row lg:items-center gap-4">
                 {/* Info */}
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold text-gray-900">{mailing.name}</h3>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">{mailing.name}</h3>
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(mailing.status)}`}>
                       {getStatusText(mailing.status)}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-500 mb-1">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
                     <Clock className="w-3.5 h-3.5 inline mr-1" />
                     {mailing.trigger}
                   </p>
-                  <p className="text-sm text-gray-400 truncate">Тема: {mailing.subject}</p>
+                  <p className="text-sm text-gray-400 dark:text-gray-500 truncate">Тема: {mailing.subject}</p>
                 </div>
 
                 {/* Stats */}
                 <div className="flex items-center gap-6 text-sm">
                   <div className="text-center">
-                    <p className="font-semibold text-gray-900">{mailing.sent.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500">Отправлено</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{mailing.sent.toLocaleString()}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Отправлено</p>
                   </div>
                   <div className="text-center">
                     <p className="font-semibold text-emerald-600">{mailing.delivered.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500">Доставлено</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Доставлено</p>
                   </div>
                   <div className="text-center">
                     <p className="font-semibold text-purple-600">{mailing.opened.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500">Открыто</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Открыто</p>
                   </div>
                 </div>
 
@@ -450,7 +444,7 @@ export default function AutoMailingPage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => openPreviewModal(mailing)}
-                    className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors cursor-pointer"
+                    className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
                     title="Предпросмотр"
                   >
                     <Eye className="w-4 h-4" />
@@ -474,14 +468,14 @@ export default function AutoMailingPage() {
                   )}
                   <button
                     onClick={() => openEditModal(mailing)}
-                    className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-600 transition-colors cursor-pointer"
+                    className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
                     title="Редактировать"
                   >
                     <Edit3 className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() => openDeleteModal(mailing)}
-                    className="p-2 rounded-lg bg-gray-100 hover:bg-red-100 text-gray-600 hover:text-red-600 transition-colors cursor-pointer"
+                    className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-gray-300 hover:text-red-600 transition-colors cursor-pointer"
                     title="Удалить"
                   >
                     <Trash2 className="w-4 h-4" />
@@ -490,22 +484,17 @@ export default function AutoMailingPage() {
               </div>
 
               {mailing.lastSent && (
-                <p className="text-xs text-gray-400 mt-3">
+                <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
                   Последняя отправка: {mailing.lastSent}
                 </p>
               )}
-            </motion.div>
+            </div>
           ))}
         </div>
       </div>
 
       {/* Info Card */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.3 }}
-        className="mt-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 text-white"
-      >
+      <div className="mt-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl p-6 text-white">
         <div className="flex items-start gap-4">
           <div className="p-3 bg-white/20 rounded-xl">
             <Mail className="w-6 h-6" />
@@ -519,7 +508,7 @@ export default function AutoMailingPage() {
             </p>
           </div>
         </div>
-      </motion.div>
+      </div>
 
       {/* Modal: Create/Edit Mailing */}
       <AnimatePresence>
@@ -529,24 +518,24 @@ export default function AutoMailingPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+              className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
             >
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
-                <h2 className="text-xl font-bold">
+              <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between rounded-t-2xl">
+                <h2 className="text-xl font-bold dark:text-white">
                   {activeModal === 'create' ? 'Создать рассылку' : 'Редактировать рассылку'}
                 </h2>
                 <button
                   onClick={() => setActiveModal(null)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
                 >
-                  <X className="w-5 h-5 text-gray-600" />
+                  <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 </button>
               </div>
 
               <div className="p-6 space-y-5">
                 {/* Название */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Название рассылки
                   </label>
                   <input
@@ -554,20 +543,20 @@ export default function AutoMailingPage() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Например: Подтверждение заказа"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                 </div>
 
                 {/* Триггер */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Когда отправлять
                   </label>
                   <div className="relative">
                     <select
                       value={formData.triggerType}
                       onChange={(e) => setFormData({ ...formData, triggerType: e.target.value })}
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors appearance-none cursor-pointer"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors appearance-none cursor-pointer"
                     >
                       {triggerOptions.map(option => (
                         <option key={option.value} value={option.value}>
@@ -581,7 +570,7 @@ export default function AutoMailingPage() {
 
                 {/* Тема письма */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Тема сообщения
                   </label>
                   <input
@@ -589,14 +578,14 @@ export default function AutoMailingPage() {
                     value={formData.subject}
                     onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
                     placeholder="Например: Ваш заказ #{order_id} принят"
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                 </div>
 
                 {/* Шаблон сообщения */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="block text-sm font-medium text-gray-700">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                       Текст сообщения
                     </label>
                     <button
@@ -611,16 +600,16 @@ export default function AutoMailingPage() {
                     onChange={(e) => setFormData({ ...formData, template: e.target.value })}
                     placeholder="Введите текст сообщения..."
                     rows={8}
-                    className="w-full px-4 py-3 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors resize-none"
+                    className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors resize-none"
                   />
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                     Доступные переменные: {'{customer_name}'}, {'{order_id}'}, {'{order_total}'}, {'{tracking_number}'}
                   </p>
                 </div>
 
                 {/* Статус */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Статус
                   </label>
                   <div className="flex gap-3">
@@ -629,7 +618,7 @@ export default function AutoMailingPage() {
                       className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
                         formData.status === 'draft'
                           ? 'bg-gray-900 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                       }`}
                     >
                       Черновик
@@ -639,7 +628,7 @@ export default function AutoMailingPage() {
                       className={`flex-1 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
                         formData.status === 'active'
                           ? 'bg-emerald-500 text-white'
-                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                          : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                       }`}
                     >
                       Активна
@@ -651,14 +640,14 @@ export default function AutoMailingPage() {
                 <div className="flex gap-3 pt-4">
                   <button
                     onClick={() => setActiveModal(null)}
-                    className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                    className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium transition-colors cursor-pointer"
                   >
                     Отмена
                   </button>
                   <button
                     onClick={handleSaveMailing}
                     disabled={!formData.name || !formData.subject || !formData.template}
-                    className="flex-1 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                    className="flex-1 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
                   >
                     {activeModal === 'create' ? 'Создать' : 'Сохранить'}
                   </button>
@@ -677,15 +666,15 @@ export default function AutoMailingPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
+              className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-2xl shadow-2xl max-h-[90vh] overflow-y-auto"
             >
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
-                <h2 className="text-xl font-bold">Шаблоны сообщений</h2>
+              <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between rounded-t-2xl">
+                <h2 className="text-xl font-bold dark:text-white">Шаблоны сообщений</h2>
                 <button
                   onClick={() => setActiveModal(null)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
                 >
-                  <X className="w-5 h-5 text-gray-600" />
+                  <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 </button>
               </div>
 
@@ -693,12 +682,12 @@ export default function AutoMailingPage() {
                 {templates.map((template) => (
                   <div
                     key={template.id}
-                    className="border border-gray-200 rounded-xl p-4 hover:border-emerald-300 transition-colors"
+                    className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-emerald-300 dark:hover:border-emerald-600 transition-colors"
                   >
                     <div className="flex items-start justify-between mb-3">
                       <div>
-                        <h3 className="font-semibold text-gray-900">{template.name}</h3>
-                        <p className="text-sm text-gray-500 mt-1">Тема: {template.subject}</p>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">{template.name}</h3>
+                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Тема: {template.subject}</p>
                       </div>
                       <button
                         onClick={() => applyTemplate(template)}
@@ -707,12 +696,12 @@ export default function AutoMailingPage() {
                         Использовать
                       </button>
                     </div>
-                    <p className="text-sm text-gray-600 line-clamp-3 whitespace-pre-line">
+                    <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3 whitespace-pre-line">
                       {template.content}
                     </p>
                     <div className="flex flex-wrap gap-1.5 mt-3">
                       {template.variables.map(v => (
-                        <span key={v} className="px-2 py-0.5 bg-gray-100 text-gray-600 rounded text-xs">
+                        <span key={v} className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded text-xs">
                           {'{' + v + '}'}
                         </span>
                       ))}
@@ -733,24 +722,24 @@ export default function AutoMailingPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto"
+              className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto"
             >
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
-                <h2 className="text-xl font-bold">Настройки рассылки</h2>
+              <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between rounded-t-2xl">
+                <h2 className="text-xl font-bold dark:text-white">Настройки рассылки</h2>
                 <button
                   onClick={() => setActiveModal(null)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
                 >
-                  <X className="w-5 h-5 text-gray-600" />
+                  <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 </button>
               </div>
 
               <div className="p-6 space-y-5">
                 {/* Включить/выключить */}
-                <div className="flex items-center justify-between p-4 bg-gray-50 rounded-xl">
+                <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-xl">
                   <div>
-                    <p className="font-medium text-gray-900">Авторассылка включена</p>
-                    <p className="text-sm text-gray-500">Автоматическая отправка сообщений</p>
+                    <p className="font-medium text-gray-900 dark:text-white">Авторассылка включена</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Автоматическая отправка сообщений</p>
                   </div>
                   <button
                     onClick={() => setSettings({ ...settings, enabled: !settings.enabled })}
@@ -766,53 +755,53 @@ export default function AutoMailingPage() {
 
                 {/* Имя отправителя */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Имя отправителя
                   </label>
                   <input
                     type="text"
                     value={settings.senderName}
                     onChange={(e) => setSettings({ ...settings, senderName: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                 </div>
 
                 {/* Email отправителя */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Email отправителя
                   </label>
                   <input
                     type="email"
                     value={settings.senderEmail}
                     onChange={(e) => setSettings({ ...settings, senderEmail: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                 </div>
 
                 {/* Reply-To */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Email для ответов (Reply-To)
                   </label>
                   <input
                     type="email"
                     value={settings.replyTo}
                     onChange={(e) => setSettings({ ...settings, replyTo: e.target.value })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                 </div>
 
                 {/* Лимит в день */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Максимум сообщений в день
                   </label>
                   <input
                     type="number"
                     value={settings.maxPerDay}
                     onChange={(e) => setSettings({ ...settings, maxPerDay: parseInt(e.target.value) || 0 })}
-                    className="w-full px-4 py-2.5 border border-gray-200 rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                 </div>
 
@@ -820,7 +809,7 @@ export default function AutoMailingPage() {
                 <div className="flex gap-3 pt-4">
                   <button
                     onClick={() => setActiveModal(null)}
-                    className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                    className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium transition-colors cursor-pointer"
                   >
                     Отмена
                   </button>
@@ -845,14 +834,14 @@ export default function AutoMailingPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl w-full max-w-md shadow-2xl"
+              className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-md shadow-2xl"
             >
               <div className="p-6">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <div className="w-12 h-12 bg-red-100 dark:bg-red-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
                   <AlertTriangle className="w-6 h-6 text-red-600" />
                 </div>
-                <h2 className="text-xl font-bold text-center mb-2">Удалить рассылку?</h2>
-                <p className="text-gray-500 text-center text-sm mb-6">
+                <h2 className="text-xl font-bold text-center mb-2 dark:text-white">Удалить рассылку?</h2>
+                <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-6">
                   Вы уверены, что хотите удалить рассылку "{deleteTarget.name}"?
                   Это действие нельзя отменить.
                 </p>
@@ -863,7 +852,7 @@ export default function AutoMailingPage() {
                       setDeleteTarget(null);
                       setActiveModal(null);
                     }}
-                    className="flex-1 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                    className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium transition-colors cursor-pointer"
                   >
                     Отмена
                   </button>
@@ -888,38 +877,38 @@ export default function AutoMailingPage() {
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto"
+              className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto"
             >
-              <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between rounded-t-2xl">
-                <h2 className="text-xl font-bold">Предпросмотр</h2>
+              <div className="sticky top-0 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 p-6 flex items-center justify-between rounded-t-2xl">
+                <h2 className="text-xl font-bold dark:text-white">Предпросмотр</h2>
                 <button
                   onClick={() => setActiveModal(null)}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors cursor-pointer"
                 >
-                  <X className="w-5 h-5 text-gray-600" />
+                  <X className="w-5 h-5 text-gray-600 dark:text-gray-400" />
                 </button>
               </div>
 
               <div className="p-6">
                 {/* Email Preview */}
-                <div className="border border-gray-200 rounded-xl overflow-hidden">
+                <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
                   {/* Header */}
-                  <div className="bg-gray-50 p-4 border-b border-gray-200">
+                  <div className="bg-gray-50 dark:bg-gray-900 p-4 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
                         <span className="text-white font-semibold">L</span>
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900">{settings.senderName}</p>
-                        <p className="text-xs text-gray-500">{settings.senderEmail}</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{settings.senderName}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{settings.senderEmail}</p>
                       </div>
                     </div>
-                    <p className="font-medium text-gray-900">{selectedMailing.subject.replace('{order_id}', '12345')}</p>
+                    <p className="font-medium text-gray-900 dark:text-white">{selectedMailing.subject.replace('{order_id}', '12345')}</p>
                   </div>
 
                   {/* Body */}
                   <div className="p-4">
-                    <p className="text-sm text-gray-700 whitespace-pre-line">
+                    <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
                       {selectedMailing.template
                         .replace('{customer_name}', 'Алексей')
                         .replace('{order_id}', '12345')
@@ -930,13 +919,13 @@ export default function AutoMailingPage() {
                   </div>
                 </div>
 
-                <p className="text-xs text-gray-500 text-center mt-4">
+                <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-4">
                   Так будет выглядеть сообщение для клиента
                 </p>
 
                 <button
                   onClick={() => setActiveModal(null)}
-                  className="w-full mt-4 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                  className="w-full mt-4 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium transition-colors cursor-pointer"
                 >
                   Закрыть
                 </button>

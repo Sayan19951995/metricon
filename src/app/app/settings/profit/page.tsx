@@ -1,7 +1,6 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
 import Link from 'next/link';
 import {
   ArrowLeft,
@@ -104,39 +103,30 @@ export default function ProfitSettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pt-16 lg:pt-0 lg:pl-64">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 pt-16 lg:pt-0 lg:pl-64">
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-2xl mx-auto">
           {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6 lg:mb-8"
-          >
+          <div className="mb-6 lg:mb-8">
             <Link
               href="/app/products"
-              className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 transition-colors mb-4"
+              className="inline-flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors mb-4"
             >
               <ArrowLeft className="w-4 h-4" />
               <span className="text-sm">Назад к товарам</span>
             </Link>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Настройки расчёта прибыли</h1>
-            <p className="text-gray-500 mt-1 text-sm sm:text-base">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Настройки расчёта прибыли</h1>
+            <p className="text-gray-500 dark:text-gray-400 mt-1 text-sm sm:text-base">
               Укажите параметры для расчёта прибыли по каждому товару
             </p>
-          </motion.div>
+          </div>
 
           {/* Settings Card */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm mb-6"
-          >
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm mb-6">
             <div className="space-y-6">
               {/* Tax */}
               <div>
-                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   <Receipt className="w-4 h-4 text-purple-500" />
                   Налог
                 </label>
@@ -148,26 +138,26 @@ export default function ProfitSettingsPage() {
                     min="0"
                     max="100"
                     step="0.1"
-                    className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                    className="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
                   />
-                  <span className="text-gray-500 font-medium">%</span>
+                  <span className="text-gray-500 dark:text-gray-400 font-medium">%</span>
                 </div>
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
                   Ставка налога зависит от режима налогообложения (ИП, ТОО и т.д.)
                 </p>
               </div>
 
               {/* Kaspi Commission Info */}
-              <div className="p-4 bg-blue-50 rounded-xl border border-blue-100">
+              <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl border border-blue-100 dark:border-blue-800">
                 <div className="flex gap-3">
                   <Percent className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-blue-800 w-full">
+                  <div className="text-sm text-blue-800 dark:text-blue-200 w-full">
                     <p className="font-medium mb-2">Комиссия Kaspi (по категории)</p>
-                    <p className="text-xs text-blue-600 mb-3">
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mb-3">
                       Комиссия определяется автоматически по категории товара
                     </p>
-                    <div className="bg-white/50 rounded-lg p-3 text-xs">
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-blue-700">
+                    <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3 text-xs">
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-blue-700 dark:text-blue-300">
                         {categoryCommissions.map((item) => (
                           <div key={item.category} className="contents">
                             <span>{item.category}</span>
@@ -180,7 +170,7 @@ export default function ProfitSettingsPage() {
                       href="https://guide.kaspi.kz/partner/ru/shop/conditions/commissions"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 mt-2 text-xs font-medium"
+                      className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mt-2 text-xs font-medium"
                     >
                       Актуальные комиссии на сайте Kaspi
                       <ExternalLink className="w-3 h-3" />
@@ -192,10 +182,10 @@ export default function ProfitSettingsPage() {
             </div>
 
             {/* Delivery Type Selection */}
-            <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
+            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl border border-blue-100 dark:border-blue-800">
               <div className="flex gap-3">
                 <Truck className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-blue-800 w-full">
+                <div className="text-sm text-blue-800 dark:text-blue-200 w-full">
                   <p className="font-medium mb-3">Тип доставки Kaspi</p>
 
                   {/* Delivery Type Buttons */}
@@ -207,7 +197,7 @@ export default function ProfitSettingsPage() {
                         className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-colors cursor-pointer ${
                           deliveryType === type
                             ? 'bg-blue-600 text-white'
-                            : 'bg-white text-blue-700 hover:bg-blue-100'
+                            : 'bg-white dark:bg-gray-700 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-gray-600'
                         }`}
                       >
                         {deliveryTypeLabels[type]}
@@ -216,11 +206,11 @@ export default function ProfitSettingsPage() {
                   </div>
 
                   {/* Rates Table */}
-                  <div className="bg-white/50 rounded-lg p-3 text-xs">
-                    <p className="font-medium text-blue-800 mb-1">
+                  <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3 text-xs">
+                    <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">
                       Тарифы ({deliveryTypeLabels[deliveryType]}, свыше 10,000 ₸):
                     </p>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-blue-700">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 text-blue-700 dark:text-blue-300">
                       {deliveryRates[deliveryType].map((tier, idx) => (
                         <React.Fragment key={idx}>
                           <span>{tier.weight}</span>
@@ -233,7 +223,7 @@ export default function ProfitSettingsPage() {
                     href="https://guide.kaspi.kz/partner/ru/shop/delivery/shipping/q2288"
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 mt-2 text-xs font-medium"
+                    className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 mt-2 text-xs font-medium"
                   >
                     Актуальные тарифы на сайте Kaspi
                     <ExternalLink className="w-3 h-3" />
@@ -243,12 +233,12 @@ export default function ProfitSettingsPage() {
             </div>
 
             {/* Info Box */}
-            <div className="mt-4 p-4 bg-amber-50 rounded-xl border border-amber-100">
+            <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-900/30 rounded-xl border border-amber-100 dark:border-amber-800">
               <div className="flex gap-3">
                 <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-amber-800">
+                <div className="text-sm text-amber-800 dark:text-amber-200">
                   <p className="font-medium mb-1">Что не учитывается в расчёте:</p>
-                  <ul className="list-disc list-inside space-y-0.5 text-amber-700">
+                  <ul className="list-disc list-inside space-y-0.5 text-amber-700 dark:text-amber-300">
                     <li>Расходы на рекламу</li>
                     <li>Возвраты и брак</li>
                     <li>Прочие операционные расходы</li>
@@ -261,7 +251,7 @@ export default function ProfitSettingsPage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={handleReset}
-                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium transition-colors cursor-pointer"
               >
                 <RotateCcw className="w-4 h-4" />
                 <span>Сбросить</span>
@@ -274,51 +264,46 @@ export default function ProfitSettingsPage() {
                 <span>{saved ? 'Сохранено!' : 'Сохранить'}</span>
               </button>
             </div>
-          </motion.div>
+          </div>
 
           {/* Example Calculation */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            className="bg-white rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm"
-          >
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm">
             <div className="flex items-center gap-2 mb-4">
               <Calculator className="w-5 h-5 text-emerald-600" />
-              <h2 className="font-semibold text-gray-900">Пример расчёта</h2>
+              <h2 className="font-semibold text-gray-900 dark:text-white">Пример расчёта</h2>
             </div>
 
-            <div className="bg-gray-50 rounded-xl p-4">
+            <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Цена продажи:</span>
-                  <span className="font-medium">{examplePrice.toLocaleString()} ₸</span>
+                  <span className="text-gray-600 dark:text-gray-400">Цена продажи:</span>
+                  <span className="font-medium text-gray-900 dark:text-white">{examplePrice.toLocaleString()} ₸</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Закупочная стоимость:</span>
+                  <span className="text-gray-600 dark:text-gray-400">Закупочная стоимость:</span>
                   <span className="font-medium text-red-600">−{exampleCostPrice.toLocaleString()} ₸</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Комиссия Kaspi (Смартфоны, {exampleCommissionRate}%):</span>
+                  <span className="text-gray-600 dark:text-gray-400">Комиссия Kaspi (Смартфоны, {exampleCommissionRate}%):</span>
                   <span className="font-medium text-red-600">−{exampleCommission.toLocaleString()} ₸</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Налог ({tax}%):</span>
+                  <span className="text-gray-600 dark:text-gray-400">Налог ({tax}%):</span>
                   <span className="font-medium text-red-600">−{exampleTax.toLocaleString()} ₸</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Доставка ({deliveryTypeLabels[deliveryType]}, {exampleWeight} кг):</span>
+                  <span className="text-gray-600 dark:text-gray-400">Доставка ({deliveryTypeLabels[deliveryType]}, {exampleWeight} кг):</span>
                   <span className="font-medium text-red-600">−{exampleDelivery.toLocaleString()} ₸</span>
                 </div>
-                <div className="border-t border-gray-200 pt-2 mt-2">
+                <div className="border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
                   <div className="flex justify-between">
-                    <span className="font-medium text-gray-900">Расчётная прибыль:</span>
+                    <span className="font-medium text-gray-900 dark:text-white">Расчётная прибыль:</span>
                     <span className={`font-bold ${exampleProfit > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                       {exampleProfit > 0 ? '+' : ''}{exampleProfit.toLocaleString()} ₸
                     </span>
                   </div>
                   <div className="flex justify-between mt-1">
-                    <span className="text-gray-600">Маржинальность:</span>
+                    <span className="text-gray-600 dark:text-gray-400">Маржинальность:</span>
                     <span className={`font-medium ${Number(exampleMargin) > 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                       {exampleMargin}%
                     </span>
@@ -327,10 +312,10 @@ export default function ProfitSettingsPage() {
               </div>
             </div>
 
-            <p className="text-xs text-gray-500 mt-3">
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
               Пример: товар с ценой {examplePrice.toLocaleString()} ₸, себестоимостью {exampleCostPrice.toLocaleString()} ₸ и весом {exampleWeight} кг
             </p>
-          </motion.div>
+          </div>
         </div>
       </div>
     </div>

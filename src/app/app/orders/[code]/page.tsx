@@ -21,7 +21,7 @@ export default function OrderDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
     );
@@ -29,9 +29,9 @@ export default function OrderDetailPage() {
 
   if (!order) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center">
         <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">Заказ не найден</h2>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-4">Заказ не найден</h2>
           <button
             onClick={() => router.push('/dashboard')}
             className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -44,7 +44,7 @@ export default function OrderDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-6">
@@ -57,8 +57,8 @@ export default function OrderDetailPage() {
             </svg>
             Назад к списку заказов
           </button>
-          <h1 className="text-3xl font-bold text-gray-900">Заказ #{order.code}</h1>
-          <p className="mt-2 text-gray-600">
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Заказ #{order.code}</h1>
+          <p className="mt-2 text-gray-600 dark:text-gray-400">
             Создан: {new Date(order.creationDate).toLocaleDateString('ru-RU', {
               day: '2-digit',
               month: 'long',
@@ -73,8 +73,8 @@ export default function OrderDetailPage() {
           {/* Main Info */}
           <div className="lg:col-span-2 space-y-6">
             {/* Order Status */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Статус заказа</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Статус заказа</h2>
               <div className="flex items-center gap-4">
                 <span className={`px-4 py-2 inline-flex text-sm font-semibold rounded-full ${
                   order.state === 'ARCHIVE'
@@ -101,16 +101,16 @@ export default function OrderDetailPage() {
             </div>
 
             {/* Customer Info */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Информация о клиенте</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Информация о клиенте</h2>
               <div className="space-y-3">
                 <div className="flex items-center">
                   <svg className="w-5 h-5 text-gray-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                   <div>
-                    <p className="text-sm text-gray-500">Имя</p>
-                    <p className="font-semibold text-gray-900">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Имя</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">
                       {order.customer.firstName} {order.customer.lastName}
                     </p>
                   </div>
@@ -120,20 +120,20 @@ export default function OrderDetailPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
                   </svg>
                   <div>
-                    <p className="text-sm text-gray-500">Телефон</p>
-                    <p className="font-semibold text-gray-900">{order.customer.cellPhone}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Телефон</p>
+                    <p className="font-semibold text-gray-900 dark:text-white">{order.customer.cellPhone}</p>
                   </div>
                 </div>
               </div>
             </div>
 
             {/* Delivery Info */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Доставка</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Доставка</h2>
               <div className="space-y-3">
                 <div>
-                  <p className="text-sm text-gray-500">Способ доставки</p>
-                  <p className="font-semibold text-gray-900">
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Способ доставки</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">
                     {order.deliveryMode === 'DELIVERY_LOCAL' ? 'Местная доставка' :
                      order.deliveryMode === 'DELIVERY_REGIONAL_TODOOR' ? 'Региональная доставка' :
                      order.deliveryMode === 'PICKUP' ? 'Самовывоз' : order.deliveryMode}
@@ -142,8 +142,8 @@ export default function OrderDetailPage() {
                 {order.deliveryAddress && (
                   <>
                     <div>
-                      <p className="text-sm text-gray-500">Адрес доставки</p>
-                      <p className="font-semibold text-gray-900">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">Адрес доставки</p>
+                      <p className="font-semibold text-gray-900 dark:text-white">
                         {order.deliveryAddress.formattedAddress}
                       </p>
                     </div>
@@ -178,14 +178,14 @@ export default function OrderDetailPage() {
                   </>
                 )}
                 {order.kaspiDelivery && order.kaspiDelivery.waybillNumber && (
-                  <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-                    <p className="text-sm font-semibold text-blue-900 mb-2">Kaspi Delivery</p>
+                  <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-200 mb-2">Kaspi Delivery</p>
                     <div className="space-y-1 text-sm">
-                      <p className="text-blue-800">
+                      <p className="text-blue-800 dark:text-blue-300">
                         Накладная: <span className="font-semibold">{order.kaspiDelivery.waybillNumber}</span>
                       </p>
                       {order.kaspiDelivery.courierTransmissionDate && (
-                        <p className="text-blue-800">
+                        <p className="text-blue-800 dark:text-blue-300">
                           Дата передачи курьеру: {new Date(order.kaspiDelivery.courierTransmissionDate).toLocaleDateString('ru-RU')}
                         </p>
                       )}
@@ -207,19 +207,19 @@ export default function OrderDetailPage() {
 
             {/* Order Entries/Products */}
             {order.entries && order.entries.length > 0 && (
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
                   Товары в заказе ({order.entries.length})
                 </h2>
                 <div className="space-y-4">
                   {order.entries.map((entry: any, index: number) => (
-                    <div key={index} className="border-b border-gray-200 pb-4 last:border-b-0 last:pb-0">
+                    <div key={index} className="border-b border-gray-200 dark:border-gray-700 pb-4 last:border-b-0 last:pb-0">
                       <div className="flex justify-between items-start mb-2">
                         <div className="flex-1">
-                          <h3 className="font-semibold text-gray-900 mb-1">
+                          <h3 className="font-semibold text-gray-900 dark:text-white mb-1">
                             {entry.product?.name || 'Товар'}
                           </h3>
-                          <div className="space-y-1 text-sm text-gray-600">
+                          <div className="space-y-1 text-sm text-gray-600 dark:text-gray-400">
                             {entry.product?.sku && (
                               <p>
                                 <span className="font-medium">SKU:</span> {entry.product.sku}
@@ -235,17 +235,17 @@ export default function OrderDetailPage() {
                       </div>
                       <div className="grid grid-cols-3 gap-4 mt-3">
                         <div>
-                          <p className="text-xs text-gray-500">Количество</p>
-                          <p className="font-semibold text-gray-900">{entry.quantity} шт.</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Количество</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">{entry.quantity} шт.</p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500">Цена за шт.</p>
-                          <p className="font-semibold text-gray-900">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Цена за шт.</p>
+                          <p className="font-semibold text-gray-900 dark:text-white">
                             {entry.basePrice?.toLocaleString('ru-RU')} ₸
                           </p>
                         </div>
                         <div>
-                          <p className="text-xs text-gray-500">Сумма</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Сумма</p>
                           <p className="font-semibold text-blue-600">
                             {entry.totalPrice?.toLocaleString('ru-RU')} ₸
                           </p>
@@ -261,25 +261,25 @@ export default function OrderDetailPage() {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Price Summary */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Финансы</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Финансы</h2>
               <div className="space-y-3">
-                <div className="flex justify-between pb-3 border-b border-gray-200">
-                  <span className="text-gray-600">Сумма заказа:</span>
-                  <span className="font-semibold text-gray-900">
+                <div className="flex justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
+                  <span className="text-gray-600 dark:text-gray-400">Сумма заказа:</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">
                     {order.totalPrice.toLocaleString('ru-RU')} ₸
                   </span>
                 </div>
                 {order.deliveryCostForSeller && order.deliveryCostForSeller > 0 && (
-                  <div className="flex justify-between pb-3 border-b border-gray-200">
-                    <span className="text-gray-600">Стоимость доставки:</span>
+                  <div className="flex justify-between pb-3 border-b border-gray-200 dark:border-gray-700">
+                    <span className="text-gray-600 dark:text-gray-400">Стоимость доставки:</span>
                     <span className="font-semibold text-red-600">
                       - {order.deliveryCostForSeller.toLocaleString('ru-RU')} ₸
                     </span>
                   </div>
                 )}
                 <div className="flex justify-between pt-2">
-                  <span className="text-gray-900 font-semibold">Итого к получению:</span>
+                  <span className="text-gray-900 dark:text-white font-semibold">Итого к получению:</span>
                   <span className="font-bold text-green-600 text-2xl">
                     {((order.totalPrice || 0) - (order.deliveryCostForSeller || 0)).toLocaleString('ru-RU')} ₸
                   </span>
@@ -288,20 +288,20 @@ export default function OrderDetailPage() {
             </div>
 
             {/* Order Details */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Детали заказа</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Детали заказа</h2>
               <div className="space-y-3 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">ID заказа:</span>
-                  <span className="font-mono text-gray-900">{order.orderId}</span>
+                  <span className="text-gray-600 dark:text-gray-400">ID заказа:</span>
+                  <span className="font-mono text-gray-900 dark:text-white">{order.orderId}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Номер:</span>
-                  <span className="font-semibold text-gray-900">{order.code}</span>
+                  <span className="text-gray-600 dark:text-gray-400">Номер:</span>
+                  <span className="font-semibold text-gray-900 dark:text-white">{order.code}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Дата создания:</span>
-                  <span className="text-gray-900">
+                  <span className="text-gray-600 dark:text-gray-400">Дата создания:</span>
+                  <span className="text-gray-900 dark:text-white">
                     {new Date(order.creationDate).toLocaleDateString('ru-RU', {
                       day: '2-digit',
                       month: '2-digit',
@@ -313,8 +313,8 @@ export default function OrderDetailPage() {
                 </div>
                 {order.stateDate && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Дата изменения статуса:</span>
-                    <span className="text-gray-900">
+                    <span className="text-gray-600 dark:text-gray-400">Дата изменения статуса:</span>
+                    <span className="text-gray-900 dark:text-white">
                       {new Date(order.stateDate).toLocaleDateString('ru-RU', {
                         day: '2-digit',
                         month: '2-digit',
@@ -327,8 +327,8 @@ export default function OrderDetailPage() {
                 )}
                 {order.approveDate && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Дата подтверждения:</span>
-                    <span className="text-gray-900">
+                    <span className="text-gray-600 dark:text-gray-400">Дата подтверждения:</span>
+                    <span className="text-gray-900 dark:text-white">
                       {new Date(order.approveDate).toLocaleDateString('ru-RU', {
                         day: '2-digit',
                         month: '2-digit',
@@ -341,7 +341,7 @@ export default function OrderDetailPage() {
                 )}
                 {order.plannedDeliveryDate && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Планируемая доставка:</span>
+                    <span className="text-gray-600 dark:text-gray-400">Планируемая доставка:</span>
                     <span className="text-blue-600 font-semibold">
                       {new Date(order.plannedDeliveryDate).toLocaleDateString('ru-RU', {
                         day: '2-digit',
@@ -355,7 +355,7 @@ export default function OrderDetailPage() {
                 )}
                 {order.actualDeliveryDate && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Фактическая доставка:</span>
+                    <span className="text-gray-600 dark:text-gray-400">Фактическая доставка:</span>
                     <span className="text-green-600 font-semibold">
                       {new Date(order.actualDeliveryDate).toLocaleDateString('ru-RU', {
                         day: '2-digit',
@@ -369,8 +369,8 @@ export default function OrderDetailPage() {
                 )}
                 {order.kaspiDelivery?.assembleDate && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Дата сборки:</span>
-                    <span className="text-gray-900">
+                    <span className="text-gray-600 dark:text-gray-400">Дата сборки:</span>
+                    <span className="text-gray-900 dark:text-white">
                       {new Date(order.kaspiDelivery.assembleDate).toLocaleDateString('ru-RU', {
                         day: '2-digit',
                         month: '2-digit',
@@ -383,8 +383,8 @@ export default function OrderDetailPage() {
                 )}
                 {order.kaspiDelivery?.plannedPointDeliveryDate && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">План. доставка в пункт:</span>
-                    <span className="text-gray-900">
+                    <span className="text-gray-600 dark:text-gray-400">План. доставка в пункт:</span>
+                    <span className="text-gray-900 dark:text-white">
                       {new Date(order.kaspiDelivery.plannedPointDeliveryDate).toLocaleDateString('ru-RU', {
                         day: '2-digit',
                         month: '2-digit',
@@ -400,8 +400,8 @@ export default function OrderDetailPage() {
 
             {/* Items Count */}
             {order.entries && order.entries.length > 0 && (
-              <div className="bg-blue-50 rounded-lg p-4">
-                <p className="text-sm text-blue-900">
+              <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-4">
+                <p className="text-sm text-blue-900 dark:text-blue-200">
                   <span className="font-semibold">{order.entries.length}</span> товар(ов) в заказе
                 </p>
               </div>
@@ -441,13 +441,13 @@ export default function OrderDetailPage() {
             </div>
 
             {/* Additional Info */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Дополнительно</h2>
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Дополнительно</h2>
               <div className="space-y-2 text-sm">
                 {order.deliveryMode && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Тип доставки:</span>
-                    <span className="text-gray-900 font-medium">
+                    <span className="text-gray-600 dark:text-gray-400">Тип доставки:</span>
+                    <span className="text-gray-900 dark:text-white font-medium">
                       {order.deliveryMode === 'DELIVERY_LOCAL' ? 'Местная доставка' :
                        order.deliveryMode === 'DELIVERY_REGIONAL_TODOOR' ? 'Региональная доставка' :
                        order.deliveryMode === 'PICKUP' ? 'Самовывоз' : order.deliveryMode}
@@ -456,13 +456,13 @@ export default function OrderDetailPage() {
                 )}
                 {order.signatureRequired && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Требуется подпись:</span>
+                    <span className="text-gray-600 dark:text-gray-400">Требуется подпись:</span>
                     <span className="text-green-600 font-semibold">Да</span>
                   </div>
                 )}
                 {order.preOrder && (
                   <div className="flex justify-between">
-                    <span className="text-gray-600">Предзаказ:</span>
+                    <span className="text-gray-600 dark:text-gray-400">Предзаказ:</span>
                     <span className="text-purple-600 font-semibold">Да</span>
                   </div>
                 )}

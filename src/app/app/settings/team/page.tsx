@@ -42,31 +42,31 @@ const roleDescriptions: Record<RoleType, { name: string; description: string; co
   owner: {
     name: 'Владелец',
     description: 'Полный доступ, управление командой и биллингом',
-    color: 'bg-amber-100 text-amber-700',
+    color: 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400',
     icon: Crown
   },
   admin: {
     name: 'Администратор',
     description: 'Полный доступ кроме биллинга и удаления аккаунта',
-    color: 'bg-purple-100 text-purple-700',
+    color: 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-400',
     icon: ShieldCheck
   },
   manager: {
     name: 'Менеджер',
     description: 'Заказы, товары, склад. Без доступа к финансам',
-    color: 'bg-blue-100 text-blue-700',
+    color: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-400',
     icon: Edit3
   },
   warehouse: {
     name: 'Кладовщик',
     description: 'Только склад: приёмка, остатки, перемещения',
-    color: 'bg-orange-100 text-orange-700',
+    color: 'bg-orange-100 dark:bg-orange-900/50 text-orange-700 dark:text-orange-400',
     icon: Package
   },
   viewer: {
     name: 'Наблюдатель',
     description: 'Только просмотр данных без редактирования',
-    color: 'bg-gray-100 text-gray-700',
+    color: 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300',
     icon: Eye
   }
 };
@@ -198,21 +198,21 @@ export default function TeamSettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pt-16 lg:pt-0 lg:pl-64">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 pt-16 lg:pt-0 lg:pl-64">
       <div className="p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-6">
           <Link
             href="/app/settings"
-            className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-4 transition-colors"
+            className="inline-flex items-center gap-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 mb-4 transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
             <span className="text-sm">Назад к настройкам</span>
           </Link>
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Команда и роли</h1>
-              <p className="text-gray-500 text-sm mt-1">Управление доступом сотрудников</p>
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Команда и роли</h1>
+              <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Управление доступом сотрудников</p>
             </div>
             <button
               onClick={() => canAddMore ? setShowInviteModal(true) : null}
@@ -220,7 +220,7 @@ export default function TeamSettingsPage() {
               className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all ${
                 canAddMore
                   ? 'bg-emerald-500 hover:bg-emerald-600 text-white'
-                  : 'bg-gray-200 text-gray-500 cursor-not-allowed'
+                  : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-not-allowed'
               }`}
             >
               <UserPlus className="w-4 h-4" />
@@ -230,29 +230,27 @@ export default function TeamSettingsPage() {
         </div>
 
         {/* Plan Limit Banner */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
+        <div
           className={`rounded-xl lg:rounded-2xl p-4 lg:p-5 mb-6 ${
-            canAddMore ? 'bg-emerald-50 border border-emerald-200' : 'bg-amber-50 border border-amber-200'
+            canAddMore ? 'bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-800' : 'bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800'
           }`}
         >
           <div className="flex items-start gap-3 lg:gap-4">
             <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl flex items-center justify-center flex-shrink-0 ${
-              canAddMore ? 'bg-emerald-100' : 'bg-amber-100'
+              canAddMore ? 'bg-emerald-100 dark:bg-emerald-800' : 'bg-amber-100 dark:bg-amber-800'
             }`}>
               <Users className={`w-4 h-4 lg:w-5 lg:h-5 ${canAddMore ? 'text-emerald-600' : 'text-amber-600'}`} />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <span className="font-medium text-gray-900">
+                <span className="font-medium text-gray-900 dark:text-white">
                   {currentRolesCount} из {maxRoles} сотрудников
                 </span>
-                <span className="px-2 py-0.5 bg-white rounded text-xs font-medium text-gray-600">
+                <span className="px-2 py-0.5 bg-white dark:bg-gray-800 rounded text-xs font-medium text-gray-600 dark:text-gray-300">
                   {planLimits[currentPlan].name}
                 </span>
               </div>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-300">
                 {canAddMore
                   ? `Вы можете добавить ещё ${maxRoles - currentRolesCount} сотрудников`
                   : 'Достигнут лимит сотрудников. Перейдите на Pro для добавления до 5 ролей.'}
@@ -260,7 +258,7 @@ export default function TeamSettingsPage() {
               {!canAddMore && (
                 <Link
                   href="/app/subscription"
-                  className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-amber-700 hover:text-amber-800"
+                  className="inline-flex items-center gap-1 mt-2 text-sm font-medium text-amber-700 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300"
                 >
                   Улучшить план
                   <ArrowLeft className="w-3 h-3 rotate-180" />
@@ -268,21 +266,18 @@ export default function TeamSettingsPage() {
               )}
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Team Members List */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-6">
-          <div className="p-4 lg:p-5 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900 lg:text-lg">Участники команды</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden mb-6">
+          <div className="p-4 lg:p-5 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="font-semibold text-gray-900 dark:text-white lg:text-lg">Участники команды</h2>
           </div>
-          <div className="divide-y divide-gray-50">
-            {teamMembers.map((member, index) => (
-              <motion.div
+          <div className="divide-y divide-gray-50 dark:divide-gray-700">
+            {teamMembers.map((member) => (
+              <div
                 key={member.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="p-4 lg:p-5 hover:bg-gray-50 transition-colors"
+                className="p-4 lg:p-5 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
               >
                 <div className="flex items-center gap-3 lg:gap-4">
                   {/* Avatar */}
@@ -298,18 +293,18 @@ export default function TeamSettingsPage() {
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900 truncate">{member.name}</span>
+                      <span className="font-medium text-gray-900 dark:text-white truncate">{member.name}</span>
                       {member.role === 'owner' && (
                         <Crown className="w-4 h-4 text-amber-500" />
                       )}
                       {member.status === 'pending' && (
-                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 text-amber-700 text-xs rounded">
+                        <span className="flex items-center gap-1 px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 text-xs rounded">
                           <Clock className="w-3 h-3" />
                           Ожидает
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-500 truncate">{member.email}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 truncate">{member.email}</p>
                   </div>
 
                   {/* Role Badge */}
@@ -326,9 +321,9 @@ export default function TeamSettingsPage() {
                     <div className="relative">
                       <button
                         onClick={() => setActiveDropdown(activeDropdown === member.id ? null : member.id)}
-                        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                       >
-                        <MoreVertical className="w-4 h-4 text-gray-400" />
+                        <MoreVertical className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                       </button>
 
                       <AnimatePresence>
@@ -337,7 +332,7 @@ export default function TeamSettingsPage() {
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             exit={{ opacity: 0, scale: 0.95 }}
-                            className="absolute right-0 top-full mt-1 w-48 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-10"
+                            className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-1 z-10"
                           >
                             <button
                               onClick={() => {
@@ -345,7 +340,7 @@ export default function TeamSettingsPage() {
                                 setShowRoleModal(true);
                                 setActiveDropdown(null);
                               }}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                             >
                               <Shield className="w-4 h-4" />
                               Изменить роль
@@ -353,7 +348,7 @@ export default function TeamSettingsPage() {
                             {member.status === 'pending' && (
                               <button
                                 onClick={() => handleResendInvite(member.id)}
-                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
                               >
                                 <Mail className="w-4 h-4" />
                                 Отправить повторно
@@ -361,7 +356,7 @@ export default function TeamSettingsPage() {
                             )}
                             <button
                               onClick={() => handleRemoveMember(member.id)}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
                             >
                               <Trash2 className="w-4 h-4" />
                               Удалить
@@ -381,17 +376,17 @@ export default function TeamSettingsPage() {
                   })()}
                   {roleDescriptions[member.role].name}
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
 
         {/* Roles Description */}
-        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-          <div className="p-4 lg:p-5 border-b border-gray-100">
-            <h2 className="font-semibold text-gray-900 lg:text-lg">Описание ролей</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-4 lg:p-5 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="font-semibold text-gray-900 dark:text-white lg:text-lg">Описание ролей</h2>
           </div>
-          <div className="divide-y divide-gray-50">
+          <div className="divide-y divide-gray-50 dark:divide-gray-700">
             {(Object.keys(roleDescriptions) as RoleType[]).map((role) => {
               const { name, description, color, icon: Icon } = roleDescriptions[role];
               const permissions = rolePermissions[role];
@@ -403,11 +398,11 @@ export default function TeamSettingsPage() {
                       <Icon className="w-5 h-5 lg:w-6 lg:h-6" />
                     </div>
                     <div className="flex-1">
-                      <h3 className="font-medium text-gray-900 lg:text-lg">{name}</h3>
-                      <p className="text-sm lg:text-base text-gray-500 mb-2">{description}</p>
+                      <h3 className="font-medium text-gray-900 dark:text-white lg:text-lg">{name}</h3>
+                      <p className="text-sm lg:text-base text-gray-500 dark:text-gray-400 mb-2">{description}</p>
                       <div className="flex flex-wrap gap-1.5 lg:gap-2">
                         {permissions.map((perm, i) => (
-                          <span key={i} className="px-2 py-0.5 lg:px-2.5 lg:py-1 bg-gray-100 text-gray-600 text-xs lg:text-sm rounded lg:rounded-lg">
+                          <span key={i} className="px-2 py-0.5 lg:px-2.5 lg:py-1 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 text-xs lg:text-sm rounded lg:rounded-lg">
                             {perm}
                           </span>
                         ))}
@@ -428,13 +423,13 @@ export default function TeamSettingsPage() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-2xl p-6 w-full max-w-md"
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md"
               >
-                <h2 className="text-xl font-bold text-gray-900 mb-4">Пригласить сотрудника</h2>
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-4">Пригласить сотрудника</h2>
 
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Email
                     </label>
                     <input
@@ -442,12 +437,12 @@ export default function TeamSettingsPage() {
                       value={inviteEmail}
                       onChange={(e) => setInviteEmail(e.target.value)}
                       placeholder="email@example.com"
-                      className="w-full px-4 py-2.5 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                       Роль
                     </label>
                     <div className="space-y-2">
@@ -459,16 +454,16 @@ export default function TeamSettingsPage() {
                             onClick={() => setInviteRole(role)}
                             className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
                               inviteRole === role
-                                ? 'border-emerald-500 bg-emerald-50'
-                                : 'border-gray-100 hover:border-gray-200'
+                                ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30'
+                                : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600'
                             }`}
                           >
                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color}`}>
                               <Icon className="w-4 h-4" />
                             </div>
                             <div className="text-left flex-1">
-                              <div className="font-medium text-gray-900">{name}</div>
-                              <div className="text-xs text-gray-500">{description}</div>
+                              <div className="font-medium text-gray-900 dark:text-white">{name}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">{description}</div>
                             </div>
                             {inviteRole === role && (
                               <Check className="w-5 h-5 text-emerald-500" />
@@ -484,13 +479,13 @@ export default function TeamSettingsPage() {
                   <button
                     onClick={handleInvite}
                     disabled={!inviteEmail}
-                    className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-200 disabled:text-gray-500 text-white rounded-xl font-medium transition-colors"
+                    className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-gray-500 dark:disabled:text-gray-400 text-white rounded-xl font-medium transition-colors"
                   >
                     Отправить приглашение
                   </button>
                   <button
                     onClick={() => setShowInviteModal(false)}
-                    className="px-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors"
+                    className="px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-colors"
                   >
                     Отмена
                   </button>
@@ -508,10 +503,10 @@ export default function TeamSettingsPage() {
                 initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                className="bg-white rounded-2xl p-6 w-full max-w-md"
+                className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md"
               >
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Изменить роль</h2>
-                <p className="text-gray-500 text-sm mb-4">
+                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Изменить роль</h2>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-4">
                   Выберите новую роль для {selectedMember.name}
                 </p>
 
@@ -524,19 +519,19 @@ export default function TeamSettingsPage() {
                         onClick={() => handleChangeRole(selectedMember.id, role)}
                         className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all ${
                           selectedMember.role === role
-                            ? 'border-emerald-500 bg-emerald-50'
-                            : 'border-gray-100 hover:border-gray-200'
+                            ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30'
+                            : 'border-gray-100 dark:border-gray-700 hover:border-gray-200 dark:hover:border-gray-600'
                         }`}
                       >
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${color}`}>
                           <Icon className="w-4 h-4" />
                         </div>
                         <div className="text-left flex-1">
-                          <div className="font-medium text-gray-900">{name}</div>
-                          <div className="text-xs text-gray-500">{description}</div>
+                          <div className="font-medium text-gray-900 dark:text-white">{name}</div>
+                          <div className="text-xs text-gray-500 dark:text-gray-400">{description}</div>
                         </div>
                         {selectedMember.role === role && (
-                          <span className="text-xs text-emerald-600 font-medium">Текущая</span>
+                          <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Текущая</span>
                         )}
                       </button>
                     );
@@ -548,7 +543,7 @@ export default function TeamSettingsPage() {
                     setShowRoleModal(false);
                     setSelectedMember(null);
                   }}
-                  className="w-full mt-4 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-colors"
+                  className="w-full mt-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-colors"
                 >
                   Отмена
                 </button>

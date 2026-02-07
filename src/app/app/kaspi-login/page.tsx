@@ -280,31 +280,27 @@ export default function KaspiLoginPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f14635] mx-auto mb-4"></div>
-          <p className="text-gray-600">Вход в Kaspi кабинет...</p>
-          <p className="text-sm text-gray-500 mt-2">Браузер откроется автоматически</p>
+          <p className="text-gray-600 dark:text-gray-400">Вход в Kaspi кабинет...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Браузер откроется автоматически</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mb-8"
-        >
+        <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">
+              <h1 className="text-4xl font-bold text-gray-900 dark:text-white mb-2">
                 {isLoggedIn ? 'Мои товары на Kaspi' : 'Вход в Kaspi кабинет'}
               </h1>
-              <p className="text-gray-600">
+              <p className="text-gray-600 dark:text-gray-400">
                 {isLoggedIn
                   ? `Вы вошли как ${localStorage.getItem('kaspi_username')}`
                   : 'Войдите через браузер для доступа к товарам'
@@ -322,28 +318,24 @@ export default function KaspiLoginPage() {
               )}
               <button
                 onClick={() => router.push('/dashboard')}
-                className="px-6 py-3 backdrop-blur-lg bg-white/60 text-gray-900 rounded-xl hover:bg-white/80 transition-all shadow-lg border border-white/20 cursor-pointer"
+                className="px-6 py-3 backdrop-blur-lg bg-white/60 dark:bg-gray-800/60 text-gray-900 dark:text-white rounded-xl hover:bg-white/80 dark:hover:bg-gray-700/80 transition-all shadow-lg border border-white/20 dark:border-gray-700/20 cursor-pointer"
               >
                 ← Назад
               </button>
             </div>
           </div>
-        </motion.div>
+        </div>
 
         {/* Login Form */}
         {!isLoggedIn && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="backdrop-blur-lg bg-white/60 rounded-2xl shadow-xl border border-white/20 p-8 max-w-md mx-auto"
-          >
-            <h2 className="text-2xl font-semibold text-gray-900 mb-6">
+          <div className="backdrop-blur-lg bg-white/60 dark:bg-gray-800/60 rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/20 p-8 max-w-md mx-auto">
+            <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-6">
               Введите данные от Kaspi кабинета
             </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Логин (телефон или email)
                 </label>
                 <input
@@ -351,7 +343,7 @@ export default function KaspiLoginPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="+7 (777) 123-45-67"
-                  className="w-full px-4 py-3 backdrop-blur-lg bg-white/60 rounded-xl border border-white/20 shadow-lg focus:outline-none focus:ring-2 focus:ring-[#f14635]"
+                  className="w-full px-4 py-3 backdrop-blur-lg bg-white/60 dark:bg-gray-700/60 text-gray-900 dark:text-white rounded-xl border border-white/20 dark:border-gray-600/20 shadow-lg focus:outline-none focus:ring-2 focus:ring-[#f14635]"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       document.getElementById('password-input')?.focus();
@@ -361,7 +353,7 @@ export default function KaspiLoginPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Пароль
                 </label>
                 <input
@@ -370,7 +362,7 @@ export default function KaspiLoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Введите пароль"
-                  className="w-full px-4 py-3 backdrop-blur-lg bg-white/60 rounded-xl border border-white/20 shadow-lg focus:outline-none focus:ring-2 focus:ring-[#f14635]"
+                  className="w-full px-4 py-3 backdrop-blur-lg bg-white/60 dark:bg-gray-700/60 text-gray-900 dark:text-white rounded-xl border border-white/20 dark:border-gray-600/20 shadow-lg focus:outline-none focus:ring-2 focus:ring-[#f14635]"
                   onKeyPress={(e) => {
                     if (e.key === 'Enter') {
                       handleLogin();
@@ -380,9 +372,9 @@ export default function KaspiLoginPage() {
               </div>
 
               {error && (
-                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                  <p className="text-sm text-red-900 font-semibold mb-1">Ошибка</p>
-                  <p className="text-sm text-red-800">{error}</p>
+                <div className="p-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg">
+                  <p className="text-sm text-red-900 dark:text-red-300 font-semibold mb-1">Ошибка</p>
+                  <p className="text-sm text-red-800 dark:text-red-400">{error}</p>
                 </div>
               )}
 
@@ -395,9 +387,9 @@ export default function KaspiLoginPage() {
               </button>
             </div>
 
-            <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-              <p className="text-sm text-blue-900 font-semibold mb-2">💡 Как это работает:</p>
-              <ul className="text-sm text-blue-800 list-disc list-inside space-y-1">
+            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+              <p className="text-sm text-blue-900 dark:text-blue-300 font-semibold mb-2">💡 Как это работает:</p>
+              <ul className="text-sm text-blue-800 dark:text-blue-400 list-disc list-inside space-y-1">
                 <li>Введите логин и пароль от Kaspi Merchant Cabinet</li>
                 <li>Система откроет браузер и войдет автоматически</li>
                 <li>Загрузятся все ваши товары с актуальными данными</li>
@@ -405,43 +397,39 @@ export default function KaspiLoginPage() {
               </ul>
             </div>
 
-            <div className="mt-4 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
-              <p className="text-sm text-yellow-900 font-semibold mb-1">🔒 Безопасность</p>
-              <p className="text-xs text-yellow-800">
+            <div className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/30 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <p className="text-sm text-yellow-900 dark:text-yellow-300 font-semibold mb-1">🔒 Безопасность</p>
+              <p className="text-xs text-yellow-800 dark:text-yellow-400">
                 Ваши данные используются только для входа в браузер и не сохраняются на сервере.
                 Все операции выполняются локально на вашем компьютере.
               </p>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* Products List */}
         {isLoggedIn && products.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="space-y-6"
-          >
+          <div className="space-y-6">
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div className="backdrop-blur-lg bg-white/60 rounded-xl shadow-lg border border-white/20 p-4">
-                <p className="text-sm text-gray-600">Всего товаров</p>
-                <p className="text-3xl font-bold text-gray-900 mt-1">{products.length}</p>
+              <div className="backdrop-blur-lg bg-white/60 dark:bg-gray-800/60 rounded-xl shadow-lg border border-white/20 dark:border-gray-700/20 p-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Всего товаров</p>
+                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-1">{products.length}</p>
               </div>
-              <div className="backdrop-blur-lg bg-white/60 rounded-xl shadow-lg border border-white/20 p-4">
-                <p className="text-sm text-gray-600">В наличии</p>
+              <div className="backdrop-blur-lg bg-white/60 dark:bg-gray-800/60 rounded-xl shadow-lg border border-white/20 dark:border-gray-700/20 p-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">В наличии</p>
                 <p className="text-3xl font-bold text-green-600 mt-1">
                   {products.filter(p => p.stock > 0).length}
                 </p>
               </div>
-              <div className="backdrop-blur-lg bg-white/60 rounded-xl shadow-lg border border-white/20 p-4">
-                <p className="text-sm text-gray-600">Нет в наличии</p>
+              <div className="backdrop-blur-lg bg-white/60 dark:bg-gray-800/60 rounded-xl shadow-lg border border-white/20 dark:border-gray-700/20 p-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Нет в наличии</p>
                 <p className="text-3xl font-bold text-red-600 mt-1">
                   {products.filter(p => p.stock === 0).length}
                 </p>
               </div>
-              <div className="backdrop-blur-lg bg-white/60 rounded-xl shadow-lg border border-white/20 p-4">
-                <p className="text-sm text-gray-600">Средняя цена</p>
+              <div className="backdrop-blur-lg bg-white/60 dark:bg-gray-800/60 rounded-xl shadow-lg border border-white/20 dark:border-gray-700/20 p-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400">Средняя цена</p>
                 <p className="text-3xl font-bold text-blue-600 mt-1">
                   {Math.round(products.reduce((sum, p) => sum + p.price, 0) / products.length).toLocaleString('ru-RU')} ₸
                 </p>
@@ -449,47 +437,47 @@ export default function KaspiLoginPage() {
             </div>
 
             {/* Products Table */}
-            <div className="backdrop-blur-lg bg-white/60 rounded-2xl shadow-xl border border-white/20 overflow-hidden">
-              <div className="px-6 py-4 border-b border-gray-200">
-                <h3 className="text-xl font-semibold text-gray-900">
+            <div className="backdrop-blur-lg bg-white/60 dark:bg-gray-800/60 rounded-2xl shadow-xl border border-white/20 dark:border-gray-700/20 overflow-hidden">
+              <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
                   Список товаров ({products.length})
                 </h3>
               </div>
 
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50/50">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50/50 dark:bg-gray-900/50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         SKU
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Название
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Цена
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Остаток
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Категория
                       </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                         Действия
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white/50 divide-y divide-gray-200">
+                  <tbody className="bg-white/50 dark:bg-gray-800/50 divide-y divide-gray-200 dark:divide-gray-700">
                     {products.map((product) => (
-                      <tr key={product.sku} className="hover:bg-white/80 transition-colors">
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                      <tr key={product.sku} className="hover:bg-white/80 dark:hover:bg-gray-700/80 transition-colors">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
                           {product.sku}
                         </td>
-                        <td className="px-6 py-4 text-sm text-gray-900">
+                        <td className="px-6 py-4 text-sm text-gray-900 dark:text-white">
                           <div className="max-w-xs truncate">{product.name}</div>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900 dark:text-white">
                           {product.price.toLocaleString('ru-RU')} ₸
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -501,13 +489,13 @@ export default function KaspiLoginPage() {
                             {product.stock} шт
                           </span>
                         </td>
-                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                           {product.category || '-'}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm relative">
                           <button
                             onClick={() => setOpenMenuSku(openMenuSku === product.sku ? null : product.sku)}
-                            className="text-gray-600 hover:text-gray-900 font-bold text-xl cursor-pointer"
+                            className="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white font-bold text-xl cursor-pointer"
                           >
                             ⋮
                           </button>
@@ -518,14 +506,14 @@ export default function KaspiLoginPage() {
                                 className="fixed inset-0 z-10"
                                 onClick={() => setOpenMenuSku(null)}
                               />
-                              <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-20">
+                              <div className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-20">
                                 <div className="py-1">
                                   <button
                                     onClick={() => {
                                       setOpenMenuSku(null);
                                       openPriceModal(product);
                                     }}
-                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2 cursor-pointer"
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 cursor-pointer"
                                   >
                                     <span>💰</span>
                                     Изменить цену
@@ -541,14 +529,14 @@ export default function KaspiLoginPage() {
                 </table>
               </div>
             </div>
-          </motion.div>
+          </div>
         )}
 
         {/* Empty State */}
         {isLoggedIn && products.length === 0 && (
-          <div className="backdrop-blur-lg bg-white/60 rounded-2xl p-12 text-center shadow-xl border border-white/20">
+          <div className="backdrop-blur-lg bg-white/60 dark:bg-gray-800/60 rounded-2xl p-12 text-center shadow-xl border border-white/20 dark:border-gray-700/20">
             <svg
-              className="w-16 h-16 text-gray-400 mx-auto mb-4"
+              className="w-16 h-16 text-gray-400 dark:text-gray-500 mx-auto mb-4"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -560,10 +548,10 @@ export default function KaspiLoginPage() {
                 d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"
               />
             </svg>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
               Товары не найдены
             </h3>
-            <p className="text-gray-600">
+            <p className="text-gray-600 dark:text-gray-400">
               Не удалось загрузить товары из вашего кабинета
             </p>
             <button
@@ -581,7 +569,7 @@ export default function KaspiLoginPage() {
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden"
+              className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-2xl w-full mx-4 overflow-hidden"
             >
               {/* Header */}
               <div className="bg-gradient-to-r from-[#f14635] to-[#ff6b5a] px-6 py-4">
@@ -599,28 +587,28 @@ export default function KaspiLoginPage() {
               {/* Body */}
               <div className="p-6 space-y-6">
                 {/* Product Info */}
-                <div className="bg-gray-50 rounded-xl p-4">
-                  <p className="text-sm text-gray-600 mb-1">Товар</p>
-                  <p className="font-semibold text-gray-900">{priceModalProduct.name}</p>
-                  <p className="text-sm text-gray-500 mt-1">SKU: {priceModalProduct.sku}</p>
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4">
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">Товар</p>
+                  <p className="font-semibold text-gray-900 dark:text-white">{priceModalProduct.name}</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">SKU: {priceModalProduct.sku}</p>
                 </div>
 
                 {/* Current Price & Lowest Price */}
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-blue-50 rounded-xl p-4">
-                    <p className="text-sm text-blue-600 mb-1">Текущая цена</p>
-                    <p className="text-2xl font-bold text-blue-900">
+                  <div className="bg-blue-50 dark:bg-blue-900/30 rounded-xl p-4">
+                    <p className="text-sm text-blue-600 dark:text-blue-400 mb-1">Текущая цена</p>
+                    <p className="text-2xl font-bold text-blue-900 dark:text-blue-300">
                       {priceModalProduct.price.toLocaleString('ru-RU')} ₸
                     </p>
                   </div>
                   {priceModalProduct.lowestPrice && (
-                    <div className="bg-green-50 rounded-xl p-4">
-                      <p className="text-sm text-green-600 mb-1">Самая низкая цена</p>
-                      <p className="text-2xl font-bold text-green-900">
+                    <div className="bg-green-50 dark:bg-green-900/30 rounded-xl p-4">
+                      <p className="text-sm text-green-600 dark:text-green-400 mb-1">Самая низкая цена</p>
+                      <p className="text-2xl font-bold text-green-900 dark:text-green-300">
                         {priceModalProduct.lowestPrice.toLocaleString('ru-RU')} ₸
                       </p>
                       {priceModalProduct.discount && (
-                        <p className="text-xs text-green-600 mt-1">
+                        <p className="text-xs text-green-600 dark:text-green-400 mt-1">
                           -{priceModalProduct.discount}%
                         </p>
                       )}
@@ -630,7 +618,7 @@ export default function KaspiLoginPage() {
 
                 {/* Price Input */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Цена, ₸
                   </label>
                   <input
@@ -638,10 +626,10 @@ export default function KaspiLoginPage() {
                     value={newPrice}
                     onChange={(e) => setNewPrice(e.target.value)}
                     placeholder="149000"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f14635] text-lg font-semibold"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f14635] text-lg font-semibold"
                   />
                   {priceModalProduct.lowestPrice && (
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       Самая низкая цена {priceModalProduct.lowestPrice.toLocaleString('ru-RU')} ₸
                     </p>
                   )}
@@ -649,7 +637,7 @@ export default function KaspiLoginPage() {
 
                 {/* Stock Input */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Остатки от 0 до 10000 шт.
                   </label>
                   <input
@@ -659,33 +647,33 @@ export default function KaspiLoginPage() {
                     placeholder="2"
                     min="0"
                     max="10000"
-                    className="w-full px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f14635] text-lg font-semibold"
+                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-[#f14635] text-lg font-semibold"
                   />
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                     Товар останется в продаже, если не указать остатки. Снять с продажи его нужно будет вручную
                   </p>
                 </div>
 
                 {/* Location Info */}
-                <div className="bg-gray-50 rounded-xl p-4 space-y-2">
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-xl p-4 space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-sm text-gray-600">Остатки от 0 до 10000 шт.</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">Остатки от 0 до 10000 шт.</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">PP7, улица Адилова, 3A</span>
-                    <span className="text-sm text-gray-600">2</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">PP7, улица Адилова, 3A</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">2</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-medium">PP1, улица Полины Осипенко, 35A</span>
-                    <span className="text-sm text-gray-600">8</span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-white">PP1, улица Полины Осипенко, 35A</span>
+                    <span className="text-sm text-gray-600 dark:text-gray-400">8</span>
                   </div>
                 </div>
 
                 {/* Error */}
                 {priceError && (
-                  <div className="bg-red-50 border border-red-200 rounded-xl p-4">
-                    <p className="text-sm text-red-900 font-semibold mb-1">Ошибка</p>
-                    <p className="text-sm text-red-800">{priceError}</p>
+                  <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-4">
+                    <p className="text-sm text-red-900 dark:text-red-300 font-semibold mb-1">Ошибка</p>
+                    <p className="text-sm text-red-800 dark:text-red-400">{priceError}</p>
                   </div>
                 )}
 
@@ -701,7 +689,7 @@ export default function KaspiLoginPage() {
                   <button
                     onClick={closePriceModal}
                     disabled={priceLoading}
-                    className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl hover:bg-gray-300 transition-all font-semibold disabled:opacity-50 cursor-pointer"
+                    className="px-6 py-3 bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-300 dark:hover:bg-gray-600 transition-all font-semibold disabled:opacity-50 cursor-pointer"
                   >
                     Отмена
                   </button>
