@@ -27,7 +27,7 @@ import { supabase } from '@/lib/supabase';
 import { getCached, setCache } from '@/lib/cache';
 
 type OrderStatus = 'new' | 'sign_required' | 'pickup' | 'delivery' | 'kaspi_delivery' | 'archive' | 'completed' | 'cancelled' | 'returned';
-type FilterStatus = 'all' | OrderStatus | 'preorder' | 'packing' | 'transfer' | 'transmitted';
+type FilterStatus = 'all' | OrderStatus | 'awaiting' | 'transfer' | 'transmitted';
 type SortField = 'code' | 'customer' | 'date' | 'items' | 'total' | 'status';
 type SortDirection = 'asc' | 'desc';
 
@@ -224,11 +224,10 @@ export default function OrdersPage() {
       const matchesSearch = o.code.toLowerCase().includes(searchTerm.toLowerCase()) ||
                            o.customer.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = filterStatus === 'all'
-        || (filterStatus as any) === 'preorder' && o.rawStatus.includes('preorder')
-        || (filterStatus as any) === 'packing' && (o.rawStatus.includes('packing') || o.rawStatus === 'kaspi_delivery')
+        || (filterStatus as any) === 'awaiting' && (o.rawStatus.includes('awaiting') || o.rawStatus.includes('preorder') || o.rawStatus.includes('packing') || o.rawStatus === 'kaspi_delivery')
         || (filterStatus as any) === 'transfer' && o.rawStatus === 'kaspi_delivery_transfer'
         || (filterStatus as any) === 'transmitted' && o.rawStatus.includes('transmitted')
-        || !['preorder', 'packing', 'transfer', 'transmitted'].includes(filterStatus as any) && o.status === filterStatus;
+        || !['awaiting', 'transfer', 'transmitted'].includes(filterStatus as any) && o.status === filterStatus;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -258,19 +257,19 @@ export default function OrdersPage() {
       return sortDirection === 'asc' ? comparison : -comparison;
     });
 
-  const countByStatus = (status: FilterStatus | 'preorder' | 'packing' | 'transfer' | 'transmitted') => {
+  const isAwaiting = (o: Order) => o.rawStatus.includes('awaiting') || o.rawStatus.includes('preorder') || o.rawStatus.includes('packing') || o.rawStatus === 'kaspi_delivery';
+
+  const countByStatus = (status: FilterStatus) => {
     if (status === 'all') return orders.length;
-    if (status === 'preorder') return orders.filter(o => o.rawStatus.includes('preorder')).length;
-    if (status === 'packing') return orders.filter(o => o.rawStatus.includes('packing') || o.rawStatus === 'kaspi_delivery').length;
+    if (status === 'awaiting') return orders.filter(isAwaiting).length;
     if (status === 'transfer') return orders.filter(o => o.rawStatus === 'kaspi_delivery_transfer').length;
     if (status === 'transmitted') return orders.filter(o => o.rawStatus.includes('transmitted')).length;
     return orders.filter(o => o.status === status).length;
   };
 
-  const totalByStatus = (status: FilterStatus | 'preorder' | 'packing' | 'transfer' | 'transmitted') => {
+  const totalByStatus = (status: FilterStatus) => {
     if (status === 'all') return orders.reduce((sum, o) => sum + o.total, 0);
-    if (status === 'preorder') return orders.filter(o => o.rawStatus.includes('preorder')).reduce((sum, o) => sum + o.total, 0);
-    if (status === 'packing') return orders.filter(o => o.rawStatus.includes('packing') || o.rawStatus === 'kaspi_delivery').reduce((sum, o) => sum + o.total, 0);
+    if (status === 'awaiting') return orders.filter(isAwaiting).reduce((sum, o) => sum + o.total, 0);
     if (status === 'transfer') return orders.filter(o => o.rawStatus === 'kaspi_delivery_transfer').reduce((sum, o) => sum + o.total, 0);
     if (status === 'transmitted') return orders.filter(o => o.rawStatus.includes('transmitted')).reduce((sum, o) => sum + o.total, 0);
     return orders.filter(o => o.status === status).reduce((sum, o) => sum + o.total, 0);
@@ -283,8 +282,7 @@ export default function OrdersPage() {
     { key: 'sign_required' as const, label: 'Подписание', icon: ArrowRightLeft, color: 'bg-yellow-50', iconColor: 'text-yellow-600', borderColor: 'border-yellow-200' },
     { key: 'pickup' as const, label: 'Самовывоз', icon: MapPin, color: 'bg-purple-50', iconColor: 'text-purple-600', borderColor: 'border-purple-200' },
     { key: 'delivery' as const, label: 'Моя доставка', icon: Truck, color: 'bg-blue-50', iconColor: 'text-blue-600', borderColor: 'border-blue-200' },
-    { key: 'preorder' as const, label: 'Предзаказ', icon: Loader2, color: 'bg-amber-50', iconColor: 'text-amber-600', borderColor: 'border-amber-200' },
-    { key: 'packing' as const, label: 'Упаковка', icon: Package, color: 'bg-indigo-50', iconColor: 'text-indigo-600', borderColor: 'border-indigo-200' },
+    { key: 'awaiting' as const, label: 'Ожидает сборки', icon: Package, color: 'bg-amber-50', iconColor: 'text-amber-600', borderColor: 'border-amber-200' },
     { key: 'transfer' as const, label: 'Экспресс', icon: ArrowRightLeft, color: 'bg-teal-50', iconColor: 'text-teal-600', borderColor: 'border-teal-200' },
     { key: 'transmitted' as const, label: 'Переданы на доставку', icon: Truck, color: 'bg-sky-50', iconColor: 'text-sky-600', borderColor: 'border-sky-200' },
   ];
@@ -306,17 +304,16 @@ export default function OrdersPage() {
   const getStatusText = (status: OrderStatus, rawStatus?: string) => {
     // Детальные подстатусы Kaspi Доставки
     if (status === 'kaspi_delivery' && rawStatus) {
-      if (rawStatus.includes('preorder')) return 'Предзаказ';
       if (rawStatus.includes('transmitted')) return 'Переданы на доставку';
-      if (rawStatus.includes('transfer')) return 'Экспресс';
-      if (rawStatus.includes('packing')) return 'Упаковка';
+      if (rawStatus.includes('transfer')) return 'Передача';
+      return 'Ожидает сборки';
     }
     switch (status) {
       case 'new': return 'Новый';
       case 'sign_required': return 'Подписание';
       case 'pickup': return 'Самовывоз';
       case 'delivery': return 'Моя доставка';
-      case 'kaspi_delivery': return 'Упаковка';
+      case 'kaspi_delivery': return 'Ожидает сборки';
       case 'completed': case 'archive': return 'Завершён';
       case 'cancelled': return 'Отменён';
       case 'returned': return 'Возврат';
@@ -421,10 +418,9 @@ export default function OrdersPage() {
             { key: 'sign_required' as FilterStatus, label: 'Подписание', active: 'bg-yellow-500 text-white', activeCount: 'text-yellow-200' },
             { key: 'pickup' as FilterStatus, label: 'Самовывоз', active: 'bg-purple-500 text-white', activeCount: 'text-purple-200' },
             { key: 'delivery' as FilterStatus, label: 'Моя доставка', active: 'bg-blue-500 text-white', activeCount: 'text-blue-200' },
-            { key: 'preorder' as any, label: 'Предзаказ', active: 'bg-amber-500 text-white', activeCount: 'text-amber-200' },
-            { key: 'packing' as any, label: 'Упаковка', active: 'bg-indigo-500 text-white', activeCount: 'text-indigo-200' },
-            { key: 'transfer' as any, label: 'Экспресс', active: 'bg-teal-500 text-white', activeCount: 'text-teal-200' },
-            { key: 'transmitted' as any, label: 'Переданы на доставку', active: 'bg-sky-500 text-white', activeCount: 'text-sky-200' },
+            { key: 'awaiting' as FilterStatus, label: 'Ожидает сборки', active: 'bg-amber-500 text-white', activeCount: 'text-amber-200' },
+            { key: 'transfer' as FilterStatus, label: 'Передача', active: 'bg-teal-500 text-white', activeCount: 'text-teal-200' },
+            { key: 'transmitted' as FilterStatus, label: 'Переданы на доставку', active: 'bg-sky-500 text-white', activeCount: 'text-sky-200' },
           ].map(btn => (
             <button
               key={btn.key}

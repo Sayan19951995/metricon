@@ -175,7 +175,8 @@ export async function GET(request: NextRequest) {
 
     // Маппинг в формат фронтенда
     const pending = (statusCounts['new'] || 0) + (statusCounts['pending'] || 0);
-    const processing = (statusCounts['kaspi_delivery_packing'] || 0) +
+    const processing = (statusCounts['kaspi_delivery_awaiting'] || 0) +
+                       (statusCounts['kaspi_delivery_packing'] || 0) +
                        (statusCounts['kaspi_delivery_preorder'] || 0) +
                        (statusCounts['sign_required'] || 0);
     const shipped = (statusCounts['delivery'] || 0) +

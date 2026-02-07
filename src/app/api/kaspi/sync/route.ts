@@ -78,12 +78,11 @@ export async function POST(request: NextRequest) {
 
     // Подстатусы KASPI_DELIVERY
     const kdOrders = orders.filter(o => o.state === 'KASPI_DELIVERY');
-    const subStatusCounts: Record<string, number> = { preorder: 0, transmitted: 0, transfer: 0, packing: 0 };
+    const subStatusCounts: Record<string, number> = { awaiting_assembly: 0, transmitted: 0, transfer: 0 };
     for (const o of kdOrders) {
       const sub = o.kaspiDelivery?.courierTransmissionDate ? 'transmitted'
         : o.kaspiDelivery?.waybill ? 'transfer'
-        : o.preOrder ? 'preorder'
-        : 'packing';
+        : 'awaiting_assembly'; // preOrder + packing объединены (API не различает)
       subStatusCounts[sub]++;
     }
     console.log('SYNC KD sub-statuses:', JSON.stringify(subStatusCounts));
@@ -133,8 +132,7 @@ export async function POST(request: NextRequest) {
           if (order.state === 'KASPI_DELIVERY') {
             if (order.kaspiDelivery?.courierTransmissionDate) return 'kaspi_delivery_transmitted';
             if (order.kaspiDelivery?.waybill) return 'kaspi_delivery_transfer';
-            if (order.preOrder) return 'kaspi_delivery_preorder';
-            return 'kaspi_delivery_packing';
+            return 'kaspi_delivery_awaiting'; // Предзаказ+Упаковка (API не различает)
           }
           return base;
         })(),
@@ -220,22 +218,27 @@ export async function POST(request: NextRequest) {
 
       if (!dbOrder) continue;
 
-      // Заказ выдан (COMPLETED) — ставим completed_at и статус
+      // Заказ выдан (COMPLETED) — completed_at = лучшее приближение даты выдачи
+      // Kaspi API v2 не даёт stateDate для ARCHIVE. Используем:
+      // 1. stateDate (если есть) — точная дата перехода в COMPLETED
+      // 2. courierTransmissionDate — дата передачи курьеру (ближайшее к выдаче)
+      // 3. approveDate/creationDate — дата создания заказа (fallback)
       if (kaspiStatus === 'completed') {
         const update: Record<string, any> = { status: 'completed' };
+        // completed_at ставим ТОЛЬКО при первом обнаружении (не перезаписываем)
+        // new Date() ≈ дата выдачи если sync запускается регулярно
         if (!dbOrder.completed_at) {
           update.completed_at = new Date().toISOString();
           completionsDetected++;
         }
-        if (dbOrder.status !== 'completed') {
+        if (dbOrder.status !== 'completed' || update.completed_at) {
           await supabase.from('orders').update(update).eq('id', dbOrder.id);
         }
       }
 
-      // Заказ был выдан, но потом возвращён — обновляем статус, НЕ трогаем completed_at
+      // Заказ возвращён — обновляем статус, НЕ трогаем completed_at если уже есть
       if (kaspiStatus === 'returned' && dbOrder.status !== 'returned') {
         const update: Record<string, any> = { status: 'returned' };
-        // Если заказ был выдан до возврата, но completed_at не было — ставим сейчас
         if (!dbOrder.completed_at) {
           update.completed_at = new Date().toISOString();
         }
@@ -334,7 +337,7 @@ export async function POST(request: NextRequest) {
         ordersUpdated,
         productsCreated,
         totalOrders: orders.length
-      }
+      },
     });
 
   } catch (error) {

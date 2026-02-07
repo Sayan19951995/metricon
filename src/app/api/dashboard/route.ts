@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     const notSent = activeOrders.filter(o => {
       const s = o.status || '';
       return s === 'new' || s === 'pending' || s === 'approved' ||
-        s === 'kaspi_delivery_packing' || s === 'kaspi_delivery_preorder' ||
+        s === 'kaspi_delivery_awaiting' || s === 'kaspi_delivery_packing' || s === 'kaspi_delivery_preorder' ||
         s === 'sign_required';
     });
 
