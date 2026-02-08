@@ -115,7 +115,7 @@ body {
   padding: 1.5rem;
 }
 
-/* Инпуты */
+/* Инпуты — базовые стили без цветов (цвета через Tailwind) */
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -124,22 +124,8 @@ input[type="date"],
 input[type="tel"],
 textarea,
 select {
-  background: var(--card-bg);
-  color: var(--foreground);
-  border: 1px solid var(--border);
-  border-radius: 0.5rem;
-  padding: 0.625rem 1rem;
   font-size: 14px;
   transition: all 0.2s;
-  width: 100%;
-}
-
-input:focus,
-textarea:focus,
-select:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 /* Таблицы */

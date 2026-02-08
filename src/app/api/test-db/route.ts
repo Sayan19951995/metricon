@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 
 export async function GET() {
   try {
     // Проверяем подключение к БД
-    const { data: users, error: usersError } = await supabase
+    const usersResult = await supabase
       .from('users')
       .select('id, email, name, created_at')
       .limit(10);
+    const users = usersResult.data || [];
+    const usersError = usersResult.error;
 
     if (usersError) {
       return NextResponse.json({

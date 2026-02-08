@@ -20,7 +20,7 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { getCached, setCache } from '@/lib/cache';
 
 type OrderStatus = 'new' | 'sign_required' | 'pickup' | 'delivery' | 'kaspi_delivery' | 'archive' | 'completed' | 'cancelled' | 'returned';
@@ -408,7 +408,7 @@ export default function OrdersPage() {
             { key: 'awaiting' as FilterStatus, label: 'Ожидает сборки', active: 'bg-amber-500 text-white', activeCount: 'text-amber-200' },
             { key: 'transfer' as FilterStatus, label: 'Передача', active: 'bg-teal-500 text-white', activeCount: 'text-teal-200' },
             { key: 'transmitted' as FilterStatus, label: 'Переданы на доставку', active: 'bg-sky-500 text-white', activeCount: 'text-sky-200' },
-          ].map(btn => (
+          ].filter(btn => btn.key === 'all' || btn.key === filterStatus || countByStatus(btn.key) > 0).map(btn => (
             <button
               key={btn.key}
               onClick={() => setFilterStatus(btn.key)}

@@ -1,32 +1,35 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { getCached, setCache } from '@/lib/cache';
 
 interface User {
   id: string;
   email: string;
   name: string;
-  phone?: string;
+  phone: string | null;
+  avatar_url: string | null;
+  created_at: string | null;
 }
 
 interface Store {
   id: string;
   name: string;
-  kaspi_merchant_id?: string;
-  kaspi_api_key?: string;
-  whatsapp_connected: boolean;
+  kaspi_merchant_id: string | null;
+  kaspi_api_key: string | null;
+  whatsapp_connected: boolean | null;
+  [key: string]: unknown;
 }
 
 interface Subscription {
   id: string;
-  plan: 'start' | 'business' | 'pro';
-  status: 'active' | 'cancelled' | 'expired';
-  addons: string[];
-  start_date: string;
-  end_date: string;
-  auto_renew: boolean;
+  plan: string | null;
+  status: string | null;
+  addons: string[] | null;
+  start_date: string | null;
+  end_date: string | null;
+  auto_renew: boolean | null;
 }
 
 interface UserData {
@@ -83,7 +86,7 @@ export function useUser(): UserData {
           const { data: userByEmail } = await supabase
             .from('users')
             .select('*')
-            .eq('email', authUser.email)
+            .eq('email', authUser.email!)
             .single();
 
           if (userByEmail) {
@@ -99,7 +102,7 @@ export function useUser(): UserData {
               .from('users')
               .insert({
                 id: authUser.id,
-                email: authUser.email,
+                email: authUser.email!,
                 name: name,
               })
               .select()
@@ -131,7 +134,7 @@ export function useUser(): UserData {
             || 'Пользователь';
 
           const result = {
-            user: { id: authUser.id, email: authUser.email || '', name: fallbackName },
+            user: { id: authUser.id, email: authUser.email || '', name: fallbackName, phone: null, avatar_url: null, created_at: null },
             store: null,
             subscription: null,
           };

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
+import { KaspiMarketingClient, MarketingSession, MarketingCampaign } from '@/lib/kaspi/marketing-client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,12 +14,13 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { data: store } = await supabase
+    const storeResult = await supabase
       .from('stores')
       .select('*')
       .eq('user_id', userId)
       .single();
 
+    const store = storeResult.data;
     if (!store) {
       return NextResponse.json({
         success: false,
@@ -26,63 +28,143 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Ставки из настроек магазина
+    const commissionRate = (store.commission_rate ?? 12.5) as number;
+    const taxRate = (store.tax_rate ?? 4.0) as number;
+
+    // === 0. Загрузить себестоимость товаров ===
+    const productsResult = await supabase
+      .from('products')
+      .select('kaspi_id, cost_price')
+      .eq('store_id', store.id);
+    const productsDb = productsResult.data || [];
+
+    const costPriceMap = new Map<string, number>();
+    for (const p of productsDb) {
+      if (p.kaspi_id && p.cost_price) {
+        costPriceMap.set(p.kaspi_id, Number(p.cost_price));
+      }
+    }
+
     // === 1. Поступления по дате выдачи (completed_at) ===
-    const { data: completedOrders } = await supabase
+    const completedOrdersResult = await supabase
       .from('orders')
-      .select('total_amount, completed_at, status')
+      .select('total_amount, completed_at, status, delivery_cost, delivery_mode, items')
       .eq('store_id', store.id)
       .not('completed_at', 'is', null)
       .eq('status', 'completed')
       .order('completed_at', { ascending: true });
+    const completedOrders = completedOrdersResult.data || [];
 
     // Группируем по дате completed_at в UTC+5 (Казахстан)
     const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-    const paymentsByDate = new Map<string, { revenue: number; count: number }>();
+
+    interface DayAgg {
+      revenue: number;
+      count: number;
+      commission: number;
+      tax: number;
+      delivery: number;
+      costPrice: number;
+      deliveryModes: Record<string, number>;
+    }
+
+    const paymentsByDate = new Map<string, DayAgg>();
     for (const order of (completedOrders || [])) {
+      if (!order.completed_at) continue;
       const utcMs = new Date(order.completed_at).getTime();
       const kzDate = new Date(utcMs + 5 * 3600000).toISOString().split('T')[0];
+
+      const amount = order.total_amount || 0;
+      const orderCommission = amount * (commissionRate / 100);
+      const orderTax = amount * (taxRate / 100);
+      const orderDelivery = Number(order.delivery_cost) || 0;
+
+      // Себестоимость из items
+      let orderCost = 0;
+      const items = order.items as Array<{ product_code: string; quantity: number; total: number }> | null;
+      if (items) {
+        for (const item of items) {
+          const cp = costPriceMap.get(item.product_code);
+          if (cp) orderCost += cp * (item.quantity || 1);
+        }
+      }
+
+      const mode = order.delivery_mode || 'unknown';
+
       const existing = paymentsByDate.get(kzDate);
       if (existing) {
-        existing.revenue += order.total_amount || 0;
+        existing.revenue += amount;
         existing.count += 1;
+        existing.commission += orderCommission;
+        existing.tax += orderTax;
+        existing.delivery += orderDelivery;
+        existing.costPrice += orderCost;
+        existing.deliveryModes[mode] = (existing.deliveryModes[mode] || 0) + 1;
       } else {
-        paymentsByDate.set(kzDate, { revenue: order.total_amount || 0, count: 1 });
+        paymentsByDate.set(kzDate, {
+          revenue: amount,
+          count: 1,
+          commission: orderCommission,
+          tax: orderTax,
+          delivery: orderDelivery,
+          costPrice: orderCost,
+          deliveryModes: { [mode]: 1 },
+        });
       }
     }
 
-    // Формируем dailyData из выданных заказов
+    // === 1b. Операционные расходы — разбить по дням ===
+    const opExpensesResult = await supabase
+      .from('operational_expenses')
+      .select('*')
+      .eq('store_id', store.id);
+    const opExpenses = opExpensesResult.data || [];
+
+    // Для каждого дня подсчитаем долю опер. расходов
+    const dailyOpex = new Map<string, number>();
+    for (const exp of (opExpenses || [])) {
+      const start = new Date(exp.start_date);
+      const end = new Date(exp.end_date);
+      const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000) + 1);
+      const perDay = Number(exp.amount) / days;
+
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+        const key = d.toISOString().split('T')[0];
+        dailyOpex.set(key, (dailyOpex.get(key) || 0) + perDay);
+      }
+    }
+
+    // Формируем dailyData
     const dailyData = Array.from(paymentsByDate.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([dateStr, data]) => {
+      .map(([dateStr, agg]) => {
         const d = new Date(dateStr + 'T12:00:00');
         const dayOfWeek = d.getDay();
         const dd = String(d.getDate()).padStart(2, '0');
         const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const opex = dailyOpex.get(dateStr) || 0;
+        const totalExpenses = agg.costPrice + agg.commission + agg.tax + agg.delivery + opex;
         return {
           date: `${dd}.${mm}`,
           fullDate: dateStr + 'T12:00:00',
           day: dayNames[dayOfWeek],
-          orders: data.count,
-          revenue: data.revenue,
-          cost: 0,
-          advertising: 0,
-          commissions: 0,
-          tax: 0,
-          delivery: 0,
-          profit: data.revenue,
+          orders: agg.count,
+          revenue: agg.revenue,
+          cost: agg.costPrice,
+          advertising: 0, // заполнится ниже из маркетинга
+          commissions: agg.commission,
+          tax: agg.tax,
+          delivery: agg.delivery,
+          operational: opex,
+          profit: agg.revenue - totalExpenses,
         };
       });
 
-    // === 2. Топ товары — агрегируем из заказов за всю историю ===
-    const { data: allOrders } = await supabase
-      .from('orders')
-      .select('items, total_amount, status, created_at')
-      .eq('store_id', store.id)
-      .not('status', 'in', '(cancelled,returned)');
+    // === 2. Топ товары — из выданных заказов (completed) ===
+    const productSales = new Map<string, { name: string; sold: number; revenue: number; costPrice: number }>();
 
-    const productSales = new Map<string, { name: string; sold: number; revenue: number }>();
-
-    for (const order of (allOrders || [])) {
+    for (const order of (completedOrders || [])) {
       const items = order.items as Array<{
         product_code: string;
         product_name: string;
@@ -94,78 +176,123 @@ export async function GET(request: NextRequest) {
       if (items && Array.isArray(items)) {
         for (const item of items) {
           const key = item.product_code || item.product_name;
+          const cp = costPriceMap.get(item.product_code) || 0;
           const existing = productSales.get(key);
           if (existing) {
             existing.sold += item.quantity;
             existing.revenue += item.total;
+            existing.costPrice += cp * (item.quantity || 1);
           } else {
             productSales.set(key, {
               name: item.product_name,
               sold: item.quantity,
               revenue: item.total,
+              costPrice: cp * (item.quantity || 1),
             });
           }
         }
       }
     }
 
-    const topProducts = Array.from(productSales.entries())
-      .sort((a, b) => b[1].revenue - a[1].revenue)
-      .slice(0, 20)
-      .map(([code, data], idx) => ({
-        id: String(idx + 1),
-        name: data.name,
-        sku: code,
-        image: '',
-        sales: data.sold,
-        adSales: 0,
-        revenue: data.revenue,
-        cost: 0,
-        profit: 0,
-      }));
-
     // === 2b. Выручка по дате создания заказа (для "Структура выручки") ===
-    const ordersByCreationDate = new Map<string, { revenue: number; count: number }>();
+    const allOrdersResult = await supabase
+      .from('orders')
+      .select('items, total_amount, status, created_at, delivery_cost')
+      .eq('store_id', store.id)
+      .not('status', 'in', '(cancelled,returned)');
+    const allOrders = allOrdersResult.data || [];
+
+    const ordersByCreationDate = new Map<string, { revenue: number; count: number; commission: number; tax: number; delivery: number; costPrice: number }>();
     for (const order of (allOrders || [])) {
       if (!order.created_at) continue;
       const utcMs = new Date(order.created_at).getTime();
       const kzDate = new Date(utcMs + 5 * 3600000).toISOString().split('T')[0];
+      const amount = order.total_amount || 0;
+
+      let orderCost = 0;
+      const items = order.items as Array<{ product_code: string; quantity: number }> | null;
+      if (items) {
+        for (const item of items) {
+          const cp = costPriceMap.get(item.product_code);
+          if (cp) orderCost += cp * (item.quantity || 1);
+        }
+      }
+
       const existing = ordersByCreationDate.get(kzDate);
       if (existing) {
-        existing.revenue += order.total_amount || 0;
+        existing.revenue += amount;
         existing.count += 1;
+        existing.commission += amount * (commissionRate / 100);
+        existing.tax += amount * (taxRate / 100);
+        existing.delivery += Number(order.delivery_cost) || 0;
+        existing.costPrice += orderCost;
       } else {
-        ordersByCreationDate.set(kzDate, { revenue: order.total_amount || 0, count: 1 });
+        ordersByCreationDate.set(kzDate, {
+          revenue: amount,
+          count: 1,
+          commission: amount * (commissionRate / 100),
+          tax: amount * (taxRate / 100),
+          delivery: Number(order.delivery_cost) || 0,
+          costPrice: orderCost,
+        });
+      }
+    }
+
+    // Возвраты по дате создания (для карточки "Возвраты" с фильтром по периоду)
+    const returnedOrdersByCreationResult = await supabase
+      .from('orders')
+      .select('created_at')
+      .eq('store_id', store.id)
+      .eq('status', 'returned');
+    const returnedOrdersByCreation = returnedOrdersByCreationResult.data || [];
+
+    const returnedByCreationDate = new Map<string, number>();
+    for (const order of returnedOrdersByCreation) {
+      if (!order.created_at) continue;
+      const utcMs = new Date(order.created_at).getTime();
+      const kzDate = new Date(utcMs + 5 * 3600000).toISOString().split('T')[0];
+      returnedByCreationDate.set(kzDate, (returnedByCreationDate.get(kzDate) || 0) + 1);
+    }
+
+    // Добавляем даты, на которых есть только возвраты (нет других заказов)
+    for (const [dateStr] of returnedByCreationDate) {
+      if (!ordersByCreationDate.has(dateStr)) {
+        ordersByCreationDate.set(dateStr, { revenue: 0, count: 0, commission: 0, tax: 0, delivery: 0, costPrice: 0 });
       }
     }
 
     const dailyDataByCreation = Array.from(ordersByCreationDate.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
-      .map(([dateStr, data]) => {
+      .map(([dateStr, agg]) => {
         const d = new Date(dateStr + 'T12:00:00');
         const dayOfWeek = d.getDay();
         const dd = String(d.getDate()).padStart(2, '0');
         const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const opex = dailyOpex.get(dateStr) || 0;
+        const totalExpenses = agg.costPrice + agg.commission + agg.tax + agg.delivery + opex;
         return {
           date: `${dd}.${mm}`,
           fullDate: dateStr + 'T12:00:00',
           day: dayNames[dayOfWeek],
-          orders: data.count,
-          revenue: data.revenue,
-          cost: 0,
+          orders: agg.count,
+          revenue: agg.revenue,
+          cost: agg.costPrice,
           advertising: 0,
-          commissions: 0,
-          tax: 0,
-          delivery: 0,
-          profit: data.revenue,
+          commissions: agg.commission,
+          tax: agg.tax,
+          delivery: agg.delivery,
+          operational: opex,
+          profit: agg.revenue - totalExpenses,
+          returned: returnedByCreationDate.get(dateStr) || 0,
         };
       });
 
     // === 3. Статусы заказов ===
-    const { data: ordersByStatusRaw } = await supabase
+    const ordersByStatusResult = await supabase
       .from('orders')
       .select('status')
       .eq('store_id', store.id);
+    const ordersByStatusRaw = ordersByStatusResult.data || [];
 
     const statusCounts: Record<string, number> = {};
     for (const o of (ordersByStatusRaw || [])) {
@@ -173,7 +300,6 @@ export async function GET(request: NextRequest) {
       statusCounts[s] = (statusCounts[s] || 0) + 1;
     }
 
-    // Маппинг в формат фронтенда
     const pending = (statusCounts['new'] || 0) + (statusCounts['pending'] || 0);
     const processing = (statusCounts['kaspi_delivery_awaiting'] || 0) +
                        (statusCounts['kaspi_delivery_packing'] || 0) +
@@ -187,14 +313,15 @@ export async function GET(request: NextRequest) {
     const cancelled = (statusCounts['cancelled'] || 0);
     const returned = (statusCounts['returned'] || 0);
 
-    // === 4. Активные заказы (pending orders — ожидают поступления) ===
+    // === 4. Активные заказы ===
     const completedStatuses = ['completed', 'delivered', 'cancelled', 'returned', 'archive'];
-    const { data: activeOrdersRaw } = await supabase
+    const activeOrdersResult = await supabase
       .from('orders')
       .select('kaspi_order_id, customer_name, delivery_address, total_amount, created_at, items, status')
       .eq('store_id', store.id)
       .not('status', 'in', `(${completedStatuses.join(',')})`)
       .order('created_at', { ascending: false });
+    const activeOrdersRaw = activeOrdersResult.data || [];
 
     const activeOrders = activeOrdersRaw || [];
     const pendingOrdersList = activeOrders.slice(0, 20).map(o => {
@@ -210,13 +337,14 @@ export async function GET(request: NextRequest) {
     });
 
     // === 5. Возвратные заказы ===
-    const { data: returnedOrdersRaw } = await supabase
+    const returnedOrdersResult = await supabase
       .from('orders')
       .select('kaspi_order_id, customer_name, total_amount, created_at, items')
       .eq('store_id', store.id)
       .eq('status', 'returned')
       .order('created_at', { ascending: false })
       .limit(50);
+    const returnedOrdersRaw = returnedOrdersResult.data || [];
 
     const returnedOrders = (returnedOrdersRaw || []).map(o => {
       const items = o.items as Array<{ product_name: string; quantity: number; price: number }> | null;
@@ -232,9 +360,172 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    // === 6. Итоговые цифры (из выданных заказов) ===
+    // === 6. Маркетинговые данные из Kaspi Marketing ===
+    let totalAdvertising = 0;
+    let adTransactions = 0;
+    let adGmv = 0;
+    let marketingCampaigns: Array<{ id: number; name: string; cost: number; views: number; clicks: number; transactions: number; gmv: number; state: string }> = [];
+    const adCostBySku = new Map<string, number>();
+
+    if (store.marketing_session) {
+      try {
+        let session = store.marketing_session as unknown as MarketingSession;
+        let client = new KaspiMarketingClient(session);
+
+        // Последние 30 дней — берём данные из Kaspi Marketing как есть
+        const now = new Date();
+        const pad = (n: number) => String(n).padStart(2, '0');
+        const endDate = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+        const d30 = new Date(now.getTime() - 30 * 86400000);
+        const startDate = `${d30.getFullYear()}-${pad(d30.getMonth() + 1)}-${pad(d30.getDate())}`;
+
+        // Пробуем получить кампании, при ошибке — авто-переподключение
+        let campaigns: MarketingCampaign[];
+        try {
+          campaigns = await client.getCampaigns(startDate, endDate);
+        } catch {
+          console.log('[Analytics] Marketing session expired, reconnecting...');
+          const newSession = await KaspiMarketingClient.tryReconnect(session);
+          if (newSession) {
+            await supabase.from('stores')
+              .update({ marketing_session: JSON.parse(JSON.stringify(newSession)) })
+              .eq('id', store.id);
+            client = new KaspiMarketingClient(newSession);
+            campaigns = await client.getCampaigns(startDate, endDate);
+            console.log('[Analytics] Marketing reconnected');
+          } else {
+            console.error('[Analytics] Marketing reconnect failed — no credentials');
+            campaigns = [];
+          }
+        }
+
+        const summary = KaspiMarketingClient.aggregateCampaigns(campaigns);
+
+        totalAdvertising = summary.totalCost;
+        adTransactions = summary.totalTransactions;
+        adGmv = summary.totalGmv;
+        marketingCampaigns = campaigns
+          .filter(c => c.cost > 0 || c.state === 'Enabled')
+          .map(c => ({
+            id: c.id,
+            name: c.name,
+            cost: c.cost,
+            views: c.views,
+            clicks: c.clicks,
+            transactions: c.transactions,
+            gmv: c.gmv,
+            state: c.state,
+          }));
+
+        // Собираем рекламные расходы по SKU (из товаров кампаний)
+        for (const campaign of campaigns) {
+          if (campaign.cost <= 0) continue;
+          try {
+            const products = await client.getCampaignProducts(campaign.id, startDate, endDate);
+            for (const p of products) {
+              if (p.cost > 0 && p.sku) {
+                adCostBySku.set(p.sku, (adCostBySku.get(p.sku) || 0) + p.cost);
+              }
+            }
+          } catch {
+            // Не блокируем если один запрос не прошёл
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch marketing data:', err);
+      }
+    }
+
+    // Распределяем рекламу по дням пропорционально выручке
+    const totalRevenueForAds = dailyData.reduce((sum, d) => sum + d.revenue, 0);
+    if (totalAdvertising > 0 && totalRevenueForAds > 0) {
+      for (const day of dailyData) {
+        const share = day.revenue / totalRevenueForAds;
+        day.advertising = totalAdvertising * share;
+        day.profit -= day.advertising;
+      }
+    }
+
+    // === 6b. Агрегация способов доставки ===
+    const deliveryModeCounts: Record<string, number> = {};
+    for (const [, agg] of paymentsByDate) {
+      for (const [mode, count] of Object.entries(agg.deliveryModes)) {
+        deliveryModeCounts[mode] = (deliveryModeCounts[mode] || 0) + count;
+      }
+    }
+
+    // Маппинг в удобные ключи
+    const kaspiDelivery = (deliveryModeCounts['KASPI_DELIVERY'] || 0) + (deliveryModeCounts['DELIVERY_LOCAL'] || 0);
+    const regional = deliveryModeCounts['DELIVERY_REGIONAL_TODOOR'] || 0;
+    const sellerDelivery = deliveryModeCounts['DELIVERY'] || 0;
+    const pickupCount = deliveryModeCounts['PICKUP'] || 0;
+
+    // === 7. Рентабельность по товарам ===
+    const totalProductRevenue = Array.from(productSales.values()).reduce((sum, p) => sum + p.revenue, 0);
+    const totalDeliveryAll = Array.from(paymentsByDate.values()).reduce((sum, agg) => sum + agg.delivery, 0);
+
+    // Разделяем опер. расходы: привязанные к товару vs общие (дневные ставки)
+    const opexPerDayByProduct = new Map<string, number>();
+    let generalOpexPerDay = 0;
+    for (const exp of (opExpenses || [])) {
+      const start = new Date(exp.start_date);
+      const end = new Date(exp.end_date);
+      const days = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / 86400000) + 1);
+      const perDay = Number(exp.amount) / days;
+      if (exp.product_id) {
+        opexPerDayByProduct.set(exp.product_id, (opexPerDayByProduct.get(exp.product_id) || 0) + perDay);
+      } else {
+        generalOpexPerDay += perDay;
+      }
+    }
+
+    const topProducts = Array.from(productSales.entries())
+      .sort((a, b) => b[1].revenue - a[1].revenue)
+      .slice(0, 50)
+      .map(([code, data], idx) => {
+        const revenueShare = totalProductRevenue > 0 ? data.revenue / totalProductRevenue : 0;
+        const productCommission = data.revenue * (commissionRate / 100);
+        const productTax = data.revenue * (taxRate / 100);
+        const productDelivery = totalDeliveryAll * revenueShare;
+        const productAdCost = adCostBySku.get(code) || 0;
+        // Опер. расходы: дневная ставка (прямая + доля общих)
+        const directPerDay = opexPerDayByProduct.get(code) || 0;
+        const sharedPerDay = generalOpexPerDay * revenueShare;
+        const opexPerDay = directPerDay + sharedPerDay;
+        // Для profit/margin используем полную сумму (all-time)
+        const totalDays = dailyData.length || 1;
+        const productOpex = opexPerDay * totalDays;
+        const productProfit = data.revenue - data.costPrice - productCommission - productTax - productDelivery - productAdCost - productOpex;
+        const margin = data.revenue > 0 ? (productProfit / data.revenue) * 100 : 0;
+
+        return {
+          id: String(idx + 1),
+          name: data.name,
+          sku: code,
+          image: '',
+          sales: data.sold,
+          revenue: data.revenue,
+          costPrice: data.costPrice,
+          commission: productCommission,
+          tax: productTax,
+          delivery: productDelivery,
+          adCost: productAdCost,
+          operational: productOpex,
+          operationalPerDay: opexPerDay,
+          profit: productProfit,
+          margin,
+        };
+      });
+
+    // === 8. Итоговые цифры ===
     const totalRevenue = dailyData.reduce((sum, d) => sum + d.revenue, 0);
     const totalOrders = dailyData.reduce((sum, d) => sum + d.orders, 0);
+    const totalCost = dailyData.reduce((sum, d) => sum + d.cost, 0);
+    const totalCommissions = dailyData.reduce((sum, d) => sum + d.commissions, 0);
+    const totalTax = dailyData.reduce((sum, d) => sum + d.tax, 0);
+    const totalDelivery = dailyData.reduce((sum, d) => sum + d.delivery, 0);
+    const totalOperational = dailyData.reduce((sum, d) => sum + (d.operational || 0), 0);
+    const totalProfit = totalRevenue - totalCost - totalCommissions - totalTax - totalDelivery - totalAdvertising - totalOperational;
     const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
 
     return NextResponse.json({
@@ -242,16 +533,17 @@ export async function GET(request: NextRequest) {
       data: {
         totalOrders,
         totalRevenue,
-        totalCost: 0,
-        totalAdvertising: 0,
-        totalTax: 0,
-        totalCommissions: 0,
-        totalDelivery: 0,
-        totalProfit: 0,
+        totalCost,
+        totalAdvertising,
+        totalTax,
+        totalCommissions,
+        totalDelivery,
+        totalOperational,
+        totalProfit,
         avgOrderValue,
         ordersBySource: {
-          organic: totalOrders,
-          ads: 0,
+          organic: Math.max(0, totalOrders - adTransactions),
+          ads: adTransactions,
           offline: 0,
         },
         pendingOrders: {
@@ -272,15 +564,26 @@ export async function GET(request: NextRequest) {
         },
         returnedOrders,
         salesSources: {
-          organic: totalOrders,
-          advertising: 0,
+          organic: Math.max(0, totalOrders - adTransactions),
+          advertising: adTransactions,
         },
         deliveryModes: {
-          intercity: 0,
-          myDelivery: 0,
-          expressDelivery: 0,
-          pickup: 0,
+          kaspiDelivery,
+          regional,
+          sellerDelivery,
+          pickup: pickupCount,
         },
+        marketing: {
+          totalCost: totalAdvertising,
+          totalGmv: adGmv,
+          roas: totalAdvertising > 0 ? adGmv / totalAdvertising : 0,
+          campaigns: marketingCampaigns,
+        },
+        storeSettings: {
+          commissionRate,
+          taxRate,
+        },
+        operationalExpenses: opExpenses || [],
       }
     });
 

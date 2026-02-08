@@ -20,7 +20,7 @@ import {
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/useUser';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 
 const planNames: Record<string, string> = {
   start: 'Start',

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,11 +13,12 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { data: store } = await supabase
+    const storeResult = await supabase
       .from('stores')
       .select('*')
       .eq('user_id', userId)
       .single();
+    const store = storeResult.data;
 
     if (!store) {
       return NextResponse.json({
@@ -41,27 +42,25 @@ export async function GET(request: NextRequest) {
     // === ВСЕ активные заказы из БД (без лимита по дате) ===
     const completedStatuses = ['completed', 'delivered', 'cancelled', 'returned', 'archive'];
 
-    const { data: allActiveOrders } = await supabase
+    const allActiveOrdersResult = await supabase
       .from('orders')
       .select('*')
       .eq('store_id', store.id)
       .not('status', 'in', `(${completedStatuses.join(',')})`)
       .order('created_at', { ascending: false });
-
-    const activeOrders = allActiveOrders || [];
+    const activeOrders = allActiveOrdersResult.data || [];
 
     // Категоризация: Не выдано vs В доставке
     const notSent = activeOrders.filter(o => {
       const s = o.status || '';
       return s === 'new' || s === 'pending' || s === 'approved' ||
         s === 'kaspi_delivery_awaiting' || s === 'kaspi_delivery_packing' || s === 'kaspi_delivery_preorder' ||
-        s === 'sign_required';
+        s === 'sign_required' || s === 'delivery' || s === 'delivering' || s === 'pickup';
     });
 
     const inDelivery = activeOrders.filter(o => {
       const s = o.status || '';
-      return s === 'delivery' || s === 'delivering' || s === 'pickup' ||
-        s === 'kaspi_delivery_transfer' || s === 'kaspi_delivery_transmitted' ||
+      return s === 'kaspi_delivery_transfer' || s === 'kaspi_delivery_transmitted' ||
         s === 'kaspi_delivery';
     });
 
@@ -69,23 +68,25 @@ export async function GET(request: NextRequest) {
     const fourteenDaysAgo = new Date();
     fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
 
-    const { data: dailyStats } = await supabase
+    const dailyStatsResult = await supabase
       .from('daily_stats')
       .select('*')
       .eq('store_id', store.id)
       .gte('date', fourteenDaysAgo.toISOString().split('T')[0])
       .order('date', { ascending: true });
+    const dailyStats = dailyStatsResult.data || [];
 
     // === Заказы за 7 дней (для топ товаров) ===
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const { data: recentOrders } = await supabase
+    const recentOrdersResult = await supabase
       .from('orders')
       .select('*')
       .eq('store_id', store.id)
       .gte('created_at', sevenDaysAgo.toISOString())
       .order('created_at', { ascending: false });
+    const recentOrders = recentOrdersResult.data || [];
 
     // === Общие счётчики ===
     const { count: totalOrders } = await supabase
@@ -102,14 +103,15 @@ export async function GET(request: NextRequest) {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const { data: monthStats } = await supabase
+    const monthStatsResult = await supabase
       .from('daily_stats')
       .select('*')
       .eq('store_id', store.id)
       .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
+    const monthStats = monthStatsResult.data || [];
 
-    const monthRevenue = (monthStats || []).reduce((sum, d) => sum + (d.revenue || 0), 0);
-    const monthOrdersCount = (monthStats || []).reduce((sum, d) => sum + (d.orders_count || 0), 0);
+    const monthRevenue = monthStats.reduce((sum: number, d: any) => sum + (d.revenue || 0), 0);
+    const monthOrdersCount = monthStats.reduce((sum: number, d: any) => sum + (d.orders_count || 0), 0);
 
     // === Данные по неделям для графиков ===
     const now = new Date();
@@ -138,17 +140,19 @@ export async function GET(request: NextRequest) {
     const sevenDaysAgoDate = new Date(now);
     sevenDaysAgoDate.setDate(sevenDaysAgoDate.getDate() - 7);
 
-    const { data: completedOrders } = await supabase
+    const completedOrdersResult = await supabase
       .from('orders')
       .select('total_amount, completed_at, status')
       .eq('store_id', store.id)
       .not('completed_at', 'is', null)
       .eq('status', 'completed')
       .gte('completed_at', sevenDaysAgoDate.toISOString());
+    const completedOrders = completedOrdersResult.data || [];
 
     // Группируем по дате completed_at в UTC+5
     const paymentsByDate = new Map<string, { revenue: number; count: number }>();
     for (const order of (completedOrders || [])) {
+      if (!order.completed_at) continue;
       const utcMs = new Date(order.completed_at).getTime();
       const kzDate = new Date(utcMs + 5 * 3600000).toISOString().split('T')[0];
       const existing = paymentsByDate.get(kzDate);

@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, ChevronUp, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Plus, X, Trash2, HelpCircle, BarChart3, RotateCcw } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
@@ -110,6 +111,8 @@ interface OperationalExpense {
   amount: number;        // Сумма расхода
   startDate: Date;       // Начало периода
   endDate: Date;         // Конец периода
+  productId?: string | null;  // kaspi_id товара (null = общий расход)
+  productName?: string | null; // название товара для отображения
 }
 
 // Форматирование чисел: полные числа с разделителями (без K/M)
@@ -123,477 +126,31 @@ const SALES_SOURCE_COLORS = ['#4a90d9', '#e07b4a', '#6b7280']; // Синий (О
 // Насыщенные но спокойные цвета для способов доставки
 const DELIVERY_COLORS = ['#7b68c9', '#d96b8a', '#4db8a4', '#d4a03d', '#6b7280']; // Фиолетовый, розовый, бирюзовый, горчичный, серый (Оффлайн)
 
-// Список товаров для генерации
-const PRODUCT_CATALOG = [
-  { name: 'iPhone 14 Pro 256GB', price: 549000 },
-  { name: 'Samsung Galaxy S23 Ultra', price: 489000 },
-  { name: 'AirPods Pro 2', price: 109000 },
-  { name: 'MacBook Pro 14" M2', price: 999000 },
-  { name: 'iPad Air 5th Gen', price: 339000 },
-  { name: 'Apple Watch Ultra', price: 389000 },
-  { name: 'Sony WH-1000XM5', price: 179000 },
-  { name: 'Google Pixel 8 Pro', price: 449000 },
-  { name: 'Samsung Galaxy Tab S9', price: 359000 },
-  { name: 'Nintendo Switch OLED', price: 199000 },
-  { name: 'DJI Mini 3 Pro', price: 499000 },
-  { name: 'Bose QuietComfort 45', price: 159000 },
-];
 
-// Генерация товаров для дня на основе его данных
-const generateDayProducts = (orders: number, revenue: number, dateStr: string): DayProduct[] => {
-  if (!dateStr || !orders || orders <= 0) return [];
-
-  // Используем дату как seed для стабильной генерации
-  const seed = dateStr.split('.').reduce((acc, val) => {
-    const num = parseInt(val, 10);
-    return acc + (isNaN(num) ? 0 : num);
-  }, 0);
-  const products: DayProduct[] = [];
-
-  // Генерируем products по количеству заказов
-  for (let i = 0; i < orders; i++) {
-    const productIndex = Math.abs(seed + i * 3) % PRODUCT_CATALOG.length;
-    const product = PRODUCT_CATALOG[productIndex];
-    if (product) {
-      products.push({ name: product.name, qty: 1, price: product.price });
-    }
-  }
-
-  return products;
-};
-
-// Mock данные для аналитики за 7 дней
-const mockAnalyticsData = {
-  totalOrders: 45,
-  totalRevenue: 675000,
-  totalCost: 425000,       // Себестоимость
-  totalAdvertising: 38000,  // Реклама
-  totalTax: 27000,          // Налог
-  totalCommissions: 54000,  // Комиссия
-  totalDelivery: 12000,     // Доставка
-  totalProfit: 119000,      // Обновленная прибыль (675000 - 425000 - 38000 - 27000 - 54000 - 12000)
-  avgOrderValue: 15000,
-  ordersBySource: {
-    organic: 28,    // Органика
-    ads: 14,        // Реклама
-    offline: 3      // Оффлайн
-  },
-  // Заказы ожидающие поступления (в пути до клиента)
-  pendingOrders: {
-    count: 5,            // Количество заказов в пути
-    totalAmount: 62200,  // Сумма ожидаемых поступлений
-    orders: [
-      { id: 'ORD-2026-001', product: 'AirPods Pro 2', amount: 29900, date: '2026-01-17', customer: 'Астана' },
-      { id: 'ORD-2026-002', product: 'Чехол для iPhone', amount: 4900, date: '2026-01-17', customer: 'Алматы' },
-      { id: 'ORD-2026-003', product: 'Зарядка MagSafe', amount: 12900, date: '2026-01-18', customer: 'Караганда' },
-      { id: 'ORD-2026-004', product: 'Apple Watch SE', amount: 8500, date: '2026-01-18', customer: 'Шымкент' },
-      { id: 'ORD-2026-005', product: 'Кабель USB-C', amount: 6000, date: '2026-01-18', customer: 'Алматы' },
-    ]
-  },
-
-  dailyData: [
-    { date: '01.10', fullDate: new Date('2025-10-01'), day: 'Ср', orders: 2, revenue: 30426, cost: 19426, advertising: 1168, commissions: 2434, tax: 1217, delivery: 456, profit: 5725 },
-    { date: '02.10', fullDate: new Date('2025-10-02'), day: 'Чт', orders: 3, revenue: 44020, cost: 25425, advertising: 1944, commissions: 3521, tax: 1761, delivery: 660, profit: 10709 },
-    { date: '03.10', fullDate: new Date('2025-10-03'), day: 'Пт', orders: 2, revenue: 22483, cost: 12736, advertising: 747, commissions: 1799, tax: 899, delivery: 337, profit: 5965 },
-    { date: '04.10', fullDate: new Date('2025-10-04'), day: 'Сб', orders: 2, revenue: 28540, cost: 17158, advertising: 926, commissions: 2283, tax: 1141, delivery: 428, profit: 6604 },
-    { date: '05.10', fullDate: new Date('2025-10-05'), day: 'Вс', orders: 1, revenue: 16640, cost: 10368, advertising: 505, commissions: 1331, tax: 665, delivery: 249, profit: 3522 },
-    { date: '06.10', fullDate: new Date('2025-10-06'), day: 'Пн', orders: 3, revenue: 49023, cost: 29377, advertising: 1526, commissions: 3922, tax: 1961, delivery: 735, profit: 11502 },
-    { date: '07.10', fullDate: new Date('2025-10-07'), day: 'Вт', orders: 3, revenue: 38555, cost: 24031, advertising: 1491, commissions: 3084, tax: 1542, delivery: 578, profit: 7829 },
-    { date: '08.10', fullDate: new Date('2025-10-08'), day: 'Ср', orders: 2, revenue: 21855, cost: 13744, advertising: 863, commissions: 1748, tax: 874, delivery: 328, profit: 4298 },
-    { date: '09.10', fullDate: new Date('2025-10-09'), day: 'Чт', orders: 3, revenue: 50832, cost: 31325, advertising: 2776, commissions: 4066, tax: 2033, delivery: 762, profit: 9870 },
-    { date: '10.10', fullDate: new Date('2025-10-10'), day: 'Пт', orders: 2, revenue: 25595, cost: 15490, advertising: 1135, commissions: 2047, tax: 1024, delivery: 384, profit: 5515 },
-    { date: '11.10', fullDate: new Date('2025-10-11'), day: 'Сб', orders: 1, revenue: 15325, cost: 9396, advertising: 750, commissions: 1226, tax: 613, delivery: 230, profit: 3110 },
-    { date: '12.10', fullDate: new Date('2025-10-12'), day: 'Вс', orders: 2, revenue: 22587, cost: 14584, advertising: 1039, commissions: 1807, tax: 903, delivery: 339, profit: 3915 },
-    { date: '13.10', fullDate: new Date('2025-10-13'), day: 'Пн', orders: 2, revenue: 22103, cost: 13713, advertising: 1246, commissions: 1768, tax: 884, delivery: 331, profit: 4161 },
-    { date: '14.10', fullDate: new Date('2025-10-14'), day: 'Вт', orders: 2, revenue: 23523, cost: 12940, advertising: 787, commissions: 1882, tax: 941, delivery: 353, profit: 6620 },
-    { date: '15.10', fullDate: new Date('2025-10-15'), day: 'Ср', orders: 2, revenue: 37700, cost: 22575, advertising: 1297, commissions: 3016, tax: 1508, delivery: 565, profit: 8739 },
-    { date: '16.10', fullDate: new Date('2025-10-16'), day: 'Чт', orders: 2, revenue: 34417, cost: 20473, advertising: 1615, commissions: 2753, tax: 1377, delivery: 516, profit: 7683 },
-    { date: '17.10', fullDate: new Date('2025-10-17'), day: 'Пт', orders: 2, revenue: 26128, cost: 15032, advertising: 1457, commissions: 2090, tax: 1045, delivery: 392, profit: 6112 },
-    { date: '18.10', fullDate: new Date('2025-10-18'), day: 'Сб', orders: 1, revenue: 21032, cost: 11722, advertising: 912, commissions: 1682, tax: 841, delivery: 315, profit: 5560 },
-    { date: '19.10', fullDate: new Date('2025-10-19'), day: 'Вс', orders: 1, revenue: 21531, cost: 12772, advertising: 1171, commissions: 1722, tax: 861, delivery: 323, profit: 4682 },
-    { date: '20.10', fullDate: new Date('2025-10-20'), day: 'Пн', orders: 2, revenue: 24936, cost: 15384, advertising: 1342, commissions: 1995, tax: 997, delivery: 374, profit: 4844 },
-    { date: '21.10', fullDate: new Date('2025-10-21'), day: 'Вт', orders: 2, revenue: 25285, cost: 15915, advertising: 1153, commissions: 2023, tax: 1011, delivery: 379, profit: 4804 },
-    { date: '22.10', fullDate: new Date('2025-10-22'), day: 'Ср', orders: 2, revenue: 28038, cost: 17954, advertising: 1373, commissions: 2243, tax: 1121, delivery: 420, profit: 4927 },
-    { date: '23.10', fullDate: new Date('2025-10-23'), day: 'Чт', orders: 2, revenue: 21975, cost: 13078, advertising: 1212, commissions: 1758, tax: 879, delivery: 329, profit: 4719 },
-    { date: '24.10', fullDate: new Date('2025-10-24'), day: 'Пт', orders: 3, revenue: 44483, cost: 25052, advertising: 1665, commissions: 3558, tax: 1779, delivery: 667, profit: 11762 },
-    { date: '25.10', fullDate: new Date('2025-10-25'), day: 'Сб', orders: 2, revenue: 31812, cost: 19149, advertising: 1054, commissions: 2545, tax: 1272, delivery: 477, profit: 7315 },
-    { date: '26.10', fullDate: new Date('2025-10-26'), day: 'Вс', orders: 2, revenue: 24980, cost: 16092, advertising: 1232, commissions: 1998, tax: 999, delivery: 375, profit: 4284 },
-    { date: '27.10', fullDate: new Date('2025-10-27'), day: 'Пн', orders: 3, revenue: 46437, cost: 29639, advertising: 1397, commissions: 3715, tax: 1857, delivery: 696, profit: 9133 },
-    { date: '28.10', fullDate: new Date('2025-10-28'), day: 'Вт', orders: 2, revenue: 30826, cost: 18961, advertising: 1813, commissions: 2466, tax: 1233, delivery: 462, profit: 5891 },
-    { date: '29.10', fullDate: new Date('2025-10-29'), day: 'Ср', orders: 2, revenue: 20133, cost: 12799, advertising: 728, commissions: 1611, tax: 805, delivery: 302, profit: 3888 },
-    { date: '30.10', fullDate: new Date('2025-10-30'), day: 'Чт', orders: 3, revenue: 48630, cost: 28672, advertising: 1771, commissions: 3890, tax: 1945, delivery: 729, profit: 11623 },
-    { date: '31.10', fullDate: new Date('2025-10-31'), day: 'Пт', orders: 3, revenue: 43683, cost: 24251, advertising: 2323, commissions: 3495, tax: 1747, delivery: 655, profit: 11212 },
-    { date: '01.11', fullDate: new Date('2025-11-01'), day: 'Сб', orders: 1, revenue: 20139, cost: 11924, advertising: 875, commissions: 1611, tax: 805, delivery: 302, profit: 4622 },
-    { date: '02.11', fullDate: new Date('2025-11-02'), day: 'Вс', orders: 2, revenue: 26830, cost: 16731, advertising: 916, commissions: 2146, tax: 1073, delivery: 402, profit: 5562 },
-    { date: '03.11', fullDate: new Date('2025-11-03'), day: 'Пн', orders: 3, revenue: 50250, cost: 30981, advertising: 1946, commissions: 4020, tax: 2010, delivery: 754, profit: 10539 },
-    { date: '04.11', fullDate: new Date('2025-11-04'), day: 'Вт', orders: 2, revenue: 27040, cost: 16172, advertising: 1453, commissions: 2163, tax: 1081, delivery: 405, profit: 5766 },
-    { date: '05.11', fullDate: new Date('2025-11-05'), day: 'Ср', orders: 2, revenue: 30576, cost: 19008, advertising: 1076, commissions: 2446, tax: 1223, delivery: 458, profit: 6365 },
-    { date: '06.11', fullDate: new Date('2025-11-06'), day: 'Чт', orders: 2, revenue: 24826, cost: 15771, advertising: 919, commissions: 1986, tax: 993, delivery: 372, profit: 4785 },
-    { date: '07.11', fullDate: new Date('2025-11-07'), day: 'Пт', orders: 2, revenue: 20578, cost: 13231, advertising: 1030, commissions: 1646, tax: 823, delivery: 309, profit: 3539 },
-    { date: '08.11', fullDate: new Date('2025-11-08'), day: 'Сб', orders: 2, revenue: 24564, cost: 14394, advertising: 930, commissions: 1965, tax: 982, delivery: 368, profit: 5925 },
-    { date: '09.11', fullDate: new Date('2025-11-09'), day: 'Вс', orders: 1, revenue: 15245, cost: 8411, advertising: 795, commissions: 1219, tax: 610, delivery: 229, profit: 3981 },
-    { date: '10.11', fullDate: new Date('2025-11-10'), day: 'Пн', orders: 2, revenue: 38936, cost: 24527, advertising: 1310, commissions: 3115, tax: 1557, delivery: 584, profit: 7843 },
-    { date: '11.11', fullDate: new Date('2025-11-11'), day: 'Вт', orders: 3, revenue: 44687, cost: 27144, advertising: 2552, commissions: 3575, tax: 1787, delivery: 670, profit: 8959 },
-    { date: '12.11', fullDate: new Date('2025-11-12'), day: 'Ср', orders: 2, revenue: 29288, cost: 17941, advertising: 1209, commissions: 2343, tax: 1171, delivery: 439, profit: 6185 },
-    { date: '13.11', fullDate: new Date('2025-11-13'), day: 'Чт', orders: 3, revenue: 55737, cost: 32451, advertising: 2704, commissions: 4459, tax: 2229, delivery: 836, profit: 13058 },
-    { date: '14.11', fullDate: new Date('2025-11-14'), day: 'Пт', orders: 3, revenue: 41603, cost: 24418, advertising: 2316, commissions: 3328, tax: 1664, delivery: 624, profit: 9253 },
-    { date: '15.11', fullDate: new Date('2025-11-15'), day: 'Сб', orders: 1, revenue: 12962, cost: 7912, advertising: 541, commissions: 1037, tax: 518, delivery: 194, profit: 2760 },
-    { date: '16.11', fullDate: new Date('2025-11-16'), day: 'Вс', orders: 2, revenue: 27618, cost: 17818, advertising: 1168, commissions: 2209, tax: 1105, delivery: 414, profit: 4904 },
-    { date: '17.11', fullDate: new Date('2025-11-17'), day: 'Пн', orders: 3, revenue: 45534, cost: 25051, advertising: 2710, commissions: 3643, tax: 1821, delivery: 683, profit: 11626 },
-    { date: '18.11', fullDate: new Date('2025-11-18'), day: 'Вт', orders: 2, revenue: 24702, cost: 15253, advertising: 1070, commissions: 1976, tax: 988, delivery: 370, profit: 5045 },
-    { date: '19.11', fullDate: new Date('2025-11-19'), day: 'Ср', orders: 3, revenue: 43888, cost: 24323, advertising: 2314, commissions: 3511, tax: 1755, delivery: 658, profit: 11327 },
-    { date: '20.11', fullDate: new Date('2025-11-20'), day: 'Чт', orders: 3, revenue: 38427, cost: 23111, advertising: 2268, commissions: 3074, tax: 1537, delivery: 576, profit: 7861 },
-    { date: '21.11', fullDate: new Date('2025-11-21'), day: 'Пт', orders: 2, revenue: 28789, cost: 18248, advertising: 1133, commissions: 2303, tax: 1151, delivery: 432, profit: 5522 },
-    { date: '22.11', fullDate: new Date('2025-11-22'), day: 'Сб', orders: 1, revenue: 13598, cost: 8112, advertising: 447, commissions: 1088, tax: 544, delivery: 204, profit: 3203 },
-    { date: '23.11', fullDate: new Date('2025-11-23'), day: 'Вс', orders: 2, revenue: 33864, cost: 20357, advertising: 1392, commissions: 2709, tax: 1354, delivery: 508, profit: 7544 },
-    { date: '24.11', fullDate: new Date('2025-11-24'), day: 'Пн', orders: 2, revenue: 36706, cost: 22433, advertising: 1224, commissions: 2936, tax: 1468, delivery: 550, profit: 8095 },
-    { date: '25.11', fullDate: new Date('2025-11-25'), day: 'Вт', orders: 3, revenue: 55860, cost: 36060, advertising: 2961, commissions: 4469, tax: 2234, delivery: 838, profit: 9298 },
-    { date: '26.11', fullDate: new Date('2025-11-26'), day: 'Ср', orders: 2, revenue: 26502, cost: 15822, advertising: 867, commissions: 2120, tax: 1060, delivery: 397, profit: 6236 },
-    { date: '27.11', fullDate: new Date('2025-11-27'), day: 'Чт', orders: 3, revenue: 42633, cost: 26301, advertising: 2183, commissions: 3410, tax: 1705, delivery: 639, profit: 8395 },
-    { date: '28.11', fullDate: new Date('2025-11-28'), day: 'Пт', orders: 2, revenue: 32370, cost: 19010, advertising: 1678, commissions: 2589, tax: 1295, delivery: 485, profit: 7313 },
-    { date: '29.11', fullDate: new Date('2025-11-29'), day: 'Сб', orders: 2, revenue: 28168, cost: 17075, advertising: 1375, commissions: 2253, tax: 1127, delivery: 422, profit: 5916 },
-    { date: '30.11', fullDate: new Date('2025-11-30'), day: 'Вс', orders: 1, revenue: 16735, cost: 9404, advertising: 597, commissions: 1339, tax: 669, delivery: 251, profit: 4475 },
-    { date: '01.12', fullDate: new Date('2025-12-01'), day: 'Пн', orders: 3, revenue: 46257, cost: 29414, advertising: 1806, commissions: 3700, tax: 1850, delivery: 694, profit: 8793 },
-    { date: '02.12', fullDate: new Date('2025-12-02'), day: 'Вт', orders: 3, revenue: 42660, cost: 24701, advertising: 1832, commissions: 3413, tax: 1706, delivery: 640, profit: 10368 },
-    { date: '03.12', fullDate: new Date('2025-12-03'), day: 'Ср', orders: 3, revenue: 38943, cost: 22015, advertising: 1710, commissions: 3115, tax: 1558, delivery: 584, profit: 9961 },
-    { date: '04.12', fullDate: new Date('2025-12-04'), day: 'Чт', orders: 2, revenue: 29070, cost: 18614, advertising: 903, commissions: 2325, tax: 1163, delivery: 436, profit: 5629 },
-    { date: '05.12', fullDate: new Date('2025-12-05'), day: 'Пт', orders: 3, revenue: 37213, cost: 23447, advertising: 1245, commissions: 2977, tax: 1488, delivery: 558, profit: 7498 },
-    { date: '06.12', fullDate: new Date('2025-12-06'), day: 'Сб', orders: 1, revenue: 12318, cost: 7140, advertising: 538, commissions: 985, tax: 493, delivery: 185, profit: 2977 },
-    { date: '07.12', fullDate: new Date('2025-12-07'), day: 'Вс', orders: 2, revenue: 21872, cost: 13165, advertising: 777, commissions: 1750, tax: 875, delivery: 328, profit: 4977 },
-    { date: '08.12', fullDate: new Date('2025-12-08'), day: 'Пн', orders: 3, revenue: 41181, cost: 23175, advertising: 2208, commissions: 3294, tax: 1647, delivery: 618, profit: 10239 },
-    { date: '09.12', fullDate: new Date('2025-12-09'), day: 'Вт', orders: 3, revenue: 46356, cost: 29600, advertising: 2190, commissions: 3708, tax: 1854, delivery: 695, profit: 8309 },
-    { date: '10.12', fullDate: new Date('2025-12-10'), day: 'Ср', orders: 2, revenue: 23813, cost: 14055, advertising: 801, commissions: 1905, tax: 952, delivery: 357, profit: 5743 },
-    { date: '11.12', fullDate: new Date('2025-12-11'), day: 'Чт', orders: 2, revenue: 34907, cost: 19781, advertising: 2053, commissions: 2792, tax: 1396, delivery: 523, profit: 8362 },
-    { date: '12.12', fullDate: new Date('2025-12-12'), day: 'Пт', orders: 3, revenue: 40690, cost: 26008, advertising: 1595, commissions: 3255, tax: 1627, delivery: 610, profit: 7595 },
-    { date: '13.12', fullDate: new Date('2025-12-13'), day: 'Сб', orders: 2, revenue: 26276, cost: 16769, advertising: 1121, commissions: 2102, tax: 1051, delivery: 394, profit: 4839 },
-    { date: '14.12', fullDate: new Date('2025-12-14'), day: 'Вс', orders: 2, revenue: 26408, cost: 16978, advertising: 958, commissions: 2113, tax: 1056, delivery: 396, profit: 4907 },
-    { date: '15.12', fullDate: new Date('2025-12-15'), day: 'Пн', orders: 3, revenue: 35909, cost: 20170, advertising: 1177, commissions: 2873, tax: 1436, delivery: 538, profit: 9715 },
-    { date: '16.12', fullDate: new Date('2025-12-16'), day: 'Вт', orders: 2, revenue: 39055, cost: 23378, advertising: 2120, commissions: 3124, tax: 1562, delivery: 586, profit: 8285 },
-    { date: '17.12', fullDate: new Date('2025-12-17'), day: 'Ср', orders: 3, revenue: 46030, cost: 29860, advertising: 2682, commissions: 3682, tax: 1841, delivery: 690, profit: 7275 },
-    { date: '18.12', fullDate: new Date('2025-12-18'), day: 'Чт', orders: 3, revenue: 49133, cost: 30139, advertising: 2409, commissions: 3931, tax: 1965, delivery: 737, profit: 9952 },
-    { date: '19.12', fullDate: new Date('2025-12-19'), day: 'Пт', orders: 3, revenue: 44538, cost: 25352, advertising: 1998, commissions: 3563, tax: 1781, delivery: 668, profit: 11176 },
-    { date: '20.12', fullDate: new Date('2025-12-20'), day: 'Сб', orders: 2, revenue: 27418, cost: 16468, advertising: 1119, commissions: 2193, tax: 1097, delivery: 411, profit: 6130 },
-    { date: '21.12', fullDate: new Date('2025-12-21'), day: 'Вс', orders: 2, revenue: 30488, cost: 17973, advertising: 1055, commissions: 2439, tax: 1219, delivery: 457, profit: 7345 },
-    { date: '22.12', fullDate: new Date('2025-12-22'), day: 'Пн', orders: 3, revenue: 43411, cost: 24923, advertising: 1746, commissions: 3473, tax: 1736, delivery: 651, profit: 10882 },
-    { date: '23.12', fullDate: new Date('2025-12-23'), day: 'Вт', orders: 2, revenue: 26044, cost: 15071, advertising: 859, commissions: 2083, tax: 1042, delivery: 390, profit: 6599 },
-    { date: '24.12', fullDate: new Date('2025-12-24'), day: 'Ср', orders: 3, revenue: 55367, cost: 34774, advertising: 3117, commissions: 4429, tax: 2215, delivery: 830, profit: 10002 },
-    { date: '25.12', fullDate: new Date('2025-12-25'), day: 'Чт', orders: 3, revenue: 32773, cost: 21103, advertising: 1392, commissions: 2622, tax: 1311, delivery: 491, profit: 5854 },
-    { date: '26.12', fullDate: new Date('2025-12-26'), day: 'Пт', orders: 3, revenue: 46460, cost: 28656, advertising: 1667, commissions: 3717, tax: 1858, delivery: 697, profit: 9865 },
-    { date: '27.12', fullDate: new Date('2025-12-27'), day: 'Сб', orders: 1, revenue: 13962, cost: 7696, advertising: 649, commissions: 1117, tax: 558, delivery: 209, profit: 3733 },
-    { date: '28.12', fullDate: new Date('2025-12-28'), day: 'Вс', orders: 1, revenue: 21113, cost: 11701, advertising: 1125, commissions: 1689, tax: 844, delivery: 317, profit: 5437 },
-    { date: '29.12', fullDate: new Date('2025-12-29'), day: 'Пн', orders: 3, revenue: 42600, cost: 27291, advertising: 1422, commissions: 3408, tax: 1704, delivery: 639, profit: 8136 },
-    { date: '30.12', fullDate: new Date('2025-12-30'), day: 'Вт', orders: 2, revenue: 31313, cost: 19176, advertising: 1281, commissions: 2505, tax: 1252, delivery: 470, profit: 6629 },
-    { date: '31.12', fullDate: new Date('2025-12-31'), day: 'Ср', orders: 2, revenue: 31416, cost: 19265, advertising: 1818, commissions: 2513, tax: 1256, delivery: 471, profit: 6093 },
-    { date: '01.01', fullDate: new Date('2026-01-01'), day: 'Чт', orders: 2, revenue: 32216, cost: 18745, advertising: 1702, commissions: 2577, tax: 1288, delivery: 483, profit: 7421 },
-    { date: '02.01', fullDate: new Date('2026-01-02'), day: 'Пт', orders: 2, revenue: 32832, cost: 19321, advertising: 1245, commissions: 2626, tax: 1313, delivery: 492, profit: 7835 },
-    { date: '03.01', fullDate: new Date('2026-01-03'), day: 'Сб', orders: 2, revenue: 28112, cost: 17533, advertising: 1191, commissions: 2249, tax: 1124, delivery: 422, profit: 5593 },
-    { date: '04.01', fullDate: new Date('2026-01-04'), day: 'Вс', orders: 1, revenue: 15866, cost: 10115, advertising: 553, commissions: 1269, tax: 634, delivery: 238, profit: 3057 },
-    { date: '05.01', fullDate: new Date('2026-01-05'), day: 'Пн', orders: 2, revenue: 27990, cost: 15455, advertising: 1479, commissions: 2239, tax: 1119, delivery: 420, profit: 7278 },
-    { date: '06.01', fullDate: new Date('2026-01-06'), day: 'Вт', orders: 3, revenue: 40303, cost: 22572, advertising: 1472, commissions: 3224, tax: 1612, delivery: 604, profit: 10819 },
-    { date: '07.01', fullDate: new Date('2026-01-07'), day: 'Ср', orders: 3, revenue: 36840, cost: 23484, advertising: 1593, commissions: 2947, tax: 1473, delivery: 552, profit: 6791 },
-    { date: '08.01', fullDate: new Date('2026-01-08'), day: 'Чт', orders: 2, revenue: 22138, cost: 13826, advertising: 1117, commissions: 1771, tax: 885, delivery: 332, profit: 4207 },
-    { date: '09.01', fullDate: new Date('2026-01-09'), day: 'Пт', orders: 2, revenue: 25807, cost: 14241, advertising: 1137, commissions: 2065, tax: 1032, delivery: 387, profit: 6945 },
-    { date: '10.01', fullDate: new Date('2026-01-10'), day: 'Сб', orders: 2, revenue: 25580, cost: 15234, advertising: 1350, commissions: 2046, tax: 1023, delivery: 384, profit: 5543 },
-    { date: '11.01', fullDate: new Date('2026-01-11'), day: 'Вс', orders: 1, revenue: 14249, cost: 9017, advertising: 695, commissions: 1140, tax: 570, delivery: 214, profit: 2613 },
-    { date: '12.01', fullDate: new Date('2026-01-12'), day: 'Пн', orders: 3, revenue: 33280, cost: 18720, advertising: 1752, commissions: 2662, tax: 1331, delivery: 499, profit: 8316 },
-    { date: '13.01', fullDate: new Date('2026-01-13'), day: 'Вт', orders: 2, revenue: 20652, cost: 11872, advertising: 1007, commissions: 1652, tax: 826, delivery: 310, profit: 4985 },
-    { date: '14.01', fullDate: new Date('2026-01-14'), day: 'Ср', orders: 3, revenue: 49693, cost: 31281, advertising: 2225, commissions: 3975, tax: 1988, delivery: 745, profit: 9479 },
-    { date: '15.01', fullDate: new Date('2026-01-15'), day: 'Чт', orders: 3, revenue: 32133, cost: 18923, advertising: 1687, commissions: 2571, tax: 1285, delivery: 482, profit: 7185 },
-    { date: '16.01', fullDate: new Date('2026-01-16'), day: 'Пт', orders: 3, revenue: 33480, cost: 20863, advertising: 1619, commissions: 2678, tax: 1339, delivery: 502, profit: 6479 },
-    { date: '17.01', fullDate: new Date('2026-01-17'), day: 'Сб', orders: 2, revenue: 21640, cost: 12528, advertising: 958, commissions: 1731, tax: 865, delivery: 324, profit: 5234 },
-    { date: '18.01', fullDate: new Date('2026-01-18'), day: 'Вс', orders: 2, revenue: 27280, cost: 17413, advertising: 1462, commissions: 2182, tax: 1091, delivery: 409, profit: 4723 },
-    { date: '19.01', fullDate: new Date('2026-01-19'), day: 'Пн', orders: 3, revenue: 36955, cost: 22084, advertising: 1925, commissions: 2956, tax: 1478, delivery: 554, profit: 7958 },
-    { date: '20.01', fullDate: new Date('2026-01-20'), day: 'Вт', orders: 2, revenue: 29840, cost: 17904, advertising: 1193, commissions: 2387, tax: 1193, delivery: 447, profit: 6716 },
-    { date: '21.01', fullDate: new Date('2026-01-21'), day: 'Ср', orders: 2, revenue: 34113, cost: 20468, advertising: 1364, commissions: 2729, tax: 1364, delivery: 512, profit: 7676 },
-    { date: '22.01', fullDate: new Date('2026-01-22'), day: 'Чт', orders: 2, revenue: 24383, cost: 14630, advertising: 975, commissions: 1951, tax: 975, delivery: 366, profit: 5486 },
-    { date: '23.01', fullDate: new Date('2026-01-23'), day: 'Пт', orders: 3, revenue: 43890, cost: 26334, advertising: 1755, commissions: 3511, tax: 1755, delivery: 658, profit: 9877 },
-    { date: '24.01', fullDate: new Date('2026-01-24'), day: 'Сб', orders: 1, revenue: 19493, cost: 11696, advertising: 780, commissions: 1559, tax: 780, delivery: 292, profit: 4386 },
-    { date: '25.01', fullDate: new Date('2026-01-25'), day: 'Вс', orders: 1, revenue: 14620, cost: 8772, advertising: 585, commissions: 1169, tax: 585, delivery: 219, profit: 3290 },
-    { date: '26.01', fullDate: new Date('2026-01-26'), day: 'Пн', orders: 2, revenue: 34137, cost: 20482, advertising: 1365, commissions: 2731, tax: 1365, delivery: 512, profit: 7682 },
-    { date: '27.01', fullDate: new Date('2026-01-27'), day: 'Вт', orders: 2, revenue: 29260, cost: 17556, advertising: 1170, commissions: 2341, tax: 1170, delivery: 439, profit: 6584 }
-  ],
-
-  topProducts: [
-    {
-      id: '1',
-      name: 'iPhone 14 Pro 256GB Deep Purple',
-      sku: 'APL-IP14P-256-DP',
-      image: '📱',
-      sales: 12,
-      adSales: 4,
-      revenue: 180000,
-      cost: 110000,
-      profit: 70000
-    },
-    {
-      id: '2',
-      name: 'Samsung Galaxy S23 Ultra 512GB',
-      sku: 'SAM-S23U-512',
-      image: '📱',
-      sales: 8,
-      adSales: 3,
-      revenue: 144000,
-      cost: 92000,
-      profit: 52000
-    },
-    {
-      id: '3',
-      name: 'MacBook Pro 14" M2 Pro 16GB',
-      sku: 'APL-MBP14-M2P-16',
-      image: '💻',
-      sales: 5,
-      adSales: 2,
-      revenue: 125000,
-      cost: 85000,
-      profit: 40000
-    },
-    {
-      id: '4',
-      name: 'AirPods Pro 2nd Generation',
-      sku: 'APL-APP2',
-      image: '🎧',
-      sales: 15,
-      adSales: 3,
-      revenue: 75000,
-      cost: 45000,
-      profit: 30000
-    },
-    {
-      id: '5',
-      name: 'iPad Air 5th Gen 256GB WiFi',
-      sku: 'APL-IPA5-256-W',
-      image: '📱',
-      sales: 7,
-      adSales: 2,
-      revenue: 98000,
-      cost: 70000,
-      profit: 28000
-    }
-  ],
-
-  ordersByStatus: {
-    pending: 3,
-    processing: 8,
-    shipped: 6,
-    delivered: 26,
-    cancelled: 2
-  },
-
-  // Источники продаж
-  salesSources: {
-    organic: 27,          // Органика (60%)
-    advertising: 18       // Реклама (40%)
-  },
-
-  deliveryModes: {
-    intercity: 12,        // Межгород
-    myDelivery: 18,       // Моя доставка
-    expressDelivery: 8,   // Экспресс доставка
-    pickup: 7             // Самовывоз
-  },
-
-  // Данные по отзывам
-  reviewsData: {
-    totalReviews: 156,
-    averageRating: 4.7,
-    positiveReviews: 142,  // 4-5 звезд
-    neutralReviews: 9,     // 3 звезды
-    negativeReviews: 5,    // 1-2 звезды
-    answeredReviews: 148,
-    unansweredReviews: 8,
-    ratingDistribution: [
-      { stars: 5, count: 118 },
-      { stars: 4, count: 24 },
-      { stars: 3, count: 9 },
-      { stars: 2, count: 3 },
-      { stars: 1, count: 2 }
-    ],
-    recentReviews: [
-      {
-        id: 1,
-        productName: 'iPhone 14 Pro 256GB Deep Purple',
-        productSku: 'APL-IP14P-256-DP',
-        customerName: 'Алексей М.',
-        rating: 5,
-        date: '2026-01-15',
-        text: 'Отличный телефон! Доставка быстрая, все работает идеально. Продавец очень вежливый.',
-        hasAnswer: true,
-        answer: 'Спасибо за ваш отзыв! Рады, что покупка вас порадовала. Будем рады видеть вас снова!'
-      },
-      {
-        id: 2,
-        productName: 'Samsung Galaxy S23 Ultra 512GB',
-        productSku: 'SAM-S23U-512',
-        customerName: 'Марина К.',
-        rating: 5,
-        date: '2026-01-14',
-        text: 'Превосходное качество, камера просто бомба! Рекомендую этот магазин.',
-        hasAnswer: true,
-        answer: 'Благодарим за высокую оценку! Приятно работать с такими покупателями!'
-      },
-      {
-        id: 3,
-        productName: 'AirPods Pro 2',
-        productSku: 'APL-APP2',
-        customerName: 'Дмитрий В.',
-        rating: 4,
-        date: '2026-01-13',
-        text: 'Хорошие наушники, звук чистый. Немного туговато сидят в ушах, но в целом доволен.',
-        hasAnswer: true,
-        answer: 'Спасибо за отзыв! Советуем попробовать разные размеры насадок из комплекта.'
-      },
-      {
-        id: 4,
-        productName: 'MacBook Pro 14" M2 Pro',
-        productSku: 'APL-MBP14-M2P',
-        customerName: 'Сергей Н.',
-        rating: 5,
-        date: '2026-01-12',
-        text: 'Мощный ноутбук для работы и креатива. Доставили на следующий день!',
-        hasAnswer: false,
-        answer: null
-      },
-      {
-        id: 5,
-        productName: 'Apple Watch Ultra',
-        productSku: 'APL-AWU',
-        customerName: 'Елена П.',
-        rating: 3,
-        date: '2026-01-11',
-        text: 'Часы хорошие, но ожидала большего за такую цену. Ремешок немного жестковат.',
-        hasAnswer: false,
-        answer: null
-      },
-      {
-        id: 6,
-        productName: 'iPhone 14 Pro Max 256GB',
-        productSku: 'APL-IP14PM-256',
-        customerName: 'Игорь Т.',
-        rating: 2,
-        date: '2026-01-10',
-        text: 'Долго ждал доставку, почти неделю. Телефон нормальный, но сервис подкачал.',
-        hasAnswer: true,
-        answer: 'Приносим извинения за задержку! Это было связано с праздниками. Благодарим за понимание.'
-      },
-      {
-        id: 7,
-        productName: 'Samsung Galaxy Buds2 Pro',
-        productSku: 'SAM-GB2P',
-        customerName: 'Анна Л.',
-        rating: 5,
-        date: '2026-01-09',
-        text: 'Лучшие беспроводные наушники! Шумоподавление на высоте.',
-        hasAnswer: true,
-        answer: 'Спасибо за отзыв! Рады, что наушники оправдали ожидания!'
-      },
-      {
-        id: 8,
-        productName: 'iPad Air 5th Gen 256GB',
-        productSku: 'APL-IPA5-256',
-        customerName: 'Павел Ш.',
-        rating: 5,
-        date: '2026-01-08',
-        text: 'Отличный планшет для учебы и развлечений. Дети довольны!',
-        hasAnswer: false,
-        answer: null
-      },
-      {
-        id: 9,
-        productName: 'iPhone 15 Pro Max 512GB',
-        productSku: 'APL-IP15PM-512',
-        customerName: 'Виктор К.',
-        rating: 5,
-        date: '2026-01-07',
-        text: 'Лучший телефон который у меня был! Камера просто космос.',
-        hasAnswer: false,
-        answer: null
-      },
-      {
-        id: 10,
-        productName: 'Samsung Galaxy Z Fold5',
-        productSku: 'SAM-ZF5',
-        customerName: 'Ольга Р.',
-        rating: 4,
-        date: '2026-01-07',
-        text: 'Интересный форм-фактор, но тяжеловат. В остальном отлично.',
-        hasAnswer: false,
-        answer: null
-      },
-      {
-        id: 11,
-        productName: 'Apple AirPods Max',
-        productSku: 'APL-APM',
-        customerName: 'Денис С.',
-        rating: 5,
-        date: '2026-01-06',
-        text: 'Звук потрясающий, шумоподавление на высшем уровне!',
-        hasAnswer: false,
-        answer: null
-      },
-      {
-        id: 12,
-        productName: 'MacBook Air M3',
-        productSku: 'APL-MBA-M3',
-        customerName: 'Наталья Б.',
-        rating: 5,
-        date: '2026-01-05',
-        text: 'Легкий, быстрый, батарея держит весь день. Очень довольна!',
-        hasAnswer: false,
-        answer: null
-      },
-      {
-        id: 13,
-        productName: 'iPad Pro 12.9"',
-        productSku: 'APL-IPP-129',
-        customerName: 'Артем Г.',
-        rating: 3,
-        date: '2026-01-04',
-        text: 'Хороший планшет, но цена кусается. За эти деньги ожидал большего.',
-        hasAnswer: false,
-        answer: null
-      },
-      {
-        id: 14,
-        productName: 'Samsung Galaxy Watch 6',
-        productSku: 'SAM-GW6',
-        customerName: 'Мария Ф.',
-        rating: 5,
-        date: '2026-01-03',
-        text: 'Отличные часы! Точно отслеживают сон и тренировки.',
-        hasAnswer: false,
-        answer: null
-      },
-      {
-        id: 15,
-        productName: 'iPhone 14 128GB',
-        productSku: 'APL-IP14-128',
-        customerName: 'Константин Л.',
-        rating: 2,
-        date: '2026-01-03',
-        text: 'Пришел с царапиной на экране. Пришлось менять.',
-        hasAnswer: false,
-        answer: null
-      }
-    ],
-    // Динамика отзывов по дням
-    dailyReviews: [
-      { date: '01.01', positive: 3, neutral: 0, negative: 0 },
-      { date: '02.01', positive: 4, neutral: 1, negative: 0 },
-      { date: '03.01', positive: 2, neutral: 0, negative: 1 },
-      { date: '04.01', positive: 5, neutral: 0, negative: 0 },
-      { date: '05.01', positive: 3, neutral: 1, negative: 0 },
-      { date: '06.01', positive: 4, neutral: 0, negative: 0 },
-      { date: '07.01', positive: 6, neutral: 0, negative: 1 },
-      { date: '08.01', positive: 3, neutral: 1, negative: 0 },
-      { date: '09.01', positive: 5, neutral: 0, negative: 0 },
-      { date: '10.01', positive: 4, neutral: 1, negative: 1 },
-      { date: '11.01', positive: 3, neutral: 0, negative: 0 },
-      { date: '12.01', positive: 5, neutral: 1, negative: 0 },
-      { date: '13.01', positive: 4, neutral: 0, negative: 0 },
-      { date: '14.01', positive: 6, neutral: 0, negative: 1 },
-      { date: '15.01', positive: 5, neutral: 1, negative: 0 }
-    ]
-  }
+// Пустые данные по умолчанию (пока API не загрузит реальные)
+const emptyAnalyticsData = {
+  totalOrders: 0,
+  totalRevenue: 0,
+  totalCost: 0,
+  totalAdvertising: 0,
+  totalTax: 0,
+  totalCommissions: 0,
+  totalDelivery: 0,
+  totalOperational: 0,
+  totalProfit: 0,
+  avgOrderValue: 0,
+  ordersBySource: { organic: 0, ads: 0, offline: 0 },
+  pendingOrders: { count: 0, totalAmount: 0, orders: [] },
+  dailyData: [],
+  dailyDataByCreation: [],
+  topProducts: [],
+  ordersByStatus: { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, returned: 0 },
+  returnedOrders: [],
+  salesSources: { organic: 0, advertising: 0 },
+  deliveryModes: { kaspiDelivery: 0, regional: 0, sellerDelivery: 0, pickup: 0 },
+  marketing: { totalCost: 0, totalGmv: 0, roas: 0, campaigns: [] },
+  storeSettings: { commissionRate: 12.5, taxRate: 4.0 },
+  operationalExpenses: [],
 };
 
 type TabType = 'finances' | 'sales' | 'reviews';
@@ -718,9 +275,6 @@ function AnalyticsPageContent() {
     setCollapsedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
 
-  // Модальное окно для детализации по городам (межгород)
-  const [showCitiesModal, setShowCitiesModal] = useState(false);
-
   // Модальное окно для возвратов
   const [showReturnsModal, setShowReturnsModal] = useState(false);
 
@@ -732,22 +286,11 @@ function AnalyticsPageContent() {
   // Попапы для источников продаж
   const [showOrganicPopup, setShowOrganicPopup] = useState(false);
   const [showAdsPopup, setShowAdsPopup] = useState(false);
-  const [showOfflineSourcePopup, setShowOfflineSourcePopup] = useState(false);
 
-  // Попап для отзывов по дню
-  const [showReviewsDayPopup, setShowReviewsDayPopup] = useState(false);
-  const [selectedReviewsDay, setSelectedReviewsDay] = useState<string | null>(null);
-  const [selectedReviewDayIdx, setSelectedReviewDayIdx] = useState<number | null>(null);
 
   // Попапы для способов доставки
   const [showMyDeliveryPopup, setShowMyDeliveryPopup] = useState(false);
-  const [showExpressPopup, setShowExpressPopup] = useState(false);
   const [showPickupPopup, setShowPickupPopup] = useState(false);
-  const [showOfflineDeliveryPopup, setShowOfflineDeliveryPopup] = useState(false);
-  const [selectedCityPopup, setSelectedCityPopup] = useState<string | null>(null);
-
-  // Выпадающий список городов в межгороде
-  const [showCitiesDropdown, setShowCitiesDropdown] = useState(false);
 
   // Попап детализации по товару
   const [showProductPopup, setShowProductPopup] = useState(false);
@@ -758,40 +301,138 @@ function AnalyticsPageContent() {
   // Попап заказов в пути (ожидают поступления)
   const [showPendingOrdersPopup, setShowPendingOrdersPopup] = useState(false);
 
-  // Операционные расходы
-  const [operationalExpenses, setOperationalExpenses] = useState<OperationalExpense[]>([
-    { id: '1', name: 'Зарплата сотрудников', amount: 500000, startDate: new Date('2026-01-01'), endDate: new Date('2026-01-31') },
-    { id: '2', name: 'Аренда офиса', amount: 150000, startDate: new Date('2026-01-01'), endDate: new Date('2026-01-31') },
-  ]);
+  // Операционные расходы (загружаются из API)
+  const [operationalExpenses, setOperationalExpenses] = useState<OperationalExpense[]>([]);
   const [showExpensesPopup, setShowExpensesPopup] = useState(false);
   const [newExpenseName, setNewExpenseName] = useState('');
   const [newExpenseAmount, setNewExpenseAmount] = useState('');
   const [newExpenseStartDate, setNewExpenseStartDate] = useState<Date>(new Date('2026-01-01'));
   const [newExpenseEndDate, setNewExpenseEndDate] = useState<Date>(new Date('2026-01-31'));
   const [showExpenseCalendar, setShowExpenseCalendar] = useState(false);
+  const [newExpenseProductId, setNewExpenseProductId] = useState<string | null>(null);
+  const [productsList, setProductsList] = useState<Array<{ kaspi_id: string; name: string }>>([]);
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+  const [expenseProductSearch, setExpenseProductSearch] = useState('');
+
+  // Загрузка списка товаров для dropdown
+  const fetchProductsList = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/products?userId=${user.id}`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        setProductsList(json.data);
+      }
+    } catch (err) {
+      console.error('Failed to fetch products:', err);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id && !userLoading) {
+      fetchProductsList();
+    }
+  }, [user?.id, userLoading, fetchProductsList]);
+
+  // Загрузка операционных расходов из API
+  const fetchOperationalExpenses = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/operational-expenses?userId=${user.id}`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        setOperationalExpenses(json.data.map((e: any) => ({
+          id: e.id,
+          name: e.name,
+          amount: e.amount,
+          startDate: new Date(e.start_date || e.startDate),
+          endDate: new Date(e.end_date || e.endDate),
+          productId: e.product_id || null,
+        })));
+      }
+    } catch (err) {
+      console.error('Failed to fetch operational expenses:', err);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id && !userLoading) {
+      fetchOperationalExpenses();
+    }
+  }, [user?.id, userLoading, fetchOperationalExpenses]);
 
   // Функция для добавления нового расхода
-  const handleAddExpense = () => {
-    if (newExpenseName && newExpenseAmount && newExpenseStartDate && newExpenseEndDate) {
-      const newExpense: OperationalExpense = {
-        id: Date.now().toString(),
-        name: newExpenseName,
-        amount: parseFloat(newExpenseAmount),
-        startDate: newExpenseStartDate,
-        endDate: newExpenseEndDate,
-      };
-      setOperationalExpenses([...operationalExpenses, newExpense]);
-      setNewExpenseName('');
-      setNewExpenseAmount('');
-      setNewExpenseStartDate(new Date('2026-01-01'));
-      setNewExpenseEndDate(new Date('2026-01-31'));
+  const handleAddExpense = async () => {
+    if (newExpenseName && newExpenseAmount && newExpenseStartDate && newExpenseEndDate && user?.id) {
+      try {
+        const res = await fetch('/api/operational-expenses', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            name: newExpenseName,
+            amount: parseFloat(newExpenseAmount),
+            startDate: newExpenseStartDate.toISOString().split('T')[0],
+            endDate: newExpenseEndDate.toISOString().split('T')[0],
+            productId: newExpenseProductId || null,
+          }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          await fetchOperationalExpenses();
+          setNewExpenseName('');
+          setNewExpenseAmount('');
+          setNewExpenseStartDate(new Date('2026-01-01'));
+          setNewExpenseEndDate(new Date('2026-01-31'));
+          setNewExpenseProductId(null);
+          setExpenseProductSearch('');
+        }
+      } catch (err) {
+        console.error('Failed to add expense:', err);
+      }
     }
   };
 
   // Функция для удаления расхода
-  const handleDeleteExpense = (id: string) => {
-    setOperationalExpenses(operationalExpenses.filter(exp => exp.id !== id));
+  const handleDeleteExpense = async (id: string) => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/operational-expenses?userId=${user.id}&id=${id}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setOperationalExpenses(operationalExpenses.filter(exp => exp.id !== id));
+      }
+    } catch (err) {
+      console.error('Failed to delete expense:', err);
+    }
   };
+
+  // === Маркетинг за выбранный период (отдельный запрос) ===
+  const [periodMarketingCost, setPeriodMarketingCost] = useState<number>(0);
+
+  const toLocalDate = (d: Date) => {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const fetchPeriodMarketing = useCallback(async () => {
+    if (!user?.id || !startDate || !endDate) return;
+    try {
+      const res = await fetch(`/api/kaspi/marketing?userId=${user.id}&startDate=${toLocalDate(startDate)}&endDate=${toLocalDate(endDate)}`);
+      const json = await res.json();
+      if (json.success && json.data?.summary) {
+        setPeriodMarketingCost(json.data.summary.totalCost || 0);
+      } else {
+        setPeriodMarketingCost(0);
+      }
+    } catch {
+      // Marketing might not be connected
+      setPeriodMarketingCost(0);
+    }
+  }, [user?.id, startDate, endDate]);
+
+  useEffect(() => {
+    fetchPeriodMarketing();
+  }, [fetchPeriodMarketing]);
 
   // Рассчитать дневную сумму операционных расходов для конкретной даты
   const calculateDailyOperationalExpensesForDate = (date: Date) => {
@@ -969,7 +610,7 @@ function AnalyticsPageContent() {
   };
 
   // Источник данных: API или mock
-  const sourceData = apiData || mockAnalyticsData;
+  const sourceData = apiData || emptyAnalyticsData;
 
   // Фильтрация данных по выбранному периоду
   const getFilteredData = () => {
@@ -1001,7 +642,6 @@ function AnalyticsPageContent() {
         ...sourceData,
         dailyData: allDailyData,
         dailyDataByCreation: allDailyDataByCreation,
-        reviewsData: mockAnalyticsData.reviewsData,
       };
     }
 
@@ -1055,14 +695,27 @@ function AnalyticsPageContent() {
       ordersByStatus: sourceData.ordersByStatus || { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, returned: 0 },
       salesSources: sourceData.salesSources || { organic: totalOrders, advertising: 0 },
       ordersBySource: sourceData.ordersBySource || { organic: totalOrders, ads: 0, offline: 0 },
-      deliveryModes: sourceData.deliveryModes || { intercity: 0, myDelivery: 0, expressDelivery: 0, pickup: 0 },
+      deliveryModes: sourceData.deliveryModes || { kaspiDelivery: 0, regional: 0, sellerDelivery: 0, pickup: 0 },
       pendingOrders: sourceData.pendingOrders || { count: 0, totalAmount: 0, orders: [] },
-      reviewsData: mockAnalyticsData.reviewsData,
+      marketing: sourceData.marketing || { totalCost: 0, totalGmv: 0, roas: 0, campaigns: [] },
+      totalOperational: sourceData.totalOperational || 0,
+      storeSettings: sourceData.storeSettings || { commissionRate: 12.5, taxRate: 4.0 },
+      operationalExpenses: sourceData.operationalExpenses || [],
     };
   };
 
   // Используем отфильтрованные данные
   const data = getFilteredData();
+
+  // Итоги по дате СОЗДАНИЯ заказа (для таба Sales — согласовано с графиком "Структура выручки")
+  const creationTotals = (() => {
+    const days = data.dailyDataByCreation || data.dailyData || [];
+    const totalOrders = days.reduce((s: number, d: any) => s + (d.orders || 0), 0);
+    const totalRevenue = days.reduce((s: number, d: any) => s + (d.revenue || 0), 0);
+    const totalReturned = days.reduce((s: number, d: any) => s + (d.returned || 0), 0);
+    const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    return { totalOrders, totalRevenue, avgOrderValue, totalReturned };
+  })();
 
   // Функция для получения данных предыдущего периода
   const getPreviousPeriodData = () => {
@@ -1126,34 +779,20 @@ function AnalyticsPageContent() {
 
   // Подготовка данных для графиков
   // Оффлайн = 5% от общего числа заказов (ручные заказы)
-  const offlineOrders = Math.max(1, Math.round(data.totalOrders * 0.05));
-
   const salesSourcesData = [
     { name: 'Органика', value: data.salesSources.organic },
     { name: 'Реклама', value: data.salesSources.advertising },
-    { name: 'Оффлайн', value: offlineOrders },
   ];
 
   const deliveryData = [
-    { name: 'Межгород', value: data.deliveryModes.intercity },
-    { name: 'Моя доставка', value: data.deliveryModes.myDelivery },
-    { name: 'Экспресс доставка', value: data.deliveryModes.expressDelivery },
+    { name: 'Kaspi Доставка', value: data.deliveryModes.kaspiDelivery },
+    { name: 'Межгород', value: data.deliveryModes.regional },
+    { name: 'Моя доставка', value: data.deliveryModes.sellerDelivery },
     { name: 'Самовывоз', value: data.deliveryModes.pickup },
-    { name: 'Оффлайн', value: offlineOrders },
   ];
 
   // Данные по городам для межгорода (распределение заказов)
-  const intercityOrders = data.deliveryModes.intercity;
-  const citiesData = [
-    { name: 'Астана', orders: Math.round(intercityOrders * 0.32), percent: 32 },
-    { name: 'Шымкент', orders: Math.round(intercityOrders * 0.18), percent: 18 },
-    { name: 'Караганда', orders: Math.round(intercityOrders * 0.14), percent: 14 },
-    { name: 'Актобе', orders: Math.round(intercityOrders * 0.11), percent: 11 },
-    { name: 'Павлодар', orders: Math.round(intercityOrders * 0.09), percent: 9 },
-    { name: 'Атырау', orders: Math.round(intercityOrders * 0.07), percent: 7 },
-    { name: 'Костанай', orders: Math.round(intercityOrders * 0.05), percent: 5 },
-    { name: 'Другие города', orders: Math.round(intercityOrders * 0.04), percent: 4 },
-  ];
+  const regionalOrders = data.deliveryModes.regional;
 
   // Расчет процента рентабельности
   const profitMargin = ((data.totalProfit / data.totalRevenue) * 100).toFixed(1);
@@ -1300,7 +939,7 @@ function AnalyticsPageContent() {
                   <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Расходы</span>
                 </div>
                 <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  {fmt(data.totalCost + data.totalAdvertising + data.totalTax + data.totalCommissions + data.totalDelivery)} ₸
+                  {fmt(data.totalCost + data.totalAdvertising + data.totalTax + data.totalCommissions + data.totalDelivery + (data.totalOperational || 0))} ₸
                 </div>
                 <div className="text-[10px] sm:text-xs mt-1">
                   <button
@@ -1342,6 +981,12 @@ function AnalyticsPageContent() {
                           <span>Доставка</span>
                           <span className="font-medium">{fmt(data.totalDelivery)} ₸</span>
                         </div>
+                        {(data.totalOperational || 0) > 0 && (
+                        <div className="flex justify-between text-gray-600 dark:text-gray-400">
+                          <span>Опер. расх.</span>
+                          <span className="font-medium">{fmt(data.totalOperational)} ₸</span>
+                        </div>
+                        )}
                       </div>
                     </motion.div>
                   )}
@@ -1608,13 +1253,13 @@ function AnalyticsPageContent() {
                 <span className="text-gray-300 dark:text-gray-600">|</span>
                 <span>{data.totalOrders} заказов</span>
               </div>
-              <button
-                onClick={() => setShowExpensesPopup(true)}
+              <Link
+                href="/app/expenses"
                 className="px-4 py-2.5 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-xl text-sm font-medium transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md hover:shadow-lg"
               >
                 <Plus className="w-4 h-4" />
                 Операционные расходы
-              </button>
+              </Link>
             </div>
 
             {/* Sales Stats Cards */}
@@ -1627,9 +1272,9 @@ function AnalyticsPageContent() {
                   <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Заказов</span>
                   <HelpTooltip text="Общее количество заказов за выбранный период" />
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{data.totalOrders}</div>
-                <div className="text-[10px] sm:text-xs mt-1">
-                  <span className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
+                <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{fmt(creationTotals.totalRevenue)} ₸</div>
+                <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {creationTotals.totalOrders} заказов
                 </div>
               </div>
 
@@ -1641,10 +1286,7 @@ function AnalyticsPageContent() {
                   <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Ср. чек</span>
                   <HelpTooltip text="Средняя сумма одного заказа (выручка ÷ количество заказов)" />
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{fmt(data.avgOrderValue)} ₸</div>
-                <div className="text-[10px] sm:text-xs mt-1">
-                  <span className="bg-purple-50 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
-                </div>
+                <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{fmt(creationTotals.avgOrderValue)} ₸</div>
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => setShowReturnsModal(true)}>
@@ -1656,15 +1298,14 @@ function AnalyticsPageContent() {
                   <HelpTooltip text="Процент возвращённых заказов от общего числа" />
                 </div>
                 {(() => {
-                  const totalOrders = data.ordersByStatus.pending + data.ordersByStatus.processing + data.ordersByStatus.shipped + data.ordersByStatus.delivered + data.ordersByStatus.cancelled + (data.ordersByStatus.returned || 0);
-                  const returnedCount = data.ordersByStatus.returned || 0;
-                  const returnPercent = totalOrders > 0 ? ((returnedCount / totalOrders) * 100).toFixed(1) : '0';
+                  const returnedCount = creationTotals.totalReturned;
+                  const total = creationTotals.totalOrders + returnedCount;
+                  const returnPercent = total > 0 ? ((returnedCount / total) * 100).toFixed(1) : '0';
                   return (
                     <>
                       <div className="text-lg sm:text-2xl font-bold text-red-600 dark:text-red-400">{returnPercent}%</div>
-                      <div className="text-[10px] sm:text-xs mt-1 flex items-center gap-2">
-                        <span className="bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
-                        <span className="text-gray-400">{returnedCount} из {totalOrders}</span>
+                      <div className="text-[10px] sm:text-xs text-gray-400 mt-1">
+                        {returnedCount} из {total}
                       </div>
                     </>
                   );
@@ -1743,38 +1384,59 @@ function AnalyticsPageContent() {
                   // Подготовка данных для stacked bar chart (по дате создания заказа)
                   const adsRatio = data.totalOrders > 0 ? data.ordersBySource.ads / data.totalOrders : 0;
 
-                  const chartData = (data.dailyDataByCreation || data.dailyData).map((day: any) => {
-                    // Если показываем только рекламу - берём пропорциональную часть
+                  // Распределяем periodMarketingCost по дням пропорционально выручке
+                  const creationDays = data.dailyDataByCreation || data.dailyData;
+                  const totalCreationRevenue = creationDays.reduce((s: number, d: any) => s + (d.revenue || 0), 0);
+
+                  const chartData = creationDays.map((day: any) => {
                     const multiplier = showAdsOnly ? adsRatio : 1;
                     const dayRevenue = day.revenue * multiplier;
-                    const dayCost = day.cost * multiplier;
-                    const dayAds = day.advertising; // Реклама всегда полная
-                    // Операционные расходы для конкретной даты
+                    const dayCost = (day.cost || 0) * multiplier;
+                    const dayCommissions = (day.commissions || 0) * multiplier;
+                    const dayTax = (day.tax || 0) * multiplier;
+                    const dayDelivery = (day.delivery || 0) * multiplier;
+                    // Реклама: распределяем periodMarketingCost пропорционально выручке
+                    const revenueShare = totalCreationRevenue > 0 ? (day.revenue || 0) / totalCreationRevenue : 0;
+                    const dayAds = periodMarketingCost * revenueShare;
                     const dayOpExpenses = (day.fullDate ? calculateDailyOperationalExpensesForDate(day.fullDate) : 0) * multiplier;
-                    const dayProfit = dayRevenue - dayCost - dayAds - dayOpExpenses;
-
-                    // Проценты для каждой части
-                    const costPercent = dayRevenue > 0 ? ((dayCost / dayRevenue) * 100).toFixed(0) : 0;
-                    const adsPercent = dayRevenue > 0 ? ((dayAds / dayRevenue) * 100).toFixed(0) : 0;
-                    const opExpensesPercent = dayRevenue > 0 ? ((dayOpExpenses / dayRevenue) * 100).toFixed(0) : 0;
-                    const profitPercent = dayRevenue > 0 ? ((Math.max(0, dayProfit) / dayRevenue) * 100).toFixed(0) : 0;
+                    const dayComTaxDel = dayCommissions + dayTax + dayDelivery;
+                    const dayProfit = dayRevenue - dayCost - dayComTaxDel - dayAds - dayOpExpenses;
 
                     return {
                       date: day.date,
                       day: day.day || '',
                       cost: dayCost,
+                      comTaxDel: dayComTaxDel,
                       advertising: dayAds,
                       opExpenses: dayOpExpenses,
                       profit: Math.max(0, dayProfit),
                       loss: dayProfit < 0 ? Math.abs(dayProfit) : 0,
                       revenue: dayRevenue,
-                      costPercent,
-                      adsPercent,
-                      opExpensesPercent,
-                      profitPercent: dayProfit >= 0 ? profitPercent : 0,
                       orders: showAdsOnly ? Math.round(day.orders * adsRatio) : day.orders
                     };
                   });
+
+                  // Итоги из chartData (согласованы с графиком)
+                  const chartTotalRevenue = chartData.reduce((s: number, d: any) => s + d.revenue, 0);
+                  const chartTotalCost = chartData.reduce((s: number, d: any) => s + d.cost, 0);
+                  const chartTotalComTaxDel = chartData.reduce((s: number, d: any) => s + d.comTaxDel, 0);
+                  const chartTotalAds = chartData.reduce((s: number, d: any) => s + d.advertising, 0);
+                  // Опер. расходы: считаем по всем дням периода (не только дни с заказами)
+                  let chartTotalOpex = 0;
+                  if (startDate && endDate) {
+                    for (const exp of operationalExpenses) {
+                      const expStart = exp.startDate.getTime();
+                      const expEnd = exp.endDate.getTime();
+                      const overlapStart = Math.max(expStart, startDate.getTime());
+                      const overlapEnd = Math.min(expEnd, endDate.getTime());
+                      if (overlapStart > overlapEnd) continue;
+                      const overlapDays = Math.round((overlapEnd - overlapStart) / 86400000) + 1;
+                      const totalExpDays = Math.max(1, Math.round((expEnd - expStart) / 86400000) + 1);
+                      chartTotalOpex += (exp.amount / totalExpDays) * overlapDays;
+                    }
+                  }
+                  const chartTotalProfit = chartTotalRevenue - chartTotalCost - chartTotalComTaxDel - chartTotalAds - chartTotalOpex;
+                  const chartTotalOrders = chartData.reduce((s: number, d: any) => s + d.orders, 0);
 
                   return (
                     <>
@@ -1808,6 +1470,10 @@ function AnalyticsPageContent() {
                                         <span>{fmt(item?.cost || 0)} ₸</span>
                                       </div>
                                       <div className="flex justify-between gap-3">
+                                        <span className="text-blue-400">Комис./Налог/Дост.</span>
+                                        <span>{fmt(item?.comTaxDel || 0)} ₸</span>
+                                      </div>
+                                      <div className="flex justify-between gap-3">
                                         <span className="text-amber-400">Реклама</span>
                                         <span>{fmt(item?.advertising || 0)} ₸</span>
                                       </div>
@@ -1832,6 +1498,7 @@ function AnalyticsPageContent() {
                             formatter={(value) => {
                               const labels: Record<string, string> = {
                                 cost: 'Себест.',
+                                comTaxDel: 'Комис.',
                                 advertising: 'Рекл.',
                                 opExpenses: 'Опер.',
                                 profit: 'Приб.'
@@ -1840,6 +1507,7 @@ function AnalyticsPageContent() {
                             }}
                           />
                           <Bar dataKey="cost" name="cost" stackId="a" fill="#f87171" />
+                          <Bar dataKey="comTaxDel" name="comTaxDel" stackId="a" fill="#93c5fd" />
                           <Bar dataKey="advertising" name="advertising" stackId="a" fill="#fbbf24" />
                           <Bar dataKey="opExpenses" name="opExpenses" stackId="a" fill="#818cf8" />
                           <Bar dataKey="profit" name="profit" stackId="a" fill="#34d399" radius={[3, 3, 0, 0]}>
@@ -1853,56 +1521,51 @@ function AnalyticsPageContent() {
                         </BarChart>
                       </ResponsiveContainer>
 
-                      {/* Итоги под графиком */}
-                      <div className="mt-3 lg:mt-4 grid grid-cols-4 gap-1.5 lg:gap-3">
-                        <div className="bg-white dark:bg-gray-800 rounded-lg px-2 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
+                      {/* Итоги под графиком — из chartData (согласованы с графиком) */}
+                      <div className="mt-3 lg:mt-4 grid grid-cols-5 gap-1 lg:gap-3">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg px-1.5 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
                           <div className="text-[9px] lg:text-sm text-gray-400">себест.</div>
                           <div className="text-xs lg:text-base font-semibold text-rose-500 dark:text-rose-400">
-                            {fmt(showAdsOnly ? data.totalCost * adsRatio : data.totalCost)} ₸
+                            {fmt(chartTotalCost)} ₸
                           </div>
                           <div className="text-[8px] lg:text-xs text-rose-400">
-                            {(((showAdsOnly ? data.totalCost * adsRatio : data.totalCost) / (showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue)) * 100).toFixed(0)}%
+                            {chartTotalRevenue > 0 ? ((chartTotalCost / chartTotalRevenue) * 100).toFixed(0) : 0}%
                           </div>
                         </div>
-                        <div className="bg-white dark:bg-gray-800 rounded-lg px-2 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg px-1.5 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
                           <div className="text-[9px] lg:text-sm text-gray-400">реклама</div>
                           <div className="text-xs lg:text-base font-semibold text-amber-500 dark:text-amber-400">
-                            {fmt(data.totalAdvertising)} ₸
+                            {fmt(chartTotalAds)} ₸
                           </div>
                           <div className="text-[8px] lg:text-xs text-amber-400">
-                            {((data.totalAdvertising / (showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue)) * 100).toFixed(0)}%
+                            {chartTotalRevenue > 0 ? ((chartTotalAds / chartTotalRevenue) * 100).toFixed(0) : 0}%
                           </div>
                         </div>
-                        <div className="bg-white dark:bg-gray-800 rounded-lg px-2 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg px-1.5 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
+                          <div className="text-[9px] lg:text-sm text-gray-400">опер. расх.</div>
+                          <div className="text-xs lg:text-base font-semibold text-orange-500 dark:text-orange-400">
+                            {fmt(chartTotalOpex)} ₸
+                          </div>
+                          <div className="text-[8px] lg:text-xs text-orange-400">
+                            {chartTotalRevenue > 0 ? ((chartTotalOpex / chartTotalRevenue) * 100).toFixed(0) : 0}%
+                          </div>
+                        </div>
+                        <div className="bg-white dark:bg-gray-800 rounded-lg px-1.5 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
                           <div className="text-[9px] lg:text-sm text-gray-400">цена клиента</div>
                           <div className="text-xs lg:text-base font-semibold text-sky-500 dark:text-sky-400">
-                            {(() => {
-                              const orders = showAdsOnly ? data.ordersBySource.ads : data.totalOrders;
-                              const cac = orders > 0 ? data.totalAdvertising / orders : 0;
-                              return `${fmt(cac)} ₸`;
-                            })()}
+                            {chartTotalOrders > 0 ? fmt(chartTotalAds / chartTotalOrders) : 0} ₸
                           </div>
                           <div className="text-[8px] lg:text-xs text-sky-400">
-                            {showAdsOnly ? data.ordersBySource.ads : data.totalOrders} зак.
+                            {chartTotalOrders} зак.
                           </div>
                         </div>
-                        <div className="bg-white dark:bg-gray-800 rounded-lg px-2 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg px-1.5 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
                           <div className="text-[9px] lg:text-sm text-gray-400">прибыль</div>
                           <div className="text-xs lg:text-base font-semibold text-emerald-500 dark:text-emerald-400">
-                            {(() => {
-                              const rev = showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue;
-                              const cost = showAdsOnly ? data.totalCost * adsRatio : data.totalCost;
-                              const profit = rev - cost - data.totalAdvertising;
-                              return `${fmt(profit)} ₸`;
-                            })()}
+                            {fmt(chartTotalProfit)} ₸
                           </div>
                           <div className="text-[8px] lg:text-xs text-emerald-400">
-                            {(() => {
-                              const rev = showAdsOnly ? data.totalRevenue * adsRatio : data.totalRevenue;
-                              const cost = showAdsOnly ? data.totalCost * adsRatio : data.totalCost;
-                              const profit = rev - cost - data.totalAdvertising;
-                              return `${((profit / rev) * 100).toFixed(0)}%`;
-                            })()}
+                            {chartTotalRevenue > 0 ? ((chartTotalProfit / chartTotalRevenue) * 100).toFixed(0) : 0}%
                           </div>
                         </div>
                       </div>
@@ -1969,22 +1632,50 @@ function AnalyticsPageContent() {
                   // Расчёт данных для каждого товара
                   const totalAdSales = data.topProducts.reduce((sum: number, p: any) => sum + (p.adSales || 0), 0);
 
-                  const productsWithData = data.topProducts.map((product: any) => {
-                    // Используем реальные данные: sales и revenue из заказов
-                    const margin = product.revenue > 0 && product.cost > 0
-                      ? Math.round(((product.revenue - product.cost) / product.revenue) * 100)
-                      : 0;
-                    const profit = product.revenue - (product.cost || 0);
+                  // Рассчитать опер. расходы с учётом пересечения дат расхода и периода просмотра
+                  const calcProductOpex = (sku: string, revenueShare: number) => {
+                    if (!startDate || !endDate) return 0;
+                    const viewStart = startDate.getTime();
+                    const viewEnd = endDate.getTime();
+                    let direct = 0;
+                    let shared = 0;
+                    for (const exp of operationalExpenses) {
+                      const expStart = exp.startDate.getTime();
+                      const expEnd = exp.endDate.getTime();
+                      // Пересечение дат
+                      const overlapStart = Math.max(expStart, viewStart);
+                      const overlapEnd = Math.min(expEnd, viewEnd);
+                      if (overlapStart > overlapEnd) continue; // нет пересечения
+                      const overlapDays = Math.round((overlapEnd - overlapStart) / 86400000) + 1;
+                      const totalExpDays = Math.max(1, Math.round((expEnd - expStart) / 86400000) + 1);
+                      const proratedAmount = (exp.amount / totalExpDays) * overlapDays;
+                      if (exp.productId === sku) {
+                        direct += proratedAmount;
+                      } else if (!exp.productId) {
+                        shared += proratedAmount * revenueShare;
+                      }
+                    }
+                    return direct + shared;
+                  };
 
+                  const totalProductRevenue = data.topProducts.reduce((s: number, p: any) => s + (p.revenue || 0), 0);
+
+                  const productsWithData = data.topProducts.map((product: any) => {
+                    const revenueShare = totalProductRevenue > 0 ? (product.revenue || 0) / totalProductRevenue : 0;
+                    const opexForPeriod = calcProductOpex(product.sku, revenueShare);
                     return {
                       ...product,
                       displaySales: product.sales,
                       totalSales: product.sales,
-                      displayCost: product.cost || 0,
+                      displayCost: product.costPrice || product.cost || 0,
                       displayRevenue: product.revenue,
-                      displayAdExpense: 0,
-                      displayProfit: profit,
-                      displayMargin: margin,
+                      displayAdExpense: product.adCost || 0,
+                      displayCommission: product.commission || 0,
+                      displayTax: product.tax || 0,
+                      displayDelivery: product.delivery || 0,
+                      displayOperational: opexForPeriod,
+                      displayProfit: product.profit ?? (product.revenue - (product.cost || 0)),
+                      displayMargin: Math.round(product.margin ?? (product.revenue > 0 ? ((product.revenue - (product.cost || 0)) / product.revenue) * 100 : 0)),
                       isAdsMode: showAdsOnlyROI
                     };
                   })
@@ -2061,7 +1752,12 @@ function AnalyticsPageContent() {
                                 {product.displayAdExpense > 0 && (
                                   <span className="text-amber-600 dark:text-amber-400"><span className="text-[9px] lg:text-xs opacity-50">рекл</span> {fmt(product.displayAdExpense)} ₸</span>
                                 )}
-                                <span><span className="text-[9px] lg:text-xs opacity-50">цена 1 клиента</span> {product.displaySales > 0 ? fmt(product.displayRevenue / product.displaySales) : '0'} ₸</span>
+                                {product.displayOperational > 0 && (
+                                  <span className="text-orange-500 dark:text-orange-400"><span className="text-[9px] lg:text-xs opacity-50">опер</span> {fmt(product.displayOperational)} ₸</span>
+                                )}
+                                {product.displayAdExpense > 0 && product.displaySales > 0 && (
+                                  <span><span className="text-[9px] lg:text-xs opacity-50">цена клиента</span> {fmt(product.displayAdExpense / product.displaySales)} ₸</span>
+                                )}
                               </div>
                               <div className="flex items-center gap-2 lg:gap-3">
                                 <span><span className="text-[9px] lg:text-xs opacity-50">выр</span> {fmt(product.displayRevenue)} ₸</span>
@@ -2259,13 +1955,10 @@ function AnalyticsPageContent() {
                             {deliveryData.map((item, index) => {
                               const total = deliveryData.reduce((sum: number, i) => sum + i.value, 0);
                               const percent = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
-                              const isIntercity = item.name === 'Межгород';
-
                               return (
                                 <div key={item.name}>
                                   <div
-                                    className={`flex items-center gap-1 sm:gap-2 lg:gap-3 px-1 lg:px-2 py-0.5 lg:py-1 rounded transition-colors ${isIntercity ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700' : ''}`}
-                                    onClick={isIntercity ? () => setShowCitiesDropdown(!showCitiesDropdown) : undefined}
+                                    className="flex items-center gap-1 sm:gap-2 lg:gap-3 px-1 lg:px-2 py-0.5 lg:py-1 rounded transition-colors"
                                   >
                                     <div
                                       className="w-2 h-2 sm:w-2.5 sm:h-2.5 lg:w-3 lg:h-3 rounded-full flex-shrink-0"
@@ -2275,32 +1968,10 @@ function AnalyticsPageContent() {
                                       <span className="text-[10px] sm:text-xs lg:text-sm text-gray-700 dark:text-gray-300 truncate">{item.name}</span>
                                       <div className="flex items-center gap-1">
                                         <span className="text-[9px] sm:text-[11px] lg:text-sm font-medium text-gray-900 dark:text-white">{item.value} <span className="text-gray-400">({percent}%)</span></span>
-                                        {isIntercity && <ChevronDown className={`w-2.5 h-2.5 sm:w-3 sm:h-3 text-gray-400 transition-transform ${showCitiesDropdown ? 'rotate-180' : ''}`} />}
                                       </div>
                                     </div>
                                   </div>
 
-                                  {/* Выпадающий список городов для Межгород */}
-                                  <AnimatePresence>
-                                    {isIntercity && showCitiesDropdown && (
-                                      <motion.div
-                                        initial={{ height: 0, opacity: 0 }}
-                                        animate={{ height: 'auto', opacity: 1 }}
-                                        exit={{ height: 0, opacity: 0 }}
-                                        className="overflow-hidden ml-3 sm:ml-4 lg:ml-5 border-l border-sky-200 dark:border-sky-800 pl-1.5 sm:pl-2 lg:pl-3"
-                                      >
-                                        {citiesData.map((city) => (
-                                            <div
-                                              key={city.name}
-                                              className="flex items-center justify-between py-0.5 lg:py-1 px-1 lg:px-2 rounded"
-                                            >
-                                              <span className="text-[9px] sm:text-[11px] lg:text-sm text-gray-600 dark:text-gray-400 truncate">{city.name}</span>
-                                              <span className="text-[9px] sm:text-[11px] lg:text-sm text-gray-900 dark:text-white">{city.orders}</span>
-                                            </div>
-                                          ))}
-                                      </motion.div>
-                                    )}
-                                  </AnimatePresence>
                                 </div>
                               );
                             })}
@@ -2320,645 +1991,17 @@ function AnalyticsPageContent() {
         {/* Reviews Tab */}
         {activeTab === 'reviews' && (
           <div className="mt-6">
-            {/* Метрики отзывов - горизонтальный скролл на мобильных */}
-            <div className="mb-4 sm:mb-6">
-              {(() => {
-                // Вычисляем данные на основе периода
-                const getDaysInPeriod = () => {
-                  if (!startDate || !endDate) return 7;
-                  const start = new Date(startDate);
-                  const end = new Date(endDate);
-                  return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-                };
-
-                const days = getDaysInPeriod();
-                // Генерируем числа на основе периода (для демо)
-                const basePositive = Math.round(days * 4.5);
-                const baseNeutral = Math.round(days * 0.8);
-                const baseNegative = Math.round(days * 0.4);
-                const totalReviews = basePositive + baseNeutral + baseNegative;
-                const avgRating = 4.5 + (days % 10) * 0.03;
-
-                return (
-                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4 sm:gap-4">
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-amber-100 dark:bg-amber-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
-                          <Star className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
-                        </div>
-                        <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Средний рейтинг</span>
-                      </div>
-                      <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-1.5">
-                        {avgRating.toFixed(1)}
-                        <div className="flex">
-                          {[1, 2, 3, 4, 5].map((star) => (
-                            <Star
-                              key={star}
-                              className={`w-3 h-3 sm:w-4 sm:h-4 ${star <= Math.round(avgRating) ? 'text-amber-400 fill-amber-400' : 'text-gray-300 dark:text-gray-600'}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      <div className="text-[10px] sm:text-xs text-emerald-500 dark:text-emerald-400 mt-1">+0.2 vs прошлый период</div>
-                    </div>
-
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
-                          <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
-                        </div>
-                        <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Всего отзывов</span>
-                      </div>
-                      <div className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{totalReviews}</div>
-                      <div className="text-[10px] sm:text-xs text-emerald-500 dark:text-emerald-400 mt-1">+{Math.round(totalReviews * 0.12)} за период</div>
-                    </div>
-
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
-                          <ThumbsUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
-                        </div>
-                        <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">Положительные</span>
-                      </div>
-                      <div className="text-xl sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{basePositive}</div>
-                      <div className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">{Math.round((basePositive / totalReviews) * 100)}% от всех</div>
-                    </div>
-
-                    <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 shadow-sm">
-                      <div className="flex items-center gap-2 mb-2">
-                        <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
-                          <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-                        </div>
-                        <span className="text-gray-600 dark:text-gray-400 text-xs sm:text-sm">За период</span>
-                      </div>
-                      <div className="text-xl sm:text-2xl font-bold text-purple-600 dark:text-purple-400">{totalReviews}</div>
-                      <div className="text-[10px] sm:text-xs text-emerald-500 dark:text-emerald-400 mt-1">+{Math.round(totalReviews * 0.1)} vs прошлый</div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Блок сводки отзывов с графиком */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm mb-6">
-              {(() => {
-                // Генерируем данные на основе выбранного периода
-                const generateReviewsDataForPeriod = () => {
-                  if (!startDate || !endDate) return mockAnalyticsData.reviewsData.dailyReviews;
-
-                  const start = new Date(startDate);
-                  const end = new Date(endDate);
-                  const diffDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-
-                  const data: { date: string; positive: number; neutral: number; negative: number }[] = [];
-
-                  // Ограничиваем количество точек для читаемости
-                  const maxPoints = 15;
-                  const step = diffDays > maxPoints ? Math.ceil(diffDays / maxPoints) : 1;
-
-                  for (let i = 0; i < diffDays; i += step) {
-                    const currentDate = new Date(start);
-                    currentDate.setDate(start.getDate() + i);
-
-                    // Генерируем случайные данные на основе даты (для демо)
-                    const seed = currentDate.getDate() + currentDate.getMonth() * 31;
-                    const positive = 3 + (seed % 5);
-                    const neutral = (seed % 3);
-                    const negative = (seed % 2);
-
-                    data.push({
-                      date: `${currentDate.getDate().toString().padStart(2, '0')}.${(currentDate.getMonth() + 1).toString().padStart(2, '0')}`,
-                      positive,
-                      neutral,
-                      negative
-                    });
-                  }
-
-                  return data;
-                };
-
-                const reviewsData = generateReviewsDataForPeriod();
-                const totalPositive = reviewsData.reduce((sum: number, d: any) => sum + d.positive, 0);
-                const totalNeutral = reviewsData.reduce((sum: number, d: any) => sum + d.neutral, 0);
-                const totalNegative = reviewsData.reduce((sum: number, d: any) => sum + d.negative, 0);
-                const totalReviews = totalPositive + totalNeutral + totalNegative;
-
-                // Данные для графика
-                const positiveData = reviewsData.map((d: any) => d.positive);
-                const neutralData = reviewsData.map((d: any) => d.neutral);
-                const negativeData = reviewsData.map((d: any) => d.negative);
-                const allData = [...positiveData, ...neutralData, ...negativeData];
-                const maxVal = Math.max(...allData, 1);
-                // Широкий viewBox для правильных пропорций (3:1)
-                const viewW = 300;
-                const viewH = 100;
-                const padX = 10;
-                const padY = 15;
-                const pointsCount = positiveData.length;
-
-                const getY = (val: number) => {
-                  const range = maxVal || 1;
-                  const norm = val / range;
-                  return padY + (1 - norm) * (viewH - padY * 2);
-                };
-
-                const getX = (i: number) => {
-                  return padX + (i / Math.max(pointsCount - 1, 1)) * (viewW - padX * 2);
-                };
-
-                // Плавная линия
-                const generatePath = (data: number[]) => {
-                  const points = data.map((val, i) => ({
-                    x: getX(i),
-                    y: getY(val)
-                  }));
-                  return getSmoothPath(points);
-                };
-
-                return (
-                  <div className="flex flex-col lg:flex-row gap-6">
-                    {/* Левая часть - статистика */}
-                    <div className="lg:w-1/3">
-                      <div className="flex items-center gap-3 mb-4">
-                        <div className="w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-xl flex items-center justify-center">
-                          <Star className="w-6 h-6 text-amber-500 fill-amber-500" />
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500 dark:text-gray-400">Отзывы за период</p>
-                          <p className="text-3xl font-bold text-gray-900 dark:text-white">{totalReviews}</p>
-                        </div>
-                      </div>
-
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Положительные</span>
-                          </div>
-                          <span className="text-sm font-semibold text-gray-900 dark:text-white">{totalPositive}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Хорошие</span>
-                          </div>
-                          <span className="text-sm font-semibold text-gray-900 dark:text-white">{totalNeutral}</span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-2.5 h-2.5 rounded-full bg-red-500" />
-                            <span className="text-sm text-gray-600 dark:text-gray-400">Отрицательные</span>
-                          </div>
-                          <span className="text-sm font-semibold text-gray-900 dark:text-white">{totalNegative}</span>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Правая часть - график */}
-                    <div className="lg:w-2/3">
-                      <p className="text-xs text-gray-400 mb-2">Динамика отзывов</p>
-                      <div className="relative h-[120px] sm:h-[140px]">
-                        <svg className="w-full h-full" viewBox={`0 0 ${viewW} ${viewH}`} preserveAspectRatio="none">
-                          {/* Горизонтальные линии */}
-                          {[0, 0.5, 1].map((ratio, i) => (
-                            <line
-                              key={`grid-${i}`}
-                              x1={padX}
-                              y1={padY + ratio * (viewH - padY * 2)}
-                              x2={viewW - padX}
-                              y2={padY + ratio * (viewH - padY * 2)}
-                              stroke="#f3f4f6"
-                              strokeWidth="1"
-                            />
-                          ))}
-
-                          {/* Линия положительных */}
-                          <path
-                            d={generatePath(positiveData)}
-                            fill="none"
-                            stroke="#10b981"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-
-                          {/* Линия хороших */}
-                          <path
-                            d={generatePath(neutralData)}
-                            fill="none"
-                            stroke="#f59e0b"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-
-                          {/* Линия отрицательных */}
-                          <path
-                            d={generatePath(negativeData)}
-                            fill="none"
-                            stroke="#ef4444"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                          />
-
-                        </svg>
-
-                        {/* Точки на графике - HTML для интерактивности */}
-                        {positiveData.map((val, i) => {
-                          const xPercent = (getX(i) / viewW) * 100;
-                          const yPercent = (getY(val) / viewH) * 100;
-                          const isLast = i === pointsCount - 1;
-                          const isSelected = selectedReviewDayIdx === i;
-                          return (
-                            <div key={`pos-${i}`}>
-                              <div
-                                className="absolute transition-all pointer-events-none"
-                                style={{
-                                  left: `${xPercent}%`,
-                                  top: `${yPercent}%`,
-                                  transform: 'translate(-50%, -50%)',
-                                  width: isSelected ? 10 : isLast ? 8 : 5,
-                                  height: isSelected ? 10 : isLast ? 8 : 5,
-                                  borderRadius: '50%',
-                                  backgroundColor: isSelected ? '#047857' : '#10b981',
-                                }}
-                              />
-                              {isSelected && (
-                                <div
-                                  className="absolute pointer-events-none text-[9px] font-semibold text-emerald-700 bg-emerald-50 px-1 rounded"
-                                  style={{
-                                    left: `${xPercent}%`,
-                                    top: `${yPercent - 12}%`,
-                                    transform: 'translate(-50%, -50%)',
-                                  }}
-                                >
-                                  +{val}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                        {neutralData.map((val, i) => {
-                          const xPercent = (getX(i) / viewW) * 100;
-                          const yPercent = (getY(val) / viewH) * 100;
-                          const isLast = i === pointsCount - 1;
-                          const isSelected = selectedReviewDayIdx === i;
-                          return (
-                            <div key={`neut-${i}`}>
-                              <div
-                                className="absolute transition-all pointer-events-none"
-                                style={{
-                                  left: `${xPercent}%`,
-                                  top: `${yPercent}%`,
-                                  transform: 'translate(-50%, -50%)',
-                                  width: isSelected ? 10 : isLast ? 8 : 5,
-                                  height: isSelected ? 10 : isLast ? 8 : 5,
-                                  borderRadius: '50%',
-                                  backgroundColor: isSelected ? '#d97706' : '#f59e0b',
-                                }}
-                              />
-                              {isSelected && (
-                                <div
-                                  className="absolute pointer-events-none text-[9px] font-semibold text-amber-700 bg-amber-50 px-1 rounded"
-                                  style={{
-                                    left: `${xPercent}%`,
-                                    top: `${yPercent + 12}%`,
-                                    transform: 'translate(-50%, -50%)',
-                                  }}
-                                >
-                                  {val}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                        {negativeData.map((val, i) => {
-                          const xPercent = (getX(i) / viewW) * 100;
-                          const yPercent = (getY(val) / viewH) * 100;
-                          const isLast = i === pointsCount - 1;
-                          const isSelected = selectedReviewDayIdx === i;
-                          return (
-                            <div key={`neg-${i}`}>
-                              <div
-                                className="absolute transition-all pointer-events-none"
-                                style={{
-                                  left: `${xPercent}%`,
-                                  top: `${yPercent}%`,
-                                  transform: 'translate(-50%, -50%)',
-                                  width: isSelected ? 10 : isLast ? 8 : 5,
-                                  height: isSelected ? 10 : isLast ? 8 : 5,
-                                  borderRadius: '50%',
-                                  backgroundColor: isSelected ? '#b91c1c' : '#ef4444',
-                                }}
-                              />
-                              {isSelected && val > 0 && (
-                                <div
-                                  className="absolute pointer-events-none text-[9px] font-semibold text-red-700 bg-red-50 px-1 rounded"
-                                  style={{
-                                    left: `${xPercent}%`,
-                                    top: `${yPercent + 20}%`,
-                                    transform: 'translate(-50%, -50%)',
-                                  }}
-                                >
-                                  -{val}
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-
-                      {/* Подписи дат - кликабельные */}
-                      <div className="flex justify-between mt-1" style={{ paddingLeft: '3%', paddingRight: '3%' }}>
-                        {reviewsData.map((day, idx) => {
-                          const total = day.positive + day.neutral + day.negative;
-                          const isLast = idx === reviewsData.length - 1;
-                          const isSelected = selectedReviewDayIdx === idx;
-                          // Показываем не все подписи если их много
-                          const showLabel = reviewsData.length <= 10 || idx % Math.ceil(reviewsData.length / 10) === 0 || isLast;
-                          if (!showLabel) return <div key={idx} className="w-0" />;
-                          return (
-                            <button
-                              key={idx}
-                              onClick={() => setSelectedReviewDayIdx(isSelected ? null : idx)}
-                              className={`flex flex-col items-center py-1 px-1 rounded-lg transition-all cursor-pointer ${
-                                isSelected
-                                  ? 'bg-amber-100 shadow-sm'
-                                  : 'hover:bg-gray-100'
-                              }`}
-                            >
-                              <span className={`text-[9px] ${isSelected ? 'text-amber-700 font-semibold' : 'text-gray-600'}`}>{total}</span>
-                              <span className={`text-[9px] ${isSelected ? 'text-amber-700 font-semibold' : isLast ? 'text-gray-700 font-semibold' : 'text-gray-400'}`}>
-                                {day.date}
-                              </span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  </div>
-                );
-              })()}
-            </div>
-
-            {/* Распределение по рейтингу */}
-            <div className="bg-white rounded-2xl shadow-sm p-6 mb-6">
-              <h3 className="text-xl font-semibold text-gray-900 mb-4">Распределение по рейтингу</h3>
-              <div className="space-y-3">
-                {mockAnalyticsData.reviewsData.ratingDistribution.map((item) => {
-                  const percentage = (item.count / mockAnalyticsData.reviewsData.totalReviews) * 100;
-                  return (
-                    <div key={item.stars} className="flex items-center gap-3">
-                      <div className="flex items-center gap-1 w-20">
-                        <span className="text-sm font-medium text-gray-700">{item.stars}</span>
-                        <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                      </div>
-                      <div className="flex-1 h-6 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className={`h-full rounded-full transition-all ${
-                            item.stars >= 4 ? 'bg-emerald-500' :
-                            item.stars === 3 ? 'bg-amber-500' :
-                            'bg-red-500'
-                          }`}
-                          style={{ width: `${percentage}%` }}
-                        />
-                      </div>
-                      <div className="w-16 text-right">
-                        <span className="text-sm font-medium text-gray-700">{item.count}</span>
-                        <span className="text-xs text-gray-500 ml-1">({percentage.toFixed(0)}%)</span>
-                      </div>
-                    </div>
-                  );
-                })}
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-8 text-center">
+              <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Star className="w-8 h-8 text-amber-500" />
               </div>
-            </div>
-
-            {/* Список отзывов */}
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-              <div className="p-6 border-b border-gray-200">
-                <h3 className="text-xl font-semibold text-gray-900">Последние отзывы</h3>
-                <p className="text-sm text-gray-500 mt-1">Отзывы покупателей за выбранный период</p>
-              </div>
-
-              <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                {mockAnalyticsData.reviewsData.recentReviews.map((review) => (
-                  <div key={review.id} className="p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
-                    <div className="flex items-start justify-between mb-3">
-                      <div className="flex items-start gap-4">
-                        <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center text-lg font-medium text-gray-600 dark:text-gray-300">
-                          {review.customerName.charAt(0)}
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-medium text-gray-900 dark:text-white">{review.customerName}</span>
-                            <div className="flex">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <Star
-                                  key={star}
-                                  className={`w-4 h-4 ${star <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300 dark:text-gray-600'}`}
-                                />
-                              ))}
-                            </div>
-                          </div>
-                          <div className="text-sm text-gray-500 dark:text-gray-400">{review.productName}</div>
-                          <div className="text-xs text-gray-400 mt-0.5">{review.date}</div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="ml-14">
-                      <p className="text-gray-700 dark:text-gray-300">{review.text}</p>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-                <button className="w-full py-2 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 font-medium text-sm cursor-pointer">
-                  Показать все отзывы →
-                </button>
-              </div>
-            </div>
-
-            {/* Топ товаров по отзывам */}
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 mt-6">
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">Топ товаров по отзывам</h3>
-              <div className="space-y-4">
-                {[
-                  { name: 'iPhone 14 Pro 256GB', totalReviews: 48, avgRating: 4.9, positive: 46, neutral: 2, negative: 0 },
-                  { name: 'Samsung Galaxy S23 Ultra', totalReviews: 35, avgRating: 4.7, positive: 31, neutral: 3, negative: 1 },
-                  { name: 'AirPods Pro 2', totalReviews: 28, avgRating: 4.8, positive: 26, neutral: 2, negative: 0 },
-                  { name: 'MacBook Pro 14" M2', totalReviews: 22, avgRating: 4.6, positive: 19, neutral: 2, negative: 1 },
-                  { name: 'Apple Watch Ultra', totalReviews: 18, avgRating: 4.5, positive: 15, neutral: 2, negative: 1 },
-                ].map((product, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-700 rounded-xl hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors">
-                    <div className="flex items-center gap-4">
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm font-bold ${
-                        index === 0 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' :
-                        index === 1 ? 'bg-gray-200 dark:bg-gray-600 text-gray-600 dark:text-gray-300' :
-                        index === 2 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400' :
-                        'bg-gray-100 dark:bg-gray-600 text-gray-500 dark:text-gray-400'
-                      }`}>
-                        {index + 1}
-                      </div>
-                      <div>
-                        <div className="font-medium text-gray-900 dark:text-white">{product.name}</div>
-                        <div className="flex items-center gap-3 text-sm text-gray-500 dark:text-gray-400">
-                          <span>{product.totalReviews} отзывов</span>
-                          <span className="text-emerald-600 dark:text-emerald-400">+{product.positive}</span>
-                          {product.neutral > 0 && <span className="text-amber-600 dark:text-amber-400">~{product.neutral}</span>}
-                          {product.negative > 0 && <span className="text-red-600 dark:text-red-400">-{product.negative}</span>}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="flex">
-                        {[1, 2, 3, 4, 5].map((star) => (
-                          <Star
-                            key={star}
-                            className={`w-4 h-4 ${star <= Math.round(product.avgRating) ? 'text-amber-400 fill-amber-400' : 'text-gray-300 dark:text-gray-600'}`}
-                          />
-                        ))}
-                      </div>
-                      <span className="font-semibold text-gray-900 dark:text-white">{product.avgRating}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Отзывы</h3>
+              <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                Скоро — подключение отзывов с Kaspi. Мы работаем над интеграцией с системой отзывов Kaspi.kz
+              </p>
             </div>
           </div>
         )}
-
-        {/* Popup отзывов за день */}
-        <AnimatePresence>
-          {showReviewsDayPopup && selectedReviewsDay && (
-            <>
-              {/* Backdrop */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowReviewsDayPopup(false)}
-                className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50"
-              />
-
-              {/* Popup */}
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl bg-white dark:bg-gray-800 rounded-2xl shadow-2xl z-50 overflow-hidden max-h-[80vh] flex flex-col"
-              >
-                {/* Header */}
-                <div className="bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-4 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-xl font-bold text-white">Отзывы за {selectedReviewsDay}</h3>
-                    <p className="text-amber-100 text-sm">
-                      {(() => {
-                        const dayData = mockAnalyticsData.reviewsData.dailyReviews.find(d => d.date === selectedReviewsDay);
-                        const total = dayData ? dayData.positive + dayData.neutral + dayData.negative : 0;
-                        return `Всего: ${total} отзыв(ов)`;
-                      })()}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setShowReviewsDayPopup(false)}
-                    className="text-white hover:bg-white/20 rounded-lg p-2 transition-colors cursor-pointer"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Stats */}
-                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-                  {(() => {
-                    const dayData = mockAnalyticsData.reviewsData.dailyReviews.find(d => d.date === selectedReviewsDay);
-                    return (
-                      <div className="flex gap-4">
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 bg-emerald-500 rounded-full"></div>
-                          <span className="text-sm text-gray-600 dark:text-gray-300">Положительные: <strong className="text-emerald-600 dark:text-emerald-400">{dayData?.positive || 0}</strong></span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 bg-amber-500 rounded-full"></div>
-                          <span className="text-sm text-gray-600 dark:text-gray-300">Нейтральные: <strong className="text-amber-600 dark:text-amber-400">{dayData?.neutral || 0}</strong></span>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                          <span className="text-sm text-gray-600 dark:text-gray-300">Негативные: <strong className="text-red-600 dark:text-red-400">{dayData?.negative || 0}</strong></span>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-
-                {/* Reviews List */}
-                <div className="flex-1 overflow-y-auto p-6">
-                  <div className="space-y-4">
-                    {mockAnalyticsData.reviewsData.recentReviews
-                      .filter(review => {
-                        // selectedReviewsDay формат: "07.01", review.date формат: "2026-01-07"
-                        const [day, month] = selectedReviewsDay.split('.');
-                        const reviewDate = new Date(review.date);
-                        const reviewDay = String(reviewDate.getDate()).padStart(2, '0');
-                        const reviewMonth = String(reviewDate.getMonth() + 1).padStart(2, '0');
-                        return reviewDay === day && reviewMonth === month;
-                      })
-                      .map((review) => (
-                        <div key={review.id} className="p-4 bg-gray-50 dark:bg-gray-700 rounded-xl">
-                          <div className="flex items-start gap-3">
-                            <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-full flex items-center justify-center text-lg font-medium text-gray-600 dark:text-gray-300">
-                              {review.customerName.charAt(0)}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="font-medium text-gray-900 dark:text-white">{review.customerName}</span>
-                                <div className="flex">
-                                  {[1, 2, 3, 4, 5].map((star) => (
-                                    <Star
-                                      key={star}
-                                      className={`w-4 h-4 ${star <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-300 dark:text-gray-600'}`}
-                                    />
-                                  ))}
-                                </div>
-                              </div>
-                              <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">{review.productName}</div>
-                              <p className="text-gray-700 dark:text-gray-300">{review.text}</p>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    {mockAnalyticsData.reviewsData.recentReviews.filter(review => {
-                      const [day, month] = selectedReviewsDay.split('.');
-                      const reviewDate = new Date(review.date);
-                      const reviewDay = String(reviewDate.getDate()).padStart(2, '0');
-                      const reviewMonth = String(reviewDate.getMonth() + 1).padStart(2, '0');
-                      return reviewDay === day && reviewMonth === month;
-                    }).length === 0 && (
-                      <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                        <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
-                        <p>Нет отзывов за этот день</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700">
-                  <button
-                    onClick={() => setShowReviewsDayPopup(false)}
-                    className="w-full py-2 bg-gray-200 dark:bg-gray-600 hover:bg-gray-300 dark:hover:bg-gray-500 text-gray-700 dark:text-gray-200 rounded-xl font-medium transition-colors cursor-pointer"
-                  >
-                    Закрыть
-                  </button>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
 
         {/* Popup детализации по дню */}
         <AnimatePresence>
@@ -3113,96 +2156,6 @@ function AnalyticsPageContent() {
           )}
         </AnimatePresence>
 
-        {/* Cities Modal (Межгород) */}
-        <AnimatePresence>
-          {showCitiesModal && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowCitiesModal(false)}
-                className="fixed inset-0 bg-black/50 z-50"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl z-50 w-full max-w-md overflow-hidden"
-              >
-                {/* Header */}
-                <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-white">Межгород</h2>
-                      <p className="text-white/80 text-sm mt-1">Распределение по городам</p>
-                    </div>
-                    <button
-                      onClick={() => setShowCitiesModal(false)}
-                      className="text-white/80 hover:text-white text-2xl leading-none"
-                    >
-                      ×
-                    </button>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="p-6">
-                  <div className="space-y-3">
-                    {citiesData.map((city, index) => {
-                      const avgOrderValue = data.totalRevenue / data.totalOrders;
-                      const cityRevenue = Math.round(city.orders * avgOrderValue);
-                      return (
-                        <div key={city.name} className="flex items-center gap-3">
-                          <div className="w-6 text-center text-sm font-medium text-gray-400">
-                            {index + 1}
-                          </div>
-                          <div className="flex-1">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="font-medium text-gray-900">{city.name}</span>
-                              <div className="text-right text-sm">
-                                <span className="font-semibold text-gray-900">{city.orders} зак.</span>
-                                <span className="text-gray-300 mx-1.5">•</span>
-                                <span className="text-gray-600">{fmt(cityRevenue)} ₸</span>
-                              </div>
-                            </div>
-                            <div className="w-full bg-gray-100 rounded-full h-1.5">
-                              <div
-                                className="h-1.5 rounded-full bg-purple-500 transition-all"
-                                style={{ width: `${city.percent}%` }}
-                              />
-                            </div>
-                          </div>
-                          <span className="text-sm text-gray-500 w-10 text-right">{city.percent}%</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Summary */}
-                  <div className="mt-6 pt-4 border-t border-gray-200">
-                    <div className="flex justify-between items-center">
-                      <span className="text-gray-600">Всего заказов межгород:</span>
-                      <span className="text-lg font-bold text-gray-900">
-                        {data.deliveryModes.intercity}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Footer */}
-                <div className="bg-gray-50 p-4 flex justify-end">
-                  <button
-                    onClick={() => setShowCitiesModal(false)}
-                    className="px-6 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-medium transition-colors"
-                  >
-                    Закрыть
-                  </button>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
 
         {/* Returns Modal */}
         <AnimatePresence>
@@ -3228,8 +2181,8 @@ function AnalyticsPageContent() {
                       <h2 className="text-xl font-bold text-white">Возвраты</h2>
                       <p className="text-white/80 text-sm mt-1">
                         {(() => {
-                          const total = data.ordersByStatus.pending + data.ordersByStatus.processing + data.ordersByStatus.shipped + data.ordersByStatus.delivered + data.ordersByStatus.cancelled + (data.ordersByStatus.returned || 0);
-                          const ret = data.ordersByStatus.returned || 0;
+                          const ret = creationTotals.totalReturned;
+                          const total = creationTotals.totalOrders + ret;
                           const pct = total > 0 ? ((ret / total) * 100).toFixed(1) : '0';
                           return `${ret} из ${total} заказов (${pct}%)`;
                         })()}
@@ -3246,46 +2199,58 @@ function AnalyticsPageContent() {
 
                 {/* Content */}
                 <div className="p-6 overflow-y-auto flex-1">
-                  {(sourceData.returnedOrders && sourceData.returnedOrders.length > 0) ? (
-                    <div className="space-y-3">
-                      {sourceData.returnedOrders.map((order: any, index: number) => (
-                        <div key={order.id || index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
-                          <div className="w-7 h-7 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
-                            <RotateCcw className="w-3.5 h-3.5 text-red-500" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-gray-900 truncate">{order.product}</p>
-                            <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                              <span>{order.customer}</span>
-                              {order.date && <span className="text-gray-300">•</span>}
-                              {order.date && <span>{new Date(order.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>}
+                  {(() => {
+                    const allReturns = sourceData.returnedOrders || [];
+                    const filteredReturns = startDate && endDate
+                      ? allReturns.filter((o: any) => {
+                          if (!o.date) return false;
+                          return o.date >= toLocalDate(startDate) && o.date <= toLocalDate(endDate);
+                        })
+                      : allReturns;
+
+                    if (filteredReturns.length === 0) {
+                      return (
+                        <div className="text-center py-8 text-gray-400">
+                          <RotateCcw className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                          <p className="text-sm">Возвратов не найдено</p>
+                        </div>
+                      );
+                    }
+
+                    return (
+                      <>
+                        <div className="space-y-3">
+                          {filteredReturns.map((order: any, index: number) => (
+                            <div key={order.id || index} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+                              <div className="w-7 h-7 bg-red-100 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <RotateCcw className="w-3.5 h-3.5 text-red-500" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">{order.product}</p>
+                                <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                                  <span>{order.customer}</span>
+                                  {order.date && <span className="text-gray-300">•</span>}
+                                  {order.date && <span>{new Date(order.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}</span>}
+                                </div>
+                              </div>
+                              <div className="text-right flex-shrink-0">
+                                <div className="text-sm font-semibold text-red-600">{fmt(order.amount)} ₸</div>
+                                <div className="text-xs text-gray-400">{order.itemsCount} шт</div>
+                              </div>
                             </div>
-                          </div>
-                          <div className="text-right flex-shrink-0">
-                            <div className="text-sm font-semibold text-red-600">{fmt(order.amount)} ₸</div>
-                            <div className="text-xs text-gray-400">{order.itemsCount} шт</div>
+                          ))}
+                        </div>
+                        <div className="mt-6 pt-4 border-t border-gray-200">
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Сумма возвратов:</span>
+                            <span className="text-lg font-bold text-red-600">
+                              {fmt(filteredReturns.reduce((sum: number, o: any) => sum + (o.amount || 0), 0))} ₸
+                            </span>
                           </div>
                         </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-center py-8 text-gray-400">
-                      <RotateCcw className="w-10 h-10 mx-auto mb-3 opacity-30" />
-                      <p className="text-sm">Возвратов не найдено</p>
-                    </div>
-                  )}
-
-                  {/* Summary */}
-                  {sourceData.returnedOrders && sourceData.returnedOrders.length > 0 && (
-                    <div className="mt-6 pt-4 border-t border-gray-200">
-                      <div className="flex justify-between items-center">
-                        <span className="text-gray-600">Сумма возвратов:</span>
-                        <span className="text-lg font-bold text-red-600">
-                          {fmt(sourceData.returnedOrders.reduce((sum: number, o: any) => sum + (o.amount || 0), 0))} ₸
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                      </>
+                    );
+                  })()}
                 </div>
 
                 {/* Footer */}
@@ -3397,7 +2362,7 @@ function AnalyticsPageContent() {
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                          {generateDayProducts(selectedTableDay.orders, selectedTableDay.revenue, selectedTableDay.date).map((product, idx) => (
+                          {(selectedTableDay.products || []).map((product: DayProduct, idx: number) => (
                             <tr key={idx} className="hover:bg-gray-50">
                               <td className="py-1.5 px-3 text-gray-900 truncate max-w-[200px]">{product.name}</td>
                               <td className="py-1.5 px-2 text-center text-gray-600">{product.qty}</td>
@@ -3518,10 +2483,16 @@ function AnalyticsPageContent() {
                         <span className="text-gray-600">Доставка</span>
                         <span className="font-medium text-gray-900">{data.totalDelivery.toLocaleString('ru-RU')} ₸</span>
                       </div>
+                      {(data.totalOperational || 0) > 0 && (
+                      <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                        <span className="text-gray-600">Опер. расходы</span>
+                        <span className="font-medium text-gray-900">{(data.totalOperational || 0).toLocaleString('ru-RU')} ₸</span>
+                      </div>
+                      )}
                       <div className="flex justify-between items-center py-2 bg-rose-50 -mx-2 px-2 rounded-lg">
                         <span className="font-semibold text-gray-900">Итого расходов</span>
                         <span className="font-bold text-rose-500">
-                          {(data.totalCost + data.totalAdvertising + data.totalCommissions + data.totalTax + data.totalDelivery).toLocaleString('ru-RU')} ₸
+                          {(data.totalCost + data.totalAdvertising + data.totalCommissions + data.totalTax + data.totalDelivery + (data.totalOperational || 0)).toLocaleString('ru-RU')} ₸
                         </span>
                       </div>
                     </div>
@@ -3707,70 +2678,6 @@ function AnalyticsPageContent() {
           )}
         </AnimatePresence>
 
-        {/* Offline Source Popup */}
-        <AnimatePresence>
-          {showOfflineSourcePopup && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowOfflineSourcePopup(false)}
-                className="fixed inset-0 bg-black/50 z-50"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl z-50 w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto"
-              >
-                <div className="bg-gradient-to-r from-gray-500 to-gray-600 p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-white">Оффлайн</h2>
-                      <p className="text-white/80 text-sm mt-1">Заказы, добавленные вручную</p>
-                    </div>
-                    <button onClick={() => setShowOfflineSourcePopup(false)} className="text-white/80 hover:text-white text-2xl">×</button>
-                  </div>
-                </div>
-                <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-100 rounded-xl p-4 text-center">
-                      <div className="text-gray-700 font-bold text-xl">{offlineOrders}</div>
-                      <div className="text-gray-500 text-sm">Заказов</div>
-                    </div>
-                    <div className="bg-gray-100 rounded-xl p-4 text-center">
-                      <div className="text-gray-700 font-bold text-xl">{fmt(data.totalRevenue * 0.05)} ₸</div>
-                      <div className="text-gray-500 text-sm">Выручка</div>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-3">Заказы</h3>
-                    <div className="space-y-2">
-                      {Array.from({ length: offlineOrders }).map((_, i) => {
-                        const product = data.topProducts[i % data.topProducts.length];
-                        const orderAmount = Math.round((data.totalRevenue * 0.05) / offlineOrders * (0.8 + (i * 0.05)));
-                        return (
-                          <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div className="flex-1 min-w-0 pr-3">
-                              <div className="font-medium text-gray-900">Заказ #{300000 + i * 3}</div>
-                              <div className="text-sm text-gray-600 truncate">{product.name}</div>
-                              <div className="text-xs text-gray-400">Ручной ввод</div>
-                            </div>
-                            <div className="font-semibold text-gray-900">{orderAmount.toLocaleString('ru-RU')} ₸</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-4 flex justify-end">
-                  <button onClick={() => setShowOfflineSourcePopup(false)} className="px-6 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-xl font-medium">Закрыть</button>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
 
         {/* My Delivery Popup */}
         <AnimatePresence>
@@ -3801,7 +2708,7 @@ function AnalyticsPageContent() {
                 <div className="p-6 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div className="bg-pink-50 rounded-xl p-4 text-center">
-                      <div className="text-pink-600 font-bold text-xl">{data.deliveryModes.myDelivery}</div>
+                      <div className="text-pink-600 font-bold text-xl">{data.deliveryModes.sellerDelivery}</div>
                       <div className="text-gray-500 text-sm">Заказов</div>
                     </div>
                     <div className="bg-pink-50 rounded-xl p-4 text-center">
@@ -3812,9 +2719,9 @@ function AnalyticsPageContent() {
                   <div>
                     <h3 className="font-semibold text-gray-900 mb-3">Заказы</h3>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {Array.from({ length: Math.min(data.deliveryModes.myDelivery, 8) }).map((_, i) => {
+                      {Array.from({ length: Math.min(data.deliveryModes.sellerDelivery, 8) }).map((_, i) => {
                         const product = data.topProducts[i % data.topProducts.length];
-                        const orderAmount = Math.round((data.totalRevenue * 0.42) / data.deliveryModes.myDelivery * (0.8 + (i * 0.05)));
+                        const orderAmount = Math.round((data.totalRevenue * 0.42) / data.deliveryModes.sellerDelivery * (0.8 + (i * 0.05)));
                         return (
                           <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                             <div className="flex-1 min-w-0 pr-3">
@@ -3836,69 +2743,6 @@ function AnalyticsPageContent() {
           )}
         </AnimatePresence>
 
-        {/* Express Delivery Popup */}
-        <AnimatePresence>
-          {showExpressPopup && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowExpressPopup(false)}
-                className="fixed inset-0 bg-black/50 z-50"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl z-50 w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto"
-              >
-                <div className="bg-gradient-to-r from-teal-500 to-teal-600 p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-white">Экспресс доставка</h2>
-                      <p className="text-white/80 text-sm mt-1">Срочная доставка</p>
-                    </div>
-                    <button onClick={() => setShowExpressPopup(false)} className="text-white/80 hover:text-white text-2xl">×</button>
-                  </div>
-                </div>
-                <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-teal-50 rounded-xl p-4 text-center">
-                      <div className="text-teal-600 font-bold text-xl">{data.deliveryModes.expressDelivery}</div>
-                      <div className="text-gray-500 text-sm">Заказов</div>
-                    </div>
-                    <div className="bg-teal-50 rounded-xl p-4 text-center">
-                      <div className="text-teal-600 font-bold text-xl">{fmt(data.totalRevenue * 0.17)} ₸</div>
-                      <div className="text-gray-500 text-sm">Выручка</div>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-3">Заказы</h3>
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {Array.from({ length: Math.min(data.deliveryModes.expressDelivery, 8) }).map((_, i) => {
-                        const product = data.topProducts[i % data.topProducts.length];
-                        const orderAmount = Math.round((data.totalRevenue * 0.17) / data.deliveryModes.expressDelivery * (0.8 + (i * 0.05)));
-                        return (
-                          <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div className="flex-1 min-w-0 pr-3">
-                              <div className="font-medium text-gray-900">Заказ #{500000 + i * 9}</div>
-                              <div className="text-sm text-gray-600 truncate">{product.name}</div>
-                            </div>
-                            <div className="font-semibold text-gray-900">{orderAmount.toLocaleString('ru-RU')} ₸</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-4 flex justify-end">
-                  <button onClick={() => setShowExpressPopup(false)} className="px-6 py-2.5 bg-teal-500 hover:bg-teal-600 text-white rounded-xl font-medium">Закрыть</button>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
 
         {/* Pickup Popup */}
         <AnimatePresence>
@@ -3964,145 +2808,7 @@ function AnalyticsPageContent() {
           )}
         </AnimatePresence>
 
-        {/* Offline Delivery Popup */}
-        <AnimatePresence>
-          {showOfflineDeliveryPopup && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowOfflineDeliveryPopup(false)}
-                className="fixed inset-0 bg-black/50 z-50"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl z-50 w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto"
-              >
-                <div className="bg-gradient-to-r from-gray-500 to-gray-600 p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-white">Оффлайн</h2>
-                      <p className="text-white/80 text-sm mt-1">Ручные заказы</p>
-                    </div>
-                    <button onClick={() => setShowOfflineDeliveryPopup(false)} className="text-white/80 hover:text-white text-2xl">×</button>
-                  </div>
-                </div>
-                <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-gray-100 rounded-xl p-4 text-center">
-                      <div className="text-gray-700 font-bold text-xl">{offlineOrders}</div>
-                      <div className="text-gray-500 text-sm">Заказов</div>
-                    </div>
-                    <div className="bg-gray-100 rounded-xl p-4 text-center">
-                      <div className="text-gray-700 font-bold text-xl">{fmt(data.totalRevenue * 0.05)} ₸</div>
-                      <div className="text-gray-500 text-sm">Выручка</div>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-3">Заказы</h3>
-                    <div className="space-y-2">
-                      {Array.from({ length: offlineOrders }).map((_, i) => {
-                        const product = data.topProducts[i % data.topProducts.length];
-                        const orderAmount = Math.round((data.totalRevenue * 0.05) / offlineOrders * (0.8 + (i * 0.05)));
-                        return (
-                          <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div className="flex-1 min-w-0 pr-3">
-                              <div className="font-medium text-gray-900">Заказ #{700000 + i * 17}</div>
-                              <div className="text-sm text-gray-600 truncate">{product.name}</div>
-                              <div className="text-xs text-gray-400">Ручной ввод</div>
-                            </div>
-                            <div className="font-semibold text-gray-900">{orderAmount.toLocaleString('ru-RU')} ₸</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-4 flex justify-end">
-                  <button onClick={() => setShowOfflineDeliveryPopup(false)} className="px-6 py-2.5 bg-gray-500 hover:bg-gray-600 text-white rounded-xl font-medium">Закрыть</button>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
 
-        {/* City Orders Popup */}
-        <AnimatePresence>
-          {selectedCityPopup && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setSelectedCityPopup(null)}
-                className="fixed inset-0 bg-black/50 z-50"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl z-50 w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto"
-              >
-                <div className="bg-gradient-to-r from-purple-500 to-purple-600 p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-white">{selectedCityPopup}</h2>
-                      <p className="text-white/80 text-sm mt-1">Заказы в город</p>
-                    </div>
-                    <button onClick={() => setSelectedCityPopup(null)} className="text-white/80 hover:text-white text-2xl">×</button>
-                  </div>
-                </div>
-                <div className="p-6 space-y-4">
-                  {(() => {
-                    const cityData = citiesData.find(c => c.name === selectedCityPopup);
-                    const cityOrders = cityData?.orders || 1;
-                    const avgOrderValue = data.totalRevenue / data.totalOrders;
-                    const cityRevenue = Math.round(cityOrders * avgOrderValue);
-                    return (
-                      <>
-                        <div className="grid grid-cols-2 gap-4">
-                          <div className="bg-purple-50 rounded-xl p-4 text-center">
-                            <div className="text-purple-600 font-bold text-xl">{cityOrders}</div>
-                            <div className="text-gray-500 text-sm">Заказов</div>
-                          </div>
-                          <div className="bg-purple-50 rounded-xl p-4 text-center">
-                            <div className="text-purple-600 font-bold text-xl">{fmt(cityRevenue)} ₸</div>
-                            <div className="text-gray-500 text-sm">Выручка</div>
-                          </div>
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-gray-900 mb-3">Заказы</h3>
-                          <div className="space-y-2 max-h-60 overflow-y-auto">
-                            {Array.from({ length: Math.min(cityOrders, 8) }).map((_, i) => {
-                              const product = data.topProducts[i % data.topProducts.length];
-                              const orderAmount = Math.round(avgOrderValue * (0.8 + (i * 0.05)));
-                              return (
-                                <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                                  <div className="flex-1 min-w-0 pr-3">
-                                    <div className="font-medium text-gray-900">Заказ #{800000 + i * 7}</div>
-                                    <div className="text-sm text-gray-600 truncate">{product.name}</div>
-                                    <div className="text-xs text-purple-500">📍 {selectedCityPopup}</div>
-                                  </div>
-                                  <div className="font-semibold text-gray-900">{orderAmount.toLocaleString('ru-RU')} ₸</div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      </>
-                    );
-                  })()}
-                </div>
-                <div className="bg-gray-50 p-4 flex justify-end">
-                  <button onClick={() => setSelectedCityPopup(null)} className="px-6 py-2.5 bg-purple-500 hover:bg-purple-600 text-white rounded-xl font-medium">Закрыть</button>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
 
         {/* Product Detail Popup */}
         <AnimatePresence>
@@ -4144,49 +2850,28 @@ function AnalyticsPageContent() {
                   </div>
                 </div>
 
-                {/* Period Selector */}
+                {/* Period Info */}
                 <div className="p-4 border-b border-gray-200 bg-gray-50">
-                  <div className="flex gap-2">
-                    {[
-                      { key: 'week', label: 'Неделя' },
-                      { key: 'month', label: 'Месяц' },
-                      { key: '3months', label: '3 месяца' }
-                    ].map((period) => (
-                      <button
-                        key={period.key}
-                        onClick={() => setProductPopupPeriod(period.key as 'week' | 'month' | '3months')}
-                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-all ${
-                          productPopupPeriod === period.key
-                            ? 'bg-emerald-500 text-white'
-                            : 'bg-white text-gray-600 hover:bg-gray-100'
-                        }`}
-                      >
-                        {period.label}
-                      </button>
-                    ))}
-                  </div>
+                  <div className="text-sm text-gray-500 text-center">За выбранный период</div>
                 </div>
 
                 {/* Content */}
                 <div className="p-4 sm:p-6 space-y-4">
                   {/* Продажи */}
                   {(() => {
-                    const multiplier = productPopupPeriod === 'week' ? 1 : productPopupPeriod === 'month' ? 4 : 12;
-                    const sales = selectedProduct.sales * multiplier;
-                    const revenue = selectedProduct.revenue * multiplier;
-                    const cost = selectedProduct.cost * multiplier;
-                    const profit = selectedProduct.profit * multiplier;
-
-                    // Расчёт детальных расходов
-                    const taxRate = 0.03; // 3% налоги
-                    const kaspiCommission = 0.08; // 8% комиссия Kaspi
-                    const deliveryCost = 1500 * sales; // 1500 ₸ за доставку
-                    const advertisingCost = Math.round(revenue * 0.05); // 5% реклама
-
-                    const taxes = Math.round(revenue * taxRate);
-                    const commission = Math.round(revenue * kaspiCommission);
-                    const productCost = cost - deliveryCost - advertisingCost; // Себестоимость
-                    const netProfit = revenue - productCost - taxes - commission - deliveryCost - advertisingCost;
+                    // Используем реальные данные из API (без множителей — API вернул за весь период)
+                    const sp = selectedProduct as any;
+                    const sales = sp.sales || 0;
+                    const revenue = sp.revenue || 0;
+                    const costPrice = sp.costPrice || 0;
+                    const commission = sp.commission || 0;
+                    const taxes = sp.tax || 0;
+                    const deliveryCost = sp.delivery || 0;
+                    const advertisingCost = sp.adCost || 0;
+                    const netProfit = sp.profit ?? (revenue - costPrice - commission - taxes - deliveryCost - advertisingCost);
+                    const margin = sp.margin ?? (revenue > 0 ? Math.round((netProfit / revenue) * 100) : 0);
+                    const commissionRate = data.storeSettings?.commissionRate || 12.5;
+                    const taxRate = data.storeSettings?.taxRate || 4.0;
 
                     return (
                       <>
@@ -4208,60 +2893,44 @@ function AnalyticsPageContent() {
                           <div className="space-y-2">
                             <div className="flex justify-between items-center py-1.5 border-b border-gray-200">
                               <span className="text-gray-600 text-sm">Себестоимость товара</span>
-                              <span className="font-medium text-gray-900">{productCost.toLocaleString('ru-RU')} ₸</span>
+                              <span className="font-medium text-gray-900">{Math.round(costPrice).toLocaleString('ru-RU')} ₸</span>
                             </div>
                             <div className="flex justify-between items-center py-1.5 border-b border-gray-200">
-                              <span className="text-gray-600 text-sm">Налоги (3%)</span>
-                              <span className="font-medium text-red-600">−{taxes.toLocaleString('ru-RU')} ₸</span>
+                              <span className="text-gray-600 text-sm">Налог ({taxRate}%)</span>
+                              <span className="font-medium text-red-600">−{Math.round(taxes).toLocaleString('ru-RU')} ₸</span>
                             </div>
                             <div className="flex justify-between items-center py-1.5 border-b border-gray-200">
-                              <span className="text-gray-600 text-sm">Комиссия Kaspi (8%)</span>
-                              <span className="font-medium text-red-600">−{commission.toLocaleString('ru-RU')} ₸</span>
+                              <span className="text-gray-600 text-sm">Комиссия Kaspi ({commissionRate}%)</span>
+                              <span className="font-medium text-red-600">−{Math.round(commission).toLocaleString('ru-RU')} ₸</span>
                             </div>
                             <div className="flex justify-between items-center py-1.5 border-b border-gray-200">
                               <span className="text-gray-600 text-sm">Доставка</span>
-                              <span className="font-medium text-red-600">−{deliveryCost.toLocaleString('ru-RU')} ₸</span>
+                              <span className="font-medium text-red-600">−{Math.round(deliveryCost).toLocaleString('ru-RU')} ₸</span>
                             </div>
+                            {advertisingCost > 0 && (
                             <div className="flex justify-between items-center py-1.5 border-b border-gray-200">
                               <span className="text-gray-600 text-sm">Реклама</span>
-                              <span className="font-medium text-red-600">−{advertisingCost.toLocaleString('ru-RU')} ₸</span>
+                              <span className="font-medium text-red-600">−{Math.round(advertisingCost).toLocaleString('ru-RU')} ₸</span>
                             </div>
+                            )}
                           </div>
                         </div>
 
                         {/* Итого */}
-                        <div className="bg-emerald-50 rounded-xl p-4">
+                        <div className={`${netProfit >= 0 ? 'bg-emerald-50' : 'bg-red-50'} rounded-xl p-4`}>
                           <div className="flex justify-between items-center">
                             <div>
-                              <div className="text-emerald-700 text-sm">Чистая прибыль</div>
-                              <div className="text-xs text-emerald-600/70">
-                                Маржа: {((netProfit / revenue) * 100).toFixed(1)}%
+                              <div className={`${netProfit >= 0 ? 'text-emerald-700' : 'text-red-700'} text-sm`}>Чистая прибыль</div>
+                              <div className={`text-xs ${netProfit >= 0 ? 'text-emerald-600/70' : 'text-red-600/70'}`}>
+                                Маржа: {margin}%
                               </div>
                             </div>
-                            <div className="text-2xl font-bold text-emerald-700">
-                              {netProfit.toLocaleString('ru-RU')} ₸
+                            <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                              {Math.round(netProfit).toLocaleString('ru-RU')} ₸
                             </div>
                           </div>
                         </div>
 
-                        {/* Сравнение с предыдущим периодом */}
-                        <div className="bg-white border border-gray-200 rounded-xl p-4">
-                          <h3 className="font-semibold text-gray-900 mb-3 text-sm">Сравнение с прошлым периодом</h3>
-                          <div className="grid grid-cols-3 gap-3 text-center">
-                            <div>
-                              <div className="text-emerald-600 font-semibold">+12%</div>
-                              <div className="text-xs text-gray-500">Продажи</div>
-                            </div>
-                            <div>
-                              <div className="text-emerald-600 font-semibold">+8%</div>
-                              <div className="text-xs text-gray-500">Выручка</div>
-                            </div>
-                            <div>
-                              <div className="text-emerald-600 font-semibold">+15%</div>
-                              <div className="text-xs text-gray-500">Прибыль</div>
-                            </div>
-                          </div>
-                        </div>
                       </>
                     );
                   })()}
@@ -4487,8 +3156,15 @@ function AnalyticsPageContent() {
                       return (
                         <div key={expense.id} className="p-3 bg-gray-50 rounded-xl group">
                           <div className="flex items-center justify-between">
-                            <div className="font-medium text-gray-900 text-sm">{expense.name}</div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-medium text-gray-900 text-sm">{expense.name}</div>
+                              {expense.productId && (
+                                <div className="text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded mt-0.5 inline-block truncate max-w-full">
+                                  {productsList.find(p => p.kaspi_id === expense.productId)?.name || expense.productId}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 flex-shrink-0">
                               <div className="font-semibold text-gray-900 text-sm">
                                 {expense.amount.toLocaleString('ru-RU')} ₸
                               </div>
@@ -4537,10 +3213,65 @@ function AnalyticsPageContent() {
                         placeholder="Сумма за период"
                         className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                       />
+                      {/* Product Selection */}
+                      <div className="relative">
+                        <button
+                          onClick={() => { setShowProductDropdown(!showProductDropdown); setShowExpenseCalendar(false); }}
+                          className="w-full flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg text-sm hover:border-indigo-500 transition-colors"
+                        >
+                          <span className="text-gray-700 truncate">
+                            {newExpenseProductId
+                              ? productsList.find(p => p.kaspi_id === newExpenseProductId)?.name || 'Товар'
+                              : 'Общий расход (без товара)'}
+                          </span>
+                          <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 ml-2 transition-transform ${showProductDropdown ? 'rotate-180' : ''}`} />
+                        </button>
+                        <AnimatePresence>
+                          {showProductDropdown && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -10 }}
+                              className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-xl shadow-lg z-20 max-h-60 overflow-hidden flex flex-col"
+                            >
+                              <div className="p-2 border-b">
+                                <input
+                                  type="text"
+                                  value={expenseProductSearch}
+                                  onChange={(e) => setExpenseProductSearch(e.target.value)}
+                                  placeholder="Поиск товара..."
+                                  className="w-full px-2.5 py-1.5 border border-gray-200 rounded-lg text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                                />
+                              </div>
+                              <div className="overflow-y-auto max-h-48">
+                                <button
+                                  onClick={() => { setNewExpenseProductId(null); setShowProductDropdown(false); setExpenseProductSearch(''); }}
+                                  className={`w-full text-left px-3 py-2 text-xs hover:bg-indigo-50 transition-colors ${!newExpenseProductId ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700'}`}
+                                >
+                                  Общий расход (без товара)
+                                </button>
+                                {productsList
+                                  .filter(p => !expenseProductSearch || p.name.toLowerCase().includes(expenseProductSearch.toLowerCase()))
+                                  .map(p => (
+                                    <button
+                                      key={p.kaspi_id}
+                                      onClick={() => { setNewExpenseProductId(p.kaspi_id); setShowProductDropdown(false); setExpenseProductSearch(''); }}
+                                      className={`w-full text-left px-3 py-2 text-xs hover:bg-indigo-50 transition-colors truncate ${newExpenseProductId === p.kaspi_id ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700'}`}
+                                    >
+                                      {p.name}
+                                    </button>
+                                  ))
+                                }
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </div>
+
                       {/* Period Selection */}
                       <div className="relative">
                         <button
-                          onClick={() => setShowExpenseCalendar(!showExpenseCalendar)}
+                          onClick={() => { setShowExpenseCalendar(!showExpenseCalendar); setShowProductDropdown(false); }}
                           className="w-full flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg text-sm hover:border-indigo-500 transition-colors"
                         >
                           <span className="flex items-center gap-2">

@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
+import { useUser } from '@/hooks/useUser';
 import {
   ArrowLeft,
   Calculator,
@@ -74,31 +75,71 @@ const deliveryRates = {
 };
 
 export default function ProfitSettingsPage() {
+  const { user } = useUser();
   const [tax, setTax] = useState(defaultSettings.tax);
+  const [commissionRate, setCommissionRate] = useState(12.5);
   const [deliveryType, setDeliveryType] = useState<'city' | 'kazakhstan' | 'express'>(defaultSettings.deliveryType);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  // Пример расчёта (товар весом 0.5 кг, категория Смартфоны - 15.5%)
+  // Загрузка текущих настроек из API
+  const fetchSettings = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/store-settings?userId=${user.id}`);
+      const json = await res.json();
+      if (json.success && json.data) {
+        setCommissionRate(json.data.commissionRate ?? 12.5);
+        setTax(json.data.taxRate ?? 4.0);
+      }
+    } catch (err) {
+      console.error('Failed to fetch settings:', err);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  // Пример расчёта
   const examplePrice = 100000;
   const exampleCostPrice = 75000;
   const exampleWeight = 0.5; // кг
-  const exampleCommissionRate = 15.5; // % для смартфонов
   // Стоимость доставки зависит от выбранного типа
   const exampleDelivery = deliveryType === 'city' ? 1099 : deliveryType === 'kazakhstan' ? 1299 : 1699;
-  const exampleCommission = examplePrice * (exampleCommissionRate / 100);
+  const exampleCommission = examplePrice * (commissionRate / 100);
   const exampleTax = examplePrice * (tax / 100);
   const exampleProfit = examplePrice - exampleCostPrice - exampleCommission - exampleTax - exampleDelivery;
   const exampleMargin = ((exampleProfit / examplePrice) * 100).toFixed(1);
 
-  const handleSave = () => {
-    // В реальном приложении здесь будет сохранение в базу/localStorage
-    console.log('Сохранение настроек:', { tax, deliveryType });
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+  const handleSave = async () => {
+    if (!user?.id) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/store-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          commissionRate,
+          taxRate: tax,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2000);
+      }
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleReset = () => {
     setTax(defaultSettings.tax);
+    setCommissionRate(12.5);
     setDeliveryType(defaultSettings.deliveryType);
   };
 
@@ -147,14 +188,37 @@ export default function ProfitSettingsPage() {
                 </p>
               </div>
 
+              {/* Commission Rate */}
+              <div>
+                <label className="flex items-center gap-2 text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  <Percent className="w-4 h-4 text-blue-500" />
+                  Комиссия Kaspi
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="number"
+                    value={commissionRate}
+                    onChange={(e) => setCommissionRate(Number(e.target.value))}
+                    min="0"
+                    max="100"
+                    step="0.1"
+                    className="flex-1 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-colors"
+                  />
+                  <span className="text-gray-500 dark:text-gray-400 font-medium">%</span>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  Укажите среднюю ставку комиссии Kaspi для ваших товаров
+                </p>
+              </div>
+
               {/* Kaspi Commission Info */}
               <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl border border-blue-100 dark:border-blue-800">
                 <div className="flex gap-3">
                   <Percent className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                   <div className="text-sm text-blue-800 dark:text-blue-200 w-full">
-                    <p className="font-medium mb-2">Комиссия Kaspi (по категории)</p>
+                    <p className="font-medium mb-2">Справочник комиссий Kaspi</p>
                     <p className="text-xs text-blue-600 dark:text-blue-400 mb-3">
-                      Комиссия определяется автоматически по категории товара
+                      Ставки комиссии по категориям товаров
                     </p>
                     <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3 text-xs">
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-blue-700 dark:text-blue-300">
@@ -261,7 +325,7 @@ export default function ProfitSettingsPage() {
                 className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
               >
                 <Save className="w-4 h-4" />
-                <span>{saved ? 'Сохранено!' : 'Сохранить'}</span>
+                <span>{saved ? 'Сохранено!' : saving ? 'Сохранение...' : 'Сохранить'}</span>
               </button>
             </div>
           </div>
@@ -284,7 +348,7 @@ export default function ProfitSettingsPage() {
                   <span className="font-medium text-red-600">−{exampleCostPrice.toLocaleString()} ₸</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600 dark:text-gray-400">Комиссия Kaspi (Смартфоны, {exampleCommissionRate}%):</span>
+                  <span className="text-gray-600 dark:text-gray-400">Комиссия Kaspi ({commissionRate}%):</span>
                   <span className="font-medium text-red-600">−{exampleCommission.toLocaleString()} ₸</span>
                 </div>
                 <div className="flex justify-between">

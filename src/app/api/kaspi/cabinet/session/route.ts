@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { checkCabinetSession } from '@/lib/kaspi/api-client';
 
 /**
@@ -18,11 +18,12 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { data: store } = await supabase
+    const storeResult = await supabase
       .from('stores')
       .select('id, kaspi_session, kaspi_merchant_id')
       .eq('user_id', userId)
       .single();
+    const store = storeResult.data;
 
     if (!store) {
       return NextResponse.json({
@@ -47,7 +48,7 @@ export async function GET(request: NextRequest) {
       });
     }
 
-    const merchantId = session.merchant_id || store.kaspi_merchant_id;
+    const merchantId = session.merchant_id || store.kaspi_merchant_id || '';
     if (!merchantId) {
       return NextResponse.json({
         success: true,

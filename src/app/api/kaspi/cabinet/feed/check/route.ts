@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { KaspiAPIClient } from '@/lib/kaspi/api-client';
 
 interface KaspiSession {
@@ -19,18 +19,19 @@ export async function POST(request: NextRequest) {
     }
 
     // Получаем store и сессию
-    const { data: store } = await supabase
+    const storeResult = await supabase
       .from('stores')
       .select('kaspi_session, kaspi_merchant_id')
       .eq('user_id', userId)
       .single();
+    const store = storeResult.data;
 
     const session = store?.kaspi_session as KaspiSession | null;
     if (!session?.cookies) {
       return NextResponse.json({ success: false, error: 'Нет активной сессии Kaspi кабинета' });
     }
 
-    const merchantId = session.merchant_id || store?.kaspi_merchant_id;
+    const merchantId = session.merchant_id || store?.kaspi_merchant_id || '';
     const client = new KaspiAPIClient(session.cookies, merchantId);
 
     const result = await client.checkAutoLoadUrl(

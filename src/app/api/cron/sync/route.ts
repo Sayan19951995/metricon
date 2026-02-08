@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { POST as syncHandler } from '@/app/api/kaspi/sync/route';
 
 export const maxDuration = 300; // 5 мин макс для cron
@@ -16,13 +16,14 @@ export async function GET(request: NextRequest) {
 
   try {
     // Получаем все магазины с подключённым Kaspi
-    const { data: stores } = await supabase
+    const storesResult = await supabase
       .from('stores')
       .select('user_id, kaspi_merchant_id')
       .not('kaspi_api_key', 'is', null)
       .not('kaspi_merchant_id', 'is', null);
+    const stores = storesResult.data || [];
 
-    if (!stores || stores.length === 0) {
+    if (stores.length === 0) {
       return NextResponse.json({ message: 'No stores to sync', synced: 0 });
     }
 
@@ -39,10 +40,10 @@ export async function GET(request: NextRequest) {
 
         const res = await syncHandler(mockReq);
         const data = await res.json();
-        results.push({ userId: store.user_id, success: data.success });
+        results.push({ userId: store.user_id!, success: data.success });
       } catch (err) {
         results.push({
-          userId: store.user_id,
+          userId: store.user_id!,
           success: false,
           error: err instanceof Error ? err.message : 'Unknown error',
         });

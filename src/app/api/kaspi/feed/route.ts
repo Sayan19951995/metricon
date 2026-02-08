@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { KaspiAPIClient } from '@/lib/kaspi/api-client';
 
 interface KaspiSession {
@@ -28,12 +28,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Ищем фид по токену
-    const { data: feed } = await supabase
+    const feedResult = await supabase
       .from('pricelist_feeds')
       .select('*')
       .eq('feed_token', token)
       .eq('enabled', true)
       .single();
+    const feed = feedResult.data;
 
     if (!feed) {
       return new NextResponse('Feed not found or disabled', { status: 404 });
@@ -63,11 +64,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Получаем магазин
-    const { data: store } = await supabase
+    const storeResult = await supabase
       .from('stores')
       .select('id, kaspi_session, kaspi_merchant_id')
       .eq('id', feed.store_id)
       .single();
+    const store = storeResult.data;
 
     if (!store) {
       return new NextResponse('Store not found', { status: 404 });
@@ -78,7 +80,7 @@ export async function GET(request: NextRequest) {
     // Пытаемся сгенерировать свежий XML из BFF
     if (session?.cookies) {
       try {
-        const merchantId = session.merchant_id || store.kaspi_merchant_id;
+        const merchantId = session.merchant_id || store.kaspi_merchant_id || '';
         const client = new KaspiAPIClient(session.cookies, merchantId);
         const products = await client.getAllProducts();
 

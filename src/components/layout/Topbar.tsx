@@ -1,10 +1,11 @@
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
 import { useState, useRef, useEffect } from 'react';
+import { useUser } from '@/hooks/useUser';
+import { supabase } from '@/lib/supabase/client';
 
 export default function Topbar() {
-  const { data: session } = useSession();
+  const { user } = useUser();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -21,11 +22,12 @@ export default function Topbar() {
   }, []);
 
   const handleLogout = async () => {
-    await signOut({ callbackUrl: '/login' });
+    await supabase.auth.signOut();
+    window.location.href = '/login';
   };
 
   // Получить инициалы пользователя
-  const getInitials = (name?: string | null, email?: string) => {
+  const getInitials = (name?: string | null, email?: string | null) => {
     if (name) {
       return name
         .split(' ')
@@ -87,16 +89,16 @@ export default function Topbar() {
           >
             {/* Аватар */}
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
-              {getInitials(session?.user?.name, session?.user?.email)}
+              {getInitials(user?.name, user?.email)}
             </div>
 
             {/* Имя и email */}
             <div className="text-left hidden lg:block">
               <p className="text-sm font-medium text-white">
-                {session?.user?.name || 'Пользователь'}
+                {user?.name || 'Пользователь'}
               </p>
               <p className="text-xs text-slate-400">
-                {session?.user?.email}
+                {user?.email}
               </p>
             </div>
 
@@ -123,10 +125,10 @@ export default function Topbar() {
             <div className="absolute right-0 mt-2 w-56 bg-slate-800 border border-slate-700 rounded-lg shadow-xl overflow-hidden z-50">
               <div className="p-3 border-b border-slate-700">
                 <p className="text-sm font-medium text-white">
-                  {session?.user?.name || 'Пользователь'}
+                  {user?.name || 'Пользователь'}
                 </p>
                 <p className="text-xs text-slate-400 truncate">
-                  {session?.user?.email}
+                  {user?.email}
                 </p>
               </div>
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { createKaspiClient } from '@/lib/kaspi-api';
 import { OrderState, KaspiOrder } from '@/types/kaspi';
 
@@ -17,11 +17,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Получаем магазин пользователя
-    const { data: store, error: storeError } = await supabase
+    const storeResult = await supabase
       .from('stores')
       .select('*')
       .eq('user_id', userId)
       .single();
+    const store = storeResult.data;
+    const storeError = storeResult.error;
 
     if (storeError || !store || !store.kaspi_api_key || !store.kaspi_merchant_id) {
       return NextResponse.json({
@@ -108,12 +110,13 @@ export async function POST(request: NextRequest) {
         }
       }
 
-      const { data: existingOrder } = await supabase
+      const existingOrderResult = await supabase
         .from('orders')
         .select('id')
         .eq('kaspi_order_id', order.orderId)
         .eq('store_id', store.id)
         .single();
+      const existingOrder = existingOrderResult.data;
 
       let deliveryDate: string | null = null;
       if (order.plannedDeliveryDate) {
@@ -137,6 +140,8 @@ export async function POST(request: NextRequest) {
           return base;
         })(),
         total_amount: order.totalPrice,
+        delivery_mode: order.deliveryMode || null,
+        delivery_cost: order.deliveryCostForSeller || 0,
         items: order.entries.map(e => ({
           product_code: e.product.code,
           product_name: e.product.name,
@@ -160,12 +165,13 @@ export async function POST(request: NextRequest) {
 
     // Сохраняем продукты
     for (const product of productsMap.values()) {
-      const { data: existingProduct } = await supabase
+      const existingProductResult = await supabase
         .from('products')
         .select('id')
         .eq('kaspi_id', product.kaspi_id)
         .eq('store_id', store.id)
         .single();
+      const existingProduct = existingProductResult.data;
 
       if (!existingProduct) {
         await supabase.from('products').insert(product);
@@ -209,12 +215,13 @@ export async function POST(request: NextRequest) {
         ? (order.status || order.state).toLowerCase()
         : order.state.toLowerCase();
 
-      const { data: dbOrder } = await supabase
+      const dbOrderResult = await supabase
         .from('orders')
         .select('id, status, completed_at')
         .eq('kaspi_order_id', orderId)
         .eq('store_id', store.id)
         .single();
+      const dbOrder = dbOrderResult.data;
 
       if (!dbOrder) continue;
 
@@ -231,7 +238,10 @@ export async function POST(request: NextRequest) {
           update.completed_at = new Date().toISOString();
           completionsDetected++;
         }
-        if (dbOrder.status !== 'completed' || update.completed_at) {
+        // Обновляем delivery_mode/delivery_cost для архивных заказов (могли не сохраниться ранее)
+        if (order.deliveryMode) update.delivery_mode = order.deliveryMode;
+        if (order.deliveryCostForSeller) update.delivery_cost = order.deliveryCostForSeller;
+        if (dbOrder.status !== 'completed' || update.completed_at || update.delivery_mode) {
           await supabase.from('orders').update(update).eq('id', dbOrder.id);
         }
       }
@@ -242,6 +252,8 @@ export async function POST(request: NextRequest) {
         if (!dbOrder.completed_at) {
           update.completed_at = new Date().toISOString();
         }
+        if (order.deliveryMode) update.delivery_mode = order.deliveryMode;
+        if (order.deliveryCostForSeller) update.delivery_cost = order.deliveryCostForSeller;
         await supabase.from('orders').update(update).eq('id', dbOrder.id);
         returnsDetected++;
       }
@@ -307,12 +319,13 @@ export async function POST(request: NextRequest) {
 
     // Сохраняем daily_stats
     for (const [date, stat] of dailyStats) {
-      const { data: existingStat } = await supabase
+      const existingStatResult = await supabase
         .from('daily_stats')
         .select('id')
         .eq('store_id', store.id)
         .eq('date', date)
         .single();
+      const existingStat = existingStatResult.data;
 
       if (existingStat) {
         await supabase.from('daily_stats').update({
@@ -362,11 +375,13 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { data: store, error: storeError } = await supabase
+    const storeResult2 = await supabase
       .from('stores')
       .select('*')
       .eq('user_id', userId)
       .single();
+    const store = storeResult2.data;
+    const storeError = storeResult2.error;
 
     if (storeError || !store) {
       return NextResponse.json({
@@ -378,12 +393,13 @@ export async function GET(request: NextRequest) {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const { data: dailyStats } = await supabase
+    const dailyStatsResult = await supabase
       .from('daily_stats')
       .select('*')
       .eq('store_id', store.id)
       .gte('date', thirtyDaysAgo.toISOString().split('T')[0])
       .order('date', { ascending: true });
+    const dailyStats = dailyStatsResult.data || [];
 
     const { count: ordersCount } = await supabase
       .from('orders')

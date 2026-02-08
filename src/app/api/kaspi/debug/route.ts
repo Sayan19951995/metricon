@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { createKaspiClient } from '@/lib/kaspi-api';
 
 // GET - диагностика: выгрузить сырые ответы Kaspi API
@@ -13,11 +13,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Получаем магазин
-    const { data: store, error: storeError } = await supabase
+    const storeResult = await supabase
       .from('stores')
       .select('*')
       .eq('user_id', userId)
       .single();
+    const store = storeResult.data;
+    const storeError = storeResult.error;
 
     if (storeError || !store || !store.kaspi_api_key || !store.kaspi_merchant_id) {
       return NextResponse.json({ error: 'Kaspi не подключен' }, { status: 400 });

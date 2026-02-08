@@ -1,7 +1,0 @@
-
-    window.BACKEND = {
-      config: {
-        kaspiCDN: 'https://ks-static.cdn-kaspi.kz/shop/front/sa/stable/desktop/'
-      }
-    };
-  

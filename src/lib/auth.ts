@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase } from './supabase/client';
 
 // Регистрация
 export async function signUp(email: string, password: string, name: string) {
@@ -18,7 +18,7 @@ export async function signUp(email: string, password: string, name: string) {
   if (data.user) {
     const { error: userError } = await supabase.from('users').insert({
       id: data.user.id,
-      email: data.user.email,
+      email: data.user.email!,
       name: name,
     });
 

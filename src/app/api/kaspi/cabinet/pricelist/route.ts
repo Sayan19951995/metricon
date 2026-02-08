@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { KaspiAPIClient } from '@/lib/kaspi/api-client';
 
 interface KaspiSession {
@@ -11,18 +11,19 @@ interface KaspiSession {
  * Хелпер: получить store + client
  */
 async function getStoreAndClient(userId: string) {
-  const { data: store } = await supabase
+  const storeResult = await supabase
     .from('stores')
     .select('id, kaspi_session, kaspi_merchant_id, name')
     .eq('user_id', userId)
     .single();
+  const store = storeResult.data;
 
   if (!store) return { error: 'Магазин не найден', status: 404 };
 
   const session = store.kaspi_session as KaspiSession | null;
   if (!session?.cookies) return { error: 'Кабинет не подключен', status: 401 };
 
-  const merchantId = session.merchant_id || store.kaspi_merchant_id;
+  const merchantId = session.merchant_id || store.kaspi_merchant_id || '';
   const client = new KaspiAPIClient(session.cookies, merchantId);
 
   return { store, client, merchantId };

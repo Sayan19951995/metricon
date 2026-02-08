@@ -865,11 +865,11 @@ export default function DashboardPage() {
           {selectedPaymentDayIdx === null && (
             <div className="space-y-1.5 text-xs mb-3">
               <div className="flex items-center justify-between">
-                <span className="text-gray-500 dark:text-gray-400">Не выдано</span>
+                <span className="text-gray-500 dark:text-gray-400">Заказы</span>
                 <span className="font-medium text-gray-700 dark:text-gray-300">{awaitingPayment.notSentCount} шт · {awaitingPayment.notSent.toLocaleString('ru-RU')} ₸</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-gray-500 dark:text-gray-400">В доставке</span>
+                <span className="text-gray-500 dark:text-gray-400">Передано на доставку</span>
                 <span className="font-medium text-gray-700 dark:text-gray-300">{awaitingPayment.inDeliveryCount} шт · {awaitingPayment.inDelivery.toLocaleString('ru-RU')} ₸</span>
               </div>
             </div>

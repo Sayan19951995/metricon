@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { createKaspiClient } from '@/lib/kaspi-api';
 import { OrderState } from '@/types/kaspi';
 
@@ -22,11 +22,13 @@ export async function GET(request: NextRequest) {
     }
 
     // Получаем магазин пользователя
-    const { data: store, error: storeError } = await supabase
+    const storeResult = await supabase
       .from('stores')
       .select('*')
       .eq('user_id', userId)
       .single();
+    const store = storeResult.data;
+    const storeError = storeResult.error;
 
     if (storeError || !store || !store.kaspi_api_key || !store.kaspi_merchant_id) {
       return NextResponse.json({
@@ -76,13 +78,15 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Получаем магазин пользователя
-    const { data: store, error: storeError } = await supabase
+    const storeResult2 = await supabase
       .from('stores')
       .select('*')
       .eq('user_id', userId)
       .single();
+    const store2 = storeResult2.data;
+    const storeError2 = storeResult2.error;
 
-    if (storeError || !store || !store.kaspi_api_key || !store.kaspi_merchant_id) {
+    if (storeError2 || !store2 || !store2.kaspi_api_key || !store2.kaspi_merchant_id) {
       return NextResponse.json({
         success: false,
         message: 'Kaspi не подключен'
@@ -90,7 +94,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Обновляем статус в Kaspi
-    const kaspiClient = createKaspiClient(store.kaspi_api_key, store.kaspi_merchant_id);
+    const kaspiClient = createKaspiClient(store2.kaspi_api_key, store2.kaspi_merchant_id);
     const success = await kaspiClient.updateOrderStatus(orderId, newState, reason);
 
     if (!success) {

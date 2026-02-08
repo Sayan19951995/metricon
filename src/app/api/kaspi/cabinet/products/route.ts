@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { KaspiAPIClient, kaspiCabinetLogin } from '@/lib/kaspi/api-client';
 
 interface KaspiSession {
@@ -14,7 +14,7 @@ interface KaspiSession {
  * Получить свежую сессию: если BFF вернул 401 — автоматически перелогиниться
  */
 async function getClientWithAutoRelogin(
-  store: { id: string; kaspi_session: unknown; kaspi_merchant_id: string },
+  store: { id: string; kaspi_session: unknown; kaspi_merchant_id: string | null },
 ): Promise<{ client: KaspiAPIClient; merchantId: string } | { error: string; needLogin?: boolean }> {
   const session = store.kaspi_session as KaspiSession | null;
 
@@ -22,7 +22,7 @@ async function getClientWithAutoRelogin(
     return { error: 'Кабинет не подключен', needLogin: true };
   }
 
-  const merchantId = session.merchant_id || store.kaspi_merchant_id;
+  const merchantId = session.merchant_id || store.kaspi_merchant_id || '';
   if (!merchantId) {
     return { error: 'merchantId не найден' };
   }
@@ -34,7 +34,7 @@ async function getClientWithAutoRelogin(
  * При 401 — перелогиниться и вернуть новый клиент
  */
 async function reloginAndRetry(
-  store: { id: string; kaspi_session: unknown; kaspi_merchant_id: string },
+  store: { id: string; kaspi_session: unknown; kaspi_merchant_id: string | null },
 ): Promise<{ client: KaspiAPIClient; merchantId: string } | null> {
   const session = store.kaspi_session as KaspiSession | null;
 
@@ -51,7 +51,7 @@ async function reloginAndRetry(
     return null;
   }
 
-  const merchantId = result.merchantId || session.merchant_id || store.kaspi_merchant_id;
+  const merchantId = result.merchantId || session.merchant_id || store.kaspi_merchant_id || '';
 
   // Обновляем cookies в Supabase, сохраняя credentials
   await supabase
@@ -90,11 +90,12 @@ export async function GET(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { data: store } = await supabase
+    const storeResult = await supabase
       .from('stores')
       .select('id, kaspi_session, kaspi_merchant_id')
       .eq('user_id', userId)
       .single();
+    const store = storeResult.data;
 
     if (!store) {
       return NextResponse.json({
@@ -181,11 +182,12 @@ export async function PATCH(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { data: store } = await supabase
+    const storeResult2 = await supabase
       .from('stores')
       .select('id, kaspi_session, kaspi_merchant_id')
       .eq('user_id', userId)
       .single();
+    const store = storeResult2.data;
 
     if (!store) {
       return NextResponse.json({

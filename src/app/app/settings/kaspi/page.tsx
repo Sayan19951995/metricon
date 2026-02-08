@@ -21,6 +21,7 @@ import {
   LogIn,
   Plug,
   PlugZap,
+  BarChart3,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@/hooks/useUser';
@@ -84,6 +85,11 @@ export default function KaspiSettingsPage() {
   const [showCabinetForm, setShowCabinetForm] = useState(false);
   const [showCabinetPassword, setShowCabinetPassword] = useState(false);
 
+  // Kaspi Marketing
+  const [marketingConnected, setMarketingConnected] = useState(false);
+  const [marketingMerchantName, setMarketingMerchantName] = useState('');
+  const [marketingLoading, setMarketingLoading] = useState(false);
+
   // Проверяем статус подключения при загрузке
   useEffect(() => {
     if (user?.id) {
@@ -91,6 +97,15 @@ export default function KaspiSettingsPage() {
       checkCabinetStatus();
     }
   }, [user?.id]);
+
+  // Проверяем маркетинг из store
+  useEffect(() => {
+    if (store && (store as unknown as Record<string, unknown>).marketing_session) {
+      const session = (store as unknown as Record<string, unknown>).marketing_session as { merchant_name?: string };
+      setMarketingConnected(true);
+      setMarketingMerchantName(session.merchant_name || '');
+    }
+  }, [store]);
 
   const checkConnectionStatus = async () => {
     if (!user?.id) return;
@@ -333,6 +348,20 @@ export default function KaspiSettingsPage() {
       setCabinetLoginError('Ошибка соединения');
     } finally {
       setCabinetLoginLoading(false);
+    }
+  };
+
+  const disconnectMarketing = async () => {
+    if (!user?.id) return;
+    setMarketingLoading(true);
+    try {
+      await fetch(`/api/kaspi/marketing?userId=${user.id}`, { method: 'DELETE' });
+      setMarketingConnected(false);
+      setMarketingMerchantName('');
+    } catch (err) {
+      console.error('Disconnect marketing error:', err);
+    } finally {
+      setMarketingLoading(false);
     }
   };
 
@@ -684,6 +713,80 @@ export default function KaspiSettingsPage() {
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
               Кабинет используется для изменения цен, остатков и предзаказов напрямую на Kaspi.
               API ключ даёт только чтение данных.
+            </p>
+          </div>
+
+          {/* Kaspi Marketing */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-4">
+              {marketingConnected ? (
+                <BarChart3 className="w-5 h-5 text-purple-500" />
+              ) : (
+                <BarChart3 className="w-5 h-5 text-gray-400" />
+              )}
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Kaspi Marketing</h3>
+            </div>
+
+            <div className={`p-4 rounded-xl ${
+              marketingConnected
+                ? 'bg-purple-50 dark:bg-purple-900/20 border border-purple-200 dark:border-purple-800'
+                : 'bg-gray-50 dark:bg-gray-700'
+            }`}>
+              {marketingConnected ? (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 bg-purple-500 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <CheckCircle className="w-5 h-5 text-white" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium text-purple-800 dark:text-purple-300">Маркетинг подключён</p>
+                      {marketingMerchantName && (
+                        <p className="text-xs text-purple-600 dark:text-purple-400">{marketingMerchantName}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex gap-2 self-end sm:self-auto flex-shrink-0">
+                    <Link
+                      href="/app/advertising/kaspi-marketing"
+                      className="px-3 py-1.5 bg-purple-100 dark:bg-purple-800/30 text-purple-700 dark:text-purple-300 rounded-lg text-sm font-medium hover:bg-purple-200 dark:hover:bg-purple-800/50 transition-colors cursor-pointer"
+                    >
+                      Открыть
+                    </Link>
+                    <button
+                      onClick={disconnectMarketing}
+                      disabled={marketingLoading}
+                      className="px-3 py-1.5 bg-purple-100 dark:bg-purple-800/30 text-purple-700 dark:text-purple-300 rounded-lg text-sm font-medium hover:bg-purple-200 dark:hover:bg-purple-800/50 transition-colors cursor-pointer disabled:opacity-50"
+                    >
+                      Отключить
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-gray-200 dark:bg-gray-600 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <BarChart3 className="w-5 h-5 text-gray-500 dark:text-gray-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-700 dark:text-gray-300">Маркетинг не подключён</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        Статистика рекламных кампаний
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href="/app/advertising/kaspi-marketing"
+                    className="self-end sm:self-auto px-3 py-1.5 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors cursor-pointer inline-flex items-center gap-1.5 flex-shrink-0"
+                  >
+                    <Plug className="w-3.5 h-3.5" />
+                    Подключить
+                  </Link>
+                </div>
+              )}
+            </div>
+
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-3">
+              Рекламные кампании с marketing.kaspi.kz — расходы, показы, клики, ROAS.
             </p>
           </div>
 

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { kaspiCabinetLogin } from '@/lib/kaspi/api-client';
 
 /**
@@ -27,11 +27,13 @@ export async function POST(request: NextRequest) {
     }
 
     // Получаем магазин пользователя
-    const { data: store, error: storeError } = await supabase
+    const storeResult = await supabase
       .from('stores')
       .select('id, kaspi_merchant_id')
       .eq('user_id', userId)
       .single();
+    const store = storeResult.data;
+    const storeError = storeResult.error;
 
     if (storeError || !store) {
       return NextResponse.json({
@@ -53,8 +55,7 @@ export async function POST(request: NextRequest) {
     const merchantId = result.merchantId || store.kaspi_merchant_id || '';
 
     // Сохраняем сессию в Supabase
-    const { error: updateError } = await supabase
-      .from('stores')
+    const { error: updateError } = await supabase.from('stores')
       .update({
         kaspi_session: {
           cookies: result.cookies,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase/client';
 import { createKaspiClient } from '@/lib/kaspi-api';
 
 // POST - подключить Kaspi магазин
@@ -27,16 +27,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Проверяем есть ли уже магазин у пользователя
-    const { data: existingStore } = await supabase
+    const existingStoreResult = await supabase
       .from('stores')
       .select('*')
       .eq('user_id', userId)
       .single();
+    const existingStore = existingStoreResult.data;
 
     if (existingStore) {
       // Обновляем существующий магазин
-      const { error } = await supabase
-        .from('stores')
+      const { error } = await supabase.from('stores')
         .update({
           kaspi_api_key: apiKey,
           kaspi_merchant_id: merchantId,
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Создаём новый магазин
-      const { data: newStore, error } = await supabase
+      const newStoreResult = await supabase
         .from('stores')
         .insert({
           user_id: userId,
@@ -69,11 +69,13 @@ export async function POST(request: NextRequest) {
         })
         .select()
         .single();
+      const newStore = newStoreResult.data;
+      const newStoreError = newStoreResult.error;
 
-      if (error) {
+      if (newStoreError) {
         return NextResponse.json({
           success: false,
-          message: `Ошибка создания магазина: ${error.message}`
+          message: `Ошибка создания магазина: ${newStoreError.message}`
         }, { status: 500 });
       }
 
@@ -106,13 +108,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Получаем магазин пользователя
-    const { data: store, error } = await supabase
+    const storeResult = await supabase
       .from('stores')
       .select('*')
       .eq('user_id', userId)
       .single();
+    const store = storeResult.data;
+    const storeError = storeResult.error;
 
-    if (error || !store) {
+    if (storeError || !store) {
       return NextResponse.json({
         connected: false,
         message: 'Магазин не найден'
