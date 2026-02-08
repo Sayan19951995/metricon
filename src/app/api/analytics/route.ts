@@ -422,15 +422,17 @@ export async function GET(request: NextRequest) {
           if (campaign.cost <= 0) continue;
           try {
             const products = await client.getCampaignProducts(campaign.id, startDate, endDate);
+            console.log(`[Analytics] Campaign ${campaign.id} "${campaign.name}": ${products.length} products, cost=${campaign.cost}`);
             for (const p of products) {
               if (p.cost > 0 && p.sku) {
                 adCostBySku.set(p.sku, (adCostBySku.get(p.sku) || 0) + p.cost);
               }
             }
-          } catch {
-            // Не блокируем если один запрос не прошёл
+          } catch (e) {
+            console.error(`[Analytics] Failed to get products for campaign ${campaign.id}:`, e);
           }
         }
+        console.log(`[Analytics] adCostBySku size: ${adCostBySku.size}, adTransactions: ${adTransactions}, totalOrders will be calculated next`);
       } catch (err) {
         console.error('Failed to fetch marketing data:', err);
       }
@@ -552,6 +554,26 @@ export async function GET(request: NextRequest) {
     const totalProfit = totalRevenue - totalCost - totalCommissions - totalTax - totalDelivery - totalAdvertising - totalOperational;
     const avgOrderValue = totalOrders > 0 ? Math.round(totalRevenue / totalOrders) : 0;
 
+    // Источники продаж: гибридный подход
+    // 1. Пробуем product-level matching (если adCostBySku не пуст)
+    // 2. Если SKU не совпали (0 матчей) или adCostBySku пуст — фолбэк на adTransactions
+    let adOrdersCount = 0;
+    if (adCostBySku.size > 0) {
+      for (const order of (completedOrders || [])) {
+        const items = order.items as Array<{ product_code: string }> | null;
+        if (items && items.some(item => adCostBySku.has(item.product_code))) {
+          adOrdersCount++;
+        }
+      }
+      console.log(`[Analytics] Product-level matching: ${adOrdersCount} ad orders out of ${totalOrders} (adCostBySku keys: ${[...adCostBySku.keys()].slice(0, 5).join(', ')})`);
+    }
+    // Фолбэк: если product-level не дал результатов — используем adTransactions
+    if (adOrdersCount === 0 && adTransactions > 0) {
+      adOrdersCount = Math.min(adTransactions, totalOrders);
+      console.log(`[Analytics] Fallback to adTransactions: ${adTransactions}, capped to ${adOrdersCount}`);
+    }
+    const organicOrders = totalOrders - adOrdersCount;
+
     return NextResponse.json({
       success: true,
       data: {
@@ -566,8 +588,8 @@ export async function GET(request: NextRequest) {
         totalProfit,
         avgOrderValue,
         ordersBySource: {
-          organic: Math.max(0, totalOrders - adTransactions),
-          ads: adTransactions,
+          organic: organicOrders,
+          ads: adOrdersCount,
           offline: 0,
         },
         pendingOrders: {
@@ -588,8 +610,8 @@ export async function GET(request: NextRequest) {
         },
         returnedOrders,
         salesSources: {
-          organic: Math.max(0, totalOrders - adTransactions),
-          advertising: adTransactions,
+          organic: organicOrders,
+          advertising: adOrdersCount,
         },
         deliveryModes: {
           kaspiDelivery,
