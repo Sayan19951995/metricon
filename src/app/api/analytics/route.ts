@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
     // === 1. Поступления по дате выдачи (completed_at) ===
     const completedOrdersResult = await supabase
       .from('orders')
-      .select('total_amount, completed_at, status, delivery_cost, delivery_mode, items')
+      .select('total_amount, completed_at, status, delivery_cost, delivery_mode, delivery_address, items')
       .eq('store_id', store.id)
       .not('completed_at', 'is', null)
       .eq('status', 'completed')
@@ -457,8 +457,32 @@ export async function GET(request: NextRequest) {
     // Маппинг в удобные ключи
     const kaspiDelivery = (deliveryModeCounts['KASPI_DELIVERY'] || 0) + (deliveryModeCounts['DELIVERY_LOCAL'] || 0);
     const regional = deliveryModeCounts['DELIVERY_REGIONAL_TODOOR'] || 0;
+    const express = deliveryModeCounts['DELIVERY_EXPRESS'] || 0;
     const sellerDelivery = deliveryModeCounts['DELIVERY'] || 0;
     const pickupCount = deliveryModeCounts['PICKUP'] || 0;
+
+    // Города по способам доставки (из delivery_address)
+    const mapMode = (mode: string) => {
+      if (mode === 'KASPI_DELIVERY' || mode === 'DELIVERY_LOCAL') return 'kaspiDelivery';
+      if (mode === 'DELIVERY_REGIONAL_TODOOR') return 'regional';
+      if (mode === 'DELIVERY_EXPRESS') return 'express';
+      if (mode === 'DELIVERY') return 'sellerDelivery';
+      if (mode === 'PICKUP') return 'pickup';
+      return 'other';
+    };
+    const citiesByMode: Record<string, Record<string, number>> = {};
+    for (const order of completedOrders) {
+      const mode = mapMode(order.delivery_mode || 'unknown');
+      const addr = (order.delivery_address as string) || '';
+      // Извлекаем город: обычно первое слово до запятой или "г."
+      let city = 'Неизвестно';
+      if (addr) {
+        const parts = addr.split(',').map((s: string) => s.trim());
+        city = parts[0]?.replace(/^г\.?\s*/, '') || addr.slice(0, 30);
+      }
+      if (!citiesByMode[mode]) citiesByMode[mode] = {};
+      citiesByMode[mode][city] = (citiesByMode[mode][city] || 0) + 1;
+    }
 
     // === 7. Рентабельность по товарам ===
     const totalProductRevenue = Array.from(productSales.values()).reduce((sum, p) => sum + p.revenue, 0);
@@ -570,9 +594,11 @@ export async function GET(request: NextRequest) {
         deliveryModes: {
           kaspiDelivery,
           regional,
+          express,
           sellerDelivery,
           pickup: pickupCount,
         },
+        deliveryCities: citiesByMode,
         marketing: {
           totalCost: totalAdvertising,
           totalGmv: adGmv,

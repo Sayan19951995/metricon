@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 import {
@@ -88,6 +88,32 @@ export default function DashboardPage() {
   const [dataError, setDataError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
 
+  // Ручное обновление дашборда
+  const handleRefresh = useCallback(async () => {
+    if (!user?.id || syncing) return;
+    setSyncing(true);
+    try {
+      const syncRes = await fetch('/api/kaspi/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, daysBack: 14 })
+      });
+      const syncJson = await syncRes.json();
+      if (syncJson.success) {
+        const res = await fetch(`/api/dashboard?userId=${user.id}`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          setDashboardData(json.data);
+          setCache(`dashboard_${user.id}`, { data: json.data, kaspiConnected: true });
+        }
+      }
+    } catch {
+      // ignore
+    } finally {
+      setSyncing(false);
+    }
+  }, [user?.id, syncing]);
+
   // Загрузка данных из БД + фоновая синхронизация с Kaspi API
   useEffect(() => {
     if (userLoading) return;
@@ -114,7 +140,6 @@ export default function DashboardPage() {
         }
         setDataError(null);
 
-        // 1. Быстро загружаем из БД
         const res = await fetch(`/api/dashboard?userId=${user!.id}`);
         const json = await res.json();
 
@@ -130,40 +155,13 @@ export default function DashboardPage() {
           setCache(cacheKey, { data: json.data, kaspiConnected: json.kaspiConnected });
         }
 
-        // 2. Фоновая синхронизация с Kaspi API
         if (json.kaspiConnected) {
-          backgroundSync();
+          handleRefresh();
         }
       } catch (err) {
         if (!cached) setDataError(err instanceof Error ? err.message : 'Ошибка загрузки');
       } finally {
         setDataLoading(false);
-      }
-    }
-
-    async function backgroundSync() {
-      try {
-        setSyncing(true);
-        const syncRes = await fetch('/api/kaspi/sync', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId: user!.id, daysBack: 14 })
-        });
-        const syncJson = await syncRes.json();
-
-        if (syncJson.success) {
-          // Синк завершён — перезагружаем данные из БД
-          const res = await fetch(`/api/dashboard?userId=${user!.id}`);
-          const json = await res.json();
-          if (json.success && json.data) {
-            setDashboardData(json.data);
-            setCache(cacheKey, { data: json.data, kaspiConnected: true });
-          }
-        }
-      } catch {
-        // Фоновая синхронизация не критична
-      } finally {
-        setSyncing(false);
       }
     }
 
@@ -466,15 +464,23 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex justify-between items-start gap-4 mb-6 lg:mb-8">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Дашборд</h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Дашборд</h1>
+            <div className="relative group">
+              <button
+                onClick={handleRefresh}
+                disabled={syncing}
+                className={`p-2 rounded-lg transition-colors ${syncing ? 'text-blue-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+              >
+                <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
+              </button>
+              <div className="absolute left-1/2 -translate-x-1/2 top-full mt-1 px-2 py-1 bg-gray-900 text-white text-xs rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                {syncing ? 'Синхронизация...' : 'Обновить данные с Kaspi'}
+              </div>
+            </div>
+          </div>
           <div className="flex items-center gap-2 mt-1">
             <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">Обзор ключевых показателей магазина</p>
-            {syncing && (
-              <span className="inline-flex items-center gap-1 text-xs text-blue-500">
-                <RefreshCw className="w-3 h-3 animate-spin" />
-                Обновление...
-              </span>
-            )}
           </div>
         </div>
 

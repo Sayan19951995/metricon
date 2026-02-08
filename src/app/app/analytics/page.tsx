@@ -147,7 +147,8 @@ const emptyAnalyticsData = {
   ordersByStatus: { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, returned: 0 },
   returnedOrders: [],
   salesSources: { organic: 0, advertising: 0 },
-  deliveryModes: { kaspiDelivery: 0, regional: 0, sellerDelivery: 0, pickup: 0 },
+  deliveryModes: { kaspiDelivery: 0, regional: 0, express: 0, sellerDelivery: 0, pickup: 0 },
+  deliveryCities: {} as Record<string, Record<string, number>>,
   marketing: { totalCost: 0, totalGmv: 0, roas: 0, campaigns: [] },
   storeSettings: { commissionRate: 12.5, taxRate: 4.0 },
   operationalExpenses: [],
@@ -288,9 +289,8 @@ function AnalyticsPageContent() {
   const [showAdsPopup, setShowAdsPopup] = useState(false);
 
 
-  // Попапы для способов доставки
-  const [showMyDeliveryPopup, setShowMyDeliveryPopup] = useState(false);
-  const [showPickupPopup, setShowPickupPopup] = useState(false);
+  // Попап для способов доставки (разбивка по городам)
+  const [deliveryPopup, setDeliveryPopup] = useState<{ name: string; key: string; color: string } | null>(null);
 
   // Попап детализации по товару
   const [showProductPopup, setShowProductPopup] = useState(false);
@@ -695,7 +695,8 @@ function AnalyticsPageContent() {
       ordersByStatus: sourceData.ordersByStatus || { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, returned: 0 },
       salesSources: sourceData.salesSources || { organic: totalOrders, advertising: 0 },
       ordersBySource: sourceData.ordersBySource || { organic: totalOrders, ads: 0, offline: 0 },
-      deliveryModes: sourceData.deliveryModes || { kaspiDelivery: 0, regional: 0, sellerDelivery: 0, pickup: 0 },
+      deliveryModes: sourceData.deliveryModes || { kaspiDelivery: 0, regional: 0, express: 0, sellerDelivery: 0, pickup: 0 },
+      deliveryCities: sourceData.deliveryCities || {},
       pendingOrders: sourceData.pendingOrders || { count: 0, totalAmount: 0, orders: [] },
       marketing: sourceData.marketing || { totalCost: 0, totalGmv: 0, roas: 0, campaigns: [] },
       totalOperational: sourceData.totalOperational || 0,
@@ -785,14 +786,12 @@ function AnalyticsPageContent() {
   ];
 
   const deliveryData = [
-    { name: 'Kaspi Доставка', value: data.deliveryModes.kaspiDelivery },
-    { name: 'Межгород', value: data.deliveryModes.regional },
-    { name: 'Моя доставка', value: data.deliveryModes.sellerDelivery },
-    { name: 'Самовывоз', value: data.deliveryModes.pickup },
-  ];
-
-  // Данные по городам для межгорода (распределение заказов)
-  const regionalOrders = data.deliveryModes.regional;
+    { name: 'Kaspi Доставка', value: data.deliveryModes.kaspiDelivery, key: 'kaspiDelivery' },
+    { name: 'Межгород', value: data.deliveryModes.regional, key: 'regional' },
+    { name: 'Экспресс', value: data.deliveryModes.express || 0, key: 'express' },
+    { name: 'Моя доставка', value: data.deliveryModes.sellerDelivery, key: 'sellerDelivery' },
+    { name: 'Самовывоз', value: data.deliveryModes.pickup, key: 'pickup' },
+  ].filter(d => d.value > 0 || ['kaspiDelivery', 'regional', 'pickup'].includes(d.key));
 
   // Расчет процента рентабельности
   const profitMargin = ((data.totalProfit / data.totalRevenue) * 100).toFixed(1);
@@ -1957,8 +1956,9 @@ function AnalyticsPageContent() {
                               const percent = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
                               return (
                                 <div key={item.name}>
-                                  <div
-                                    className="flex items-center gap-1 sm:gap-2 lg:gap-3 px-1 lg:px-2 py-0.5 lg:py-1 rounded transition-colors"
+                                  <button
+                                    onClick={() => item.value > 0 && setDeliveryPopup({ name: item.name, key: item.key, color: DELIVERY_COLORS[index] })}
+                                    className={`w-full flex items-center gap-1 sm:gap-2 lg:gap-3 px-1 lg:px-2 py-0.5 lg:py-1 rounded transition-colors ${item.value > 0 ? 'hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer' : 'opacity-50'}`}
                                   >
                                     <div
                                       className="w-2 h-2 sm:w-2.5 sm:h-2.5 lg:w-3 lg:h-3 rounded-full flex-shrink-0"
@@ -1970,8 +1970,7 @@ function AnalyticsPageContent() {
                                         <span className="text-[9px] sm:text-[11px] lg:text-sm font-medium text-gray-900 dark:text-white">{item.value} <span className="text-gray-400">({percent}%)</span></span>
                                       </div>
                                     </div>
-                                  </div>
-
+                                  </button>
                                 </div>
                               );
                             })}
@@ -2679,129 +2678,56 @@ function AnalyticsPageContent() {
         </AnimatePresence>
 
 
-        {/* My Delivery Popup */}
+        {/* Delivery City Breakdown Popup */}
         <AnimatePresence>
-          {showMyDeliveryPopup && (
+          {deliveryPopup && (
             <>
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                onClick={() => setShowMyDeliveryPopup(false)}
+                onClick={() => setDeliveryPopup(null)}
                 className="fixed inset-0 bg-black/50 z-50"
               />
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl z-50 w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto"
+                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white dark:bg-gray-800 rounded-2xl shadow-2xl z-50 w-full max-w-md overflow-hidden max-h-[90vh] overflow-y-auto"
               >
-                <div className="bg-gradient-to-r from-pink-500 to-pink-600 p-6">
+                <div className="p-5" style={{ borderBottom: `3px solid ${deliveryPopup.color}` }}>
                   <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-white">Моя доставка</h2>
-                      <p className="text-white/80 text-sm mt-1">Заказы с курьерской доставкой</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-4 h-4 rounded-full" style={{ backgroundColor: deliveryPopup.color }} />
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-white">{deliveryPopup.name}</h2>
                     </div>
-                    <button onClick={() => setShowMyDeliveryPopup(false)} className="text-white/80 hover:text-white text-2xl">×</button>
+                    <button onClick={() => setDeliveryPopup(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none">&times;</button>
                   </div>
                 </div>
-                <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-pink-50 rounded-xl p-4 text-center">
-                      <div className="text-pink-600 font-bold text-xl">{data.deliveryModes.sellerDelivery}</div>
-                      <div className="text-gray-500 text-sm">Заказов</div>
-                    </div>
-                    <div className="bg-pink-50 rounded-xl p-4 text-center">
-                      <div className="text-pink-600 font-bold text-xl">{fmt(data.totalRevenue * 0.42)} ₸</div>
-                      <div className="text-gray-500 text-sm">Выручка</div>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-3">Заказы</h3>
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {Array.from({ length: Math.min(data.deliveryModes.sellerDelivery, 8) }).map((_, i) => {
-                        const product = data.topProducts[i % data.topProducts.length];
-                        const orderAmount = Math.round((data.totalRevenue * 0.42) / data.deliveryModes.sellerDelivery * (0.8 + (i * 0.05)));
-                        return (
-                          <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div className="flex-1 min-w-0 pr-3">
-                              <div className="font-medium text-gray-900">Заказ #{400000 + i * 5}</div>
-                              <div className="text-sm text-gray-600 truncate">{product.name}</div>
+                <div className="p-5">
+                  <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-3">Города</h3>
+                  {(() => {
+                    const cities = ((data as any).deliveryCities?.[deliveryPopup.key] || {}) as Record<string, number>;
+                    const sorted = Object.entries(cities).sort((a, b) => b[1] - a[1]);
+                    const total = sorted.reduce((s, [, c]) => s + c, 0);
+                    if (sorted.length === 0) return <p className="text-gray-400 text-sm">Нет данных по городам</p>;
+                    return (
+                      <div className="space-y-1.5 max-h-72 overflow-y-auto">
+                        {sorted.map(([city, count]) => (
+                          <div key={city} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <span className="text-sm text-gray-700 dark:text-gray-300">{city}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-gray-900 dark:text-white">{count}</span>
+                              <span className="text-xs text-gray-400">{total > 0 ? Math.round((count / total) * 100) : 0}%</span>
                             </div>
-                            <div className="font-semibold text-gray-900">{orderAmount.toLocaleString('ru-RU')} ₸</div>
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                        ))}
+                      </div>
+                    );
+                  })()}
                 </div>
-                <div className="bg-gray-50 p-4 flex justify-end">
-                  <button onClick={() => setShowMyDeliveryPopup(false)} className="px-6 py-2.5 bg-pink-500 hover:bg-pink-600 text-white rounded-xl font-medium">Закрыть</button>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-
-
-        {/* Pickup Popup */}
-        <AnimatePresence>
-          {showPickupPopup && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                onClick={() => setShowPickupPopup(false)}
-                className="fixed inset-0 bg-black/50 z-50"
-              />
-              <motion.div
-                initial={{ opacity: 0, scale: 0.95, y: 20 }}
-                animate={{ opacity: 1, scale: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-2xl shadow-2xl z-50 w-full max-w-lg overflow-hidden max-h-[90vh] overflow-y-auto"
-              >
-                <div className="bg-gradient-to-r from-amber-500 to-amber-600 p-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h2 className="text-xl font-bold text-white">Самовывоз</h2>
-                      <p className="text-white/80 text-sm mt-1">Заказы с самовывозом</p>
-                    </div>
-                    <button onClick={() => setShowPickupPopup(false)} className="text-white/80 hover:text-white text-2xl">×</button>
-                  </div>
-                </div>
-                <div className="p-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="bg-amber-50 rounded-xl p-4 text-center">
-                      <div className="text-amber-600 font-bold text-xl">{data.deliveryModes.pickup}</div>
-                      <div className="text-gray-500 text-sm">Заказов</div>
-                    </div>
-                    <div className="bg-amber-50 rounded-xl p-4 text-center">
-                      <div className="text-amber-600 font-bold text-xl">{fmt(data.totalRevenue * 0.16)} ₸</div>
-                      <div className="text-gray-500 text-sm">Выручка</div>
-                    </div>
-                  </div>
-                  <div>
-                    <h3 className="font-semibold text-gray-900 mb-3">Заказы</h3>
-                    <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {Array.from({ length: Math.min(data.deliveryModes.pickup, 8) }).map((_, i) => {
-                        const product = data.topProducts[i % data.topProducts.length];
-                        const orderAmount = Math.round((data.totalRevenue * 0.16) / data.deliveryModes.pickup * (0.8 + (i * 0.05)));
-                        return (
-                          <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div className="flex-1 min-w-0 pr-3">
-                              <div className="font-medium text-gray-900">Заказ #{600000 + i * 13}</div>
-                              <div className="text-sm text-gray-600 truncate">{product.name}</div>
-                            </div>
-                            <div className="font-semibold text-gray-900">{orderAmount.toLocaleString('ru-RU')} ₸</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-gray-50 p-4 flex justify-end">
-                  <button onClick={() => setShowPickupPopup(false)} className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-medium">Закрыть</button>
+                <div className="bg-gray-50 dark:bg-gray-700/50 p-4 flex justify-end">
+                  <button onClick={() => setDeliveryPopup(null)} className="px-5 py-2 text-white rounded-xl text-sm font-medium" style={{ backgroundColor: deliveryPopup.color }}>Закрыть</button>
                 </div>
               </motion.div>
             </>
