@@ -165,11 +165,13 @@ export function useUser(): UserData {
         setData({ ...result, loading: false, error: null });
 
       } catch (err) {
-        console.error('useUser error:', err);
+        const message = err instanceof Error ? err.message
+          : (err as { message?: string })?.message || JSON.stringify(err) || 'Unknown error';
+        console.error('useUser error:', message, err);
         setData(prev => ({
           ...prev,
           loading: false,
-          error: err instanceof Error ? err.message : 'Unknown error'
+          error: message,
         }));
       }
     }

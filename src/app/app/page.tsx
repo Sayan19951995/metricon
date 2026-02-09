@@ -555,14 +555,18 @@ export default function DashboardPage() {
             const growth = prevWeekRevenue > 0 ? ((selectedRevenue - prevWeekRevenue) / prevWeekRevenue * 100) : 0;
             const isToday = selectedDayIdx === 6;
 
+            const weekTotalRevenue = sales.weekData.reduce((sum, v) => sum + v, 0);
+            const weekTotalOrders = sales.ordersPerDay.reduce((sum, v) => sum + v, 0);
+
             const selectedDate = new Date();
             selectedDate.setDate(selectedDate.getDate() - (6 - selectedDayIdx));
             const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
             const dayLabel = isToday ? 'Продажи сегодня' : `Продажи за ${dayNames[selectedDate.getDay()]}, ${selectedDate.getDate()}.${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
 
             return (
+              <>
               <div
-                className="flex items-center justify-between mb-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 -m-2 p-2 rounded-lg transition-colors"
+                className="flex items-center justify-between mb-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 -m-2 p-2 rounded-lg transition-colors"
                 onClick={() => router.push('/app/analytics')}
               >
                 <div className="flex items-center gap-3">
@@ -617,6 +621,16 @@ export default function DashboardPage() {
                   </div>
                 </div>
               </div>
+              <div className="flex items-center gap-2 mb-3 ml-1 text-[11px] text-gray-400 dark:text-gray-500">
+                <span>За неделю:</span>
+                <span className="font-medium text-gray-600 dark:text-gray-300">{weekTotalRevenue.toLocaleString('ru-RU')} ₸</span>
+                <span>·</span>
+                <span className="font-medium text-gray-600 dark:text-gray-300">{weekTotalOrders} заказов</span>
+                <span className="text-gray-300 dark:text-gray-600">|</span>
+                <span>Ср:</span>
+                <span className="font-medium text-gray-600 dark:text-gray-300">{Math.round(weekTotalRevenue / 7).toLocaleString('ru-RU')} ₸/д</span>
+              </div>
+              </>
             );
           })()}
 
