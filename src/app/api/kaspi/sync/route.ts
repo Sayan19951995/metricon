@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import { createKaspiClient } from '@/lib/kaspi-api';
+import { KaspiAPIClient } from '@/lib/kaspi/api-client';
 import { OrderState, KaspiOrder } from '@/types/kaspi';
+
+interface KaspiSession {
+  cookies: string;
+  merchant_id: string;
+}
 
 // POST - синхронизировать данные из Kaspi в БД
 export async function POST(request: NextRequest) {
@@ -33,6 +39,12 @@ export async function POST(request: NextRequest) {
     }
 
     const kaspiClient = createKaspiClient(store.kaspi_api_key, store.kaspi_merchant_id);
+
+    // Cabinet client для получения точных дат выдачи (BFF)
+    const session = store.kaspi_session as KaspiSession | null;
+    const cabinetClient = session?.cookies
+      ? new KaspiAPIClient(session.cookies, session.merchant_id || store.kaspi_merchant_id)
+      : null;
     const dateTo = Date.now();
     const dateFrom = dateTo - daysBack * 24 * 60 * 60 * 1000;
     // === 1. Получаем ВСЕ заказы без фильтра по state, затем фильтруем активные локально ===
@@ -225,18 +237,20 @@ export async function POST(request: NextRequest) {
 
       if (!dbOrder) continue;
 
-      // Заказ выдан (COMPLETED) — completed_at = лучшее приближение даты выдачи
-      // Kaspi API v2 не даёт stateDate для ARCHIVE. Используем:
-      // 1. stateDate (если есть) — точная дата перехода в COMPLETED
-      // 2. courierTransmissionDate — дата передачи курьеру (ближайшее к выдаче)
-      // 3. approveDate/creationDate — дата создания заказа (fallback)
+      // Заказ выдан (COMPLETED) — получаем точную дату из BFF (История изменений)
       if (kaspiStatus === 'completed') {
         const update: Record<string, any> = { status: 'completed' };
-        // completed_at ставим ТОЛЬКО при первом обнаружении (не перезаписываем)
-        // new Date() ≈ дата выдачи если sync запускается регулярно
         if (!dbOrder.completed_at) {
-          update.completed_at = new Date().toISOString();
+          // Пробуем получить точную дату выдачи из BFF кабинета
+          let exactDate: string | null = null;
+          if (cabinetClient) {
+            exactDate = await cabinetClient.getOrderCompletionDate(order.orderId);
+          }
+          update.completed_at = exactDate || new Date().toISOString();
           completionsDetected++;
+          if (exactDate) {
+            console.log(`SYNC: order ${order.orderId} completed_at from BFF: ${exactDate}`);
+          }
         }
         // Обновляем delivery_mode/delivery_cost для архивных заказов (могли не сохраниться ранее)
         if (order.deliveryMode) update.delivery_mode = order.deliveryMode;

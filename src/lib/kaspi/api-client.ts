@@ -817,6 +817,47 @@ export class KaspiAPIClient {
   }
 
   /**
+   * Получить точную дату выдачи заказа из BFF (История изменений).
+   * Endpoint: GET mc.shop.kaspi.kz/mc/api/order/{orderCode}/actions?_m={merchantId}
+   * Возвращает ISO строку даты COMPLETED или null если не найдена.
+   */
+  async getOrderCompletionDate(orderCode: string): Promise<string | null> {
+    const url = `${BASE_URL}/mc/api/order/${orderCode}/actions?_m=${this.merchantId}`;
+
+    try {
+      const response = await this.bffFetch(url);
+      if (!response.ok) return null;
+
+      const data = await response.json();
+      const completedEntry = data.historyEntries?.find(
+        (e: { action: string; createDate?: number }) => e.action === 'COMPLETED'
+      );
+
+      if (completedEntry?.createDate) {
+        return new Date(completedEntry.createDate).toISOString();
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  }
+
+  /**
+   * Batch: получить даты выдачи для нескольких заказов.
+   * Возвращает Map<orderCode, ISO date string>.
+   */
+  async getOrderCompletionDates(orderCodes: string[]): Promise<Map<string, string>> {
+    const results = new Map<string, string>();
+
+    for (const code of orderCodes) {
+      const date = await this.getOrderCompletionDate(code);
+      if (date) results.set(code, date);
+    }
+
+    return results;
+  }
+
+  /**
    * Преобразовать raw данные BFF в наш формат
    */
   // Маппинг storeId → адрес точки продаж (из настроек Kaspi кабинета)
