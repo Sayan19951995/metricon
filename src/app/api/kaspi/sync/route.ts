@@ -148,7 +148,7 @@ export async function POST(request: NextRequest) {
     for (const order of activeOrders) {
       // Собираем продукты из entries (только новые заказы имеют entries)
       for (const entry of order.entries) {
-        if (!productsMap.has(entry.product.code)) {
+        if (!productsMap.has(entry.product.code) && entry.product.name) {
           productsMap.set(entry.product.code, {
             store_id: store.id,
             kaspi_id: entry.product.code,
@@ -200,13 +200,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Выполняем DB операции параллельно (concurrency = 10)
+    // Используем upsert для новых заказов чтобы избежать дубликатов при параллельных sync
     await parallelMap(orderOps, async (op) => {
       if (op.isNew) {
-        await supabase.from('orders').insert({
+        await supabase.from('orders').upsert({
           ...op.data,
           items: op.data.items || [],
           created_at: op.createdAt,
-        });
+        }, { onConflict: 'store_id,kaspi_order_id' });
         ordersCreated++;
       } else {
         const updateData = { ...op.data };
@@ -324,7 +325,125 @@ export async function POST(request: NextRequest) {
 
     console.log(`SYNC: completions=${completionsDetected}, deferred=${completionsDeferred}, returns=${returnsDetected}, ordersCreated=${ordersCreated}, ordersUpdated=${ordersUpdated}, bff=${bffSessionActive}`);
 
-    // === 5. Пересчитываем daily_stats из уже полученных данных (НЕ делаем доп. API запросы) ===
+    // === 5. Списание остатков со склада ===
+    // KASPI_DELIVERY: списать при статусе kaspi_delivery_transmitted (передан курьеру)
+    // Остальные (PICKUP, DELIVERY, EXPRESS): списать при completed (выдан клиенту)
+    // Возврат/отмена: вернуть на склад
+    let stockDeductions = 0;
+    let stockRestored = 0;
+
+    try {
+      // 5a. Списание: найти заказы где stock_deducted=false и статус требует списания
+      const { data: ordersToDeduct } = await supabase
+        .from('orders')
+        .select('id, status, delivery_mode, items')
+        .eq('store_id', store.id)
+        .eq('stock_deducted' as any, false)
+        .in('status', ['kaspi_delivery_transmitted', 'completed']);
+
+      const validDeductions = (ordersToDeduct || []).filter(order => {
+        const isKD = (order.delivery_mode || '').toUpperCase().includes('KASPI');
+        return isKD
+          ? order.status === 'kaspi_delivery_transmitted'
+          : order.status === 'completed';
+      }).filter(o => Array.isArray(o.items) && o.items.length > 0);
+
+      if (validDeductions.length > 0) {
+        // Собираем суммарное кол-во к списанию по каждому product_code
+        const deductionMap = new Map<string, number>();
+        for (const order of validDeductions) {
+          for (const item of order.items as any[]) {
+            if (!item.product_code || !item.quantity) continue;
+            deductionMap.set(
+              item.product_code,
+              (deductionMap.get(item.product_code) || 0) + item.quantity
+            );
+          }
+        }
+
+        // Batch-читаем текущие остатки
+        const productCodes = Array.from(deductionMap.keys());
+        const { data: products } = await supabase
+          .from('products')
+          .select('id, kaspi_id, quantity')
+          .eq('store_id', store.id)
+          .in('kaspi_id', productCodes);
+
+        // Обновляем остатки (quantity - deduct, min 0)
+        if (products) {
+          await parallelMap(products, async (product) => {
+            const deduct = deductionMap.get(product.kaspi_id!) || 0;
+            if (deduct > 0) {
+              const newQty = Math.max((product.quantity || 0) - deduct, 0);
+              await supabase.from('products').update({ quantity: newQty }).eq('id', product.id);
+            }
+          }, 10);
+        }
+
+        // Отмечаем заказы как списанные
+        await supabase
+          .from('orders')
+          .update({ stock_deducted: true } as any)
+          .in('id', validDeductions.map(o => o.id));
+
+        stockDeductions = validDeductions.length;
+      }
+
+      // 5b. Возврат остатков: заказы были списаны, но потом вернулись/отменились
+      const { data: returnedOrders } = await supabase
+        .from('orders')
+        .select('id, items')
+        .eq('store_id', store.id)
+        .eq('stock_deducted' as any, true)
+        .in('status', ['returned', 'cancelled']);
+
+      if (returnedOrders && returnedOrders.length > 0) {
+        const restoreMap = new Map<string, number>();
+        for (const order of returnedOrders) {
+          for (const item of (Array.isArray(order.items) ? order.items : []) as any[]) {
+            if (!item.product_code || !item.quantity) continue;
+            restoreMap.set(
+              item.product_code,
+              (restoreMap.get(item.product_code) || 0) + item.quantity
+            );
+          }
+        }
+
+        const productCodes = Array.from(restoreMap.keys());
+        const { data: products } = await supabase
+          .from('products')
+          .select('id, kaspi_id, quantity')
+          .eq('store_id', store.id)
+          .in('kaspi_id', productCodes);
+
+        if (products) {
+          await parallelMap(products, async (product) => {
+            const restore = restoreMap.get(product.kaspi_id!) || 0;
+            if (restore > 0) {
+              await supabase.from('products')
+                .update({ quantity: (product.quantity || 0) + restore })
+                .eq('id', product.id);
+            }
+          }, 10);
+        }
+
+        // Сбрасываем флаг (stock_deducted=false) — заказ возвращён
+        await supabase
+          .from('orders')
+          .update({ stock_deducted: false } as any)
+          .in('id', returnedOrders.map(o => o.id));
+
+        stockRestored = returnedOrders.length;
+      }
+    } catch (err) {
+      console.error('SYNC: stock deduction error:', err);
+    }
+
+    if (stockDeductions > 0 || stockRestored > 0) {
+      console.log(`SYNC: stock deducted for ${stockDeductions} orders, restored for ${stockRestored} orders`);
+    }
+
+    // === 6. Пересчитываем daily_stats из уже полученных данных (НЕ делаем доп. API запросы) ===
     const dailyStats = new Map<string, { revenue: number; orders_count: number }>();
 
     for (const order of allFetchedOrders) {
@@ -373,6 +492,8 @@ export async function POST(request: NextRequest) {
         totalOrders: activeOrders.length,
         completionsDetected,
         completionsDeferred,
+        stockDeductions,
+        stockRestored,
         syncTimeMs: totalTime,
       },
     });

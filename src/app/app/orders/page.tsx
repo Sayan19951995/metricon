@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { supabase } from '@/lib/supabase/client';
-import { getCached, setCache } from '@/lib/cache';
+import { getStale, setCache } from '@/lib/cache';
 
 type OrderStatus = 'new' | 'sign_required' | 'pickup' | 'delivery' | 'kaspi_delivery' | 'archive' | 'completed' | 'cancelled' | 'returned';
 type FilterStatus = 'all' | OrderStatus | 'awaiting' | 'transfer' | 'transmitted';
@@ -143,9 +143,9 @@ export default function OrdersPage() {
   useEffect(() => {
     if (store?.id) {
       const cacheKey = `orders_${store.id}`;
-      const cached = getCached<Order[]>(cacheKey);
-      if (cached) {
-        setOrders(cached);
+      const stale = getStale<Order[]>(cacheKey);
+      if (stale) {
+        setOrders(stale.data);
         setLoading(false);
       }
       loadOrders();
@@ -155,7 +155,7 @@ export default function OrdersPage() {
   const loadOrders = async () => {
     if (!store?.id) return;
     const cacheKey = `orders_${store.id}`;
-    const hasCached = getCached<Order[]>(cacheKey) !== null;
+    const hasCached = getStale<Order[]>(cacheKey) !== null;
     if (!hasCached) setLoading(true);
 
     try {

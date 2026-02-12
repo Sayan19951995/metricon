@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
-import { getCached, setCache } from '@/lib/cache';
+import { getStale, setCache } from '@/lib/cache';
 
 interface User {
   id: string;
@@ -43,7 +43,8 @@ interface UserData {
 const CACHE_KEY = 'user_data';
 
 export function useUser(): UserData {
-  const cached = getCached<{ user: User; store: Store | null; subscription: Subscription | null }>(CACHE_KEY);
+  const stale = getStale<{ user: User; store: Store | null; subscription: Subscription | null }>(CACHE_KEY);
+  const cached = stale?.data ?? null;
 
   const [data, setData] = useState<UserData>({
     user: cached?.user || null,
@@ -167,6 +168,20 @@ export function useUser(): UserData {
       } catch (err) {
         const message = err instanceof Error ? err.message
           : (err as { message?: string })?.message || JSON.stringify(err) || 'Unknown error';
+
+        // JWT expired — обновляем сессию и перезагружаем
+        if (message.includes('JWT expired') || message.includes('jwt expired')) {
+          console.warn('useUser: JWT expired, refreshing session...');
+          const { error: refreshError } = await supabase.auth.refreshSession();
+          if (!refreshError) {
+            fetchUserData(); // retry with fresh token
+            return;
+          }
+          console.error('useUser: refresh failed, redirecting to login');
+          setData(prev => ({ ...prev, loading: false, error: 'Сессия истекла' }));
+          return;
+        }
+
         console.error('useUser error:', message, err);
         setData(prev => ({
           ...prev,
@@ -180,7 +195,7 @@ export function useUser(): UserData {
 
     // Слушаем изменения авторизации
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+      if (event === 'SIGNED_IN' || event === 'SIGNED_OUT' || event === 'TOKEN_REFRESHED') {
         fetchUserData();
       }
     });

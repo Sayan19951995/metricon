@@ -22,7 +22,7 @@ import {
   RefreshCw
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
-import { getCached, setCache } from '@/lib/cache';
+import { getStale, setCache } from '@/lib/cache';
 import { getSmoothPath, getSmoothAreaPath } from '@/lib/smoothPath';
 
 interface DashboardData {
@@ -125,14 +125,15 @@ export default function DashboardPage() {
     }
 
     const cacheKey = `dashboard_${user.id}`;
-    const cached = getCached<{ data: DashboardData; kaspiConnected: boolean }>(cacheKey);
+    const stale = getStale<{ data: DashboardData; kaspiConnected: boolean }>(cacheKey);
 
-    // Если есть кеш — показываем мгновенно без загрузки
-    if (cached) {
-      setDashboardData(cached.data);
-      setKaspiConnected(cached.kaspiConnected);
+    // Если есть кеш (даже просроченный) — показываем мгновенно
+    if (stale) {
+      setDashboardData(stale.data.data);
+      setKaspiConnected(stale.data.kaspiConnected);
       setDataLoading(false);
     }
+    const cached = stale?.data ?? null;
 
     async function fetchDashboard() {
       try {

@@ -141,6 +141,48 @@ export interface Database {
         }
         Relationships: []
       }
+      restock_orders: {
+        Row: {
+          id: string
+          store_id: string | null
+          supplier: string
+          status: string
+          order_date: string | null
+          expected_date: string | null
+          items: Json | null
+          total_amount: number
+          delivery_cost: number
+          notes: string | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          store_id?: string | null
+          supplier: string
+          status?: string
+          order_date?: string | null
+          expected_date?: string | null
+          items?: Json | null
+          total_amount?: number
+          delivery_cost?: number
+          notes?: string | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          store_id?: string | null
+          supplier?: string
+          status?: string
+          order_date?: string | null
+          expected_date?: string | null
+          items?: Json | null
+          total_amount?: number
+          delivery_cost?: number
+          notes?: string | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
       orders: {
         Row: {
           id: string

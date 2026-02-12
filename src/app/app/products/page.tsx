@@ -19,6 +19,7 @@ import {
   HelpCircle,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { getStale, setCache } from '@/lib/cache';
 import type { KaspiProduct, KaspiAvailability } from '@/lib/kaspi/api-client';
 
 type SortField = 'name' | 'price' | 'stock' | 'preorder';
@@ -37,9 +38,12 @@ export default function ProductsPage() {
   const [session, setSession] = useState<CabinetSession | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
 
-  // Товары (все загруженные)
-  const [allProducts, setAllProducts] = useState<KaspiProduct[]>([]);
-  const [stats, setStats] = useState<{ inStock: number; notSpecified: number; lowStock: number }>({ inStock: 0, notSpecified: 0, lowStock: 0 });
+  // Товары (все загруженные) — с кэшем
+  const CACHE_KEY = `products_${user?.id || ''}`;
+  const cached = user?.id ? getStale<{ products: KaspiProduct[]; stats: { inStock: number; notSpecified: number; lowStock: number } }>(CACHE_KEY) : null;
+
+  const [allProducts, setAllProducts] = useState<KaspiProduct[]>(cached?.data.products || []);
+  const [stats, setStats] = useState<{ inStock: number; notSpecified: number; lowStock: number }>(cached?.data.stats || { inStock: 0, notSpecified: 0, lowStock: 0 });
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
   const limit = 20;
@@ -114,24 +118,26 @@ export default function ProductsPage() {
 
   const loadProducts = async () => {
     if (!user?.id) return;
-    setLoading(true);
+    const hasCached = allProducts.length > 0;
+    if (!hasCached) setLoading(true);
     setLoadError('');
     try {
       const res = await fetch(`/api/kaspi/cabinet/products?userId=${user.id}`);
       const data = await res.json();
       if (data.success) {
-        setAllProducts(data.products || []);
-        if (data.stats) {
-          setStats(data.stats);
-        }
+        const products = data.products || [];
+        const newStats = data.stats || stats;
+        setAllProducts(products);
+        setStats(newStats);
+        setCache(`products_${user.id}`, { products, stats: newStats });
       } else if (data.needLogin) {
         setSession({ connected: false });
       } else {
-        setLoadError(data.error || 'Не удалось загрузить товары');
+        if (!hasCached) setLoadError(data.error || 'Не удалось загрузить товары');
       }
     } catch (err) {
       console.error('Load products error:', err);
-      setLoadError('Ошибка соединения');
+      if (!hasCached) setLoadError('Ошибка соединения');
     } finally {
       setLoading(false);
     }

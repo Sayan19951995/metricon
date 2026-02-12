@@ -1,175 +1,160 @@
 'use client';
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import {
   ArrowLeft,
-  Plus,
-  Trash2,
   RefreshCw,
-  Check,
-  AlertCircle,
   MapPin,
-  Building2,
-  Link as LinkIcon,
-  Unlink
+  Package,
+  Loader2,
+  Store,
+  AlertCircle,
 } from 'lucide-react';
+import { useUser } from '@/hooks/useUser';
+import { supabase } from '@/lib/supabase/client';
+import { getStale, setCache } from '@/lib/cache';
 
-interface Warehouse {
-  id: string;
-  name: string;
-  city: string;
-  address?: string;
-  isKaspiLinked: boolean;
-  kaspiWarehouseId?: string;
-  kaspiWarehouseName?: string;
+interface POSInfo {
+  storeId: string;
+  storeName: string;
+  cityName: string;
   productCount: number;
-  createdAt: string;
+  totalStock: number;
+  totalValue: number;
 }
 
-interface KaspiWarehouse {
-  id: string;
-  name: string;
-  city: string;
-  isLinked: boolean;
-  linkedToId?: string;
-}
+const CACHE_KEY_PREFIX = 'warehouse_pos_';
 
 export default function WarehouseSettingsPage() {
-  const [warehouses, setWarehouses] = useState<Warehouse[]>([
-    {
-      id: 'wh-1',
-      name: 'Основной склад',
-      city: 'Алматы',
-      address: 'ул. Абая 150',
-      isKaspiLinked: true,
-      kaspiWarehouseId: 'kaspi-almaty-1',
-      kaspiWarehouseName: 'Kaspi Алматы Центр',
-      productCount: 156,
-      createdAt: '2024-01-15'
-    },
-    {
-      id: 'wh-2',
-      name: 'Склад Астана',
-      city: 'Астана',
-      address: 'пр. Мангилик Ел 45',
-      isKaspiLinked: true,
-      kaspiWarehouseId: 'kaspi-astana-1',
-      kaspiWarehouseName: 'Kaspi Астана',
-      productCount: 89,
-      createdAt: '2024-03-20'
-    },
-    {
-      id: 'wh-3',
-      name: 'Склад Караганда',
-      city: 'Караганда',
-      isKaspiLinked: false,
-      productCount: 45,
-      createdAt: '2024-06-10'
-    },
-    {
-      id: 'wh-4',
-      name: 'Склад Шымкент',
-      city: 'Шымкент',
-      isKaspiLinked: false,
-      productCount: 32,
-      createdAt: '2024-08-05'
-    }
-  ]);
+  const { user, store, loading: userLoading } = useUser();
 
-  const [kaspiWarehouses] = useState<KaspiWarehouse[]>([
-    { id: 'kaspi-almaty-1', name: 'Kaspi Алматы Центр', city: 'Алматы', isLinked: true, linkedToId: 'wh-1' },
-    { id: 'kaspi-almaty-2', name: 'Kaspi Алматы Юг', city: 'Алматы', isLinked: false },
-    { id: 'kaspi-astana-1', name: 'Kaspi Астана', city: 'Астана', isLinked: true, linkedToId: 'wh-2' },
-    { id: 'kaspi-karaganda-1', name: 'Kaspi Караганда', city: 'Караганда', isLinked: false },
-    { id: 'kaspi-shymkent-1', name: 'Kaspi Шымкент', city: 'Шымкент', isLinked: false },
-  ]);
+  const cacheKey = store?.id ? `${CACHE_KEY_PREFIX}${store.id}` : '';
+  const stale = cacheKey ? getStale<POSInfo[]>(cacheKey) : null;
 
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showLinkModal, setShowLinkModal] = useState(false);
-  const [selectedWarehouse, setSelectedWarehouse] = useState<Warehouse | null>(null);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [lastSyncTime, setLastSyncTime] = useState<string>('14.01.2025 15:30');
+  const [posList, setPOSList] = useState<POSInfo[]>(stale?.data || []);
+  const [loading, setLoading] = useState(!stale);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [newWarehouse, setNewWarehouse] = useState({
-    name: '',
-    city: '',
-    address: ''
-  });
+  const loadPOSData = useCallback(async (showRefresh = false) => {
+    if (!user?.id || !store?.id) return;
+    const hasCached = posList.length > 0;
+    if (!hasCached) setLoading(true);
+    if (showRefresh) setRefreshing(true);
+    setError(null);
 
-  const handleAddWarehouse = () => {
-    if (!newWarehouse.name || !newWarehouse.city) return;
+    try {
+      // Parallel: DB products (known SKUs + prices) + Cabinet API (live stock per POS)
+      const [dbResult, cabinetRes] = await Promise.all([
+        supabase
+          .from('products')
+          .select('sku, price')
+          .eq('store_id', store.id)
+          .not('sku', 'is', null),
+        fetch(`/api/kaspi/cabinet/products?userId=${user.id}`).then(r => r.json()).catch(() => ({ success: false })),
+      ]);
 
-    const warehouse: Warehouse = {
-      id: `wh-${Date.now()}`,
-      name: newWarehouse.name,
-      city: newWarehouse.city,
-      address: newWarehouse.address || undefined,
-      isKaspiLinked: false,
-      productCount: 0,
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-
-    setWarehouses([...warehouses, warehouse]);
-    setNewWarehouse({ name: '', city: '', address: '' });
-    setShowAddModal(false);
-  };
-
-  const handleDeleteWarehouse = (id: string) => {
-    if (confirm('Удалить этот склад? Все товары будут откреплены.')) {
-      setWarehouses(warehouses.filter(w => w.id !== id));
-    }
-  };
-
-  const handleLinkKaspi = (kaspiWarehouse: KaspiWarehouse) => {
-    if (!selectedWarehouse) return;
-
-    setWarehouses(warehouses.map(w => {
-      if (w.id === selectedWarehouse.id) {
-        return {
-          ...w,
-          isKaspiLinked: true,
-          kaspiWarehouseId: kaspiWarehouse.id,
-          kaspiWarehouseName: kaspiWarehouse.name
-        };
+      if (!cabinetRes.success) {
+        if (cabinetRes.needLogin) {
+          setError('Кабинет Kaspi не подключен. Подключите в настройках магазина.');
+        } else {
+          setError(cabinetRes.error || 'Ошибка загрузки данных');
+        }
+        setPOSList([]);
+        return;
       }
-      return w;
-    }));
 
-    setShowLinkModal(false);
-    setSelectedWarehouse(null);
-  };
-
-  const handleUnlinkKaspi = (warehouseId: string) => {
-    setWarehouses(warehouses.map(w => {
-      if (w.id === warehouseId) {
-        return {
-          ...w,
-          isKaspiLinked: false,
-          kaspiWarehouseId: undefined,
-          kaspiWarehouseName: undefined
-        };
+      // Build set of known SKUs + price map from DB
+      const dbSkus = new Set<string>();
+      const dbPriceMap = new Map<string, number>();
+      for (const p of dbResult.data || []) {
+        if (p.sku) {
+          dbSkus.add(p.sku);
+          if (p.price) dbPriceMap.set(p.sku, p.price);
+        }
       }
-      return w;
-    }));
-  };
 
-  const handleSyncKaspi = async () => {
-    setIsSyncing(true);
-    // Имитация синхронизации
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setLastSyncTime(new Date().toLocaleString('ru-RU', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    }));
-    setIsSyncing(false);
-  };
+      // Extract unique POS from product availabilities (only products in DB)
+      const posMap = new Map<string, POSInfo>();
 
-  const availableKaspiWarehouses = kaspiWarehouses.filter(kw => !kw.isLinked);
+      for (const product of cabinetRes.products || []) {
+        if (!product.sku || !dbSkus.has(product.sku)) continue;
+        const price = dbPriceMap.get(product.sku) || product.price || 0;
+        for (const avail of product.availabilities || []) {
+          const id = avail.storeId || avail.storeName || 'unknown';
+          const stockCount = avail.stockCount || 0;
+          const existing = posMap.get(id);
+
+          if (existing) {
+            existing.productCount++;
+            existing.totalStock += stockCount;
+            existing.totalValue += price * stockCount;
+          } else {
+            posMap.set(id, {
+              storeId: id,
+              storeName: avail.storeName || avail.storeId || '—',
+              cityName: avail.cityName || '',
+              productCount: 1,
+              totalStock: stockCount,
+              totalValue: price * stockCount,
+            });
+          }
+        }
+      }
+
+      const result = Array.from(posMap.values()).sort((a, b) => b.totalStock - a.totalStock);
+      setPOSList(result);
+      if (cacheKey) setCache(cacheKey, result);
+    } catch (err) {
+      console.error('Failed to load POS data:', err);
+      setError('Ошибка сети');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, [user?.id, store?.id, cacheKey]);
+
+  useEffect(() => {
+    if (user?.id && store?.id) loadPOSData();
+  }, [user?.id, store?.id]);
+
+  const totalProducts = posList.reduce((s, p) => s + p.productCount, 0);
+  const totalStock = posList.reduce((s, p) => s + p.totalStock, 0);
+  const totalValue = posList.reduce((s, p) => s + (p.totalValue || 0), 0);
+
+  // Loading skeleton
+  if (userLoading || (loading && posList.length === 0)) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <div className="mb-6">
+          <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4" />
+          <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse mb-2" />
+          <div className="h-4 w-64 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+              <div className="h-3 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
+              <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="flex items-center gap-4 py-4 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
+              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />
+              <div className="flex-1 space-y-1.5">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" style={{ width: `${30 + Math.random() * 30}%` }} />
+                <div className="h-3 w-20 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+              </div>
+              <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -182,270 +167,173 @@ export default function WarehouseSettingsPage() {
           <ArrowLeft className="w-4 h-4" />
           <span className="text-sm">Назад к складу</span>
         </Link>
-        <h1 className="text-2xl sm:text-3xl font-bold mb-2 text-gray-900 dark:text-white">Настройки складов</h1>
-        <p className="text-gray-500 dark:text-gray-400 text-sm">Управление складами и интеграция с Kaspi</p>
-      </div>
-
-      {/* Kaspi Integration Card */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm mb-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center shrink-0">
-            <span className="text-red-600 dark:text-red-400 font-bold text-sm">K</span>
+        <div className="flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-1 text-gray-900 dark:text-white">Точки продаж</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Ваши точки выдачи Kaspi и остатки по ним</p>
           </div>
-          <div className="flex-1">
-            <h2 className="font-semibold text-gray-900 dark:text-white">Интеграция с Kaspi</h2>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Синхронизация складов и остатков</p>
-          </div>
-          {/* Desktop button */}
           <button
-            onClick={handleSyncKaspi}
-            disabled={isSyncing}
-            className="hidden sm:flex items-center gap-2 px-4 py-2 bg-red-500 hover:bg-red-600 disabled:bg-red-300 dark:disabled:bg-red-800 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
+            onClick={() => loadPOSData(true)}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
           >
-            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-            {isSyncing ? 'Синхронизация...' : 'Синхронизировать'}
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Обновить</span>
           </button>
         </div>
-
-        {/* Mobile button */}
-        <button
-          onClick={handleSyncKaspi}
-          disabled={isSyncing}
-          className="sm:hidden w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500 hover:bg-red-600 disabled:bg-red-300 dark:disabled:bg-red-800 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer mb-4"
-        >
-          <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
-          {isSyncing ? 'Синхронизация...' : 'Синхронизировать'}
-        </button>
-
-        <div className="flex flex-wrap gap-3 sm:gap-4 text-sm">
-          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-            <Check className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-            <span>Подключено складов: {warehouses.filter(w => w.isKaspiLinked).length}</span>
-          </div>
-          <div className="flex items-center gap-2 text-gray-600 dark:text-gray-300">
-            <AlertCircle className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-            <span>Не подключено: {warehouses.filter(w => !w.isKaspiLinked).length}</span>
-          </div>
-          <div className="text-gray-400">
-            Последняя синхронизация: {lastSyncTime}
-          </div>
-        </div>
       </div>
 
-      {/* Warehouses List */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
-        <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between">
-          <h2 className="font-semibold text-gray-900 dark:text-white">Мои склады</h2>
-          <button
-            onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Добавить склад
-          </button>
-        </div>
-
-        <div className="divide-y divide-gray-100 dark:divide-gray-700">
-          {warehouses.map((warehouse) => (
-            <div
-              key={warehouse.id}
-              className="p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center shrink-0">
-                    <Building2 className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-semibold text-gray-900 dark:text-white">{warehouse.name}</h3>
-                    <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                      <MapPin className="w-3 h-3 shrink-0" />
-                      <span className="truncate">{warehouse.city}{warehouse.address && ` • ${warehouse.address}`}</span>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-xs font-medium">
-                        {warehouse.productCount} товаров
-                      </span>
-
-                      {warehouse.isKaspiLinked ? (
-                        <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 rounded-lg text-xs font-medium">
-                          <LinkIcon className="w-3 h-3" />
-                          {warehouse.kaspiWarehouseName}
-                        </span>
-                      ) : (
-                        <span className="flex items-center gap-1 px-2 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded-lg text-xs font-medium">
-                          <AlertCircle className="w-3 h-3" />
-                          Не привязан
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-1 shrink-0">
-                  {warehouse.isKaspiLinked ? (
-                    <button
-                      onClick={() => handleUnlinkKaspi(warehouse.id)}
-                      className="p-2 text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded-lg transition-colors"
-                      title="Отвязать от Kaspi"
-                    >
-                      <Unlink className="w-5 h-5" />
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => {
-                        setSelectedWarehouse(warehouse);
-                        setShowLinkModal(true);
-                      }}
-                      className="p-2 text-gray-400 hover:text-emerald-600 dark:hover:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors"
-                      title="Привязать к Kaspi"
-                    >
-                      <LinkIcon className="w-5 h-5" />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => handleDeleteWarehouse(warehouse.id)}
-                    className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
-                    title="Удалить склад"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Add Warehouse Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md"
-          >
-            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Добавить склад</h3>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Название склада *
-                </label>
-                <input
-                  type="text"
-                  value={newWarehouse.name}
-                  onChange={(e) => setNewWarehouse({ ...newWarehouse, name: e.target.value })}
-                  placeholder="Например: Основной склад"
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Город *
-                </label>
-                <select
-                  value={newWarehouse.city}
-                  onChange={(e) => setNewWarehouse({ ...newWarehouse, city: e.target.value })}
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                >
-                  <option value="">Выберите город</option>
-                  <option value="Алматы">Алматы</option>
-                  <option value="Астана">Астана</option>
-                  <option value="Караганда">Караганда</option>
-                  <option value="Шымкент">Шымкент</option>
-                  <option value="Актобе">Актобе</option>
-                  <option value="Павлодар">Павлодар</option>
-                  <option value="Усть-Каменогорск">Усть-Каменогорск</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Адрес
-                </label>
-                <input
-                  type="text"
-                  value={newWarehouse.address}
-                  onChange={(e) => setNewWarehouse({ ...newWarehouse, address: e.target.value })}
-                  placeholder="ул. Пример 123"
-                  className="w-full border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                />
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={() => {
-                  setShowAddModal(false);
-                  setNewWarehouse({ name: '', city: '', address: '' });
-                }}
-                className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+      {/* Error */}
+      {error && (
+        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6 flex items-start gap-3">
+          <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-medium text-red-800 dark:text-red-300">{error}</p>
+            {error.includes('не подключен') && (
+              <Link
+                href="/app/settings"
+                className="text-sm text-red-600 dark:text-red-400 underline mt-1 inline-block"
               >
-                Отмена
-              </button>
-              <button
-                onClick={handleAddWarehouse}
-                disabled={!newWarehouse.name || !newWarehouse.city}
-                className="flex-1 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-200 dark:disabled:bg-gray-600 disabled:text-gray-400 text-white rounded-xl text-sm font-medium transition-colors"
-              >
-                Добавить
-              </button>
-            </div>
-          </motion.div>
+                Перейти в настройки
+              </Link>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Link to Kaspi Modal */}
-      {showLinkModal && selectedWarehouse && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white dark:bg-gray-800 rounded-2xl p-6 w-full max-w-md"
-          >
-            <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white">Привязать к Kaspi</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-              Выберите склад Kaspi для привязки к &quot;{selectedWarehouse.name}&quot;
-            </p>
-
-            {availableKaspiWarehouses.length > 0 ? (
-              <div className="space-y-2 max-h-64 overflow-y-auto">
-                {availableKaspiWarehouses.map((kw) => (
-                  <button
-                    key={kw.id}
-                    onClick={() => handleLinkKaspi(kw)}
-                    className="w-full flex items-center gap-3 p-3 border border-gray-200 dark:border-gray-700 rounded-xl hover:border-red-300 dark:hover:border-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors text-left"
-                  >
-                    <div className="w-8 h-8 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center">
-                      <span className="text-red-600 dark:text-red-400 font-bold text-xs">K</span>
-                    </div>
-                    <div>
-                      <p className="font-medium text-sm text-gray-900 dark:text-white">{kw.name}</p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{kw.city}</p>
-                    </div>
-                  </button>
-                ))}
+      {/* Stats */}
+      {posList.length > 0 && (
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm">
+            <div className="flex items-center gap-2 lg:gap-3">
+              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center shrink-0">
+                <Store className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
               </div>
-            ) : (
-              <div className="text-center py-8 text-gray-500 dark:text-gray-400">
-                <AlertCircle className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-                <p className="text-sm">Все склады Kaspi уже привязаны</p>
+              <div>
+                <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Точек</p>
+                <p className="text-sm lg:text-base font-bold text-gray-900 dark:text-white">{posList.length}</p>
               </div>
-            )}
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm">
+            <div className="flex items-center gap-2 lg:gap-3">
+              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center shrink-0">
+                <Package className="w-4 h-4 lg:w-5 lg:h-5 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Позиций</p>
+                <p className="text-sm lg:text-base font-bold text-emerald-600">{totalProducts}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm">
+            <div className="flex items-center gap-2 lg:gap-3">
+              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-amber-50 dark:bg-amber-900/30 rounded-lg flex items-center justify-center shrink-0">
+                <Package className="w-4 h-4 lg:w-5 lg:h-5 text-amber-600" />
+              </div>
+              <div>
+                <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Всего шт</p>
+                <p className="text-sm lg:text-base font-bold text-amber-600">{totalStock.toLocaleString('ru-RU')}</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm">
+            <div className="flex items-center gap-2 lg:gap-3">
+              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-purple-50 dark:bg-purple-900/30 rounded-lg flex items-center justify-center shrink-0">
+                <Package className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
+              </div>
+              <div>
+                <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Стоимость</p>
+                <p className="text-sm lg:text-base font-bold text-purple-600">{totalValue >= 1_000_000 ? `${(totalValue / 1_000_000).toFixed(1)}M` : totalValue.toLocaleString('ru-RU')} ₸</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
-            <button
-              onClick={() => {
-                setShowLinkModal(false);
-                setSelectedWarehouse(null);
-              }}
-              className="w-full mt-4 px-4 py-2.5 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-            >
-              Отмена
-            </button>
-          </motion.div>
+      {/* POS List */}
+      {posList.length > 0 ? (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+          <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="font-semibold text-gray-900 dark:text-white">Точки выдачи Kaspi</h2>
+          </div>
+
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
+            {posList.map((pos) => (
+              <div
+                key={pos.storeId}
+                className="p-4 sm:p-5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+              >
+                <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 bg-red-50 dark:bg-red-900/20 rounded-xl flex items-center justify-center shrink-0">
+                      <span className="text-red-600 dark:text-red-400 font-bold text-sm">K</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                        {pos.storeName}
+                      </h3>
+                      {pos.cityName && (
+                        <div className="flex items-center gap-1 text-xs text-gray-400 mt-0.5">
+                          <MapPin className="w-3 h-3 shrink-0" />
+                          <span>{pos.cityName}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-5 shrink-0">
+                    <div className="text-right">
+                      <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {pos.totalStock.toLocaleString('ru-RU')} <span className="text-xs font-normal text-gray-400">шт</span>
+                      </p>
+                      <p className="text-[10px] text-gray-400">
+                        {pos.productCount} {pos.productCount === 1 ? 'товар' : pos.productCount < 5 ? 'товара' : 'товаров'}
+                      </p>
+                    </div>
+                    <div className="text-right min-w-[80px]">
+                      <p className="text-sm font-semibold text-emerald-600">
+                        {(pos.totalValue || 0) >= 1_000_000 ? `${((pos.totalValue || 0) / 1_000_000).toFixed(1)}M` : (pos.totalValue || 0).toLocaleString('ru-RU')} ₸
+                      </p>
+                      <p className="text-[10px] text-gray-400">стоимость</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Footer totals */}
+          <div className="p-4 sm:p-5 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+            <div className="flex items-center justify-between text-sm">
+              <span className="font-semibold text-gray-700 dark:text-gray-300">
+                Итого: {posList.length} {posList.length === 1 ? 'точка' : posList.length < 5 ? 'точки' : 'точек'}
+              </span>
+              <div className="flex items-center gap-5">
+                <span className="font-bold text-gray-900 dark:text-white">
+                  {totalStock.toLocaleString('ru-RU')} шт
+                </span>
+                <span className="font-bold text-emerald-600 min-w-[80px] text-right">
+                  {totalValue >= 1_000_000 ? `${(totalValue / 1_000_000).toFixed(1)}M` : totalValue.toLocaleString('ru-RU')} ₸
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : !error && !loading ? (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 shadow-sm text-center">
+          <Store className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold mb-1 text-gray-900 dark:text-white">Нет точек выдачи</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
+            Точки выдачи появятся после подключения кабинета Kaspi
+          </p>
+        </div>
+      ) : null}
+
+      {/* Refreshing indicator */}
+      {refreshing && (
+        <div className="fixed bottom-6 right-6 bg-white dark:bg-gray-800 shadow-lg rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 z-40">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Обновление...
         </div>
       )}
     </div>

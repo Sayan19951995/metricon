@@ -1,742 +1,624 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Search, Package, Settings, ArrowRightLeft, Minus, Plus, Truck, AlertTriangle, History, HelpCircle, RefreshCw } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import {
+  Search,
+  Package,
+  Settings,
+  History,
+  RefreshCw,
+  AlertTriangle,
+  Check,
+  X,
+  Edit3,
+  Loader2,
+} from 'lucide-react';
 import Link from 'next/link';
-import CreateOrderModal from '@/components/warehouse/CreateOrderModal';
-import { useWarehouseProducts } from '@/hooks/useWarehouseProducts';
+import { useUser } from '@/hooks/useUser';
+import { supabase } from '@/lib/supabase/client';
+import { getStale, setCache } from '@/lib/cache';
 
-type WarehouseTab = 'all' | 'almaty' | 'astana' | 'karaganda' | 'shymkent';
+interface Availability {
+  storeName: string;
+  stockCount: number;
+}
+
+interface Product {
+  id: string;
+  kaspi_id: string | null;
+  name: string;
+  sku: string | null;
+  price: number | null;
+  cost_price: number | null;
+  quantity: number | null;
+  image_url: string | null;
+  category: string | null;
+  active: boolean | null;
+  availabilities?: Availability[];
+}
 
 export default function WarehousePage() {
-  // Получаем товары из хука с localStorage
-  const {
-    products: warehouseProducts,
-    isLoaded,
-    syncWithKaspi,
-    getStockDiff,
-    getProductsWithDiff,
-    fetchKaspiStock
-  } = useWarehouseProducts();
-  const [showCreateOrderModal, setShowCreateOrderModal] = useState(false);
-  const [activeTab, setActiveTab] = useState<WarehouseTab>('all');
+  const { user, store, loading: userLoading } = useUser();
+
+  // Products from Supabase
+  const cacheKey = store?.id ? `warehouse_products_${store.id}` : '';
+  const stale = cacheKey ? getStale<Product[]>(cacheKey) : null;
+
+  const [products, setProducts] = useState<Product[]>(stale?.data || []);
+  const [loading, setLoading] = useState(!stale);
+  const [refreshing, setRefreshing] = useState(false);
+
+  // Filters
   const [searchTerm, setSearchTerm] = useState('');
-  const [showCriticalOnly, setShowCriticalOnly] = useState(false);
-  // Для независимых тултипов: null = закрыто, 'header' = в шапке, 'table' = в заголовке таблицы, или id товара
-  const [activeTooltip, setActiveTooltip] = useState<string | null>(null);
-  // ID товара который сейчас синхронизируется
-  const [syncingProductId, setSyncingProductId] = useState<number | null>(null);
+  const [showLowStockOnly, setShowLowStockOnly] = useState(false);
 
-  // Синхронизация товара с Kaspi
-  const handleSyncProduct = async (productId: number) => {
-    setSyncingProductId(productId);
+  // Inline editing
+  const [editingCell, setEditingCell] = useState<{ id: string; field: 'cost_price' | 'quantity' } | null>(null);
+  const [editValue, setEditValue] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  // Load products from Supabase + live stock from Kaspi Cabinet
+  const loadProducts = useCallback(async (showRefresh = false) => {
+    if (!store?.id || !user?.id) return;
+    const hasCached = products.length > 0;
+    if (!hasCached) setLoading(true);
+    if (showRefresh) setRefreshing(true);
+
     try {
-      await syncWithKaspi(productId);
-    } finally {
-      setSyncingProductId(null);
-    }
-  };
+      // Parallel: DB products (cost_price, id) + Cabinet stock (live quantity)
+      const [dbResult, cabinetResult] = await Promise.all([
+        supabase
+          .from('products')
+          .select('id, kaspi_id, name, sku, price, cost_price, quantity, image_url, category, active')
+          .eq('store_id', store.id)
+          .order('name', { ascending: true })
+          .limit(500),
+        fetch(`/api/kaspi/cabinet/products?userId=${user.id}`)
+          .then(r => r.json())
+          .catch(() => ({ success: false })),
+      ]);
 
-  // Закрытие тултипа при клике вне
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      const target = event.target as HTMLElement;
-      // Если клик не по кнопке тултипа - закрываем
-      if (!target.closest('[data-tooltip-trigger]')) {
-        setActiveTooltip(null);
+      if (dbResult.error) throw dbResult.error;
+      const dbProducts: Product[] = (dbResult.data || [])
+        .filter(p => p.name && p.name.trim() !== '')
+        .map(p => ({ ...p, availabilities: undefined }));
+
+      // Merge live stock + availabilities from Cabinet by SKU
+      const updatedIds: { id: string; quantity: number }[] = [];
+      if (cabinetResult.success && cabinetResult.products) {
+        const stockMap = new Map<string, { stock: number; availabilities: Availability[] }>();
+        for (const kp of cabinetResult.products) {
+          if (kp.sku) {
+            const avails: Availability[] = (kp.availabilities || [])
+              .filter((a: any) => a.stockCount > 0)
+              .map((a: any) => ({
+                storeName: a.storeName || a.storeId || '—',
+                stockCount: a.stockCount,
+              }));
+            stockMap.set(kp.sku, { stock: kp.stock ?? 0, availabilities: avails });
+          }
+        }
+        for (const p of dbProducts) {
+          if (p.sku && stockMap.has(p.sku)) {
+            const info = stockMap.get(p.sku)!;
+            if (p.quantity !== info.stock) {
+              updatedIds.push({ id: p.id, quantity: info.stock });
+            }
+            p.quantity = info.stock;
+            p.availabilities = info.availabilities;
+          }
+        }
       }
-    };
 
-    if (activeTooltip) {
-      document.addEventListener('mousedown', handleClickOutside);
+      setProducts(dbProducts);
+      if (cacheKey) setCache(cacheKey, dbProducts);
+
+      // Fire-and-forget: save updated quantities to DB for instant load next time
+      if (updatedIds.length > 0) {
+        const batchSize = 10;
+        for (let i = 0; i < updatedIds.length; i += batchSize) {
+          const batch = updatedIds.slice(i, i + batchSize);
+          Promise.all(
+            batch.map(({ id, quantity }) =>
+              supabase.from('products').update({ quantity }).eq('id', id)
+            )
+          ).catch(err => console.error('Stock sync to DB error:', err));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to load products:', err);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
+  }, [store?.id, user?.id, cacheKey]);
 
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [activeTooltip]);
+  useEffect(() => {
+    if (store?.id && user?.id) loadProducts();
+  }, [store?.id, user?.id]);
 
-  const toggleTooltip = (id: string) => {
-    setActiveTooltip(prev => prev === id ? null : id);
+  // Inline edit handlers
+  const startEdit = (id: string, field: 'cost_price' | 'quantity', currentValue: number | null) => {
+    setEditingCell({ id, field });
+    setEditValue(currentValue !== null ? String(currentValue) : '');
+    setTimeout(() => editInputRef.current?.focus(), 50);
   };
 
-  // Фильтрация по складу, поиску и критическому остатку
-  const filteredProducts = warehouseProducts.filter(product => {
-    const matchesWarehouse = activeTab === 'all' || product.warehouse === activeTab;
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                          product.sku.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCritical = !showCriticalOnly || product.qty < 10;
-    return matchesWarehouse && matchesSearch && matchesCritical;
+  const cancelEdit = () => {
+    setEditingCell(null);
+    setEditValue('');
+  };
+
+  const saveEdit = useCallback(async () => {
+    if (!editingCell || !store?.id) return;
+    setSaving(true);
+
+    const value = editValue.trim() === '' ? null : parseFloat(editValue);
+    if (value !== null && (isNaN(value) || value < 0)) {
+      setSaving(false);
+      return;
+    }
+
+    try {
+      const update = editingCell.field === 'cost_price'
+        ? { cost_price: value }
+        : { quantity: value !== null ? Math.round(value) : 0 };
+
+      const { error } = await supabase
+        .from('products')
+        .update(update)
+        .eq('id', editingCell.id);
+
+      if (error) throw error;
+
+      const updatedProducts = products.map(p =>
+        p.id === editingCell.id
+          ? { ...p, ...update }
+          : p
+      );
+      setProducts(updatedProducts);
+      if (cacheKey) setCache(cacheKey, updatedProducts);
+
+      const label = editingCell.field === 'cost_price' ? 'Себестоимость' : 'Количество';
+      setToast({ message: `${label} обновлено`, type: 'success' });
+      setTimeout(() => setToast(null), 3000);
+    } catch (err) {
+      console.error('Save error:', err);
+      setToast({ message: 'Ошибка сохранения', type: 'error' });
+      setTimeout(() => setToast(null), 4000);
+    } finally {
+      setSaving(false);
+      setEditingCell(null);
+      setEditValue('');
+    }
+  }, [editingCell, editValue, store?.id, products, cacheKey]);
+
+  const handleEditKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') saveEdit();
+    if (e.key === 'Escape') cancelEdit();
+  };
+
+  // Filtering
+  const filtered = products.filter(p => {
+    const matchesSearch = !searchTerm ||
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesLowStock = !showLowStockOnly || (p.quantity ?? 0) < 5;
+    return matchesSearch && matchesLowStock;
   });
 
-  // Подсчёт товаров по складам
-  const warehouseCounts = {
-    all: warehouseProducts.length,
-    almaty: warehouseProducts.filter(p => p.warehouse === 'almaty').length,
-    astana: warehouseProducts.filter(p => p.warehouse === 'astana').length,
-    karaganda: warehouseProducts.filter(p => p.warehouse === 'karaganda').length,
-    shymkent: warehouseProducts.filter(p => p.warehouse === 'shymkent').length,
-  };
+  // Stats
+  const totalProducts = products.length;
+  const totalValue = products.reduce((sum, p) => sum + ((p.price ?? 0) * (p.quantity ?? 0)), 0);
+  const costPriceSet = products.filter(p => p.cost_price !== null).length;
+  const totalCostValue = products.reduce((sum, p) => sum + ((p.cost_price ?? 0) * (p.quantity ?? 0)), 0);
+  const lowStockCount = products.filter(p => (p.quantity ?? 0) < 5).length;
 
-  // Суммарные значения
-  const totalQty = filteredProducts.reduce((sum, p) => sum + p.qty, 0);
-  const totalCost = filteredProducts.reduce((sum, p) => sum + (p.costPrice * p.qty), 0);
-  const totalPrice = filteredProducts.reduce((sum, p) => sum + (p.price * p.qty), 0);
-  const totalInTransit = filteredProducts.reduce((sum, p) => sum + p.inTransit, 0);
-  const criticalCount = filteredProducts.filter(p => p.qty < 10).length;
+  // Filtered totals
+  const filteredQty = filtered.reduce((sum, p) => sum + (p.quantity ?? 0), 0);
+  const filteredCost = filtered.reduce((sum, p) => sum + ((p.cost_price ?? 0) * (p.quantity ?? 0)), 0);
+  const filteredValue = filtered.reduce((sum, p) => sum + ((p.price ?? 0) * (p.quantity ?? 0)), 0);
 
-  // Товары с расхождениями Kaspi
-  const productsWithDiff = getProductsWithDiff();
-  const diffCount = productsWithDiff.length;
-
-  const getWarehouseName = (warehouse: string) => {
-    switch (warehouse) {
-      case 'almaty': return 'Алматы';
-      case 'astana': return 'Астана';
-      case 'karaganda': return 'Караганда';
-      case 'shymkent': return 'Шымкент';
-      default: return warehouse;
-    }
-  };
+  // Loading skeleton
+  if (userLoading || (loading && products.length === 0)) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <div className="flex justify-between items-start gap-4 mb-6">
+          <div>
+            <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+            <div className="h-4 w-52 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse mt-2" />
+          </div>
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+              <div className="h-3 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
+              <div className="h-6 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
+          {[...Array(8)].map((_, i) => (
+            <div key={i} className="flex items-center gap-4 px-6 py-4 border-b border-gray-50 dark:border-gray-700/50">
+              <div className="flex-1 space-y-1.5">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" style={{ width: `${40 + Math.random() * 40}%` }} />
+                <div className="h-3 w-20 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
+              </div>
+              <div className="h-4 w-12 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+              <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen relative">
+      {/* Toast */}
+      {toast && (
+        <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${
+          toast.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
+        }`}>
+          {toast.message}
+        </div>
+      )}
+
+      {/* Mobile Edit Modal */}
+      {editingCell && (
+        <div className="lg:hidden fixed inset-0 z-50 flex items-end justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={cancelEdit} />
+          <div className="relative w-full bg-white dark:bg-gray-800 rounded-t-2xl p-6 pb-8">
+            <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4" />
+            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
+              {editingCell.field === 'cost_price' ? 'Себестоимость' : 'Количество'}
+            </h3>
+            <div className="flex items-center gap-3 mb-6">
+              <input
+                ref={editInputRef}
+                type="number"
+                value={editValue}
+                onChange={e => setEditValue(e.target.value)}
+                onKeyDown={handleEditKeyDown}
+                className="flex-1 px-4 py-3 text-lg border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                placeholder={editingCell.field === 'cost_price' ? 'Цена закупки' : 'Количество'}
+                min="0"
+                autoFocus
+              />
+              <span className="text-gray-500 dark:text-gray-400">
+                {editingCell.field === 'cost_price' ? '₸' : 'шт'}
+              </span>
+            </div>
+            <div className="flex gap-3">
+              <button onClick={cancelEdit} className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium cursor-pointer">
+                Отмена
+              </button>
+              <button onClick={saveEdit} disabled={saving} className="flex-1 py-3 bg-blue-500 text-white rounded-xl font-medium cursor-pointer disabled:opacity-50">
+                {saving ? 'Сохранение...' : 'Сохранить'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
-      <div className="mb-6 lg:mb-8 flex items-start justify-between">
+      <div className="mb-6 flex items-start justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Склад</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Остатки товаров на складах</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Склад</h1>
+          <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Остатки и себестоимость товаров</p>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => loadProducts(true)}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Обновить</span>
+          </button>
           <Link
             href="/app/warehouse/history"
             className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
           >
             <History className="w-4 h-4" />
-            <span className="hidden sm:inline">История приёмок</span>
+            <span className="hidden sm:inline">Приёмки</span>
           </Link>
           <Link
             href="/app/warehouse/settings"
             className="p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors"
-            title="Настройки складов"
           >
             <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
           </Link>
         </div>
       </div>
 
-      {/* Stats Blocks */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-4 sm:mb-6 items-stretch">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm relative h-full">
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm">
           <div className="flex items-center gap-2 lg:gap-3">
-            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-50 dark:bg-blue-900/30 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center shrink-0">
               <Package className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1">
-                <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 leading-tight">Себестоимость</p>
-                <button
-                  data-tooltip-trigger
-                  onClick={() => toggleTooltip('header')}
-                  className="flex items-center justify-center text-gray-400 hover:text-blue-500 transition-colors cursor-pointer"
-                >
-                  <HelpCircle className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <p className="text-sm lg:text-base font-bold text-gray-900 dark:text-white">{totalCost.toLocaleString()} ₸</p>
+            <div>
+              <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Товаров</p>
+              <p className="text-sm lg:text-base font-bold text-gray-900 dark:text-white">{totalProducts}</p>
             </div>
           </div>
-          {/* Tooltip */}
-          <AnimatePresence>
-            {activeTooltip === 'header' && (
-              <motion.div
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="absolute left-0 right-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2.5 rounded-lg shadow-lg"
-              >
-                <p className="font-medium mb-1">Себестоимость включает:</p>
-                <ul className="space-y-0.5 text-gray-300">
-                  <li>• Закупочная цена товара</li>
-                  <li>• Доставка до склада</li>
-                  <li>• Таможенные расходы</li>
-                </ul>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm relative h-full">
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm">
           <div className="flex items-center gap-2 lg:gap-3">
-            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center shrink-0">
               <Package className="w-4 h-4 lg:w-5 lg:h-5 text-emerald-600" />
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-1">
-                <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 leading-tight">Оценоч. стоимость</p>
-                <button
-                  data-tooltip-trigger
-                  onClick={() => toggleTooltip('estimated')}
-                  className="flex items-center justify-center text-gray-400 hover:text-emerald-500 transition-colors cursor-pointer"
-                >
-                  <HelpCircle className="w-3.5 h-3.5" />
-                </button>
-              </div>
-              <p className="text-sm lg:text-base font-bold text-emerald-600">{totalPrice.toLocaleString()} ₸</p>
+            <div>
+              <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Стоимость запасов</p>
+              <p className="text-sm lg:text-base font-bold text-emerald-600">{totalValue.toLocaleString('ru-RU')} ₸</p>
             </div>
           </div>
-          <AnimatePresence>
-            {activeTooltip === 'estimated' && (
-              <motion.div
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="absolute left-0 right-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2.5 rounded-lg shadow-lg"
-              >
-                <p className="font-medium mb-1">Оценочная стоимость:</p>
-                <ul className="space-y-0.5 text-gray-300">
-                  <li>• Сумма розничных цен товаров</li>
-                  <li>• Потенциальная выручка при продаже</li>
-                </ul>
-              </motion.div>
-            )}
-          </AnimatePresence>
         </div>
-        <div className="relative h-full">
-          <button
-            onClick={() => setShowCriticalOnly(!showCriticalOnly)}
-            className={`w-full h-full bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm text-left transition-all cursor-pointer ${
-              showCriticalOnly ? 'ring-2 ring-amber-500' : 'hover:shadow-md'
-            }`}
-          >
-            <div className="flex items-center gap-2 lg:gap-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-amber-50 dark:bg-amber-900/30 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
-                <AlertTriangle className="w-4 h-4 lg:w-5 lg:h-5 text-amber-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1">
-                  <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 leading-tight">Критич. остаток</p>
-                  <span
-                    data-tooltip-trigger
-                    onClick={(e) => { e.stopPropagation(); toggleTooltip('critical'); }}
-                    className="flex items-center justify-center text-gray-400 hover:text-amber-500 transition-colors"
-                  >
-                    <HelpCircle className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-                <p className="text-sm lg:text-base font-bold text-amber-600">{criticalCount} товаров</p>
-              </div>
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm">
+          <div className="flex items-center gap-2 lg:gap-3">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-amber-50 dark:bg-amber-900/30 rounded-lg flex items-center justify-center shrink-0">
+              <Edit3 className="w-4 h-4 lg:w-5 lg:h-5 text-amber-600" />
             </div>
-          </button>
-          <AnimatePresence>
-            {activeTooltip === 'critical' && (
-              <motion.div
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="absolute left-0 right-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2.5 rounded-lg shadow-lg"
-              >
-                <p className="font-medium mb-1">Критический остаток:</p>
-                <ul className="space-y-0.5 text-gray-300">
-                  <li>• Товары с остатком менее 10 шт</li>
-                  <li>• Нажмите для фильтрации</li>
-                </ul>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-        <div className="relative h-full">
-          <Link
-            href="/app/warehouse/history"
-            className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm hover:shadow-md transition-all cursor-pointer block h-full"
-          >
-            <div className="flex items-center gap-2 lg:gap-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-purple-50 dark:bg-purple-900/30 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0">
-                <Truck className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1">
-                  <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 leading-tight">В пути</p>
-                  <span
-                    data-tooltip-trigger
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleTooltip('transit'); }}
-                    className="flex items-center justify-center text-gray-400 hover:text-purple-500 transition-colors"
-                  >
-                    <HelpCircle className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-                <p className="text-sm lg:text-base font-bold text-purple-600">{totalInTransit} шт</p>
-              </div>
-            </div>
-          </Link>
-          <AnimatePresence>
-            {activeTooltip === 'transit' && (
-              <motion.div
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="absolute left-0 right-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2.5 rounded-lg shadow-lg"
-              >
-                <p className="font-medium mb-1">В пути:</p>
-                <ul className="space-y-0.5 text-gray-300">
-                  <li>• Товары в доставке на склад</li>
-                  <li>• Нажмите для просмотра истории</li>
-                </ul>
-              </motion.div>
-            )}
-          </AnimatePresence>
-        </div>
-        {/* Kaspi Sync Status - отдельный ряд на мобильном, в общем ряду на десктопе */}
-        <div className="relative h-full col-span-2 lg:col-span-4">
-          <div className={`w-full h-full bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm transition-all ${
-            diffCount > 0 ? 'ring-2 ring-red-400' : ''
-          }`}>
-            <div className="flex items-center gap-2 lg:gap-3">
-              <div className={`w-8 h-8 lg:w-10 lg:h-10 rounded-lg lg:rounded-xl flex items-center justify-center shrink-0 ${
-                diffCount > 0 ? 'bg-red-50 dark:bg-red-900/30' : 'bg-emerald-50 dark:bg-emerald-900/30'
-              }`}>
-                <RefreshCw className={`w-4 h-4 lg:w-5 lg:h-5 ${diffCount > 0 ? 'text-red-600' : 'text-emerald-600'}`} />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-1">
-                  <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 leading-tight">Синхронизация с Kaspi</p>
-                  <span
-                    data-tooltip-trigger
-                    onClick={() => toggleTooltip('kaspi-sync')}
-                    className="flex items-center justify-center text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
-                  >
-                    <HelpCircle className="w-3.5 h-3.5" />
-                  </span>
-                </div>
-                <p className={`text-sm lg:text-base font-bold ${diffCount > 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                  {diffCount > 0 ? `${diffCount} товаров с расхождением` : 'Все остатки синхронизированы'}
-                </p>
-              </div>
-              {diffCount > 0 && (
-                <div className="hidden lg:flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                  <span>Нажмите 🔄 у товара для синхронизации</span>
-                </div>
-              )}
+            <div>
+              <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Себестоимость</p>
+              <p className="text-sm lg:text-base font-bold text-amber-600">
+                {costPriceSet} <span className="text-xs font-normal text-gray-400">из {totalProducts}</span>
+              </p>
             </div>
           </div>
-          <AnimatePresence>
-            {activeTooltip === 'kaspi-sync' && (
-              <motion.div
-                initial={{ opacity: 0, y: -5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -5 }}
-                className="absolute left-0 right-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2.5 rounded-lg shadow-lg"
-              >
-                <p className="font-medium mb-1">Синхронизация с Kaspi:</p>
-                <ul className="space-y-0.5 text-gray-300">
-                  <li>• Сравниваем остатки через API Kaspi</li>
-                  <li>• Расхождения — товары где наш остаток ≠ Kaspi</li>
-                  <li>• Нажмите 🔄 чтобы обновить Kaspi</li>
-                </ul>
-              </motion.div>
-            )}
-          </AnimatePresence>
+        </div>
+        <button
+          onClick={() => setShowLowStockOnly(!showLowStockOnly)}
+          className={`bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm text-left transition-all cursor-pointer ${
+            showLowStockOnly ? 'ring-2 ring-red-400' : 'hover:shadow-md'
+          }`}
+        >
+          <div className="flex items-center gap-2 lg:gap-3">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-red-50 dark:bg-red-900/30 rounded-lg flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-4 h-4 lg:w-5 lg:h-5 text-red-500" />
+            </div>
+            <div>
+              <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Низкий остаток</p>
+              <p className="text-sm lg:text-base font-bold text-red-500">{lowStockCount}</p>
+            </div>
+          </div>
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            placeholder="Поиск по названию или SKU..."
+            className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 transition-colors dark:text-white dark:placeholder-gray-500"
+          />
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-6 shadow-sm mb-4 sm:mb-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Search */}
-          <div className="flex-1">
-            <div className="relative">
-              <div className="absolute left-3 top-1/2 transform -translate-y-1/2 pointer-events-none">
-                <Search className="w-4 h-4 text-gray-400" />
-              </div>
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Поиск по названию или артикулу..."
-                style={{ paddingLeft: '2.5rem' }}
-                className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 transition-colors dark:text-white dark:placeholder-gray-500"
-              />
-            </div>
-          </div>
-
-          {/* Add Button */}
-          <button
-            onClick={() => setShowCreateOrderModal(true)}
-            className="px-4 sm:px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0"
-          >
-            + Добавить
-          </button>
+      {/* Empty state */}
+      {!loading && products.length === 0 && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 shadow-sm text-center">
+          <Package className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold mb-1 text-gray-900 dark:text-white">Нет товаров</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
+            Товары добавляются автоматически при синхронизации заказов с Kaspi
+          </p>
         </div>
+      )}
 
-        {/* Warehouse Tabs */}
-        <div className="flex gap-2 overflow-x-auto pt-4 pb-1">
-          <button
-            onClick={() => setActiveTab('all')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              activeTab === 'all'
-                ? 'bg-gray-900 dark:bg-white text-white dark:text-gray-900'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
-          >
-            Все склады <span className={`text-xs ${activeTab === 'all' ? 'text-gray-300' : 'text-gray-400'}`}>{warehouseCounts.all}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('almaty')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              activeTab === 'almaty'
-                ? 'bg-blue-500 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
-          >
-            Алматы <span className={`text-xs ${activeTab === 'almaty' ? 'text-blue-200' : 'text-gray-400'}`}>{warehouseCounts.almaty}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('astana')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              activeTab === 'astana'
-                ? 'bg-purple-500 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
-          >
-            Астана <span className={`text-xs ${activeTab === 'astana' ? 'text-purple-200' : 'text-gray-400'}`}>{warehouseCounts.astana}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('karaganda')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              activeTab === 'karaganda'
-                ? 'bg-orange-500 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
-          >
-            Караганда <span className={`text-xs ${activeTab === 'karaganda' ? 'text-orange-200' : 'text-gray-400'}`}>{warehouseCounts.karaganda}</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('shymkent')}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
-              activeTab === 'shymkent'
-                ? 'bg-emerald-500 text-white'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
-          >
-            Шымкент <span className={`text-xs ${activeTab === 'shymkent' ? 'text-emerald-200' : 'text-gray-400'}`}>{warehouseCounts.shymkent}</span>
-          </button>
-        </div>
-      </div>
-
-      <div>
-        {/* Products - Mobile Cards */}
-        <div className="lg:hidden space-y-3">
-            {filteredProducts.map((product) => (
-              <div
-                key={product.id}
-                className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"
-              >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-sm truncate dark:text-white">{product.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{product.sku}</p>
-                </div>
-                <div className="flex items-center gap-1.5 ml-2">
-                  {(() => {
-                    const diff = getStockDiff(product);
-                    if (diff !== null && diff !== 0) {
-                      return (
-                        <>
-                          <div className="relative">
-                            <button
-                              data-tooltip-trigger
-                              onClick={() => toggleTooltip(`sync-${product.id}`)}
-                              className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium cursor-pointer transition-colors ${
-                                diff > 0
-                                  ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50'
-                                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
-                              }`}
-                            >
-                              <AlertTriangle className="w-3 h-3" />
-                              {diff > 0 ? `+${diff}` : diff}
-                            </button>
-                            <AnimatePresence>
-                              {activeTooltip === `sync-${product.id}` && (
-                                <motion.div
-                                  initial={{ opacity: 0, y: -5 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  exit={{ opacity: 0, y: -5 }}
-                                  className="absolute right-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-48"
-                                >
-                                  <p className="font-medium mb-1">Расхождение с Kaspi</p>
-                                  <div className="space-y-0.5 text-gray-300">
-                                    <p>У нас: {product.qty} шт</p>
-                                    <p>В Kaspi: {product.kaspiStock} шт</p>
-                                    <p className="text-white font-medium mt-1">
-                                      {diff > 0
-                                        ? `У нас на ${diff} больше`
-                                        : `В Kaspi на ${Math.abs(diff)} больше`}
-                                    </p>
-                                  </div>
-                                </motion.div>
-                              )}
-                            </AnimatePresence>
-                          </div>
-                          <button
-                            onClick={() => handleSyncProduct(product.id)}
-                            disabled={syncingProductId === product.id}
-                            className="p-1.5 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer disabled:opacity-50"
-                            title="Отправить остаток в Kaspi"
-                          >
-                            <RefreshCw className={`w-4 h-4 ${syncingProductId === product.id ? 'animate-spin' : ''}`} />
-                          </button>
-                        </>
-                      );
-                    }
-                    return null;
-                  })()}
-                  <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                    {getWarehouseName(product.warehouse)}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-sm">
-                <div className="flex items-center gap-3">
-                  <span className="font-medium text-gray-900 dark:text-white">{product.qty} шт</span>
-                  <span className="text-gray-500 dark:text-gray-400 flex items-center gap-0.5 relative">
-                      <span className="text-[10px] opacity-60">себ.</span>
-                      <button
-                        data-tooltip-trigger
-                        onClick={() => toggleTooltip(`cost-${product.id}`)}
-                        className="text-gray-400 hover:text-blue-500 transition-colors cursor-pointer"
-                      >
-                        <HelpCircle className="w-3 h-3" />
-                      </button>
-                      <AnimatePresence>
-                        {activeTooltip === `cost-${product.id}` && (
-                          <motion.div
-                            initial={{ opacity: 0, y: -5 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0, y: -5 }}
-                            className="absolute left-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-40"
-                          >
-                            <p className="font-medium mb-1">Себестоимость включает:</p>
-                            <ul className="space-y-0.5 text-gray-300">
-                              <li>• Закупочная цена</li>
-                              <li>• Доставка до склада</li>
-                              <li>• Таможенные расходы</li>
-                            </ul>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
-                      <span>{product.costPrice.toLocaleString()} ₸</span>
-                    </span>
-                </div>
-                <span className="text-emerald-600"><span className="text-[10px] opacity-60 font-normal">сумма</span> <span className="font-semibold">{product.price.toLocaleString()} ₸</span></span>
-              </div>
-            </div>
-          ))}
-
-          {/* Mobile Total */}
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border-t-2 border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Итого: {totalQty} шт.</span>
-              <span className="text-sm font-bold text-gray-900 dark:text-white">{totalCost.toLocaleString()} ₸</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Products Table - Desktop */}
-        <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
-              <tr>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Товар</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Остаток</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">В пути</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">
-                  <div className="flex items-center gap-1 relative">
-                    <span>Себест. общ.</span>
-                    <button
-                      data-tooltip-trigger
-                      onClick={() => toggleTooltip('table')}
-                      className="text-gray-400 hover:text-blue-500 transition-colors cursor-pointer"
-                    >
-                      <HelpCircle className="w-3.5 h-3.5" />
-                    </button>
-                    <AnimatePresence>
-                      {activeTooltip === 'table' && (
-                        <motion.div
-                          initial={{ opacity: 0, y: -5 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -5 }}
-                          className="absolute left-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-48 normal-case font-normal"
-                        >
-                          <p className="font-medium mb-1">Себестоимость включает:</p>
-                          <ul className="space-y-0.5 text-gray-300">
-                            <li>• Закупочная цена товара</li>
-                            <li>• Доставка до склада</li>
-                            <li>• Таможенные расходы</li>
-                          </ul>
-                        </motion.div>
-                      )}
-                    </AnimatePresence>
+      {filtered.length > 0 && (
+        <>
+          {/* Mobile cards */}
+          <div className="lg:hidden space-y-3">
+            {filtered.map(product => (
+              <div key={product.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
+                <div className="flex items-start justify-between mb-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate text-gray-900 dark:text-white">{product.name}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">{product.sku || '—'}</p>
                   </div>
-                </th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Цена общ.</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Склад</th>
-                <th className="text-left py-4 px-6 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase">Действия</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredProducts.map((product) => (
-                <tr
-                  key={product.id}
-                  className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                >
-                  <td className="py-4 px-6">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-sm text-gray-900 dark:text-white">{product.name}</p>
-                      {(() => {
-                        const diff = getStockDiff(product);
-                        if (diff !== null && diff !== 0) {
-                          return (
-                            <div className="relative">
-                              <button
-                                data-tooltip-trigger
-                                onClick={() => toggleTooltip(`table-sync-${product.id}`)}
-                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium cursor-pointer transition-colors ${
-                                  diff > 0
-                                    ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/50'
-                                    : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
-                                }`}
-                              >
-                                <AlertTriangle className="w-3 h-3" />
-                                {diff > 0 ? `+${diff}` : diff}
-                              </button>
-                              <AnimatePresence>
-                                {activeTooltip === `table-sync-${product.id}` && (
-                                  <motion.div
-                                    initial={{ opacity: 0, y: -5 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: -5 }}
-                                    className="absolute left-0 top-full mt-1 z-50 bg-gray-900 text-white text-[10px] p-2 rounded-lg shadow-lg w-48"
-                                  >
-                                    <p className="font-medium mb-1">Расхождение с Kaspi</p>
-                                    <div className="space-y-0.5 text-gray-300">
-                                      <p>У нас: {product.qty} шт</p>
-                                      <p>В Kaspi: {product.kaspiStock} шт</p>
-                                      <p className="text-white font-medium mt-1">
-                                        {diff > 0
-                                          ? `У нас на ${diff} больше`
-                                          : `В Kaspi на ${Math.abs(diff)} больше`}
-                                      </p>
-                                    </div>
-                                  </motion.div>
-                                )}
-                              </AnimatePresence>
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </div>
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="text-sm font-semibold text-gray-900 dark:text-white">
-                      {product.qty} шт
+                  {(product.quantity ?? 0) < 5 && (
+                    <span className="ml-2 px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-medium rounded">
+                      Мало
                     </span>
-                  </td>
-                  <td className="py-4 px-6">
-                    {product.inTransit > 0 ? (
-                      <span className="text-sm font-medium text-purple-600">
-                        {product.inTransit} шт
+                  )}
+                </div>
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={() => startEdit(product.id, 'quantity', product.quantity)}
+                      className="flex items-center gap-1 font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    >
+                      {product.quantity ?? 0} шт
+                      <Edit3 className="w-3 h-3 text-gray-400" />
+                    </button>
+                    <button
+                      onClick={() => startEdit(product.id, 'cost_price', product.cost_price)}
+                      className="flex items-center gap-1 cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
+                    >
+                      {product.cost_price !== null ? (
+                        <span className="text-gray-500 dark:text-gray-400">
+                          <span className="text-[10px] opacity-60">себ.</span> {product.cost_price.toLocaleString('ru-RU')} ₸
+                          <Edit3 className="w-3 h-3 text-gray-400 inline ml-0.5" />
+                        </span>
+                      ) : (
+                        <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-[10px] font-medium rounded">
+                          Указать себест.
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                  <span className="text-emerald-600 font-semibold">{(product.price ?? 0).toLocaleString('ru-RU')} ₸</span>
+                </div>
+                {product.availabilities && product.availabilities.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {product.availabilities.map((a, i) => (
+                      <span key={i} className="px-1.5 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px] rounded">
+                        {a.storeName}: {a.stockCount}
                       </span>
-                    ) : (
-                      <span className="text-sm text-gray-400 dark:text-gray-500">—</span>
-                    )}
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="text-sm text-gray-600 dark:text-gray-400">{(product.costPrice * product.qty).toLocaleString()} ₸</span>
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="text-sm font-semibold text-emerald-600">{(product.price * product.qty).toLocaleString()} ₸</span>
-                  </td>
-                  <td className="py-4 px-6">
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
-                      {getWarehouseName(product.warehouse)}
-                    </span>
-                  </td>
-                  <td className="py-4 px-6">
-                    <div className="flex items-center justify-start gap-1">
-                      {(() => {
-                        const diff = getStockDiff(product);
-                        if (diff !== null && diff !== 0) {
-                          return (
-                            <button
-                              onClick={() => handleSyncProduct(product.id)}
-                              disabled={syncingProductId === product.id}
-                              className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors group cursor-pointer disabled:opacity-50"
-                              title="Отправить остаток в Kaspi"
-                            >
-                              <RefreshCw className={`w-4 h-4 text-red-500 group-hover:text-red-600 ${syncingProductId === product.id ? 'animate-spin' : ''}`} />
-                            </button>
-                          );
-                        }
-                        return null;
-                      })()}
-                      <button
-                        className="p-1.5 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded-lg transition-colors group cursor-pointer"
-                        title="Переместить"
-                      >
-                        <ArrowRightLeft className="w-4 h-4 text-gray-400 group-hover:text-blue-600" />
-                      </button>
-                      <button
-                        className="p-1.5 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors group cursor-pointer"
-                        title="Списать"
-                      >
-                        <Minus className="w-4 h-4 text-gray-400 group-hover:text-red-600" />
-                      </button>
-                      <button
-                        className="p-1.5 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded-lg transition-colors group cursor-pointer"
-                        title="Добавить"
-                      >
-                        <Plus className="w-4 h-4 text-gray-400 group-hover:text-emerald-600" />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-            <tfoot className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-              <tr>
-                <td className="py-4 px-6">
-                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">Итого:</span>
-                </td>
-                <td className="py-4 px-6">
-                  <span className="text-sm font-semibold text-gray-900 dark:text-white">{totalQty} шт</span>
-                </td>
-                <td className="py-4 px-6">
-                  <span className="text-sm font-semibold text-purple-600">{totalInTransit} шт</span>
-                </td>
-                <td className="py-4 px-6">
-                  <span className="text-sm font-bold text-gray-900 dark:text-white">{totalCost.toLocaleString()} ₸</span>
-                </td>
-                <td className="py-4 px-6">
-                  <span className="text-sm font-bold text-emerald-600">{totalPrice.toLocaleString()} ₸</span>
-                </td>
-                <td className="py-4 px-6"></td>
-                <td className="py-4 px-6"></td>
-              </tr>
-            </tfoot>
-          </table>
-        </div>
-      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))}
+            {/* Mobile total */}
+            <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm border-t-2 border-gray-200 dark:border-gray-700">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-semibold text-gray-700 dark:text-gray-300">Итого: {filteredQty} шт</span>
+                <span className="font-bold text-emerald-600">{filteredValue.toLocaleString('ru-RU')} ₸</span>
+              </div>
+            </div>
+          </div>
 
-      {/* Модальное окно создания заказа */}
-      <CreateOrderModal
-        isOpen={showCreateOrderModal}
-        onClose={() => setShowCreateOrderModal(false)}
-        onCreateOrder={(order) => {
-          console.log('Создан заказ:', order);
-          setShowCreateOrderModal(false);
-        }}
-      />
+          {/* Desktop table */}
+          <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+            <table className="w-full">
+              <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                  <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Товар</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Кол-во</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Себестоимость</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Цена продажи</th>
+                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Стоимость</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map(product => (
+                  <tr key={product.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                    {/* Product */}
+                    <td className="py-3 px-6">
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium truncate max-w-[300px] text-gray-900 dark:text-white">{product.name}</p>
+                        <p className="text-xs text-gray-400">{product.sku || '—'}</p>
+                      </div>
+                    </td>
+
+                    {/* Quantity */}
+                    <td className="py-3 px-4">
+                      {editingCell?.id === product.id && editingCell.field === 'quantity' ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            ref={editInputRef}
+                            type="number"
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            onKeyDown={handleEditKeyDown}
+                            className="w-20 px-2 py-1 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            min="0"
+                          />
+                          <button onClick={saveEdit} disabled={saving} className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded cursor-pointer">
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={cancelEdit} className="p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div>
+                          <button
+                            onClick={() => startEdit(product.id, 'quantity', product.quantity)}
+                            className="group flex items-center gap-1 cursor-pointer"
+                          >
+                            <span className={`text-sm font-semibold ${
+                              (product.quantity ?? 0) < 5 ? 'text-red-500' : 'text-gray-900 dark:text-white'
+                            }`}>
+                              {product.quantity ?? 0} шт
+                            </span>
+                            <Edit3 className="w-3 h-3 text-gray-300 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                          </button>
+                          {product.availabilities && product.availabilities.length > 1 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              {product.availabilities.map((a, i) => (
+                                <span key={i} className="text-[10px] text-gray-400 dark:text-gray-500">
+                                  {a.storeName}: {a.stockCount}{i < product.availabilities!.length - 1 ? ' ·' : ''}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </td>
+
+                    {/* Cost Price */}
+                    <td className="py-3 px-4">
+                      {editingCell?.id === product.id && editingCell.field === 'cost_price' ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            ref={editInputRef}
+                            type="number"
+                            value={editValue}
+                            onChange={e => setEditValue(e.target.value)}
+                            onKeyDown={handleEditKeyDown}
+                            className="w-28 px-2 py-1 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                            min="0"
+                            placeholder="Себестоимость"
+                          />
+                          <span className="text-xs text-gray-400">₸</span>
+                          <button onClick={saveEdit} disabled={saving} className="p-1 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded cursor-pointer">
+                            <Check className="w-3.5 h-3.5" />
+                          </button>
+                          <button onClick={cancelEdit} className="p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ) : product.cost_price !== null ? (
+                        <button
+                          onClick={() => startEdit(product.id, 'cost_price', product.cost_price)}
+                          className="group flex items-center gap-1 cursor-pointer"
+                        >
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
+                            {product.cost_price.toLocaleString('ru-RU')} ₸
+                          </span>
+                          <Edit3 className="w-3 h-3 text-gray-300 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => startEdit(product.id, 'cost_price', null)}
+                          className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 rounded text-xs font-medium cursor-pointer hover:bg-amber-200 dark:hover:bg-amber-900/50 transition-colors"
+                        >
+                          Указать
+                        </button>
+                      )}
+                    </td>
+
+                    {/* Sell Price */}
+                    <td className="py-3 px-4">
+                      <span className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {(product.price ?? 0).toLocaleString('ru-RU')} ₸
+                      </span>
+                    </td>
+
+                    {/* Total Value */}
+                    <td className="py-3 px-4">
+                      <span className="text-sm font-semibold text-emerald-600">
+                        {((product.price ?? 0) * (product.quantity ?? 0)).toLocaleString('ru-RU')} ₸
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot className="bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+                <tr>
+                  <td className="py-3 px-6 text-sm font-semibold text-gray-700 dark:text-gray-300">Итого</td>
+                  <td className="py-3 px-4 text-sm font-semibold text-gray-900 dark:text-white">{filteredQty} шт</td>
+                  <td className="py-3 px-4 text-sm font-bold text-gray-900 dark:text-white">{filteredCost.toLocaleString('ru-RU')} ₸</td>
+                  <td className="py-3 px-4"></td>
+                  <td className="py-3 px-4 text-sm font-bold text-emerald-600">{filteredValue.toLocaleString('ru-RU')} ₸</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }
