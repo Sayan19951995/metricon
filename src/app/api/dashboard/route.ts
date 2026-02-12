@@ -258,7 +258,8 @@ export async function GET(request: NextRequest) {
         totals: {
           orders: totalOrders || 0,
           products: totalProducts || 0
-        }
+        },
+        lastSyncedAt: store.last_synced_at || null,
       }
     });
 

@@ -66,6 +66,7 @@ interface DashboardData {
     orders: number;
     products: number;
   };
+  lastSyncedAt?: string | null;
 }
 
 export default function DashboardPage() {
@@ -481,6 +482,18 @@ export default function DashboardPage() {
           </div>
           <div className="flex items-center gap-2 mt-1">
             <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">Обзор ключевых показателей магазина</p>
+            {dashboardData?.lastSyncedAt && (
+              <span className="text-xs text-gray-400 dark:text-gray-500">
+                · {(() => {
+                  const mins = Math.round((Date.now() - new Date(dashboardData.lastSyncedAt).getTime()) / 60000);
+                  if (mins < 1) return 'только что';
+                  if (mins < 60) return `${mins} мин назад`;
+                  const hrs = Math.floor(mins / 60);
+                  if (hrs < 24) return `${hrs} ч назад`;
+                  return `${Math.floor(hrs / 24)} дн назад`;
+                })()}
+              </span>
+            )}
           </div>
         </div>
 
@@ -561,7 +574,7 @@ export default function DashboardPage() {
             const selectedDate = new Date();
             selectedDate.setDate(selectedDate.getDate() - (6 - selectedDayIdx));
             const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-            const dayLabel = isToday ? 'Продажи сегодня' : `Продажи за ${dayNames[selectedDate.getDay()]}, ${selectedDate.getDate()}.${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
+            const dayLabel = isToday ? 'Продажи сегодня' : `Продажи · ${dayNames[selectedDate.getDay()]}, ${selectedDate.getDate()}.${String(selectedDate.getMonth() + 1).padStart(2, '0')}`;
 
             return (
               <>
@@ -896,7 +909,7 @@ export default function DashboardPage() {
           )}
 
           {/* График поступлений за неделю */}
-          <div className="text-[10px] text-gray-400 dark:text-gray-500 mb-1">Поступления за неделю</div>
+          <div className="text-[10px] text-gray-400 dark:text-gray-500 mb-1">Поступления за неделю <span className="text-gray-300 dark:text-gray-600">· по дате выдачи</span></div>
           {(() => {
             const payments = awaitingPayment.weeklyPayments;
             const nonZero = payments.filter(v => v > 0);

@@ -826,7 +826,10 @@ export class KaspiAPIClient {
 
     try {
       const response = await this.bffFetch(url);
-      if (!response.ok) return null;
+      if (!response.ok) {
+        console.warn(`[BFF] getOrderCompletionDate ${orderCode}: HTTP ${response.status}`);
+        return null;
+      }
 
       const data = await response.json();
       const completedEntry = data.historyEntries?.find(
@@ -836,8 +839,11 @@ export class KaspiAPIClient {
       if (completedEntry?.createDate) {
         return new Date(completedEntry.createDate).toISOString();
       }
+      // No COMPLETED entry in history
+      console.warn(`[BFF] getOrderCompletionDate ${orderCode}: no COMPLETED entry (actions: ${data.historyEntries?.length || 0})`);
       return null;
-    } catch {
+    } catch (err) {
+      console.error(`[BFF] getOrderCompletionDate ${orderCode} error:`, err);
       return null;
     }
   }

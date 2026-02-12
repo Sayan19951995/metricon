@@ -923,6 +923,7 @@ function AnalyticsPageContent() {
                     <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600 dark:text-sky-400" />
                   </div>
                   <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Поступления</span>
+                  <HelpTooltip text="Сумма выданных заказов по дате выдачи клиенту" />
                 </div>
                 <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{fmt(data.totalRevenue)} ₸</div>
                 <div className="text-[10px] sm:text-xs mt-1">

@@ -294,6 +294,7 @@ export interface Database {
           marketing_session: Json | null
           commission_rate: number | null
           tax_rate: number | null
+          last_synced_at: string | null
         }
         Insert: {
           id?: string
@@ -309,6 +310,7 @@ export interface Database {
           marketing_session?: Json | null
           commission_rate?: number | null
           tax_rate?: number | null
+          last_synced_at?: string | null
         }
         Update: {
           id?: string
@@ -324,6 +326,7 @@ export interface Database {
           marketing_session?: Json | null
           commission_rate?: number | null
           tax_rate?: number | null
+          last_synced_at?: string | null
         }
         Relationships: []
       }
