@@ -548,7 +548,7 @@ export default function ProductsPage() {
                   value={loginUsername}
                   onChange={e => setLoginUsername(e.target.value)}
                   placeholder="+7 (777) 123-45-67"
-                  className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
+                  className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
                 />
               </div>
               <div>
@@ -560,7 +560,7 @@ export default function ProductsPage() {
                   value={loginPassword}
                   onChange={e => setLoginPassword(e.target.value)}
                   placeholder="Пароль от Kaspi кабинета"
-                  className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
+                  className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
                   onKeyDown={e => e.key === 'Enter' && handleLogin()}
                 />
               </div>
@@ -688,7 +688,7 @@ export default function ProductsPage() {
             <button
               onClick={loadProducts}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-sm font-medium transition-colors cursor-pointer border border-gray-200 dark:border-gray-700"
+              className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors cursor-pointer border border-gray-200 dark:border-gray-700"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
               Обновить
@@ -712,29 +712,27 @@ export default function ProductsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm mb-4">
-        <div className="flex flex-col lg:flex-row gap-3">
-          <div className="flex-1">
-            <div className="flex items-center gap-3">
-              <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={e => { setSearchTerm(e.target.value); setPage(0); }}
-                placeholder="Поиск по названию или SKU..."
-                className="flex-1 bg-transparent text-sm focus:outline-none"
-              />
-            </div>
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm mb-4">
+        <div className="flex items-center gap-3">
+          <div className="flex-1 flex items-center gap-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2">
+            <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={e => { setSearchTerm(e.target.value); setPage(0); }}
+              placeholder="Поиск по названию или SKU..."
+              className="flex-1 bg-transparent text-sm focus:outline-none text-gray-900 dark:text-white placeholder:text-gray-400"
+            />
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-1.5">
             {(['all', 'preorder'] as const).map(f => (
               <button
                 key={f}
                 onClick={() => { setFilterStock(f); setPage(0); }}
-                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
                   filterStock === f
                     ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
                 {f === 'all' ? 'Все' : 'Предзаказ'}

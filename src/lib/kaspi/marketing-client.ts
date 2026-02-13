@@ -40,7 +40,8 @@ export interface CampaignProduct {
   productUrl?: string;
   imageUrl?: string;
   bid: number;
-  state: 'Enabled' | 'Paused' | 'Archived';
+  campaignState: string;
+  productState: string;
   views: number;
   clicks: number;
   favorites: number;
@@ -285,13 +286,33 @@ export class KaspiMarketingClient {
       },
     });
 
-    const json = await response.json() as { result: string; data: CampaignProduct[] };
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json = await response.json() as { result: string; data: any[] };
 
     if (json.result !== 'Ok') {
       throw new Error(`Failed to fetch campaign products: ${json.result}`);
     }
 
-    return json.data || [];
+    // Маппим поля API к нашему интерфейсу
+    return (json.data || []).map((raw): CampaignProduct => ({
+      id: raw.campaignProductId,
+      sku: raw.sku,
+      productName: raw.title,
+      productUrl: raw.itemUrl,
+      imageUrl: raw.imageUrl,
+      bid: raw.bid,
+      campaignState: raw.campaignState || '',
+      productState: raw.productState || '',
+      views: raw.views || 0,
+      clicks: raw.clicks || 0,
+      favorites: raw.favorites || 0,
+      carts: raw.carts || 0,
+      ctr: raw.ctr || 0,
+      gmv: raw.gmv || 0,
+      transactions: raw.transactions || 0,
+      cost: raw.cost || 0,
+      crr: raw.crr || 0,
+    }));
   }
 
   /**
@@ -353,7 +374,7 @@ export class KaspiMarketingClient {
       avgCtr,
       roas,
       crr,
-      activeCampaigns: campaigns.filter(c => c.state === 'Enabled').length,
+      activeCampaigns: campaigns.filter(c => c.state !== 'Paused' && c.state !== 'Archived').length,
       totalCampaigns: campaigns.length,
     };
   }

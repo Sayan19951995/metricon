@@ -280,7 +280,7 @@ export default function OrdersPage() {
     { key: 'pickup' as const, label: 'Самовывоз', icon: MapPin, color: 'bg-purple-50 dark:bg-purple-900/30', iconColor: 'text-purple-600 dark:text-purple-400', borderColor: 'border-purple-200 dark:border-purple-700' },
     { key: 'delivery' as const, label: 'Моя доставка', icon: Truck, color: 'bg-blue-50 dark:bg-blue-900/30', iconColor: 'text-blue-600 dark:text-blue-400', borderColor: 'border-blue-200 dark:border-blue-700' },
     { key: 'awaiting' as const, label: 'Ожидает сборки', icon: Package, color: 'bg-amber-50 dark:bg-amber-900/30', iconColor: 'text-amber-600 dark:text-amber-400', borderColor: 'border-amber-200 dark:border-amber-700' },
-    { key: 'transfer' as const, label: 'Экспресс', icon: ArrowRightLeft, color: 'bg-teal-50 dark:bg-teal-900/30', iconColor: 'text-teal-600 dark:text-teal-400', borderColor: 'border-teal-200 dark:border-teal-700' },
+    { key: 'transfer' as const, label: 'Передача', icon: ArrowRightLeft, color: 'bg-teal-50 dark:bg-teal-900/30', iconColor: 'text-teal-600 dark:text-teal-400', borderColor: 'border-teal-200 dark:border-teal-700' },
     { key: 'transmitted' as const, label: 'Переданы на доставку', icon: Truck, color: 'bg-sky-50 dark:bg-sky-900/30', iconColor: 'text-sky-600 dark:text-sky-400', borderColor: 'border-sky-200 dark:border-sky-700' },
   ];
 

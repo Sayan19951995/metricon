@@ -48,7 +48,8 @@ interface CampaignProduct {
   productUrl?: string;
   imageUrl?: string;
   bid: number;
-  state: string;
+  campaignState: string;
+  productState: string;
   views: number;
   clicks: number;
   favorites: number;
@@ -276,7 +277,7 @@ export default function KaspiMarketingPage() {
   if (userLoading) return <BrandLoader />;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16 lg:pt-0 lg:pl-64">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <div className="p-4 sm:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto">
           {/* Header */}
@@ -306,12 +307,12 @@ export default function KaspiMarketingPage() {
               <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
                 <div className="flex items-center gap-3">
                   <div className={`w-3 h-3 rounded-full flex-shrink-0 ${
-                    selectedCampaign.state === 'Enabled' ? 'bg-emerald-500' : selectedCampaign.state === 'Paused' ? 'bg-yellow-500' : 'bg-gray-400'
+                    selectedCampaign.state === 'Paused' ? 'bg-yellow-500' : selectedCampaign.state === 'Archived' ? 'bg-gray-400' : 'bg-emerald-500'
                   }`} />
                   <div className="flex-1 min-w-0">
                     <h2 className="text-lg font-semibold text-gray-900 dark:text-white truncate">{selectedCampaign.name}</h2>
                     <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {selectedCampaign.state === 'Enabled' ? 'Активна' : selectedCampaign.state === 'Paused' ? 'На паузе' : 'В архиве'}
+                      {selectedCampaign.state === 'Paused' ? 'На паузе' : selectedCampaign.state === 'Archived' ? 'В архиве' : 'Активна'}
                     </p>
                   </div>
                 </div>
@@ -373,13 +374,18 @@ export default function KaspiMarketingPage() {
                             <p className="text-xs text-gray-500 dark:text-gray-400">SKU: {p.sku} · Ставка: {p.bid} ₸</p>
                           </div>
                           <div className={`px-1.5 py-0.5 rounded text-[10px] font-medium flex-shrink-0 ${
-                            p.state === 'Enabled'
-                              ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
-                              : p.state === 'Paused'
+                            p.campaignState === 'Paused'
                               ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                              : p.campaignState !== 'Enabled'
+                              ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                              : p.productState === 'OutOfStock'
+                              ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+                              : 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
                           }`}>
-                            {p.state === 'Enabled' ? 'Вкл' : p.state === 'Paused' ? 'Пауза' : 'Архив'}
+                            {p.campaignState === 'Paused' ? 'Пауза'
+                              : p.campaignState !== 'Enabled' ? 'Выкл'
+                              : p.productState === 'OutOfStock' ? 'Нет в наличии'
+                              : 'Вкл'}
                           </div>
                         </div>
                         {/* Метрики товара */}
@@ -642,10 +648,10 @@ export default function KaspiMarketingPage() {
                 ) : campaigns.length === 0 ? (
                   <div className="p-8 text-center text-gray-500 dark:text-gray-400 text-sm">Нет кампаний за выбранный период</div>
                 ) : (() => {
-                  const stateOrder: Record<string, number> = { Enabled: 0, Paused: 1, Archived: 2 };
+                  const stateOrder: Record<string, number> = { Paused: 1, Archived: 2 };
                   const sorted = [...campaigns].sort((a, b) => {
-                    const sa = stateOrder[a.state] ?? 3;
-                    const sb = stateOrder[b.state] ?? 3;
+                    const sa = stateOrder[a.state] ?? 0;
+                    const sb = stateOrder[b.state] ?? 0;
                     if (sa !== sb) return sa - sb;
                     return b.cost - a.cost || b.views - a.views;
                   });
@@ -659,7 +665,7 @@ export default function KaspiMarketingPage() {
                       className="w-full p-3 sm:p-4 flex items-center gap-3 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors cursor-pointer text-left"
                     >
                       <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                        c.state === 'Enabled' ? 'bg-emerald-500' : c.state === 'Paused' ? 'bg-yellow-500' : 'bg-gray-400'
+                        c.state === 'Paused' ? 'bg-yellow-500' : c.state === 'Archived' ? 'bg-gray-400' : 'bg-emerald-500'
                       }`} />
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{c.name}</p>

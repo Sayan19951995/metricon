@@ -62,6 +62,11 @@ interface DashboardData {
     sold: number;
     revenue: number;
   }>;
+  todaySoldProducts: Array<{
+    name: string;
+    quantity: number;
+    revenue: number;
+  }>;
   totals: {
     orders: number;
     products: number;
@@ -77,6 +82,7 @@ export default function DashboardPage() {
   const [chartTooltip, setChartTooltip] = useState<{ idx: number; x: number; y: number } | null>(null);
   const [selectedDayIdx, setSelectedDayIdx] = useState(6);
   const [selectedPaymentDayIdx, setSelectedPaymentDayIdx] = useState<number | null>(null);
+  const [showTodaySold, setShowTodaySold] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const growthTooltipRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -456,7 +462,7 @@ export default function DashboardPage() {
     );
   }
 
-  const { sales, awaitingPayment, topProducts } = dashboardData;
+  const { sales, awaitingPayment, topProducts, todaySoldProducts } = dashboardData;
 
   // Проверяем есть ли вообще данные для отображения
   const hasData = sales.weekData.some(v => v > 0);
@@ -628,11 +634,14 @@ export default function DashboardPage() {
                       </div>
                     </div>
                   )}
-                  <div className="flex items-center gap-1 mt-1">
+                  <button
+                    className="flex items-center gap-1 mt-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-1.5 py-0.5 -mx-1.5 rounded transition-colors"
+                    onClick={(e) => { e.stopPropagation(); setShowTodaySold(!showTodaySold); }}
+                  >
                     <ShoppingCart className="w-3.5 h-3.5 text-blue-500" />
                     <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{selectedOrders}</span>
                     <span className="text-xs text-gray-400">заказов</span>
-                  </div>
+                  </button>
                 </div>
               </div>
               <div className="flex items-center gap-2 mb-3 ml-1 text-[11px] text-gray-400 dark:text-gray-500">
@@ -647,6 +656,50 @@ export default function DashboardPage() {
               </>
             );
           })()}
+
+          {/* Попап: Продажи сегодня */}
+          {showTodaySold && (
+            <div className="relative z-50">
+              <div className="fixed inset-0" onClick={() => setShowTodaySold(false)} />
+              <div className="absolute left-0 right-0 top-0 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 z-50">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Продажи сегодня</h3>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {todaySoldProducts.reduce((s, p) => s + p.quantity, 0)} шт · {todaySoldProducts.reduce((s, p) => s + p.revenue, 0).toLocaleString('ru-RU')} ₸
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowTodaySold(false)}
+                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
+                  >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                  </button>
+                </div>
+                <div className="space-y-1.5 text-xs max-h-[250px] overflow-y-auto">
+                  {todaySoldProducts.map((product, index) => (
+                    <div key={index} className="flex items-center gap-2 py-1 px-1 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50">
+                      <span className="text-gray-400 w-4 text-right flex-shrink-0">{index + 1}</span>
+                      <div className="flex-1 min-w-0">
+                        <span className="text-gray-700 dark:text-gray-300 truncate block">{product.name}</span>
+                      </div>
+                      <div className="text-right flex-shrink-0 flex items-center gap-2">
+                        <span className="font-medium text-gray-900 dark:text-white">{product.quantity} шт</span>
+                        <span className="text-gray-400 min-w-[50px] text-right">
+                          {product.revenue >= 1000000
+                            ? `${(product.revenue / 1000000).toFixed(1)}M`
+                            : product.revenue >= 1000
+                            ? `${Math.round(product.revenue / 1000)}k`
+                            : product.revenue
+                          } ₸
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Линейный график - текущая vs прошлая неделя */}
           <div className="text-[10px] text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-4">

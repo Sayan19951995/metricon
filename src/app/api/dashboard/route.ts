@@ -175,6 +175,47 @@ export async function GET(request: NextRequest) {
       weeklyCompletedCount.push(dayStat?.count || 0);
     }
 
+    // === Продажи сегодня (товары) ===
+    const todayStr = now.toISOString().split('T')[0];
+    const todayStart = new Date(todayStr + 'T00:00:00+05:00'); // UTC+5 Алматы
+
+    const todayOrdersResult = await supabase
+      .from('orders')
+      .select('items, total_amount, status, created_at')
+      .eq('store_id', store.id)
+      .gte('created_at', todayStart.toISOString())
+      .not('status', 'in', '(cancelled,returned)');
+    const todayOrdersList = todayOrdersResult.data || [];
+
+    const todaySoldMap = new Map<string, { name: string; quantity: number; revenue: number }>();
+    for (const order of todayOrdersList) {
+      const items = order.items as Array<{
+        product_code: string;
+        product_name: string;
+        quantity: number;
+        price: number;
+        total: number;
+      }> | null;
+      if (items && Array.isArray(items)) {
+        for (const item of items) {
+          const key = item.product_code || item.product_name;
+          const existing = todaySoldMap.get(key);
+          if (existing) {
+            existing.quantity += item.quantity;
+            existing.revenue += item.total;
+          } else {
+            todaySoldMap.set(key, {
+              name: item.product_name,
+              quantity: item.quantity,
+              revenue: item.total,
+            });
+          }
+        }
+      }
+    }
+    const todaySoldProducts = Array.from(todaySoldMap.values())
+      .sort((a, b) => b.revenue - a.revenue);
+
     // === Топ товаров ===
     const productSales = new Map<string, { name: string; sold: number; revenue: number }>();
 
@@ -255,6 +296,7 @@ export async function GET(request: NextRequest) {
           weeklyCompletedCount
         },
         topProducts,
+        todaySoldProducts,
         totals: {
           orders: totalOrders || 0,
           products: totalProducts || 0
