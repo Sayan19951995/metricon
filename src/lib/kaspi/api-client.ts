@@ -624,6 +624,7 @@ export class KaspiAPIClient {
   generatePriceListXML(
     products: KaspiProduct[],
     preorderOverrides?: Map<string, Map<string, number>>,
+    stockOverrides?: Map<string, number>,
   ): string {
     const lines: string[] = [];
     lines.push('<?xml version="1.0" encoding="utf-8"?>');
@@ -652,7 +653,7 @@ export class KaspiAPIClient {
           const fullStoreId = a.storeId;
           const shortStoreId = fullStoreId.includes('_') ? fullStoreId.split('_').pop()! : fullStoreId;
           const available = a.available ? 'yes' : 'no';
-          const stockCount = a.stockCount || 0;
+          const stockCount = stockOverrides?.has(sku) ? stockOverrides.get(sku)! : (a.stockCount || 0);
 
           // Предзаказ: берём override если есть, иначе текущее значение
           let preorder = a.preorderPeriod ?? null;

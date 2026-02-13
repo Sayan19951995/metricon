@@ -184,11 +184,64 @@ export default function WarehouseHistoryPage() {
 
   const acceptOrder = async (id: string) => {
     try {
+      // 1. Find the order to get its items
+      const order = orders.find(o => o.id === id);
+      if (!order) throw new Error('Заказ не найден');
+
+      // 2. Update restock_orders status
       const { error: upErr } = await supabase
         .from('restock_orders')
         .update({ status: 'completed', delivery_cost: acceptDeliveryCost })
         .eq('id', id);
       if (upErr) throw upErr;
+
+      // 3. Update products: quantity + cost_price (weighted average)
+      const existingItems = order.items.filter(i => i.type === 'existing' && i.product_id);
+      if (existingItems.length > 0) {
+        // Fetch current product data
+        const productIds = existingItems.map(i => i.product_id!);
+        const { data: currentProducts } = await supabase
+          .from('products')
+          .select('id, quantity, cost_price')
+          .in('id', productIds);
+
+        const productMap = new Map(
+          (currentProducts || []).map(p => [p.id, p])
+        );
+
+        // Total goods value (for proportional delivery cost split)
+        const totalGoodsValue = existingItems.reduce((s, i) => s + (i.total || 0), 0);
+
+        // Update each product
+        for (const item of existingItems) {
+          const current = productMap.get(item.product_id!);
+          if (!current) continue;
+
+          const currentQty = current.quantity ?? 0;
+          const currentCost = current.cost_price ?? 0;
+
+          // Proportional delivery cost for this item
+          const itemDeliveryCost = totalGoodsValue > 0
+            ? Math.round(acceptDeliveryCost * (item.total / totalGoodsValue))
+            : 0;
+
+          // Weighted average cost price
+          const newCostPerUnit = item.price_per_unit + (item.quantity > 0 ? itemDeliveryCost / item.quantity : 0);
+          const totalOldValue = currentQty * currentCost;
+          const totalNewValue = item.quantity * newCostPerUnit;
+          const totalQty = currentQty + item.quantity;
+          const newCostPrice = totalQty > 0 ? Math.round((totalOldValue + totalNewValue) / totalQty) : 0;
+
+          await supabase
+            .from('products')
+            .update({
+              quantity: totalQty,
+              cost_price: newCostPrice,
+            })
+            .eq('id', item.product_id!);
+        }
+      }
+
       setAcceptingId(null);
       setAcceptDeliveryCost(0);
       await loadData();

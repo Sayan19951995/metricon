@@ -93,7 +93,23 @@ export async function GET(request: NextRequest) {
           }
         }
 
-        const xml = client.generatePriceListXML(products, overrideMap);
+        // Загружаем kaspi_stock из БД для stock overrides
+        const { data: dbProducts } = await supabase
+          .from('products')
+          .select('sku, kaspi_stock' as any)
+          .eq('store_id', store.id)
+          .not('kaspi_stock' as any, 'is', null);
+
+        const stockOverrides = new Map<string, number>();
+        if (dbProducts) {
+          for (const p of dbProducts as any[]) {
+            if (p.sku && p.kaspi_stock != null) {
+              stockOverrides.set(p.sku, p.kaspi_stock);
+            }
+          }
+        }
+
+        const xml = client.generatePriceListXML(products, overrideMap, stockOverrides);
 
         // Кэшируем для fallback
         await supabase

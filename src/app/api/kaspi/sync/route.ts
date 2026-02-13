@@ -361,21 +361,26 @@ export async function POST(request: NextRequest) {
           }
         }
 
-        // Batch-читаем текущие остатки
+        // Batch-читаем текущие остатки (quantity + kaspi_stock)
         const productCodes = Array.from(deductionMap.keys());
         const { data: products } = await supabase
           .from('products')
-          .select('id, kaspi_id, quantity')
+          .select('id, kaspi_id, quantity, kaspi_stock' as any)
           .eq('store_id', store.id)
           .in('kaspi_id', productCodes);
 
-        // Обновляем остатки (quantity - deduct, min 0)
+        // Обновляем оба остатка: quantity и kaspi_stock
         if (products) {
-          await parallelMap(products, async (product) => {
+          await parallelMap(products as any[], async (product) => {
             const deduct = deductionMap.get(product.kaspi_id!) || 0;
             if (deduct > 0) {
-              const newQty = Math.max((product.quantity || 0) - deduct, 0);
-              await supabase.from('products').update({ quantity: newQty }).eq('id', product.id);
+              const update: Record<string, any> = {
+                quantity: Math.max((product.quantity || 0) - deduct, 0),
+              };
+              if (product.kaspi_stock != null) {
+                update.kaspi_stock = Math.max(product.kaspi_stock - deduct, 0);
+              }
+              await supabase.from('products').update(update).eq('id', product.id);
             }
           }, 10);
         }
@@ -412,17 +417,21 @@ export async function POST(request: NextRequest) {
         const productCodes = Array.from(restoreMap.keys());
         const { data: products } = await supabase
           .from('products')
-          .select('id, kaspi_id, quantity')
+          .select('id, kaspi_id, quantity, kaspi_stock' as any)
           .eq('store_id', store.id)
           .in('kaspi_id', productCodes);
 
         if (products) {
-          await parallelMap(products, async (product) => {
+          await parallelMap(products as any[], async (product) => {
             const restore = restoreMap.get(product.kaspi_id!) || 0;
             if (restore > 0) {
-              await supabase.from('products')
-                .update({ quantity: (product.quantity || 0) + restore })
-                .eq('id', product.id);
+              const update: Record<string, any> = {
+                quantity: (product.quantity || 0) + restore,
+              };
+              if (product.kaspi_stock != null) {
+                update.kaspi_stock = product.kaspi_stock + restore;
+              }
+              await supabase.from('products').update(update).eq('id', product.id);
             }
           }, 10);
         }

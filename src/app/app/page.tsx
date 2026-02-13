@@ -635,7 +635,7 @@ export default function DashboardPage() {
                     </div>
                   )}
                   <button
-                    className="flex items-center gap-1 mt-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 px-1.5 py-0.5 -mx-1.5 rounded transition-colors"
+                    className="flex items-center gap-1 mt-1 bg-blue-50/60 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 px-3 py-1.5 -mx-3 -my-1 rounded-lg transition-colors"
                     onClick={(e) => { e.stopPropagation(); setShowTodaySold(!showTodaySold); }}
                   >
                     <ShoppingCart className="w-3.5 h-3.5 text-blue-500" />
@@ -657,49 +657,6 @@ export default function DashboardPage() {
             );
           })()}
 
-          {/* Попап: Продажи сегодня */}
-          {showTodaySold && (
-            <div className="relative z-50">
-              <div className="fixed inset-0" onClick={() => setShowTodaySold(false)} />
-              <div className="absolute left-0 right-0 top-0 bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 p-4 z-50">
-                <div className="flex items-center justify-between mb-3">
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Продажи сегодня</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">
-                      {todaySoldProducts.reduce((s, p) => s + p.quantity, 0)} шт · {todaySoldProducts.reduce((s, p) => s + p.revenue, 0).toLocaleString('ru-RU')} ₸
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setShowTodaySold(false)}
-                    className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-gray-400 hover:text-gray-600"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
-                  </button>
-                </div>
-                <div className="space-y-1.5 text-xs max-h-[250px] overflow-y-auto">
-                  {todaySoldProducts.map((product, index) => (
-                    <div key={index} className="flex items-center gap-2 py-1 px-1 rounded hover:bg-gray-50 dark:hover:bg-gray-700/50">
-                      <span className="text-gray-400 w-4 text-right flex-shrink-0">{index + 1}</span>
-                      <div className="flex-1 min-w-0">
-                        <span className="text-gray-700 dark:text-gray-300 truncate block">{product.name}</span>
-                      </div>
-                      <div className="text-right flex-shrink-0 flex items-center gap-2">
-                        <span className="font-medium text-gray-900 dark:text-white">{product.quantity} шт</span>
-                        <span className="text-gray-400 min-w-[50px] text-right">
-                          {product.revenue >= 1000000
-                            ? `${(product.revenue / 1000000).toFixed(1)}M`
-                            : product.revenue >= 1000
-                            ? `${Math.round(product.revenue / 1000)}k`
-                            : product.revenue
-                          } ₸
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          )}
 
           {/* Линейный график - текущая vs прошлая неделя */}
           <div className="text-[10px] text-gray-400 dark:text-gray-500 mb-2 flex items-center gap-4">
@@ -1261,6 +1218,66 @@ export default function DashboardPage() {
           <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 flex-shrink-0 group-hover:translate-x-1 transition-transform" />
         </button>
       </div>
+
+      {/* Модалка: Продажи сегодня — вынесена на корневой уровень */}
+      {showTodaySold && (
+        <div className="fixed inset-0 z-[9999]" onClick={() => setShowTodaySold(false)}>
+          <motion.div
+            className="absolute inset-0 bg-black/50"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ duration: 0.2 }}
+          />
+          <div className="absolute inset-0 flex items-center justify-center p-4">
+            <motion.div
+              className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700"
+              initial={{ opacity: 0, scale: 0.95, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              transition={{ duration: 0.2, ease: 'easeOut' }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between p-5 pb-3">
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Продажи сегодня</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+                    {todaySoldProducts.length} товаров · {todaySoldProducts.reduce((s, p) => s + p.quantity, 0)} шт · {todaySoldProducts.reduce((s, p) => s + p.revenue, 0).toLocaleString('ru-RU')} ₸
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowTodaySold(false)}
+                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors text-gray-400 hover:text-gray-600"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                </button>
+              </div>
+
+              {/* Scrollable list */}
+              <div className="overflow-y-auto px-5 pb-5" style={{ maxHeight: 'calc(85vh - 100px)' }}>
+                {todaySoldProducts.map((product, index) => (
+                  <div key={index} className="flex items-center gap-2.5 py-2.5 px-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                    <span className="text-gray-400 w-5 text-right flex-shrink-0 text-xs font-medium">{index + 1}</span>
+                    <div className="flex-1 min-w-0">
+                      <span className="text-gray-800 dark:text-gray-200 truncate block text-sm">{product.name}</span>
+                    </div>
+                    <div className="text-right flex-shrink-0 flex items-center gap-3">
+                      <span className="font-semibold text-gray-900 dark:text-white text-sm">{product.quantity} шт</span>
+                      <span className="text-gray-500 dark:text-gray-400 min-w-[55px] text-right text-sm">
+                        {product.revenue >= 1000000
+                          ? `${(product.revenue / 1000000).toFixed(1)}M`
+                          : product.revenue >= 1000
+                          ? `${Math.round(product.revenue / 1000)}k`
+                          : product.revenue
+                        } ₸
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

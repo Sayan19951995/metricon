@@ -116,12 +116,11 @@ export async function GET(request: NextRequest) {
     let { client } = clientResult;
     const activeOnly = activeParam === 'true' ? true : activeParam === 'false' ? false : undefined;
 
-    // Загружаем ВСЕ товары за один запрос (обычно ≤200 — BFF справляется)
+    // Загружаем ВСЕ товары (пагинация по 100)
     let allProducts;
 
     try {
-      const result = await client.getProductsPage(0, 100, activeOnly);
-      allProducts = result.products;
+      allProducts = await client.getAllProducts();
     } catch (error) {
       const msg = error instanceof Error ? error.message : '';
 
@@ -136,8 +135,7 @@ export async function GET(request: NextRequest) {
         }
 
         client = reloginResult.client;
-        const retryResult = await client.getProductsPage(0, 100, activeOnly);
-        allProducts = retryResult.products;
+        allProducts = await client.getAllProducts();
       } else {
         throw error;
       }

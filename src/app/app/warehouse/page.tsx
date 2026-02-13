@@ -12,6 +12,10 @@ import {
   X,
   Edit3,
   Loader2,
+  ChevronUp,
+  ChevronDown,
+  TrendingUp,
+  Sliders,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@/hooks/useUser';
@@ -31,6 +35,7 @@ interface Product {
   price: number | null;
   cost_price: number | null;
   quantity: number | null;
+  kaspi_stock: number | null;
   image_url: string | null;
   category: string | null;
   active: boolean | null;
@@ -48,9 +53,46 @@ export default function WarehousePage() {
   const [loading, setLoading] = useState(!stale);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Filters
+  // Filters, sorting & pagination
   const [searchTerm, setSearchTerm] = useState('');
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 20;
+  type SortField = 'name' | 'quantity' | 'cost_price' | 'price' | 'value';
+  type SortDir = 'asc' | 'desc';
+  const [sortField, setSortField] = useState<SortField>('name');
+  const [sortDir, setSortDir] = useState<SortDir>('asc');
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDir(field === 'name' ? 'asc' : 'desc');
+    }
+    setPage(0);
+  };
+
+  // Expense rates (persisted to localStorage)
+  interface ExpenseRates { ad: number; commission: number; tax: number; delivery: number; }
+  const EXPENSE_KEY = 'metricon_expense_rates';
+  const defaultRates: ExpenseRates = { ad: 8, commission: 12, tax: 4, delivery: 2 };
+  const [expenseRates, setExpenseRates] = useState<ExpenseRates>(() => {
+    if (typeof window === 'undefined') return defaultRates;
+    try {
+      const saved = localStorage.getItem(EXPENSE_KEY);
+      return saved ? { ...defaultRates, ...JSON.parse(saved) } : defaultRates;
+    } catch { return defaultRates; }
+  });
+  const [showExpensePanel, setShowExpensePanel] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(EXPENSE_KEY, JSON.stringify(expenseRates));
+    }
+  }, [expenseRates]);
+
+  const totalExpenseRate = expenseRates.ad + expenseRates.commission + expenseRates.tax + expenseRates.delivery;
 
   // Inline editing
   const [editingCell, setEditingCell] = useState<{ id: string; field: 'cost_price' | 'quantity' } | null>(null);
@@ -71,7 +113,7 @@ export default function WarehousePage() {
       const [dbResult, cabinetResult] = await Promise.all([
         supabase
           .from('products')
-          .select('id, kaspi_id, name, sku, price, cost_price, quantity, image_url, category, active')
+          .select('id, kaspi_id, name, sku, price, cost_price, quantity, kaspi_stock, image_url, category, active' as any)
           .eq('store_id', store.id)
           .order('name', { ascending: true })
           .limit(500),
@@ -81,14 +123,14 @@ export default function WarehousePage() {
       ]);
 
       if (dbResult.error) throw dbResult.error;
-      const dbProducts: Product[] = (dbResult.data || [])
+      const dbProducts: Product[] = ((dbResult.data || []) as any[])
         .filter(p => p.name && p.name.trim() !== '')
         .map(p => ({ ...p, availabilities: undefined }));
 
       // Merge live stock + availabilities from Cabinet by SKU
-      const updatedIds: { id: string; quantity: number }[] = [];
+      const kaspiStockUpdates: { id: string; kaspi_stock: number }[] = [];
       if (cabinetResult.success && cabinetResult.products) {
-        const stockMap = new Map<string, { stock: number; availabilities: Availability[] }>();
+        const stockMap = new Map<string, { stock: number; availabilities: Availability[]; name: string; price: number; category: string | null; image_url: string | null }>();
         for (const kp of cabinetResult.products) {
           if (kp.sku) {
             const avails: Availability[] = (kp.availabilities || [])
@@ -97,34 +139,130 @@ export default function WarehousePage() {
                 storeName: a.storeName || a.storeId || '—',
                 stockCount: a.stockCount,
               }));
-            stockMap.set(kp.sku, { stock: kp.stock ?? 0, availabilities: avails });
+            stockMap.set(kp.sku, {
+              stock: kp.stock ?? 0,
+              availabilities: avails,
+              name: kp.name || '',
+              price: kp.price || 0,
+              category: kp.category || null,
+              image_url: kp.images?.[0] || null,
+            });
           }
         }
+
+        // Дедупликация: удаляем дубликаты по SKU (оставляем с cost_price или первый)
+        const skuGroups = new Map<string, Product[]>();
+        for (const p of dbProducts) {
+          if (!p.sku) continue;
+          const group = skuGroups.get(p.sku) || [];
+          group.push(p);
+          skuGroups.set(p.sku, group);
+        }
+        const duplicateIdsToDelete: string[] = [];
+        for (const [, group] of skuGroups) {
+          if (group.length <= 1) continue;
+          // Оставляем товар с cost_price, иначе первый
+          group.sort((a, b) => {
+            if (a.cost_price !== null && b.cost_price === null) return -1;
+            if (a.cost_price === null && b.cost_price !== null) return 1;
+            return 0;
+          });
+          const keep = group[0];
+          for (let i = 1; i < group.length; i++) {
+            duplicateIdsToDelete.push(group[i].id);
+            // Перенести cost_price если у удаляемого есть, а у оставляемого нет
+            if (keep.cost_price === null && group[i].cost_price !== null) {
+              keep.cost_price = group[i].cost_price;
+            }
+          }
+        }
+        if (duplicateIdsToDelete.length > 0) {
+          console.log(`Warehouse: removing ${duplicateIdsToDelete.length} duplicate products`);
+          // Удаляем пачками по 20
+          for (let i = 0; i < duplicateIdsToDelete.length; i += 20) {
+            const batch = duplicateIdsToDelete.slice(i, i + 20);
+            await supabase.from('products').delete().in('id', batch);
+          }
+          // Убираем из локального массива
+          const deleteSet = new Set(duplicateIdsToDelete);
+          const cleaned = dbProducts.filter(p => !deleteSet.has(p.id));
+          dbProducts.length = 0;
+          dbProducts.push(...cleaned);
+        }
+
+        // Обновляем существующие товары (kaspi_stock из API, quantity НЕ трогаем — это факт склад)
+        const existingSkus = new Set(dbProducts.map(p => p.sku).filter(Boolean));
+        const existingKaspiIds = new Set(dbProducts.map(p => p.kaspi_id).filter(Boolean));
         for (const p of dbProducts) {
           if (p.sku && stockMap.has(p.sku)) {
             const info = stockMap.get(p.sku)!;
-            if (p.quantity !== info.stock) {
-              updatedIds.push({ id: p.id, quantity: info.stock });
+            if (p.kaspi_stock !== info.stock) {
+              kaspiStockUpdates.push({ id: p.id, kaspi_stock: info.stock });
             }
-            p.quantity = info.stock;
+            p.kaspi_stock = info.stock;
             p.availabilities = info.availabilities;
           }
         }
+
+        // Добавляем товары из кабинета которых нет в БД (проверяем и sku, и kaspi_id)
+        const missingProducts: Array<{ sku: string; name: string; price: number; quantity: number; kaspi_stock: number; category: string | null; image_url: string | null; availabilities: Availability[] }> = [];
+        for (const [sku, info] of stockMap) {
+          if (!existingSkus.has(sku) && !existingKaspiIds.has(sku) && info.name) {
+            missingProducts.push({ sku, ...info, quantity: 0, kaspi_stock: info.stock });
+          }
+        }
+
+        if (missingProducts.length > 0) {
+          // Вставляем в БД
+          const inserts = missingProducts.map(mp => ({
+            store_id: store.id,
+            kaspi_id: mp.sku,
+            name: mp.name,
+            sku: mp.sku,
+            price: mp.price,
+            quantity: mp.quantity,
+            kaspi_stock: mp.kaspi_stock,
+            category: mp.category,
+            image_url: mp.image_url,
+            active: true,
+          }));
+
+          const { data: inserted } = await supabase
+            .from('products')
+            .insert(inserts as any)
+            .select('id, kaspi_id, name, sku, price, cost_price, quantity, kaspi_stock, image_url, category, active' as any);
+
+          // Добавляем в список для отображения
+          if (inserted) {
+            for (const row of inserted as any[]) {
+              const mp = missingProducts.find(m => m.sku === row.sku);
+              dbProducts.push({
+                ...row,
+                availabilities: mp?.availabilities,
+              });
+            }
+          }
+
+          console.log(`Warehouse: inserted ${inserted?.length || 0} missing products from cabinet`);
+        }
       }
+
+      // Сортируем по имени
+      dbProducts.sort((a, b) => (a.name || '').localeCompare(b.name || ''));
 
       setProducts(dbProducts);
       if (cacheKey) setCache(cacheKey, dbProducts);
 
-      // Fire-and-forget: save updated quantities to DB for instant load next time
-      if (updatedIds.length > 0) {
+      // Fire-and-forget: save kaspi_stock to DB (quantity НЕ перезаписываем — это факт склад)
+      if (kaspiStockUpdates.length > 0) {
         const batchSize = 10;
-        for (let i = 0; i < updatedIds.length; i += batchSize) {
-          const batch = updatedIds.slice(i, i + batchSize);
+        for (let i = 0; i < kaspiStockUpdates.length; i += batchSize) {
+          const batch = kaspiStockUpdates.slice(i, i + batchSize);
           Promise.all(
-            batch.map(({ id, quantity }) =>
-              supabase.from('products').update({ quantity }).eq('id', id)
+            batch.map(({ id, kaspi_stock }) =>
+              supabase.from('products').update({ kaspi_stock } as any).eq('id', id)
             )
-          ).catch(err => console.error('Stock sync to DB error:', err));
+          ).catch(err => console.error('Kaspi stock sync to DB error:', err));
         }
       }
     } catch (err) {
@@ -209,6 +347,24 @@ export default function WarehousePage() {
     return matchesSearch && matchesLowStock;
   });
 
+  // Sort
+  const sorted = [...filtered].sort((a, b) => {
+    const dir = sortDir === 'asc' ? 1 : -1;
+    switch (sortField) {
+      case 'name': return dir * (a.name || '').localeCompare(b.name || '');
+      case 'quantity': return dir * ((a.quantity ?? 0) - (b.quantity ?? 0));
+      case 'cost_price': return dir * ((a.cost_price ?? 0) - (b.cost_price ?? 0));
+      case 'price': return dir * ((a.price ?? 0) - (b.price ?? 0));
+      case 'value': return dir * (((a.price ?? 0) * (a.quantity ?? 0)) - ((b.price ?? 0) * (b.quantity ?? 0)));
+      default: return 0;
+    }
+  });
+
+  // Pagination
+  const totalPages = Math.ceil(sorted.length / PAGE_SIZE);
+  const safePage = Math.min(page, Math.max(0, totalPages - 1));
+  const paginated = sorted.slice(safePage * PAGE_SIZE, (safePage + 1) * PAGE_SIZE);
+
   // Stats
   const totalProducts = products.length;
   const totalValue = products.reduce((sum, p) => sum + ((p.price ?? 0) * (p.quantity ?? 0)), 0);
@@ -216,10 +372,16 @@ export default function WarehousePage() {
   const totalCostValue = products.reduce((sum, p) => sum + ((p.cost_price ?? 0) * (p.quantity ?? 0)), 0);
   const lowStockCount = products.filter(p => (p.quantity ?? 0) < 5).length;
 
+  // Profit: revenue - cost - expenses (only for products with cost_price)
+  const totalExpenses = Math.round(totalValue * totalExpenseRate / 100);
+  const expectedProfit = totalValue - totalCostValue - totalExpenses;
+
   // Filtered totals
   const filteredQty = filtered.reduce((sum, p) => sum + (p.quantity ?? 0), 0);
   const filteredCost = filtered.reduce((sum, p) => sum + ((p.cost_price ?? 0) * (p.quantity ?? 0)), 0);
   const filteredValue = filtered.reduce((sum, p) => sum + ((p.price ?? 0) * (p.quantity ?? 0)), 0);
+  const filteredExpenses = Math.round(filteredValue * totalExpenseRate / 100);
+  const filteredProfit = filteredValue - filteredCost - filteredExpenses;
 
   // Loading skeleton
   if (userLoading || (loading && products.length === 0)) {
@@ -336,7 +498,7 @@ export default function WarehousePage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm">
           <div className="flex items-center gap-2 lg:gap-3">
             <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center shrink-0">
@@ -366,14 +528,32 @@ export default function WarehousePage() {
             </div>
             <div>
               <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Себестоимость</p>
-              <p className="text-sm lg:text-base font-bold text-amber-600">
-                {costPriceSet} <span className="text-xs font-normal text-gray-400">из {totalProducts}</span>
-              </p>
+              <p className="text-sm lg:text-base font-bold text-amber-600">{totalCostValue.toLocaleString('ru-RU')} ₸</p>
             </div>
           </div>
         </div>
         <button
-          onClick={() => setShowLowStockOnly(!showLowStockOnly)}
+          onClick={() => setShowExpensePanel(!showExpensePanel)}
+          className={`bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm text-left transition-all cursor-pointer ${
+            showExpensePanel ? 'ring-2 ring-purple-400' : 'hover:shadow-md'
+          }`}
+        >
+          <div className="flex items-center gap-2 lg:gap-3">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-purple-50 dark:bg-purple-900/30 rounded-lg flex items-center justify-center shrink-0">
+              <TrendingUp className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">
+                Ож. прибыль <span className="opacity-60">({totalExpenseRate}%)</span>
+              </p>
+              <p className={`text-sm lg:text-base font-bold ${expectedProfit >= 0 ? 'text-purple-600' : 'text-red-500'}`}>
+                {expectedProfit.toLocaleString('ru-RU')} ₸
+              </p>
+            </div>
+          </div>
+        </button>
+        <button
+          onClick={() => { setShowLowStockOnly(!showLowStockOnly); setPage(0); }}
           className={`bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm text-left transition-all cursor-pointer ${
             showLowStockOnly ? 'ring-2 ring-red-400' : 'hover:shadow-md'
           }`}
@@ -390,6 +570,49 @@ export default function WarehousePage() {
         </button>
       </div>
 
+      {/* Expense rates panel */}
+      {showExpensePanel && (
+        <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm mb-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Sliders className="w-4 h-4 text-purple-500" />
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Расходы (% от выручки)</h3>
+          </div>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {([
+              ['ad', 'Реклама'],
+              ['commission', 'Комиссия Kaspi'],
+              ['tax', 'Налог'],
+              ['delivery', 'Доставка'],
+            ] as [keyof ExpenseRates, string][]).map(([key, label]) => (
+              <div key={key}>
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">{label}</label>
+                <div className="flex items-center gap-1">
+                  <input
+                    type="number"
+                    value={expenseRates[key]}
+                    onChange={e => {
+                      const v = parseFloat(e.target.value) || 0;
+                      setExpenseRates(prev => ({ ...prev, [key]: Math.max(0, Math.min(100, v)) }));
+                    }}
+                    className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-purple-400 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
+                    min="0"
+                    max="100"
+                    step="0.5"
+                  />
+                  <span className="text-sm text-gray-400 shrink-0">%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-gray-500 dark:text-gray-400">
+            <span>Итого расходы: <span className="font-semibold text-gray-700 dark:text-gray-300">{totalExpenseRate}%</span></span>
+            <span>Расходы: <span className="font-semibold text-gray-700 dark:text-gray-300">{totalExpenses.toLocaleString('ru-RU')} ₸</span></span>
+            <span>Прибыль: <span className={`font-semibold ${expectedProfit >= 0 ? 'text-purple-600' : 'text-red-500'}`}>{expectedProfit.toLocaleString('ru-RU')} ₸</span></span>
+            <span>Маржа: <span className={`font-semibold ${expectedProfit >= 0 ? 'text-purple-600' : 'text-red-500'}`}>{totalValue > 0 ? ((expectedProfit / totalValue) * 100).toFixed(1) : '0'}%</span></span>
+          </div>
+        </div>
+      )}
+
       {/* Search */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm mb-4">
         <div className="relative">
@@ -397,7 +620,7 @@ export default function WarehousePage() {
           <input
             type="text"
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            onChange={e => { setSearchTerm(e.target.value); setPage(0); }}
             placeholder="Поиск по названию или SKU..."
             className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 transition-colors dark:text-white dark:placeholder-gray-500"
           />
@@ -417,9 +640,32 @@ export default function WarehousePage() {
 
       {filtered.length > 0 && (
         <>
+          {/* Mobile sort */}
+          <div className="lg:hidden flex gap-2 overflow-x-auto pb-2 mb-2 -mx-1 px-1">
+            {([
+              ['name', 'Название'],
+              ['quantity', 'Кол-во'],
+              ['cost_price', 'Себест.'],
+              ['price', 'Цена'],
+              ['value', 'Стоимость'],
+            ] as [SortField, string][]).map(([field, label]) => (
+              <button
+                key={field}
+                onClick={() => toggleSort(field)}
+                className={`shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                  sortField === field
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 shadow-sm'
+                }`}
+              >
+                {label} {sortField === field && (sortDir === 'asc' ? '↑' : '↓')}
+              </button>
+            ))}
+          </div>
+
           {/* Mobile cards */}
           <div className="lg:hidden space-y-3">
-            {filtered.map(product => (
+            {paginated.map(product => (
               <div key={product.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0">
@@ -438,7 +684,10 @@ export default function WarehousePage() {
                       onClick={() => startEdit(product.id, 'quantity', product.quantity)}
                       className="flex items-center gap-1 font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                     >
-                      {product.quantity ?? 0} шт
+                      {product.quantity ?? 0}
+                      {product.kaspi_stock != null && (
+                        <span className="text-[10px] text-gray-400 font-normal">({product.kaspi_stock})</span>
+                      )}
                       <Edit3 className="w-3 h-3 text-gray-400" />
                     </button>
                     <button
@@ -476,28 +725,80 @@ export default function WarehousePage() {
                 <span className="font-semibold text-gray-700 dark:text-gray-300">Итого: {filteredQty} шт</span>
                 <span className="font-bold text-emerald-600">{filteredValue.toLocaleString('ru-RU')} ₸</span>
               </div>
+              {showExpensePanel && (
+                <div className="flex items-center justify-between text-xs mt-1 pt-1 border-t border-gray-100 dark:border-gray-700">
+                  <span className="text-gray-400">Прибыль ({totalExpenseRate}%)</span>
+                  <span className={`font-semibold ${filteredProfit >= 0 ? 'text-purple-600' : 'text-red-500'}`}>{filteredProfit.toLocaleString('ru-RU')} ₸</span>
+                </div>
+              )}
             </div>
+            {/* Mobile pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm">
+                <button
+                  onClick={() => setPage(Math.max(0, safePage - 1))}
+                  disabled={safePage === 0}
+                  className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-30 transition-colors"
+                >
+                  ←
+                </button>
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {safePage + 1} / {totalPages} <span className="text-xs">({filtered.length})</span>
+                </span>
+                <button
+                  onClick={() => setPage(Math.min(totalPages - 1, safePage + 1))}
+                  disabled={safePage >= totalPages - 1}
+                  className="px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-30 transition-colors"
+                >
+                  →
+                </button>
+              </div>
+            )}
           </div>
 
           {/* Desktop table */}
           <div className="hidden lg:block bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
-            <table className="w-full">
+            <table className="w-full table-fixed">
+              <colgroup>
+                <col />
+                <col className="w-[100px]" />
+                <col className="w-[150px]" />
+                <col className="w-[140px]" />
+                <col className="w-[140px]" />
+              </colgroup>
               <thead className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="text-left py-3 px-6 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Товар</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Кол-во</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Себестоимость</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Цена продажи</th>
-                  <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">Стоимость</th>
+                  {([
+                    ['name', 'Товар', 'px-6'],
+                    ['quantity', 'Кол-во', 'px-4'],
+                    ['cost_price', 'Себестоимость', 'px-4'],
+                    ['price', 'Цена продажи', 'px-4'],
+                    ['value', 'Стоимость', 'px-4'],
+                  ] as [SortField, string, string][]).map(([field, label, px]) => (
+                    <th
+                      key={field}
+                      onClick={() => toggleSort(field)}
+                      className={`text-left py-3 ${px} text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase cursor-pointer hover:text-gray-700 dark:hover:text-gray-200 select-none transition-colors`}
+                    >
+                      <span className="inline-flex items-center gap-1">
+                        {label}
+                        {sortField === field ? (
+                          sortDir === 'asc' ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />
+                        ) : (
+                          <span className="w-3" />
+                        )}
+                      </span>
+                    </th>
+                  ))}
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(product => (
+                {paginated.map(product => (
                   <tr key={product.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                     {/* Product */}
                     <td className="py-3 px-6">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium truncate max-w-[300px] text-gray-900 dark:text-white">{product.name}</p>
+                        <p className="text-sm font-medium truncate text-gray-900 dark:text-white">{product.name}</p>
                         <p className="text-xs text-gray-400">{product.sku || '—'}</p>
                       </div>
                     </td>
@@ -531,8 +832,13 @@ export default function WarehousePage() {
                             <span className={`text-sm font-semibold ${
                               (product.quantity ?? 0) < 5 ? 'text-red-500' : 'text-gray-900 dark:text-white'
                             }`}>
-                              {product.quantity ?? 0} шт
+                              {product.quantity ?? 0}
                             </span>
+                            {product.kaspi_stock != null && (
+                              <span className="text-[10px] text-gray-400 dark:text-gray-500">
+                                ({product.kaspi_stock})
+                              </span>
+                            )}
                             <Edit3 className="w-3 h-3 text-gray-300 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </button>
                           {product.availabilities && product.availabilities.length > 1 && (
@@ -614,8 +920,67 @@ export default function WarehousePage() {
                   <td className="py-3 px-4"></td>
                   <td className="py-3 px-4 text-sm font-bold text-emerald-600">{filteredValue.toLocaleString('ru-RU')} ₸</td>
                 </tr>
+                {showExpensePanel && (
+                  <tr className="border-t border-gray-200 dark:border-gray-700">
+                    <td className="py-2 px-6 text-xs text-gray-500 dark:text-gray-400">Прибыль ({totalExpenseRate}%)</td>
+                    <td className="py-2 px-4"></td>
+                    <td className="py-2 px-4"></td>
+                    <td className="py-2 px-4"></td>
+                    <td className={`py-2 px-4 text-sm font-bold ${filteredProfit >= 0 ? 'text-purple-600' : 'text-red-500'}`}>{filteredProfit.toLocaleString('ru-RU')} ₸</td>
+                  </tr>
+                )}
               </tfoot>
             </table>
+
+            {/* Desktop pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between px-6 py-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
+                <span className="text-sm text-gray-500 dark:text-gray-400">
+                  {safePage * PAGE_SIZE + 1}–{Math.min((safePage + 1) * PAGE_SIZE, filtered.length)} из {filtered.length}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setPage(Math.max(0, safePage - 1))}
+                    disabled={safePage === 0}
+                    className="px-3 py-1.5 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-30 transition-colors"
+                  >
+                    ←
+                  </button>
+                  {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => {
+                    let pageNum: number;
+                    if (totalPages <= 7) {
+                      pageNum = i;
+                    } else if (safePage < 4) {
+                      pageNum = i;
+                    } else if (safePage > totalPages - 5) {
+                      pageNum = totalPages - 7 + i;
+                    } else {
+                      pageNum = safePage - 3 + i;
+                    }
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setPage(pageNum)}
+                        className={`w-8 h-8 text-sm rounded-lg font-medium transition-colors ${
+                          pageNum === safePage
+                            ? 'bg-emerald-500 text-white'
+                            : 'hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400'
+                        }`}
+                      >
+                        {pageNum + 1}
+                      </button>
+                    );
+                  })}
+                  <button
+                    onClick={() => setPage(Math.min(totalPages - 1, safePage + 1))}
+                    disabled={safePage >= totalPages - 1}
+                    className="px-3 py-1.5 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 disabled:opacity-30 transition-colors"
+                  >
+                    →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </>
       )}
