@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
       .from('operational_expenses')
       .select('*')
       .eq('store_id', store.id);
-    const opExpenses = opExpensesResult.data || [];
+    const opExpenses = (opExpensesResult.data || []) as unknown as Array<{ id: string; store_id: string; name: string; amount: number; start_date: string; end_date: string; product_id: string | null; product_group: string | null }>;
 
     // Для каждого дня подсчитаем долю опер. расходов
     const dailyOpex = new Map<string, number>();
