@@ -57,7 +57,7 @@ export async function PATCH(request: NextRequest) {
 
     const { error } = await supabase
       .from('products')
-      .update({ product_group: productGroup || null })
+      .update({ product_group: productGroup || null } as any)
       .eq('store_id', storeResult.data.id)
       .eq('kaspi_id', kaspiId);
 
