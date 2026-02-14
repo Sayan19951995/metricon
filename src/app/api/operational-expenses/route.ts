@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, name, amount, startDate, endDate, productId } = body;
+    const { userId, name, amount, startDate, endDate, productId, productGroup } = body;
 
     if (!userId || !name || !amount || !startDate || !endDate) {
       return NextResponse.json({ success: false, message: 'Все поля обязательны' }, { status: 400 });
@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
         start_date: startDate,
         end_date: endDate,
         product_id: productId || null,
+        product_group: productGroup || null,
       })
       .select()
       .single();

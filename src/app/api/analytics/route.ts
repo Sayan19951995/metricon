@@ -35,14 +35,18 @@ export async function GET(request: NextRequest) {
     // === 0. Загрузить себестоимость товаров ===
     const productsResult = await supabase
       .from('products')
-      .select('kaspi_id, cost_price')
+      .select('kaspi_id, cost_price, product_group')
       .eq('store_id', store.id);
     const productsDb = productsResult.data || [];
 
     const costPriceMap = new Map<string, number>();
+    const groupMap = new Map<string, string>();
     for (const p of productsDb) {
       if (p.kaspi_id && p.cost_price) {
         costPriceMap.set(p.kaspi_id, Number(p.cost_price));
+      }
+      if (p.kaspi_id && p.product_group) {
+        groupMap.set(p.kaspi_id, p.product_group);
       }
     }
 
@@ -70,6 +74,8 @@ export async function GET(request: NextRequest) {
     }
 
     const paymentsByDate = new Map<string, DayAgg>();
+    // Per-day product sales for period filtering
+    const productsByDate = new Map<string, Map<string, { name: string; qty: number; revenue: number; costPrice: number }>>();
     for (const order of (completedOrders || [])) {
       if (!order.completed_at) continue;
       const utcMs = new Date(order.completed_at).getTime();
@@ -82,11 +88,28 @@ export async function GET(request: NextRequest) {
 
       // Себестоимость из items
       let orderCost = 0;
-      const items = order.items as Array<{ product_code: string; quantity: number; total: number }> | null;
+      const items = order.items as Array<{ product_code: string; product_name: string; quantity: number; total: number }> | null;
       if (items) {
+        if (!productsByDate.has(kzDate)) productsByDate.set(kzDate, new Map());
+        const dayProds = productsByDate.get(kzDate)!;
         for (const item of items) {
           const cp = costPriceMap.get(item.product_code);
           if (cp) orderCost += cp * (item.quantity || 1);
+          // Track per-day product sales
+          const code = item.product_code || item.product_name;
+          const existing2 = dayProds.get(code);
+          if (existing2) {
+            existing2.qty += item.quantity || 1;
+            existing2.revenue += item.total || 0;
+            existing2.costPrice += (cp || 0) * (item.quantity || 1);
+          } else {
+            dayProds.set(code, {
+              name: item.product_name,
+              qty: item.quantity || 1,
+              revenue: item.total || 0,
+              costPrice: (cp || 0) * (item.quantity || 1),
+            });
+          }
         }
       }
 
@@ -158,6 +181,9 @@ export async function GET(request: NextRequest) {
           delivery: agg.delivery,
           operational: opex,
           profit: agg.revenue - totalExpenses,
+          products: Array.from((productsByDate.get(dateStr) || new Map()).entries()).map(([code, pd]) => ({
+            code, name: pd.name, qty: pd.qty, revenue: pd.revenue, costPrice: pd.costPrice,
+          })),
         };
       });
 
@@ -490,9 +516,10 @@ export async function GET(request: NextRequest) {
     const totalProductRevenue = Array.from(productSales.values()).reduce((sum, p) => sum + p.revenue, 0);
     const totalDeliveryAll = Array.from(paymentsByDate.values()).reduce((sum, agg) => sum + agg.delivery, 0);
 
-    // Разделяем опер. расходы: привязанные к товару vs общие (дневные ставки)
+    // Разделяем опер. расходы: привязанные к товару, к группе, или общие
     const opexPerDayByProduct = new Map<string, number>();
     let generalOpexPerDay = 0;
+    const groupOpexPerDay: Record<string, number> = {};
     for (const exp of (opExpenses || [])) {
       const start = new Date(exp.start_date);
       const end = new Date(exp.end_date);
@@ -500,9 +527,18 @@ export async function GET(request: NextRequest) {
       const perDay = Number(exp.amount) / days;
       if (exp.product_id) {
         opexPerDayByProduct.set(exp.product_id, (opexPerDayByProduct.get(exp.product_id) || 0) + perDay);
+      } else if (exp.product_group) {
+        groupOpexPerDay[exp.product_group] = (groupOpexPerDay[exp.product_group] || 0) + perDay;
       } else {
         generalOpexPerDay += perDay;
       }
+    }
+
+    // Выручка по группам (для распределения групповых расходов)
+    const groupRevenue: Record<string, number> = {};
+    for (const [code, data] of productSales) {
+      const g = groupMap.get(code);
+      if (g) groupRevenue[g] = (groupRevenue[g] || 0) + data.revenue;
     }
 
     const topProducts = Array.from(productSales.entries())
@@ -514,10 +550,14 @@ export async function GET(request: NextRequest) {
         const productTax = data.revenue * (taxRate / 100);
         const productDelivery = totalDeliveryAll * revenueShare;
         const productAdCost = adCostBySku.get(code) || 0;
-        // Опер. расходы: дневная ставка (прямая + доля общих)
+        // Опер. расходы: дневная ставка (прямая + доля групповых + доля общих)
         const directPerDay = opexPerDayByProduct.get(code) || 0;
+        const productGroup = groupMap.get(code);
+        const groupPerDay = productGroup && groupOpexPerDay[productGroup] && groupRevenue[productGroup]
+          ? groupOpexPerDay[productGroup] * (data.revenue / groupRevenue[productGroup])
+          : 0;
         const sharedPerDay = generalOpexPerDay * revenueShare;
-        const opexPerDay = directPerDay + sharedPerDay;
+        const opexPerDay = directPerDay + groupPerDay + sharedPerDay;
         // Для profit/margin используем полную сумму (all-time)
         const totalDays = dailyData.length || 1;
         const productOpex = opexPerDay * totalDays;
@@ -540,6 +580,7 @@ export async function GET(request: NextRequest) {
           operationalPerDay: opexPerDay,
           profit: productProfit,
           margin,
+          group: groupMap.get(code) || null,
         };
       });
 

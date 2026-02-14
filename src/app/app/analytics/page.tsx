@@ -56,9 +56,12 @@ import {
 
 // Тип товара проданного за день
 interface DayProduct {
+  code: string;
   name: string;
   qty: number;
-  price: number;
+  revenue: number;
+  costPrice: number;
+  price?: number;
 }
 
 // Типы для аналитики
@@ -113,6 +116,7 @@ interface OperationalExpense {
   endDate: Date;         // Конец периода
   productId?: string | null;  // kaspi_id товара (null = общий расход)
   productName?: string | null; // название товара для отображения
+  productGroup?: string | null; // группа товара (import/production)
 }
 
 // Форматирование чисел: полные числа с разделителями (без K/M)
@@ -214,6 +218,13 @@ function AnalyticsPageContent() {
           }));
         }
         setApiData(data);
+        if (data.topProducts) {
+          const groups: Record<string, string | null> = {};
+          for (const p of data.topProducts) {
+            if (p.sku) groups[p.sku] = p.group || null;
+          }
+          setProductGroups(groups);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
@@ -264,6 +275,7 @@ function AnalyticsPageContent() {
   const [productSearch, setProductSearch] = useState('');
   const [productPage, setProductPage] = useState(1);
   const PRODUCTS_PER_PAGE = 10;
+  const [productGroups, setProductGroups] = useState<Record<string, string | null>>({});
 
   // Состояние сворачиваемых секций в табе Sales
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
@@ -310,6 +322,7 @@ function AnalyticsPageContent() {
   const [newExpenseEndDate, setNewExpenseEndDate] = useState<Date>(new Date('2026-01-31'));
   const [showExpenseCalendar, setShowExpenseCalendar] = useState(false);
   const [newExpenseProductId, setNewExpenseProductId] = useState<string | null>(null);
+  const [newExpenseGroupId, setNewExpenseGroupId] = useState<string | null>(null);
   const [productsList, setProductsList] = useState<Array<{ kaspi_id: string; name: string }>>([]);
   const [showProductDropdown, setShowProductDropdown] = useState(false);
   const [expenseProductSearch, setExpenseProductSearch] = useState('');
@@ -348,6 +361,7 @@ function AnalyticsPageContent() {
           startDate: new Date(e.start_date || e.startDate),
           endDate: new Date(e.end_date || e.endDate),
           productId: e.product_id || null,
+          productGroup: e.product_group || null,
         })));
       }
     } catch (err) {
@@ -375,6 +389,7 @@ function AnalyticsPageContent() {
             startDate: newExpenseStartDate.toISOString().split('T')[0],
             endDate: newExpenseEndDate.toISOString().split('T')[0],
             productId: newExpenseProductId || null,
+            productGroup: newExpenseGroupId || null,
           }),
         });
         const json = await res.json();
@@ -385,6 +400,7 @@ function AnalyticsPageContent() {
           setNewExpenseStartDate(new Date('2026-01-01'));
           setNewExpenseEndDate(new Date('2026-01-31'));
           setNewExpenseProductId(null);
+          setNewExpenseGroupId(null);
           setExpenseProductSearch('');
         }
       } catch (err) {
@@ -679,6 +695,61 @@ function AnalyticsPageContent() {
     const totalProfit = filteredDailyData.reduce((sum: number, day: DailyData) => sum + day.profit, 0);
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
+    // Rebuild topProducts from filtered daily data
+    const allTopProducts = sourceData.topProducts || [];
+    const periodProductSales = new Map<string, { name: string; qty: number; revenue: number; costPrice: number }>();
+    for (const day of filteredDailyData) {
+      if (day.products && Array.isArray(day.products)) {
+        for (const p of day.products) {
+          const key = p.code || p.name;
+          const ex = periodProductSales.get(key);
+          if (ex) {
+            ex.qty += p.qty || 0;
+            ex.revenue += p.revenue || 0;
+            ex.costPrice += p.costPrice || 0;
+          } else {
+            periodProductSales.set(key, { name: p.name, qty: p.qty || 0, revenue: p.revenue || 0, costPrice: p.costPrice || 0 });
+          }
+        }
+      }
+    }
+
+    // Merge with original topProducts metadata (adCost, group, etc.)
+    const origMap = new Map<string, any>();
+    for (const p of allTopProducts) origMap.set(p.sku, p);
+
+    const periodTotalRevenue = Array.from(periodProductSales.values()).reduce((s, p) => s + p.revenue, 0);
+    const storeCommRate = (sourceData.storeSettings?.commissionRate ?? 12.5) / 100;
+    const storeTaxRate = (sourceData.storeSettings?.taxRate ?? 4.0) / 100;
+
+    const filteredTopProducts = Array.from(periodProductSales.entries())
+      .sort((a, b) => b[1].revenue - a[1].revenue)
+      .slice(0, 50)
+      .map(([code, d], idx) => {
+        const orig = origMap.get(code) || {};
+        const revenueShare = periodTotalRevenue > 0 ? d.revenue / periodTotalRevenue : 0;
+        const commission = d.revenue * storeCommRate;
+        const tax = d.revenue * storeTaxRate;
+        const delivery = totalDelivery * revenueShare;
+        const adCost = orig.adCost || 0;
+        const profit = d.revenue - d.costPrice - commission - tax - delivery - adCost;
+        const margin = d.revenue > 0 ? (profit / d.revenue) * 100 : 0;
+        return {
+          ...orig,
+          id: String(idx + 1),
+          name: d.name,
+          sku: code,
+          sales: d.qty,
+          revenue: d.revenue,
+          costPrice: d.costPrice,
+          commission,
+          tax,
+          delivery,
+          profit,
+          margin,
+        };
+      });
+
     return {
       totalOrders,
       totalRevenue,
@@ -691,7 +762,7 @@ function AnalyticsPageContent() {
       avgOrderValue,
       dailyData: chartData,
       dailyDataByCreation: chartDataByCreation,
-      topProducts: sourceData.topProducts || [],
+      topProducts: filteredTopProducts,
       ordersByStatus: sourceData.ordersByStatus || { pending: 0, processing: 0, shipped: 0, delivered: 0, cancelled: 0, returned: 0 },
       salesSources: sourceData.salesSources || { organic: totalOrders, advertising: 0 },
       ordersBySource: sourceData.ordersBySource || { organic: totalOrders, ads: 0, offline: 0 },
@@ -1514,8 +1585,8 @@ function AnalyticsPageContent() {
                             <LabelList
                               dataKey="revenue"
                               position="top"
-                              formatter={(value) => `${fmt(Number(value))} ₸`}
-                              style={{ fontSize: typeof window !== 'undefined' && window.innerWidth >= 1024 ? 11 : 8, fill: '#6b7280', fontWeight: 500 }}
+                              formatter={(value) => fmtAxis(Number(value))}
+                              style={{ fontSize: typeof window !== 'undefined' && window.innerWidth >= 1024 ? 11 : 7, fill: '#6b7280', fontWeight: 500 }}
                             />
                           </Bar>
                         </BarChart>
@@ -1632,37 +1703,47 @@ function AnalyticsPageContent() {
                   // Расчёт данных для каждого товара
                   const totalAdSales = data.topProducts.reduce((sum: number, p: any) => sum + (p.adSales || 0), 0);
 
+                  // Выручка по группам (для распределения групповых расходов)
+                  const grpRevenue: Record<string, number> = {};
+                  for (const p of data.topProducts) {
+                    const g = productGroups[p.sku] || p.group;
+                    if (g) grpRevenue[g] = (grpRevenue[g] || 0) + (p.revenue || 0);
+                  }
+
                   // Рассчитать опер. расходы с учётом пересечения дат расхода и периода просмотра
-                  const calcProductOpex = (sku: string, revenueShare: number) => {
+                  const calcProductOpex = (sku: string, revenueShare: number, productRevenue: number) => {
                     if (!startDate || !endDate) return 0;
                     const viewStart = startDate.getTime();
                     const viewEnd = endDate.getTime();
+                    const pGroup = productGroups[sku] || data.topProducts.find((p: any) => p.sku === sku)?.group;
                     let direct = 0;
                     let shared = 0;
+                    let groupShared = 0;
                     for (const exp of operationalExpenses) {
                       const expStart = exp.startDate.getTime();
                       const expEnd = exp.endDate.getTime();
-                      // Пересечение дат
                       const overlapStart = Math.max(expStart, viewStart);
                       const overlapEnd = Math.min(expEnd, viewEnd);
-                      if (overlapStart > overlapEnd) continue; // нет пересечения
+                      if (overlapStart > overlapEnd) continue;
                       const overlapDays = Math.round((overlapEnd - overlapStart) / 86400000) + 1;
                       const totalExpDays = Math.max(1, Math.round((expEnd - expStart) / 86400000) + 1);
                       const proratedAmount = (exp.amount / totalExpDays) * overlapDays;
                       if (exp.productId === sku) {
                         direct += proratedAmount;
-                      } else if (!exp.productId) {
+                      } else if (exp.productGroup && pGroup === exp.productGroup && grpRevenue[exp.productGroup]) {
+                        groupShared += proratedAmount * (productRevenue / grpRevenue[exp.productGroup]);
+                      } else if (!exp.productId && !exp.productGroup) {
                         shared += proratedAmount * revenueShare;
                       }
                     }
-                    return direct + shared;
+                    return direct + groupShared + shared;
                   };
 
                   const totalProductRevenue = data.topProducts.reduce((s: number, p: any) => s + (p.revenue || 0), 0);
 
                   const productsWithData = data.topProducts.map((product: any) => {
                     const revenueShare = totalProductRevenue > 0 ? (product.revenue || 0) / totalProductRevenue : 0;
-                    const opexForPeriod = calcProductOpex(product.sku, revenueShare);
+                    const opexForPeriod = calcProductOpex(product.sku, revenueShare, product.revenue || 0);
                     return {
                       ...product,
                       displaySales: product.sales,
@@ -1731,12 +1812,63 @@ function AnalyticsPageContent() {
                           </button>
                         ))}
                       </div>
+                      {/* Итоги по группам */}
+                      {(() => {
+                        const importProducts = productsWithData.filter((p: any) => (productGroups[p.sku] || p.group) === 'import');
+                        const prodProducts = productsWithData.filter((p: any) => (productGroups[p.sku] || p.group) === 'production');
+                        if (importProducts.length === 0 && prodProducts.length === 0) return null;
+                        const calcGroup = (items: any[]) => ({
+                          count: items.length,
+                          revenue: items.reduce((s: number, p: any) => s + (p.displayRevenue || 0), 0),
+                          profit: items.reduce((s: number, p: any) => s + (p.displayProfit || 0), 0),
+                          margin: items.reduce((s: number, p: any) => s + (p.displayRevenue || 0), 0) > 0
+                            ? (items.reduce((s: number, p: any) => s + (p.displayProfit || 0), 0) / items.reduce((s: number, p: any) => s + (p.displayRevenue || 0), 0)) * 100
+                            : 0,
+                        });
+                        const imp = calcGroup(importProducts);
+                        const prod = calcGroup(prodProducts);
+                        return (
+                          <div className="grid grid-cols-2 gap-2 lg:gap-3 mb-2 lg:mb-4">
+                            {importProducts.length > 0 && (
+                              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 lg:p-3">
+                                <div className="text-[10px] lg:text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">Импорт · {imp.count} товаров</div>
+                                <div className="text-[10px] lg:text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                                  <div>Выр: {fmt(imp.revenue)} ₸</div>
+                                  <div className={imp.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}>Приб: {imp.profit >= 0 ? '+' : ''}{fmt(imp.profit)} ₸</div>
+                                  <div>Маржа: {Math.round(imp.margin)}%</div>
+                                </div>
+                              </div>
+                            )}
+                            {prodProducts.length > 0 && (
+                              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-2 lg:p-3">
+                                <div className="text-[10px] lg:text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">Производство · {prod.count} товаров</div>
+                                <div className="text-[10px] lg:text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                                  <div>Выр: {fmt(prod.revenue)} ₸</div>
+                                  <div className={prod.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}>Приб: {prod.profit >= 0 ? '+' : ''}{fmt(prod.profit)} ₸</div>
+                                  <div>Маржа: {Math.round(prod.margin)}%</div>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
                       {/* Карточки товаров */}
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-1.5 lg:gap-3">
                         {displayedProducts.map((product: any) => (
                           <div key={product.id} className="bg-white dark:bg-gray-800 rounded-lg px-2.5 py-1.5 lg:px-4 lg:py-3 shadow-sm">
                             <div className="flex items-center justify-between gap-2">
-                              <p className="font-medium text-sm lg:text-base text-gray-900 dark:text-white truncate flex-1">{product.name}</p>
+                              <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                {(productGroups[product.sku] || product.group) && (
+                                  <span className={`text-[8px] lg:text-[10px] px-1 lg:px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${
+                                    (productGroups[product.sku] || product.group) === 'import'
+                                      ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
+                                      : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
+                                  }`}>
+                                    {(productGroups[product.sku] || product.group) === 'import' ? 'Имп' : 'Пр-во'}
+                                  </span>
+                                )}
+                                <p className="font-medium text-sm lg:text-base text-gray-900 dark:text-white truncate">{product.name}</p>
+                              </div>
                               <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">{product.displaySales} шт</span>
                             </div>
                             <div className="flex items-center justify-between text-[11px] lg:text-sm text-gray-500 dark:text-gray-400 mt-0.5 lg:mt-1">
@@ -3090,6 +3222,12 @@ function AnalyticsPageContent() {
                                   {productsList.find(p => p.kaspi_id === expense.productId)?.name || expense.productId}
                                 </div>
                               )}
+                              {expense.productGroup === 'import' && (
+                                <div className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded mt-0.5 inline-block">Импорт</div>
+                              )}
+                              {expense.productGroup === 'production' && (
+                                <div className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded mt-0.5 inline-block">Производство</div>
+                              )}
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <div className="font-semibold text-gray-900 text-sm">
@@ -3147,7 +3285,9 @@ function AnalyticsPageContent() {
                           className="w-full flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg text-sm hover:border-indigo-500 transition-colors"
                         >
                           <span className="text-gray-700 truncate">
-                            {newExpenseProductId
+                            {newExpenseGroupId === 'import' ? 'Группа: Импорт'
+                              : newExpenseGroupId === 'production' ? 'Группа: Производство'
+                              : newExpenseProductId
                               ? productsList.find(p => p.kaspi_id === newExpenseProductId)?.name || 'Товар'
                               : 'Общий расход (без товара)'}
                           </span>
@@ -3172,17 +3312,30 @@ function AnalyticsPageContent() {
                               </div>
                               <div className="overflow-y-auto max-h-48">
                                 <button
-                                  onClick={() => { setNewExpenseProductId(null); setShowProductDropdown(false); setExpenseProductSearch(''); }}
-                                  className={`w-full text-left px-3 py-2 text-xs hover:bg-indigo-50 transition-colors ${!newExpenseProductId ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700'}`}
+                                  onClick={() => { setNewExpenseProductId(null); setNewExpenseGroupId(null); setShowProductDropdown(false); setExpenseProductSearch(''); }}
+                                  className={`w-full text-left px-3 py-2 text-xs hover:bg-indigo-50 transition-colors ${!newExpenseProductId && !newExpenseGroupId ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700'}`}
                                 >
                                   Общий расход (без товара)
                                 </button>
+                                <button
+                                  onClick={() => { setNewExpenseProductId(null); setNewExpenseGroupId('import'); setShowProductDropdown(false); setExpenseProductSearch(''); }}
+                                  className={`w-full text-left px-3 py-2 text-xs hover:bg-blue-50 transition-colors ${newExpenseGroupId === 'import' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-blue-600'}`}
+                                >
+                                  Группа: Импорт
+                                </button>
+                                <button
+                                  onClick={() => { setNewExpenseProductId(null); setNewExpenseGroupId('production'); setShowProductDropdown(false); setExpenseProductSearch(''); }}
+                                  className={`w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 transition-colors ${newExpenseGroupId === 'production' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-emerald-600'}`}
+                                >
+                                  Группа: Производство
+                                </button>
+                                <div className="border-t border-gray-100 my-1" />
                                 {productsList
                                   .filter(p => !expenseProductSearch || p.name.toLowerCase().includes(expenseProductSearch.toLowerCase()))
                                   .map(p => (
                                     <button
                                       key={p.kaspi_id}
-                                      onClick={() => { setNewExpenseProductId(p.kaspi_id); setShowProductDropdown(false); setExpenseProductSearch(''); }}
+                                      onClick={() => { setNewExpenseProductId(p.kaspi_id); setNewExpenseGroupId(null); setShowProductDropdown(false); setExpenseProductSearch(''); }}
                                       className={`w-full text-left px-3 py-2 text-xs hover:bg-indigo-50 transition-colors truncate ${newExpenseProductId === p.kaspi_id ? 'bg-indigo-50 text-indigo-700 font-medium' : 'text-gray-700'}`}
                                     >
                                       {p.name}

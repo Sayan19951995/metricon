@@ -36,3 +36,38 @@ export async function GET(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const { userId, kaspiId, productGroup } = await request.json();
+
+    if (!userId || !kaspiId) {
+      return NextResponse.json({ success: false, message: 'userId и kaspiId обязательны' }, { status: 400 });
+    }
+
+    const storeResult = await supabase
+      .from('stores')
+      .select('id')
+      .eq('user_id', userId)
+      .single();
+
+    if (!storeResult.data) {
+      return NextResponse.json({ success: false, message: 'Магазин не найден' }, { status: 400 });
+    }
+
+    const { error } = await supabase
+      .from('products')
+      .update({ product_group: productGroup || null })
+      .eq('store_id', storeResult.data.id)
+      .eq('kaspi_id', kaspiId);
+
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    return NextResponse.json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Ошибка сервера'
+    }, { status: 500 });
+  }
+}

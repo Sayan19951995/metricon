@@ -83,6 +83,8 @@ export default function DashboardPage() {
   const [selectedDayIdx, setSelectedDayIdx] = useState(6);
   const [selectedPaymentDayIdx, setSelectedPaymentDayIdx] = useState<number | null>(null);
   const [showTodaySold, setShowTodaySold] = useState(false);
+  const [daySoldProducts, setDaySoldProducts] = useState<Array<{ name: string; quantity: number; revenue: number }>>([]);
+  const [daySoldLoading, setDaySoldLoading] = useState(false);
   const notificationsRef = useRef<HTMLDivElement>(null);
   const growthTooltipRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<HTMLDivElement>(null);
@@ -636,7 +638,24 @@ export default function DashboardPage() {
                   )}
                   <button
                     className="flex items-center gap-1 mt-1 bg-blue-50/60 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/40 px-3 py-1.5 -mx-3 -my-1 rounded-lg transition-colors"
-                    onClick={(e) => { e.stopPropagation(); setShowTodaySold(!showTodaySold); }}
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if (showTodaySold) { setShowTodaySold(false); return; }
+                      if (isToday) {
+                        setDaySoldProducts(todaySoldProducts);
+                        setShowTodaySold(true);
+                      } else {
+                        setDaySoldLoading(true);
+                        setShowTodaySold(true);
+                        try {
+                          const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+                          const res = await fetch(`/api/dashboard/day-sales?userId=${user?.id}&date=${dateStr}`);
+                          const json = await res.json();
+                          setDaySoldProducts(json.success ? json.data : []);
+                        } catch { setDaySoldProducts([]); }
+                        finally { setDaySoldLoading(false); }
+                      }
+                    }}
                   >
                     <ShoppingCart className="w-3.5 h-3.5 text-blue-500" />
                     <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">{selectedOrders}</span>
@@ -1239,9 +1258,16 @@ export default function DashboardPage() {
               {/* Header */}
               <div className="flex items-center justify-between p-5 pb-3">
                 <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Продажи сегодня</h3>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                    {(() => {
+                      const d = new Date();
+                      d.setDate(d.getDate() - (6 - selectedDayIdx));
+                      const dn = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
+                      return selectedDayIdx === 6 ? 'Продажи сегодня' : `Продажи · ${dn[d.getDay()]}, ${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+                    })()}
+                  </h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
-                    {todaySoldProducts.length} товаров · {todaySoldProducts.reduce((s, p) => s + p.quantity, 0)} шт · {todaySoldProducts.reduce((s, p) => s + p.revenue, 0).toLocaleString('ru-RU')} ₸
+                    {daySoldProducts.length} товаров · {daySoldProducts.reduce((s, p) => s + p.quantity, 0)} шт · {daySoldProducts.reduce((s, p) => s + p.revenue, 0).toLocaleString('ru-RU')} ₸
                   </p>
                 </div>
                 <button
@@ -1254,7 +1280,14 @@ export default function DashboardPage() {
 
               {/* Scrollable list */}
               <div className="overflow-y-auto px-5 pb-5" style={{ maxHeight: 'calc(85vh - 100px)' }}>
-                {todaySoldProducts.map((product, index) => (
+                {daySoldLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="w-6 h-6 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin" />
+                  </div>
+                ) : daySoldProducts.length === 0 ? (
+                  <div className="text-center py-8 text-gray-400 text-sm">Нет продаж за этот день</div>
+                ) : null}
+                {daySoldProducts.map((product, index) => (
                   <div key={index} className="flex items-center gap-2.5 py-2.5 px-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                     <span className="text-gray-400 w-5 text-right flex-shrink-0 text-xs font-medium">{index + 1}</span>
                     <div className="flex-1 min-w-0">

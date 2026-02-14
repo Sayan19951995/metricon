@@ -14,6 +14,7 @@ interface OperationalExpense {
   startDate: Date;
   endDate: Date;
   productId?: string | null;
+  productGroup?: string | null;
 }
 
 interface Product {
@@ -36,6 +37,7 @@ export default function ExpensesPage() {
   const [startDate, setStartDate] = useState<Date>(new Date('2026-01-01'));
   const [endDate, setEndDate] = useState<Date>(new Date('2026-01-31'));
   const [productId, setProductId] = useState<string | null>(null);
+  const [groupId, setGroupId] = useState<string | null>(null);
   const [showCalendar, setShowCalendar] = useState(false);
   const [showProductDropdown, setShowProductDropdown] = useState(false);
   const [productSearch, setProductSearch] = useState('');
@@ -54,6 +56,7 @@ export default function ExpensesPage() {
           startDate: new Date(e.start_date || e.startDate),
           endDate: new Date(e.end_date || e.endDate),
           productId: e.product_id || null,
+          productGroup: e.product_group || null,
         })));
       }
     } catch (err) {
@@ -97,6 +100,7 @@ export default function ExpensesPage() {
           startDate: format(startDate, 'yyyy-MM-dd'),
           endDate: format(endDate, 'yyyy-MM-dd'),
           productId: productId || null,
+          productGroup: groupId || null,
         }),
       });
       const json = await res.json();
@@ -105,6 +109,7 @@ export default function ExpensesPage() {
         setName('');
         setAmount('');
         setProductId(null);
+        setGroupId(null);
         setProductSearch('');
       }
     } catch (err) {
@@ -222,7 +227,10 @@ export default function ExpensesPage() {
                 >
                   <span className="flex items-center gap-2 text-gray-700 dark:text-gray-300 truncate">
                     <Package className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    {productId ? getProductName(productId) : 'Общий расход (без товара)'}
+                    {groupId === 'import' ? 'Группа: Импорт'
+                      : groupId === 'production' ? 'Группа: Производство'
+                      : productId ? getProductName(productId)
+                      : 'Общий расход (без товара)'}
                   </span>
                   <ChevronDown className={`w-4 h-4 text-gray-400 flex-shrink-0 ml-2 transition-transform ${showProductDropdown ? 'rotate-180' : ''}`} />
                 </button>
@@ -248,15 +256,28 @@ export default function ExpensesPage() {
                       </div>
                       <div className="overflow-y-auto max-h-52">
                         <button
-                          onClick={() => { setProductId(null); setShowProductDropdown(false); setProductSearch(''); }}
-                          className={`w-full text-left px-3 py-2.5 text-xs hover:bg-indigo-50 dark:hover:bg-gray-600 transition-colors ${!productId ? 'bg-indigo-50 dark:bg-gray-600 text-indigo-700 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'}`}
+                          onClick={() => { setProductId(null); setGroupId(null); setShowProductDropdown(false); setProductSearch(''); }}
+                          className={`w-full text-left px-3 py-2.5 text-xs hover:bg-indigo-50 dark:hover:bg-gray-600 transition-colors ${!productId && !groupId ? 'bg-indigo-50 dark:bg-gray-600 text-indigo-700 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'}`}
                         >
                           Общий расход (без товара)
                         </button>
+                        <button
+                          onClick={() => { setProductId(null); setGroupId('import'); setShowProductDropdown(false); setProductSearch(''); }}
+                          className={`w-full text-left px-3 py-2.5 text-xs hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors ${groupId === 'import' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-blue-600 dark:text-blue-400'}`}
+                        >
+                          Группа: Импорт
+                        </button>
+                        <button
+                          onClick={() => { setProductId(null); setGroupId('production'); setShowProductDropdown(false); setProductSearch(''); }}
+                          className={`w-full text-left px-3 py-2.5 text-xs hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors ${groupId === 'production' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-medium' : 'text-emerald-600 dark:text-emerald-400'}`}
+                        >
+                          Группа: Производство
+                        </button>
+                        <div className="border-t border-gray-100 dark:border-gray-600 my-1" />
                         {filteredProducts.map(p => (
                           <button
                             key={p.kaspi_id}
-                            onClick={() => { setProductId(p.kaspi_id); setShowProductDropdown(false); setProductSearch(''); }}
+                            onClick={() => { setProductId(p.kaspi_id); setGroupId(null); setShowProductDropdown(false); setProductSearch(''); }}
                             className={`w-full text-left px-3 py-2.5 text-xs hover:bg-indigo-50 dark:hover:bg-gray-600 transition-colors truncate ${productId === p.kaspi_id ? 'bg-indigo-50 dark:bg-gray-600 text-indigo-700 dark:text-indigo-400 font-medium' : 'text-gray-700 dark:text-gray-300'}`}
                           >
                             {p.name}
@@ -387,6 +408,12 @@ export default function ExpensesPage() {
                               <span className="text-[10px] text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-900/30 px-1.5 py-0.5 rounded truncate max-w-[200px]">
                                 {pName}
                               </span>
+                            )}
+                            {expense.productGroup === 'import' && (
+                              <span className="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">Импорт</span>
+                            )}
+                            {expense.productGroup === 'production' && (
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded">Производство</span>
                             )}
                           </div>
                           <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">

@@ -39,6 +39,7 @@ interface Product {
   image_url: string | null;
   category: string | null;
   active: boolean | null;
+  product_group: string | null;
   availabilities?: Availability[];
 }
 
@@ -53,9 +54,25 @@ export default function WarehousePage() {
   const [loading, setLoading] = useState(!stale);
   const [refreshing, setRefreshing] = useState(false);
 
+  // Group assignment
+  const [groupMenuId, setGroupMenuId] = useState<string | null>(null);
+  const updateProductGroup = async (productId: string, kaspiId: string | null, group: string | null) => {
+    if (!user?.id || !kaspiId) return;
+    setProducts(prev => prev.map(p => p.id === productId ? { ...p, product_group: group } : p));
+    setGroupMenuId(null);
+    try {
+      await fetch('/api/products', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, kaspiId, productGroup: group }),
+      });
+    } catch (e) { console.error('Failed to update group:', e); }
+  };
+
   // Filters, sorting & pagination
   const [searchTerm, setSearchTerm] = useState('');
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  const [groupFilter, setGroupFilter] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 20;
   type SortField = 'name' | 'quantity' | 'cost_price' | 'price' | 'value';
@@ -113,7 +130,7 @@ export default function WarehousePage() {
       const [dbResult, cabinetResult] = await Promise.all([
         supabase
           .from('products')
-          .select('id, kaspi_id, name, sku, price, cost_price, quantity, kaspi_stock, image_url, category, active' as any)
+          .select('id, kaspi_id, name, sku, price, cost_price, quantity, kaspi_stock, image_url, category, active, product_group' as any)
           .eq('store_id', store.id)
           .order('name', { ascending: true })
           .limit(500),
@@ -230,7 +247,7 @@ export default function WarehousePage() {
           const { data: inserted } = await supabase
             .from('products')
             .insert(inserts as any)
-            .select('id, kaspi_id, name, sku, price, cost_price, quantity, kaspi_stock, image_url, category, active' as any);
+            .select('id, kaspi_id, name, sku, price, cost_price, quantity, kaspi_stock, image_url, category, active, product_group' as any);
 
           // Добавляем в список для отображения
           if (inserted) {
@@ -344,7 +361,10 @@ export default function WarehousePage() {
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesLowStock = !showLowStockOnly || (p.quantity ?? 0) < 5;
-    return matchesSearch && matchesLowStock;
+    const matchesGroup = groupFilter === null ? true
+      : groupFilter === 'none' ? !p.product_group
+      : p.product_group === groupFilter;
+    return matchesSearch && matchesLowStock && matchesGroup;
   });
 
   // Sort
@@ -419,7 +439,7 @@ export default function WarehousePage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen relative">
+    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen relative" onClick={() => groupMenuId && setGroupMenuId(null)}>
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${
@@ -613,7 +633,7 @@ export default function WarehousePage() {
         </div>
       )}
 
-      {/* Search */}
+      {/* Search & group filter */}
       <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-sm mb-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
@@ -624,6 +644,33 @@ export default function WarehousePage() {
             placeholder="Поиск по названию или SKU..."
             className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 transition-colors dark:text-white dark:placeholder-gray-500"
           />
+        </div>
+        <div className="flex gap-2 mt-3">
+          {([
+            [null, 'Все', 'gray'],
+            ['import', 'Импорт', 'blue'],
+            ['production', 'Производство', 'green'],
+            ['none', 'Без группы', 'gray'],
+          ] as [string | null, string, string][]).map(([val, label, color]) => {
+            const count = val === null ? products.length
+              : val === 'none' ? products.filter(p => !p.product_group).length
+              : products.filter(p => p.product_group === val).length;
+            return (
+              <button
+                key={val ?? 'all'}
+                onClick={() => { setGroupFilter(val); setPage(0); }}
+                className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${
+                  groupFilter === val
+                    ? val === 'import' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                    : val === 'production' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                    : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200'
+                    : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+                }`}
+              >
+                {label} ({count})
+              </button>
+            );
+          })}
         </div>
       </div>
 
@@ -669,7 +716,38 @@ export default function WarehousePage() {
               <div key={product.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate text-gray-900 dark:text-white">{product.name}</p>
+                    <div className="flex items-center gap-1.5">
+                      <p className="font-medium text-sm truncate text-gray-900 dark:text-white">{product.name}</p>
+                      <div className="relative flex-shrink-0">
+                        <button
+                          onClick={() => setGroupMenuId(groupMenuId === product.id ? null : product.id)}
+                          className={`px-1.5 py-0.5 text-[10px] rounded font-medium cursor-pointer ${
+                            product.product_group === 'import' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300'
+                            : product.product_group === 'production' ? 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-300'
+                            : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500'
+                          }`}
+                        >
+                          {product.product_group === 'import' ? 'Имп' : product.product_group === 'production' ? 'Пр-во' : '—'}
+                        </button>
+                        {groupMenuId === product.id && (
+                          <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 py-1 w-36">
+                            {([
+                              ['import', 'Импорт', 'text-blue-600'],
+                              ['production', 'Производство', 'text-green-600'],
+                              [null, 'Убрать', 'text-gray-400'],
+                            ] as [string | null, string, string][]).map(([val, label, cls]) => (
+                              <button
+                                key={val ?? 'none'}
+                                onClick={() => updateProductGroup(product.id, product.kaspi_id, val)}
+                                className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:hover:bg-gray-700 ${cls} ${product.product_group === val ? 'font-bold' : ''}`}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                     <p className="text-xs text-gray-400 mt-0.5">{product.sku || '—'}</p>
                   </div>
                   {(product.quantity ?? 0) < 5 && (
@@ -798,7 +876,38 @@ export default function WarehousePage() {
                     {/* Product */}
                     <td className="py-3 px-6">
                       <div className="min-w-0">
-                        <p className="text-sm font-medium truncate text-gray-900 dark:text-white">{product.name}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-medium truncate text-gray-900 dark:text-white">{product.name}</p>
+                          <div className="relative flex-shrink-0">
+                            <button
+                              onClick={() => setGroupMenuId(groupMenuId === product.id ? null : product.id)}
+                              className={`px-1.5 py-0.5 text-[10px] rounded font-medium cursor-pointer transition-colors ${
+                                product.product_group === 'import' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300 hover:bg-blue-200'
+                                : product.product_group === 'production' ? 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-300 hover:bg-green-200'
+                                : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500 hover:bg-gray-200'
+                              }`}
+                            >
+                              {product.product_group === 'import' ? 'Имп' : product.product_group === 'production' ? 'Пр-во' : '—'}
+                            </button>
+                            {groupMenuId === product.id && (
+                              <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 py-1 w-36">
+                                {([
+                                  ['import', 'Импорт', 'text-blue-600'],
+                                  ['production', 'Производство', 'text-green-600'],
+                                  [null, 'Убрать', 'text-gray-400'],
+                                ] as [string | null, string, string][]).map(([val, label, cls]) => (
+                                  <button
+                                    key={val ?? 'none'}
+                                    onClick={() => updateProductGroup(product.id, product.kaspi_id, val)}
+                                    className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:hover:bg-gray-700 ${cls} ${product.product_group === val ? 'font-bold' : ''}`}
+                                  >
+                                    {label}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
                         <p className="text-xs text-gray-400">{product.sku || '—'}</p>
                       </div>
                     </td>
