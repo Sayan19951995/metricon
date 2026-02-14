@@ -35,9 +35,9 @@ export async function GET(request: NextRequest) {
     // === 0. Загрузить себестоимость товаров ===
     const productsResult = await supabase
       .from('products')
-      .select('kaspi_id, cost_price, product_group')
+      .select('kaspi_id, cost_price, product_group' as any)
       .eq('store_id', store.id);
-    const productsDb = productsResult.data || [];
+    const productsDb = (productsResult.data || []) as Array<{ kaspi_id: string | null; cost_price: number | null; product_group: string | null }>;
 
     const costPriceMap = new Map<string, number>();
     const groupMap = new Map<string, string>();
