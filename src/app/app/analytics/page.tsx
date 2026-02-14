@@ -2498,7 +2498,7 @@ function AnalyticsPageContent() {
                             <tr key={idx} className="hover:bg-gray-50">
                               <td className="py-1.5 px-3 text-gray-900 truncate max-w-[200px]">{product.name}</td>
                               <td className="py-1.5 px-2 text-center text-gray-600">{product.qty}</td>
-                              <td className="py-1.5 px-3 text-right text-gray-900">{product.price.toLocaleString('ru-RU')} ₸</td>
+                              <td className="py-1.5 px-3 text-right text-gray-900">{(product.price ?? 0).toLocaleString('ru-RU')} ₸</td>
                             </tr>
                           ))}
                         </tbody>
