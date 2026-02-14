@@ -117,6 +117,7 @@ export interface Database {
           start_date: string
           end_date: string
           product_id: string | null
+          product_group: string | null
           created_at: string | null
         }
         Insert: {
@@ -127,6 +128,7 @@ export interface Database {
           start_date: string
           end_date: string
           product_id?: string | null
+          product_group?: string | null
           created_at?: string | null
         }
         Update: {
@@ -137,6 +139,7 @@ export interface Database {
           start_date?: string
           end_date?: string
           product_id?: string | null
+          product_group?: string | null
           created_at?: string | null
         }
         Relationships: []
@@ -286,9 +289,11 @@ export interface Database {
           price: number | null
           cost_price: number | null
           quantity: number | null
+          kaspi_stock: number | null
           image_url: string | null
           category: string | null
           active: boolean | null
+          product_group: string | null
           created_at: string | null
         }
         Insert: {
@@ -300,9 +305,11 @@ export interface Database {
           price?: number | null
           cost_price?: number | null
           quantity?: number | null
+          kaspi_stock?: number | null
           image_url?: string | null
           category?: string | null
           active?: boolean | null
+          product_group?: string | null
           created_at?: string | null
         }
         Update: {
@@ -314,9 +321,11 @@ export interface Database {
           price?: number | null
           cost_price?: number | null
           quantity?: number | null
+          kaspi_stock?: number | null
           image_url?: string | null
           category?: string | null
           active?: boolean | null
+          product_group?: string | null
           created_at?: string | null
         }
         Relationships: []

@@ -35,9 +35,9 @@ export async function GET(request: NextRequest) {
     // === 0. Загрузить себестоимость товаров ===
     const productsResult = await supabase
       .from('products')
-      .select('kaspi_id, cost_price, product_group' as any)
+      .select('kaspi_id, cost_price, product_group')
       .eq('store_id', store.id);
-    const productsDb = (productsResult.data || []) as unknown as Array<{ kaspi_id: string | null; cost_price: number | null; product_group: string | null }>;
+    const productsDb = productsResult.data || [];
 
     const costPriceMap = new Map<string, number>();
     const groupMap = new Map<string, string>();
@@ -142,7 +142,7 @@ export async function GET(request: NextRequest) {
       .from('operational_expenses')
       .select('*')
       .eq('store_id', store.id);
-    const opExpenses = (opExpensesResult.data || []) as unknown as Array<{ id: string; store_id: string; name: string; amount: number; start_date: string; end_date: string; product_id: string | null; product_group: string | null }>;
+    const opExpenses = opExpensesResult.data || [];
 
     // Для каждого дня подсчитаем долю опер. расходов
     const dailyOpex = new Map<string, number>();

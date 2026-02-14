@@ -130,7 +130,7 @@ export default function WarehousePage() {
       const [dbResult, cabinetResult] = await Promise.all([
         supabase
           .from('products')
-          .select('id, kaspi_id, name, sku, price, cost_price, quantity, kaspi_stock, image_url, category, active, product_group' as any)
+          .select('id, kaspi_id, name, sku, price, cost_price, quantity, kaspi_stock, image_url, category, active, product_group')
           .eq('store_id', store.id)
           .order('name', { ascending: true })
           .limit(500),
@@ -247,7 +247,7 @@ export default function WarehousePage() {
           const { data: inserted } = await supabase
             .from('products')
             .insert(inserts as any)
-            .select('id, kaspi_id, name, sku, price, cost_price, quantity, kaspi_stock, image_url, category, active, product_group' as any);
+            .select('id, kaspi_id, name, sku, price, cost_price, quantity, kaspi_stock, image_url, category, active, product_group');
 
           // Добавляем в список для отображения
           if (inserted) {

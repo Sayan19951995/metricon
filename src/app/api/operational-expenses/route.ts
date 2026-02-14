@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
         end_date: endDate,
         product_id: productId || null,
         product_group: productGroup || null,
-      } as any)
+      })
       .select()
       .single();
     const expense = expenseResult.data;
