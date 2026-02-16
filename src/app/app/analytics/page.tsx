@@ -695,10 +695,10 @@ function AnalyticsPageContent() {
     const totalProfit = filteredDailyData.reduce((sum: number, day: DailyData) => sum + day.profit, 0);
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-    // Rebuild topProducts from filtered daily data
+    // Rebuild topProducts from filtered daily data (by creation date — consistent with top cards)
     const allTopProducts = sourceData.topProducts || [];
     const periodProductSales = new Map<string, { name: string; qty: number; revenue: number; costPrice: number }>();
-    for (const day of filteredDailyData) {
+    for (const day of filteredDailyDataByCreation) {
       if (day.products && Array.isArray(day.products)) {
         for (const p of day.products) {
           const key = p.code || p.name;
@@ -719,6 +719,7 @@ function AnalyticsPageContent() {
     for (const p of allTopProducts) origMap.set(p.sku, p);
 
     const periodTotalRevenue = Array.from(periodProductSales.values()).reduce((s, p) => s + p.revenue, 0);
+    const creationTotalDelivery = filteredDailyDataByCreation.reduce((sum: number, day: DailyData) => sum + (day.delivery || 0), 0);
     const storeCommRate = (sourceData.storeSettings?.commissionRate ?? 12.5) / 100;
     const storeTaxRate = (sourceData.storeSettings?.taxRate ?? 4.0) / 100;
 
@@ -730,7 +731,7 @@ function AnalyticsPageContent() {
         const revenueShare = periodTotalRevenue > 0 ? d.revenue / periodTotalRevenue : 0;
         const commission = d.revenue * storeCommRate;
         const tax = d.revenue * storeTaxRate;
-        const delivery = totalDelivery * revenueShare;
+        const delivery = creationTotalDelivery * revenueShare;
         const adCost = orig.adCost || 0;
         const profit = d.revenue - d.costPrice - commission - tax - delivery - adCost;
         const margin = d.revenue > 0 ? (profit / d.revenue) * 100 : 0;

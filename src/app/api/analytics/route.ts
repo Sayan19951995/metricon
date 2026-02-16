@@ -229,6 +229,7 @@ export async function GET(request: NextRequest) {
     const allOrders = allOrdersResult.data || [];
 
     const ordersByCreationDate = new Map<string, { revenue: number; count: number; commission: number; tax: number; delivery: number; costPrice: number }>();
+    const productsByCreationDate = new Map<string, Map<string, { name: string; qty: number; revenue: number; costPrice: number }>>();
     for (const order of (allOrders || [])) {
       if (!order.created_at) continue;
       const utcMs = new Date(order.created_at).getTime();
@@ -236,11 +237,27 @@ export async function GET(request: NextRequest) {
       const amount = order.total_amount || 0;
 
       let orderCost = 0;
-      const items = order.items as Array<{ product_code: string; quantity: number }> | null;
+      const items = order.items as Array<{ product_code: string; product_name: string; quantity: number; total: number }> | null;
       if (items) {
+        if (!productsByCreationDate.has(kzDate)) productsByCreationDate.set(kzDate, new Map());
+        const dayProds = productsByCreationDate.get(kzDate)!;
         for (const item of items) {
           const cp = costPriceMap.get(item.product_code);
           if (cp) orderCost += cp * (item.quantity || 1);
+          const code = item.product_code || item.product_name;
+          const ex = dayProds.get(code);
+          if (ex) {
+            ex.qty += item.quantity || 1;
+            ex.revenue += item.total || 0;
+            ex.costPrice += (cp || 0) * (item.quantity || 1);
+          } else {
+            dayProds.set(code, {
+              name: item.product_name,
+              qty: item.quantity || 1,
+              revenue: item.total || 0,
+              costPrice: (cp || 0) * (item.quantity || 1),
+            });
+          }
         }
       }
 
@@ -310,6 +327,9 @@ export async function GET(request: NextRequest) {
           operational: opex,
           profit: agg.revenue - totalExpenses,
           returned: returnedByCreationDate.get(dateStr) || 0,
+          products: Array.from((productsByCreationDate.get(dateStr) || new Map()).entries()).map(([code, pd]) => ({
+            code, name: pd.name, qty: pd.qty, revenue: pd.revenue, costPrice: pd.costPrice,
+          })),
         };
       });
 
