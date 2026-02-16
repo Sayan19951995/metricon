@@ -29,6 +29,7 @@ export default function ExpensesPage() {
 
   const [expenses, setExpenses] = useState<OperationalExpense[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [groups, setGroups] = useState<{ slug: string; name: string; color: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Form state
@@ -79,12 +80,22 @@ export default function ExpensesPage() {
     }
   }, [user?.id]);
 
+  const fetchGroups = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/product-groups?userId=${user.id}`);
+      const json = await res.json();
+      if (json.success) setGroups(json.data);
+    } catch (err) { console.error('Failed to fetch groups:', err); }
+  }, [user?.id]);
+
   useEffect(() => {
     if (user?.id && !userLoading) {
       fetchExpenses();
       fetchProducts();
+      fetchGroups();
     }
-  }, [user?.id, userLoading, fetchExpenses, fetchProducts]);
+  }, [user?.id, userLoading, fetchExpenses, fetchProducts, fetchGroups]);
 
   const handleAdd = async () => {
     if (!name || !amount || !user?.id) return;
@@ -227,8 +238,7 @@ export default function ExpensesPage() {
                 >
                   <span className="flex items-center gap-2 text-gray-700 dark:text-gray-300 truncate">
                     <Package className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    {groupId === 'import' ? 'Группа: Импорт'
-                      : groupId === 'production' ? 'Группа: Производство'
+                    {groupId ? `Группа: ${groups.find(g => g.slug === groupId)?.name || groupId}`
                       : productId ? getProductName(productId)
                       : 'Общий расход (без товара)'}
                   </span>
@@ -261,18 +271,16 @@ export default function ExpensesPage() {
                         >
                           Общий расход (без товара)
                         </button>
-                        <button
-                          onClick={() => { setProductId(null); setGroupId('import'); setShowProductDropdown(false); setProductSearch(''); }}
-                          className={`w-full text-left px-3 py-2.5 text-xs hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors ${groupId === 'import' ? 'bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium' : 'text-blue-600 dark:text-blue-400'}`}
-                        >
-                          Группа: Импорт
-                        </button>
-                        <button
-                          onClick={() => { setProductId(null); setGroupId('production'); setShowProductDropdown(false); setProductSearch(''); }}
-                          className={`w-full text-left px-3 py-2.5 text-xs hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors ${groupId === 'production' ? 'bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-medium' : 'text-emerald-600 dark:text-emerald-400'}`}
-                        >
-                          Группа: Производство
-                        </button>
+                        {groups.map(g => (
+                          <button
+                            key={g.slug}
+                            onClick={() => { setProductId(null); setGroupId(g.slug); setShowProductDropdown(false); setProductSearch(''); }}
+                            className={`w-full text-left px-3 py-2.5 text-xs transition-colors ${groupId === g.slug ? 'font-medium' : ''}`}
+                            style={{ color: g.color }}
+                          >
+                            Группа: {g.name}
+                          </button>
+                        ))}
                         <div className="border-t border-gray-100 dark:border-gray-600 my-1" />
                         {filteredProducts.map(p => (
                           <button
@@ -409,12 +417,14 @@ export default function ExpensesPage() {
                                 {pName}
                               </span>
                             )}
-                            {expense.productGroup === 'import' && (
-                              <span className="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-1.5 py-0.5 rounded">Импорт</span>
-                            )}
-                            {expense.productGroup === 'production' && (
-                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded">Производство</span>
-                            )}
+                            {expense.productGroup && (() => {
+                              const g = groups.find(gr => gr.slug === expense.productGroup);
+                              return g ? (
+                                <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ color: g.color, backgroundColor: g.color + '15' }}>{g.name}</span>
+                              ) : (
+                                <span className="text-[10px] text-gray-500 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5 rounded">{expense.productGroup}</span>
+                              );
+                            })()}
                           </div>
                           <div className="flex items-center gap-3 mt-1 text-xs text-gray-500 dark:text-gray-400">
                             <span className="flex items-center gap-1">

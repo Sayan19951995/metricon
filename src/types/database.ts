@@ -279,6 +279,33 @@ export interface Database {
         }
         Relationships: []
       }
+      product_groups: {
+        Row: {
+          id: string
+          store_id: string
+          name: string
+          slug: string
+          color: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          name: string
+          slug: string
+          color?: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          name?: string
+          slug?: string
+          color?: string
+          created_at?: string | null
+        }
+        Relationships: []
+      }
       products: {
         Row: {
           id: string

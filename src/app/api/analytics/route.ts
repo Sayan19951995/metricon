@@ -50,6 +50,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
+    // Загрузить метаданные групп
+    const groupsResult = await supabase
+      .from('product_groups')
+      .select('slug, name, color')
+      .eq('store_id', store.id)
+      .order('created_at', { ascending: true });
+    const productGroupsMeta = groupsResult.data || [];
+
     // === 1. Поступления по дате выдачи (completed_at) ===
     const completedOrdersResult = await supabase
       .from('orders')
@@ -694,6 +702,7 @@ export async function GET(request: NextRequest) {
           taxRate,
         },
         operationalExpenses: opExpenses || [],
+        productGroupsMeta,
       }
     });
 

@@ -225,6 +225,9 @@ function AnalyticsPageContent() {
           }
           setProductGroups(groups);
         }
+        if (data.productGroupsMeta) {
+          setGroupsMeta(data.productGroupsMeta);
+        }
       }
     } catch (err) {
       console.error('Failed to fetch analytics:', err);
@@ -271,11 +274,12 @@ function AnalyticsPageContent() {
   const [showAdsOnlyROI, setShowAdsOnlyROI] = useState(true);
 
   // Сортировка и фильтрация товаров
-  const [productSort, setProductSort] = useState<'margin' | 'profit' | 'revenue'>('margin');
+  const [productSort, setProductSort] = useState<'margin' | 'profit' | 'revenue' | 'quantity'>('revenue');
   const [productSearch, setProductSearch] = useState('');
   const [productPage, setProductPage] = useState(1);
   const PRODUCTS_PER_PAGE = 10;
   const [productGroups, setProductGroups] = useState<Record<string, string | null>>({});
+  const [groupsMeta, setGroupsMeta] = useState<Array<{ slug: string; name: string; color: string }>>([]);
 
   // Состояние сворачиваемых секций в табе Sales
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
@@ -1769,6 +1773,7 @@ function AnalyticsPageContent() {
                   .sort((a: any, b: any) => {
                     if (productSort === 'margin') return b.displayMargin - a.displayMargin;
                     if (productSort === 'profit') return b.displayProfit - a.displayProfit;
+                    if (productSort === 'quantity') return (b.displaySales || 0) - (a.displaySales || 0);
                     return b.displayRevenue - a.displayRevenue;
                   });
 
@@ -1795,12 +1800,13 @@ function AnalyticsPageContent() {
                         {[
                           { key: 'margin', label: 'маржа' },
                           { key: 'profit', label: 'прибыль' },
-                          { key: 'revenue', label: 'выручка' }
+                          { key: 'revenue', label: 'выручка' },
+                          { key: 'quantity', label: 'кол-во' }
                         ].map((opt) => (
                           <button
                             key={opt.key}
                             onClick={() => {
-                              setProductSort(opt.key as 'margin' | 'profit' | 'revenue');
+                              setProductSort(opt.key as 'margin' | 'profit' | 'revenue' | 'quantity');
                               setProductPage(1); // Сброс на первую страницу при смене сортировки
                             }}
                             className={`px-2 py-0.5 lg:px-3 lg:py-1 rounded lg:rounded-lg text-[9px] lg:text-sm transition-colors ${
@@ -1815,9 +1821,8 @@ function AnalyticsPageContent() {
                       </div>
                       {/* Итоги по группам */}
                       {(() => {
-                        const importProducts = productsWithData.filter((p: any) => (productGroups[p.sku] || p.group) === 'import');
-                        const prodProducts = productsWithData.filter((p: any) => (productGroups[p.sku] || p.group) === 'production');
-                        if (importProducts.length === 0 && prodProducts.length === 0) return null;
+                        const groupSlugs = [...new Set(productsWithData.map((p: any) => productGroups[p.sku] || p.group).filter(Boolean))] as string[];
+                        if (groupSlugs.length === 0) return null;
                         const calcGroup = (items: any[]) => ({
                           count: items.length,
                           revenue: items.reduce((s: number, p: any) => s + (p.displayRevenue || 0), 0),
@@ -1826,30 +1831,25 @@ function AnalyticsPageContent() {
                             ? (items.reduce((s: number, p: any) => s + (p.displayProfit || 0), 0) / items.reduce((s: number, p: any) => s + (p.displayRevenue || 0), 0)) * 100
                             : 0,
                         });
-                        const imp = calcGroup(importProducts);
-                        const prod = calcGroup(prodProducts);
                         return (
-                          <div className="grid grid-cols-2 gap-2 lg:gap-3 mb-2 lg:mb-4">
-                            {importProducts.length > 0 && (
-                              <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-2 lg:p-3">
-                                <div className="text-[10px] lg:text-xs font-medium text-blue-600 dark:text-blue-400 mb-1">Импорт · {imp.count} товаров</div>
-                                <div className="text-[10px] lg:text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
-                                  <div>Выр: {fmt(imp.revenue)} ₸</div>
-                                  <div className={imp.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}>Приб: {imp.profit >= 0 ? '+' : ''}{fmt(imp.profit)} ₸</div>
-                                  <div>Маржа: {Math.round(imp.margin)}%</div>
+                          <div className={`grid gap-2 lg:gap-3 mb-2 lg:mb-4 ${groupSlugs.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-3'}`}>
+                            {groupSlugs.map(slug => {
+                              const items = productsWithData.filter((p: any) => (productGroups[p.sku] || p.group) === slug);
+                              if (items.length === 0) return null;
+                              const meta = groupsMeta.find(g => g.slug === slug);
+                              const color = meta?.color || '#6b7280';
+                              const stats = calcGroup(items);
+                              return (
+                                <div key={slug} className="rounded-lg p-2 lg:p-3" style={{ backgroundColor: color + '15' }}>
+                                  <div className="text-[10px] lg:text-xs font-medium mb-1" style={{ color }}>{meta?.name || slug} · {stats.count} товаров</div>
+                                  <div className="text-[10px] lg:text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
+                                    <div>Выр: {fmt(stats.revenue)} ₸</div>
+                                    <div className={stats.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}>Приб: {stats.profit >= 0 ? '+' : ''}{fmt(stats.profit)} ₸</div>
+                                    <div>Маржа: {Math.round(stats.margin)}%</div>
+                                  </div>
                                 </div>
-                              </div>
-                            )}
-                            {prodProducts.length > 0 && (
-                              <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-lg p-2 lg:p-3">
-                                <div className="text-[10px] lg:text-xs font-medium text-emerald-600 dark:text-emerald-400 mb-1">Производство · {prod.count} товаров</div>
-                                <div className="text-[10px] lg:text-xs text-gray-600 dark:text-gray-400 space-y-0.5">
-                                  <div>Выр: {fmt(prod.revenue)} ₸</div>
-                                  <div className={prod.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}>Приб: {prod.profit >= 0 ? '+' : ''}{fmt(prod.profit)} ₸</div>
-                                  <div>Маржа: {Math.round(prod.margin)}%</div>
-                                </div>
-                              </div>
-                            )}
+                              );
+                            })}
                           </div>
                         );
                       })()}
@@ -1859,15 +1859,18 @@ function AnalyticsPageContent() {
                           <div key={product.id} className="bg-white dark:bg-gray-800 rounded-lg px-2.5 py-1.5 lg:px-4 lg:py-3 shadow-sm">
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-1.5 flex-1 min-w-0">
-                                {(productGroups[product.sku] || product.group) && (
-                                  <span className={`text-[8px] lg:text-[10px] px-1 lg:px-1.5 py-0.5 rounded font-medium flex-shrink-0 ${
-                                    (productGroups[product.sku] || product.group) === 'import'
-                                      ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400'
-                                      : 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-400'
-                                  }`}>
-                                    {(productGroups[product.sku] || product.group) === 'import' ? 'Имп' : 'Пр-во'}
-                                  </span>
-                                )}
+                                {(productGroups[product.sku] || product.group) && (() => {
+                                  const slug = productGroups[product.sku] || product.group;
+                                  const meta = groupsMeta.find(g => g.slug === slug);
+                                  const color = meta?.color || '#6b7280';
+                                  const label = meta?.name || slug;
+                                  return (
+                                    <span className="text-[8px] lg:text-[10px] px-1 lg:px-1.5 py-0.5 rounded font-medium flex-shrink-0"
+                                      style={{ color, backgroundColor: color + '20' }}>
+                                      {label && label.length > 6 ? label.slice(0, 5) + '.' : label}
+                                    </span>
+                                  );
+                                })()}
                                 <p className="font-medium text-sm lg:text-base text-gray-900 dark:text-white truncate">{product.name}</p>
                               </div>
                               <span className="text-xs lg:text-sm text-gray-600 dark:text-gray-400 whitespace-nowrap">{product.displaySales} шт</span>
@@ -3223,12 +3226,14 @@ function AnalyticsPageContent() {
                                   {productsList.find(p => p.kaspi_id === expense.productId)?.name || expense.productId}
                                 </div>
                               )}
-                              {expense.productGroup === 'import' && (
-                                <div className="text-[10px] text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded mt-0.5 inline-block">Импорт</div>
-                              )}
-                              {expense.productGroup === 'production' && (
-                                <div className="text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded mt-0.5 inline-block">Производство</div>
-                              )}
+                              {expense.productGroup && (() => {
+                                const gm = groupsMeta.find(g => g.slug === expense.productGroup);
+                                return gm ? (
+                                  <div className="text-[10px] px-1.5 py-0.5 rounded mt-0.5 inline-block" style={{ color: gm.color, backgroundColor: gm.color + '15' }}>{gm.name}</div>
+                                ) : (
+                                  <div className="text-[10px] text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded mt-0.5 inline-block">{expense.productGroup}</div>
+                                );
+                              })()}
                             </div>
                             <div className="flex items-center gap-2 flex-shrink-0">
                               <div className="font-semibold text-gray-900 text-sm">
@@ -3286,8 +3291,8 @@ function AnalyticsPageContent() {
                           className="w-full flex items-center justify-between px-3 py-2 border border-gray-200 rounded-lg text-sm hover:border-indigo-500 transition-colors"
                         >
                           <span className="text-gray-700 truncate">
-                            {newExpenseGroupId === 'import' ? 'Группа: Импорт'
-                              : newExpenseGroupId === 'production' ? 'Группа: Производство'
+                            {newExpenseGroupId
+                              ? `Группа: ${groupsMeta.find(g => g.slug === newExpenseGroupId)?.name || newExpenseGroupId}`
                               : newExpenseProductId
                               ? productsList.find(p => p.kaspi_id === newExpenseProductId)?.name || 'Товар'
                               : 'Общий расход (без товара)'}
@@ -3318,18 +3323,16 @@ function AnalyticsPageContent() {
                                 >
                                   Общий расход (без товара)
                                 </button>
-                                <button
-                                  onClick={() => { setNewExpenseProductId(null); setNewExpenseGroupId('import'); setShowProductDropdown(false); setExpenseProductSearch(''); }}
-                                  className={`w-full text-left px-3 py-2 text-xs hover:bg-blue-50 transition-colors ${newExpenseGroupId === 'import' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-blue-600'}`}
-                                >
-                                  Группа: Импорт
-                                </button>
-                                <button
-                                  onClick={() => { setNewExpenseProductId(null); setNewExpenseGroupId('production'); setShowProductDropdown(false); setExpenseProductSearch(''); }}
-                                  className={`w-full text-left px-3 py-2 text-xs hover:bg-emerald-50 transition-colors ${newExpenseGroupId === 'production' ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-emerald-600'}`}
-                                >
-                                  Группа: Производство
-                                </button>
+                                {groupsMeta.map(g => (
+                                  <button
+                                    key={g.slug}
+                                    onClick={() => { setNewExpenseProductId(null); setNewExpenseGroupId(g.slug); setShowProductDropdown(false); setExpenseProductSearch(''); }}
+                                    className={`w-full text-left px-3 py-2 text-xs transition-colors ${newExpenseGroupId === g.slug ? 'font-medium' : ''}`}
+                                    style={{ color: g.color }}
+                                  >
+                                    Группа: {g.name}
+                                  </button>
+                                ))}
                                 <div className="border-t border-gray-100 my-1" />
                                 {productsList
                                   .filter(p => !expenseProductSearch || p.name.toLowerCase().includes(expenseProductSearch.toLowerCase()))

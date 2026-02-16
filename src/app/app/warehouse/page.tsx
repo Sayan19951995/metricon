@@ -54,8 +54,67 @@ export default function WarehousePage() {
   const [loading, setLoading] = useState(!stale);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Group assignment
+  // Dynamic product groups
+  interface ProductGroupMeta { id: string; name: string; slug: string; color: string; }
+  const [groups, setGroups] = useState<ProductGroupMeta[]>([]);
   const [groupMenuId, setGroupMenuId] = useState<string | null>(null);
+  const [showCreateGroup, setShowCreateGroup] = useState(false);
+  const [newGroupName, setNewGroupName] = useState('');
+  const [newGroupColor, setNewGroupColor] = useState('#3b82f6');
+  const [creatingGroup, setCreatingGroup] = useState(false);
+
+  const PRESET_COLORS = [
+    '#3b82f6', '#10b981', '#ef4444', '#f59e0b', '#8b5cf6', '#ec4899', '#6b7280',
+  ];
+
+  const getGroupInfo = (slug: string | null) => {
+    if (!slug) return null;
+    return groups.find(g => g.slug === slug) || { id: '', name: slug, slug, color: '#6b7280' };
+  };
+
+  const loadGroups = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/product-groups?userId=${user.id}`);
+      const json = await res.json();
+      if (json.success) setGroups(json.data);
+    } catch (e) { console.error('Failed to load groups:', e); }
+  }, [user?.id]);
+
+  const createGroup = async () => {
+    if (!user?.id || !newGroupName.trim()) return;
+    setCreatingGroup(true);
+    try {
+      const res = await fetch('/api/product-groups', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, name: newGroupName.trim(), color: newGroupColor }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setGroups(prev => [...prev, json.data]);
+        setNewGroupName('');
+        setShowCreateGroup(false);
+      } else {
+        setToast({ message: json.message || 'Ошибка', type: 'error' });
+      }
+    } catch (e) { console.error('Failed to create group:', e); }
+    setCreatingGroup(false);
+  };
+
+  const deleteGroup = async (slug: string) => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/product-groups?userId=${user.id}&slug=${slug}`, { method: 'DELETE' });
+      const json = await res.json();
+      if (json.success) {
+        setGroups(prev => prev.filter(g => g.slug !== slug));
+        setProducts(prev => prev.map(p => p.product_group === slug ? { ...p, product_group: null } : p));
+        if (groupFilter === slug) setGroupFilter(null);
+      }
+    } catch (e) { console.error('Failed to delete group:', e); }
+  };
+
   const updateProductGroup = async (productId: string, kaspiId: string | null, group: string | null) => {
     if (!user?.id || !kaspiId) return;
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, product_group: group } : p));
@@ -291,7 +350,10 @@ export default function WarehousePage() {
   }, [store?.id, user?.id, cacheKey]);
 
   useEffect(() => {
-    if (store?.id && user?.id) loadProducts();
+    if (store?.id && user?.id) {
+      loadProducts();
+      loadGroups();
+    }
   }, [store?.id, user?.id]);
 
   // Inline edit handlers
@@ -645,32 +707,75 @@ export default function WarehousePage() {
             className="w-full bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:border-gray-300 dark:focus:border-gray-600 transition-colors dark:text-white dark:placeholder-gray-500"
           />
         </div>
-        <div className="flex gap-2 mt-3">
-          {([
-            [null, 'Все', 'gray'],
-            ['import', 'Импорт', 'blue'],
-            ['production', 'Производство', 'green'],
-            ['none', 'Без группы', 'gray'],
-          ] as [string | null, string, string][]).map(([val, label, color]) => {
-            const count = val === null ? products.length
-              : val === 'none' ? products.filter(p => !p.product_group).length
-              : products.filter(p => p.product_group === val).length;
+        <div className="flex flex-wrap gap-2 mt-3">
+          {[
+            { slug: null, name: 'Все', color: '#6b7280' },
+            ...groups.map(g => ({ slug: g.slug, name: g.name, color: g.color })),
+            { slug: 'none', name: 'Без группы', color: '#6b7280' },
+          ].map(({ slug, name, color }) => {
+            const count = slug === null ? products.length
+              : slug === 'none' ? products.filter(p => !p.product_group).length
+              : products.filter(p => p.product_group === slug).length;
             return (
               <button
-                key={val ?? 'all'}
-                onClick={() => { setGroupFilter(val); setPage(0); }}
+                key={slug ?? 'all'}
+                onClick={() => { setGroupFilter(slug); setPage(0); }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  if (slug && slug !== 'none' && confirm(`Удалить группу "${name}"? Товары будут откреплены.`)) {
+                    deleteGroup(slug);
+                  }
+                }}
                 className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${
-                  groupFilter === val
-                    ? val === 'import' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
-                    : val === 'production' ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
-                    : 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200'
+                  groupFilter === slug
+                    ? 'text-white'
                     : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
                 }`}
+                style={groupFilter === slug ? { backgroundColor: color, color: '#fff' } : undefined}
               >
-                {label} ({count})
+                {name} ({count})
               </button>
             );
           })}
+          {/* Create group button */}
+          <div className="relative">
+            <button
+              onClick={() => setShowCreateGroup(!showCreateGroup)}
+              className="px-3 py-1.5 text-xs rounded-lg font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+            >
+              +
+            </button>
+            {showCreateGroup && (
+              <div className="absolute left-0 top-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg z-50 p-3 w-56">
+                <input
+                  type="text"
+                  value={newGroupName}
+                  onChange={e => setNewGroupName(e.target.value)}
+                  placeholder="Название группы"
+                  className="w-full px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 dark:text-white focus:outline-none focus:border-blue-400 mb-2"
+                  onKeyDown={e => { if (e.key === 'Enter') createGroup(); }}
+                  autoFocus
+                />
+                <div className="flex gap-1.5 mb-2">
+                  {PRESET_COLORS.map(c => (
+                    <button
+                      key={c}
+                      onClick={() => setNewGroupColor(c)}
+                      className={`w-6 h-6 rounded-full transition-transform ${newGroupColor === c ? 'scale-125 ring-2 ring-offset-1 ring-gray-400' : 'hover:scale-110'}`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                </div>
+                <button
+                  onClick={createGroup}
+                  disabled={!newGroupName.trim() || creatingGroup}
+                  className="w-full py-1.5 text-xs font-medium rounded-lg bg-gray-900 text-white dark:bg-white dark:text-gray-900 hover:opacity-90 disabled:opacity-40 transition-opacity"
+                >
+                  {creatingGroup ? 'Создание...' : 'Создать'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -716,39 +821,46 @@ export default function WarehousePage() {
               <div key={product.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
                 <div className="flex items-start justify-between mb-2">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-1.5">
-                      <p className="font-medium text-sm truncate text-gray-900 dark:text-white">{product.name}</p>
+                    <p className="font-medium text-sm truncate text-gray-900 dark:text-white">{product.name}</p>
+                    <div className="flex items-center gap-1.5 mt-0.5">
+                      <p className="text-xs text-gray-400">{product.sku || '—'}</p>
                       <div className="relative flex-shrink-0">
-                        <button
-                          onClick={() => setGroupMenuId(groupMenuId === product.id ? null : product.id)}
-                          className={`px-1.5 py-0.5 text-[10px] rounded font-medium cursor-pointer ${
-                            product.product_group === 'import' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300'
-                            : product.product_group === 'production' ? 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-300'
-                            : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500'
-                          }`}
-                        >
-                          {product.product_group === 'import' ? 'Имп' : product.product_group === 'production' ? 'Пр-во' : '—'}
-                        </button>
-                        {groupMenuId === product.id && (
-                          <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 py-1 w-36">
-                            {([
-                              ['import', 'Импорт', 'text-blue-600'],
-                              ['production', 'Производство', 'text-green-600'],
-                              [null, 'Убрать', 'text-gray-400'],
-                            ] as [string | null, string, string][]).map(([val, label, cls]) => (
+                        {(() => {
+                          const gi = getGroupInfo(product.product_group);
+                          return (
+                            <>
                               <button
-                                key={val ?? 'none'}
-                                onClick={() => updateProductGroup(product.id, product.kaspi_id, val)}
-                                className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:hover:bg-gray-700 ${cls} ${product.product_group === val ? 'font-bold' : ''}`}
+                                onClick={() => setGroupMenuId(groupMenuId === product.id ? null : product.id)}
+                                className="px-1.5 py-0.5 text-[10px] rounded font-medium cursor-pointer transition-colors"
+                                style={gi ? { color: gi.color, backgroundColor: gi.color + '20' } : { color: '#9ca3af', backgroundColor: '#f3f4f6' }}
                               >
-                                {label}
+                                {gi ? gi.name : '—'}
                               </button>
-                            ))}
-                          </div>
-                        )}
+                              {groupMenuId === product.id && (
+                                <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 py-1 w-40">
+                                  {groups.map(g => (
+                                    <button
+                                      key={g.slug}
+                                      onClick={() => updateProductGroup(product.id, product.kaspi_id, g.slug)}
+                                      className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:hover:bg-gray-700 ${product.product_group === g.slug ? 'font-bold' : ''}`}
+                                      style={{ color: g.color }}
+                                    >
+                                      {g.name}
+                                    </button>
+                                  ))}
+                                  <button
+                                    onClick={() => updateProductGroup(product.id, product.kaspi_id, null)}
+                                    className="w-full text-left px-3 py-1.5 text-xs text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                  >
+                                    Убрать
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </div>
-                    <p className="text-xs text-gray-400 mt-0.5">{product.sku || '—'}</p>
                   </div>
                   {(product.quantity ?? 0) < 5 && (
                     <span className="ml-2 px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-medium rounded">
@@ -839,6 +951,7 @@ export default function WarehousePage() {
             <table className="w-full table-fixed">
               <colgroup>
                 <col />
+                <col className="w-[110px]" />
                 <col className="w-[100px]" />
                 <col className="w-[150px]" />
                 <col className="w-[140px]" />
@@ -848,6 +961,7 @@ export default function WarehousePage() {
                 <tr>
                   {([
                     ['name', 'Товар', 'px-6'],
+                    ['product_group' as SortField, 'Группа', 'px-4'],
                     ['quantity', 'Кол-во', 'px-4'],
                     ['cost_price', 'Себестоимость', 'px-4'],
                     ['price', 'Цена продажи', 'px-4'],
@@ -876,39 +990,48 @@ export default function WarehousePage() {
                     {/* Product */}
                     <td className="py-3 px-6">
                       <div className="min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className="text-sm font-medium truncate text-gray-900 dark:text-white">{product.name}</p>
-                          <div className="relative flex-shrink-0">
-                            <button
-                              onClick={() => setGroupMenuId(groupMenuId === product.id ? null : product.id)}
-                              className={`px-1.5 py-0.5 text-[10px] rounded font-medium cursor-pointer transition-colors ${
-                                product.product_group === 'import' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/40 dark:text-blue-300 hover:bg-blue-200'
-                                : product.product_group === 'production' ? 'bg-green-100 text-green-600 dark:bg-green-900/40 dark:text-green-300 hover:bg-green-200'
-                                : 'bg-gray-100 text-gray-400 dark:bg-gray-700 dark:text-gray-500 hover:bg-gray-200'
-                              }`}
-                            >
-                              {product.product_group === 'import' ? 'Имп' : product.product_group === 'production' ? 'Пр-во' : '—'}
-                            </button>
-                            {groupMenuId === product.id && (
-                              <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 py-1 w-36">
-                                {([
-                                  ['import', 'Импорт', 'text-blue-600'],
-                                  ['production', 'Производство', 'text-green-600'],
-                                  [null, 'Убрать', 'text-gray-400'],
-                                ] as [string | null, string, string][]).map(([val, label, cls]) => (
-                                  <button
-                                    key={val ?? 'none'}
-                                    onClick={() => updateProductGroup(product.id, product.kaspi_id, val)}
-                                    className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:hover:bg-gray-700 ${cls} ${product.product_group === val ? 'font-bold' : ''}`}
-                                  >
-                                    {label}
-                                  </button>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        </div>
+                        <p className="text-sm font-medium truncate text-gray-900 dark:text-white">{product.name}</p>
                         <p className="text-xs text-gray-400">{product.sku || '—'}</p>
+                      </div>
+                    </td>
+
+                    {/* Group */}
+                    <td className="py-3 px-4">
+                      <div className="relative">
+                        {(() => {
+                          const gi = getGroupInfo(product.product_group);
+                          return (
+                            <>
+                              <button
+                                onClick={() => setGroupMenuId(groupMenuId === product.id ? null : product.id)}
+                                className="px-2 py-1 text-[11px] rounded-md font-medium cursor-pointer transition-colors"
+                                style={gi ? { color: gi.color, backgroundColor: gi.color + '20' } : { color: '#9ca3af', backgroundColor: '#f3f4f6' }}
+                              >
+                                {gi ? gi.name : '—'}
+                              </button>
+                              {groupMenuId === product.id && (
+                                <div className="absolute left-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg z-50 py-1 w-40">
+                                  {groups.map(g => (
+                                    <button
+                                      key={g.slug}
+                                      onClick={() => updateProductGroup(product.id, product.kaspi_id, g.slug)}
+                                      className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 dark:hover:bg-gray-700 ${product.product_group === g.slug ? 'font-bold' : ''}`}
+                                      style={{ color: g.color }}
+                                    >
+                                      {g.name}
+                                    </button>
+                                  ))}
+                                  <button
+                                    onClick={() => updateProductGroup(product.id, product.kaspi_id, null)}
+                                    className="w-full text-left px-3 py-1.5 text-xs text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                                  >
+                                    Убрать
+                                  </button>
+                                </div>
+                              )}
+                            </>
+                          );
+                        })()}
                       </div>
                     </td>
 
