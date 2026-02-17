@@ -209,6 +209,7 @@ function AnalyticsPageContent() {
   const [reviewPage, setReviewPage] = useState(0);
   const [reviewsLoadingMore, setReviewsLoadingMore] = useState(false);
   const [reviewsHasMore, setReviewsHasMore] = useState(true);
+  const [reviewFilter, setReviewFilter] = useState<number | null>(null);
 
   const fetchAnalyticsData = useCallback(async () => {
     if (!user?.id) return;
@@ -251,45 +252,54 @@ function AnalyticsPageContent() {
   }, [user?.id, userLoading, fetchAnalyticsData]);
 
   // Загрузка отзывов при переключении на вкладку
-  useEffect(() => {
-    if (activeTab === 'reviews' && user?.id && !reviewData && !reviewLoading) {
-      setReviewLoading(true);
-      fetch(`/api/kaspi/reviews?userId=${user.id}&page=0&size=10`)
-        .then(r => r.json())
-        .then(data => {
-          if (data.success) {
-            setReviewData(data);
-            setReviewPage(0);
-            setReviewsHasMore((data.reviews || []).length >= 10);
-          }
-        })
-        .catch(err => console.error('Reviews fetch error:', err))
-        .finally(() => setReviewLoading(false));
-    }
-  }, [activeTab, user?.id, reviewData, reviewLoading]);
+  const fetchReviews = useCallback(async (filter: number | null, pg: number = 0) => {
+    if (!user?.id) return;
+    const isInitial = pg === 0;
+    if (isInitial) setReviewLoading(true);
+    else setReviewsLoadingMore(true);
 
-  const loadMoreReviews = async () => {
-    if (!user?.id || reviewsLoadingMore || !reviewsHasMore) return;
-    setReviewsLoadingMore(true);
     try {
-      const nextPage = reviewPage + 1;
-      const res = await fetch(`/api/kaspi/reviews?userId=${user.id}&page=${nextPage}&size=10`);
+      const params = new URLSearchParams({ userId: user.id, page: String(pg), size: '10' });
+      if (filter !== null) params.set('rating', String(filter));
+      const res = await fetch(`/api/kaspi/reviews?${params}`);
       const data = await res.json();
-      if (data.success && data.reviews?.length > 0) {
-        setReviewData((prev: any) => ({
-          ...prev,
-          reviews: [...(prev?.reviews || []), ...data.reviews],
-        }));
-        setReviewPage(nextPage);
-        setReviewsHasMore(data.reviews.length >= 10);
-      } else {
-        setReviewsHasMore(false);
+      if (data.success) {
+        if (isInitial) {
+          setReviewData(data);
+        } else {
+          setReviewData((prev: any) => ({
+            ...prev,
+            reviews: [...(prev?.reviews || []), ...data.reviews],
+          }));
+        }
+        setReviewPage(pg);
+        setReviewsHasMore((data.reviews || []).length >= 10);
       }
     } catch (err) {
-      console.error('Load more reviews error:', err);
+      console.error('Reviews fetch error:', err);
     } finally {
-      setReviewsLoadingMore(false);
+      if (isInitial) setReviewLoading(false);
+      else setReviewsLoadingMore(false);
     }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (activeTab === 'reviews' && user?.id && !reviewData && !reviewLoading) {
+      fetchReviews(null);
+    }
+  }, [activeTab, user?.id, reviewData, reviewLoading, fetchReviews]);
+
+  const handleReviewFilter = (rating: number | null) => {
+    if (rating === reviewFilter) return;
+    setReviewFilter(rating);
+    setReviewData(null);
+    setReviewPage(0);
+    setReviewsHasMore(true);
+    fetchReviews(rating);
+  };
+
+  const loadMoreReviews = () => {
+    fetchReviews(reviewFilter, reviewPage + 1);
   };
 
   // Инициализация с периодом "Неделя" по умолчанию
@@ -2397,9 +2407,34 @@ function AnalyticsPageContent() {
                 </div>
 
                 {/* Список отзывов */}
-                {reviewData.reviews && reviewData.reviews.length > 0 && (
-                  <div className="space-y-3">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Последние отзывы</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between flex-wrap gap-2">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Отзывы</h3>
+                    <div className="flex gap-1.5 flex-wrap">
+                      {[
+                        { label: 'Все', value: null, count: reviewData.totalRatings },
+                        { label: '5★', value: 5, count: reviewData.stars?.five },
+                        { label: '4★', value: 4, count: reviewData.stars?.four },
+                        { label: '3★', value: 3, count: reviewData.stars?.three },
+                        { label: '2★', value: 2, count: reviewData.stars?.two },
+                        { label: '1★', value: 1, count: reviewData.stars?.one },
+                      ].filter(f => f.value === null || (f.count && f.count > 0)).map(f => (
+                        <button
+                          key={f.label}
+                          onClick={() => handleReviewFilter(f.value)}
+                          className={`px-3 py-1 text-xs font-medium rounded-full transition-colors ${
+                            reviewFilter === f.value
+                              ? 'bg-emerald-500 text-white'
+                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                          }`}
+                        >
+                          {f.label}{f.count != null ? ` (${f.count})` : ''}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                  {reviewData.reviews && reviewData.reviews.length > 0 ? (
+                    <>
                     {reviewData.reviews.map((review: any) => (
                       <div key={review.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-5">
                         <div className="flex items-start justify-between gap-3">
@@ -2460,8 +2495,11 @@ function AnalyticsPageContent() {
                         {reviewsLoadingMore ? 'Загрузка...' : 'Показать ещё'}
                       </button>
                     )}
-                  </div>
-                )}
+                    </>
+                  ) : reviewFilter !== null ? (
+                    <p className="text-sm text-gray-400 text-center py-4">Нет отзывов с такой оценкой</p>
+                  ) : null}
+                </div>
               </>
             ) : (
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-8 text-center">

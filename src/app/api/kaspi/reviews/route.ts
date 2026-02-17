@@ -40,12 +40,15 @@ export async function GET(request: NextRequest) {
 
     const page = parseInt(searchParams.get('page') || '0');
     const size = parseInt(searchParams.get('size') || '10');
+    const ratingFilter = searchParams.get('rating') ? parseInt(searchParams.get('rating')!) : null;
 
     // Параллельно: публичная страница (метрики) + GraphQL (звёзды) + список отзывов
     const [publicData, gqlData, reviewsList] = await Promise.all([
       fetchPublicMetrics(merchantId),
       session?.cookies ? fetchStarDistribution(merchantId, session.cookies) : null,
-      fetchReviewsList(merchantId, page, size),
+      ratingFilter
+        ? fetchFilteredReviews(merchantId, ratingFilter, page, size)
+        : fetchReviewsList(merchantId, page, size),
     ]);
 
     // Если GraphQL не сработал и есть логин/пароль — перелогиниваемся
@@ -211,6 +214,28 @@ async function fetchReviewsList(merchantId: string, page: number, size: number) 
     console.error('[Reviews] List fetch failed:', e);
     return [];
   }
+}
+
+// --- Фильтрация по рейтингу (загружаем страницы пока не наберём нужное кол-во) ---
+
+async function fetchFilteredReviews(merchantId: string, rating: number, page: number, size: number) {
+  const skip = page * size;
+  const need = skip + size;
+  const filtered: any[] = [];
+
+  // Загружаем страницы пока не наберём нужное кол-во или не закончатся
+  for (let p = 0; p < 60; p++) {
+    const batch = await fetchReviewsList(merchantId, p, 10);
+    if (batch.length === 0) break;
+
+    for (const r of batch) {
+      if (r.rating === rating) filtered.push(r);
+    }
+
+    if (filtered.length >= need) break;
+  }
+
+  return filtered.slice(skip, skip + size);
 }
 
 // --- GraphQL BFF: точное распределение по звёздам ---
