@@ -735,7 +735,7 @@ export default function ProductsPage() {
                     : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
                 }`}
               >
-                {f === 'all' ? 'Все' : 'Предзаказ'}
+                {f === 'all' ? `Все (${allProducts.length})` : `Предзаказ (${allProducts.filter(p => p.preorder != null && p.preorder > 0).length})`}
               </button>
             ))}
           </div>

@@ -321,6 +321,34 @@ export default function WarehousePage() {
 
           console.log(`Warehouse: inserted ${inserted?.length || 0} missing products from cabinet`);
         }
+
+        // Синхронизация active: товары из БД которых нет в BFF → active=false, которые есть → active=true
+        const bffSkuSet = new Set(stockMap.keys());
+        const toDeactivate: string[] = [];
+        const toActivate: string[] = [];
+        for (const p of dbProducts) {
+          const inBFF = (p.sku && bffSkuSet.has(p.sku)) || (p.kaspi_id && bffSkuSet.has(p.kaspi_id));
+          if (inBFF && p.active === false) {
+            toActivate.push(p.id);
+            p.active = true;
+          } else if (!inBFF && p.active !== false) {
+            toDeactivate.push(p.id);
+            p.active = false;
+          }
+        }
+        if (toDeactivate.length > 0) {
+          console.log(`Warehouse: deactivating ${toDeactivate.length} products not in BFF`);
+          supabase.from('products').update({ active: false }).in('id', toDeactivate).then(() => {});
+        }
+        if (toActivate.length > 0) {
+          console.log(`Warehouse: reactivating ${toActivate.length} products back in BFF`);
+          supabase.from('products').update({ active: true }).in('id', toActivate).then(() => {});
+        }
+
+        // Убираем неактивные из отображения
+        const activeOnly = dbProducts.filter(p => p.active !== false);
+        dbProducts.length = 0;
+        dbProducts.push(...activeOnly);
       }
 
       // Сортируем по имени
