@@ -992,39 +992,45 @@ function AnalyticsPageContent() {
             </div>
 
             {/* Finance Stats Cards */}
-            <div className="grid grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
-              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
-                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 sm:gap-4 mb-6 sm:mb-8">
+              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm flex sm:block items-center justify-between">
+                <div className="flex items-center gap-2 sm:gap-3 sm:mb-2">
                   <div className="w-8 h-8 sm:w-10 sm:h-10 bg-sky-100 dark:bg-sky-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
                     <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-sky-600 dark:text-sky-400" />
                   </div>
                   <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Поступления</span>
                   <HelpTooltip text="Сумма выданных заказов по дате выдачи клиенту" />
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{fmt(data.totalRevenue)} ₸</div>
-                <div className="text-[10px] sm:text-xs mt-1">
-                  <span className="bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
+                <div className="text-right sm:text-left">
+                  <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{fmt(data.totalRevenue)} ₸</div>
+                  <div className="text-[10px] sm:text-xs mt-1">
+                    <span className="bg-sky-50 dark:bg-sky-900/30 text-sky-600 dark:text-sky-400 px-1.5 py-0.5 rounded font-medium">{formatShortPeriod()}</span>
+                  </div>
                 </div>
               </div>
 
               <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
-                <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 bg-rose-100 dark:bg-rose-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
-                    <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 dark:text-rose-400 rotate-180" />
+                <div className="flex sm:block items-center justify-between">
+                  <div className="flex items-center gap-2 sm:gap-3 sm:mb-2">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-rose-100 dark:bg-rose-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                      <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-rose-600 dark:text-rose-400 rotate-180" />
+                    </div>
+                    <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Расходы</span>
                   </div>
-                  <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Расходы</span>
-                </div>
-                <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
-                  {fmt(data.totalCost + data.totalAdvertising + data.totalTax + data.totalCommissions + data.totalDelivery + (data.totalOperational || 0))} ₸
-                </div>
-                <div className="text-[10px] sm:text-xs mt-1">
-                  <button
-                    onClick={() => setShowExpenseDetails(!showExpenseDetails)}
-                    className="flex items-center gap-0.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded font-medium hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors cursor-pointer"
-                  >
-                    <span>Детали</span>
-                    <ChevronDown className={`w-3 h-3 transition-transform ${showExpenseDetails ? 'rotate-180' : ''}`} />
-                  </button>
+                  <div className="text-right sm:text-left">
+                    <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">
+                      {fmt(data.totalCost + data.totalAdvertising + data.totalTax + data.totalCommissions + data.totalDelivery + (data.totalOperational || 0))} ₸
+                    </div>
+                    <div className="text-[10px] sm:text-xs mt-1">
+                      <button
+                        onClick={() => setShowExpenseDetails(!showExpenseDetails)}
+                        className="flex items-center gap-0.5 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 px-1.5 py-0.5 rounded font-medium hover:bg-rose-100 dark:hover:bg-rose-900/50 transition-colors cursor-pointer ml-auto sm:ml-0"
+                      >
+                        <span>Детали</span>
+                        <ChevronDown className={`w-3 h-3 transition-transform ${showExpenseDetails ? 'rotate-180' : ''}`} />
+                      </button>
+                    </div>
+                  </div>
                 </div>
 
                 <AnimatePresence>
@@ -1069,16 +1075,18 @@ function AnalyticsPageContent() {
                 </AnimatePresence>
               </div>
 
-              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
-                <div className="flex items-center gap-2 sm:gap-3 mb-2">
+              <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm flex sm:block items-center justify-between">
+                <div className="flex items-center gap-2 sm:gap-3 sm:mb-2">
                   <div className="w-8 h-8 sm:w-10 sm:h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
                     <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600 dark:text-emerald-400" />
                   </div>
                   <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Прибыль</span>
                 </div>
-                <div className="text-lg sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{fmt(data.totalProfit)} ₸</div>
-                <div className="text-[10px] sm:text-xs mt-1">
-                  <span className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-medium">{profitMargin}% маржа</span>
+                <div className="text-right sm:text-left">
+                  <div className="text-lg sm:text-2xl font-bold text-emerald-600 dark:text-emerald-400">{fmt(data.totalProfit)} ₸</div>
+                  <div className="text-[10px] sm:text-xs mt-1">
+                    <span className="bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 px-1.5 py-0.5 rounded font-medium">{profitMargin}% маржа</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -1158,7 +1166,7 @@ function AnalyticsPageContent() {
               </button>
             </div>
 
-            <ResponsiveContainer width="100%" height={280} className="sm:!h-[450px]">
+            <ResponsiveContainer width="100%" height={450} className="!h-[200px] sm:!h-[450px]">
               <LineChart data={combinedChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                 <XAxis dataKey="date" stroke="#6b7280" tick={{ fontSize: 12 }} />
@@ -1282,13 +1290,13 @@ function AnalyticsPageContent() {
                       >
                         <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 dark:text-white text-left whitespace-nowrap">{day.date}{day.day ? ` (${day.day})` : ''}</td>
                         <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-700 dark:text-gray-300 font-medium text-right whitespace-nowrap">
-                          {day.revenue.toLocaleString('ru-RU')} ₸
+                          {Math.round(day.revenue).toLocaleString('ru-RU')} ₸
                         </td>
                         <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-700 dark:text-gray-300 font-medium text-right whitespace-nowrap">
-                          {dayExpenses.toLocaleString('ru-RU')} ₸
+                          {Math.round(dayExpenses).toLocaleString('ru-RU')} ₸
                         </td>
                         <td className="py-2 sm:py-3 px-1 sm:px-2 text-emerald-600 dark:text-emerald-400 font-medium text-right whitespace-nowrap">
-                          {day.profit.toLocaleString('ru-RU')} ₸
+                          {Math.round(day.profit).toLocaleString('ru-RU')} ₸
                         </td>
                       </tr>
                     );
@@ -1301,13 +1309,13 @@ function AnalyticsPageContent() {
                   >
                     <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 dark:text-white text-left whitespace-nowrap">Итого</td>
                     <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 dark:text-white text-right whitespace-nowrap">
-                      {data.totalRevenue.toLocaleString('ru-RU')} ₸
+                      {Math.round(data.totalRevenue).toLocaleString('ru-RU')} ₸
                     </td>
                     <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 dark:text-white text-right whitespace-nowrap">
-                      {(data.totalCost + data.totalAdvertising + data.totalCommissions + data.totalTax + data.totalDelivery).toLocaleString('ru-RU')} ₸
+                      {Math.round(data.totalCost + data.totalAdvertising + data.totalCommissions + data.totalTax + data.totalDelivery).toLocaleString('ru-RU')} ₸
                     </td>
                     <td className="py-2 sm:py-3 px-1 sm:px-2 text-emerald-600 dark:text-emerald-400 text-right whitespace-nowrap">
-                      {data.totalProfit.toLocaleString('ru-RU')} ₸
+                      {Math.round(data.totalProfit).toLocaleString('ru-RU')} ₸
                     </td>
                   </tr>
                 </tfoot>
