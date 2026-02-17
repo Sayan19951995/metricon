@@ -1,25 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
-
-interface ReviewData {
-  rating: number;
-  exactRating: number;
-  numberOfReviews: number;
-  totalRatings: number;
-  stars: { five: number; four: number; three: number; two: number; one: number };
-  cancelled: number;
-  returned: number;
-  lateDelivery: number;
-  status: string;
-  salesCount: number;
-  name: string;
-  logo: string;
-  reviewsNeededFor5: number;
-}
+import { kaspiCabinetLogin } from '@/lib/kaspi/api-client';
 
 /**
  * GET /api/kaspi/reviews?userId=xxx
  * Рейтинг и метрики магазина: публичная страница + GraphQL BFF
+ * Автоматически перелогинивается если сессия истекла
  */
 export async function GET(request: NextRequest) {
   try {
@@ -32,7 +18,7 @@ export async function GET(request: NextRequest) {
 
     const { data: store } = await supabase
       .from('stores')
-      .select('kaspi_merchant_id, kaspi_session')
+      .select('id, kaspi_merchant_id, kaspi_session')
       .eq('user_id', userId)
       .single();
 
@@ -40,30 +26,69 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Магазин не найден' }, { status: 404 });
     }
 
-    const session = store.kaspi_session as { merchant_id?: string; cookies?: string } | null;
+    const session = store.kaspi_session as {
+      merchant_id?: string;
+      cookies?: string;
+      username?: string;
+      password?: string;
+    } | null;
     const merchantId = session?.merchant_id || store.kaspi_merchant_id;
 
     if (!merchantId) {
       return NextResponse.json({ success: false, error: 'merchantId не найден' });
     }
 
-    // Параллельно: публичная страница (метрики) + GraphQL (звёзды)
-    const [publicData, gqlData] = await Promise.all([
+    const page = parseInt(searchParams.get('page') || '0');
+    const size = parseInt(searchParams.get('size') || '10');
+
+    // Параллельно: публичная страница (метрики) + GraphQL (звёзды) + список отзывов
+    const [publicData, gqlData, reviewsList] = await Promise.all([
       fetchPublicMetrics(merchantId),
       session?.cookies ? fetchStarDistribution(merchantId, session.cookies) : null,
+      fetchReviewsList(merchantId, page, size),
     ]);
+
+    // Если GraphQL не сработал и есть логин/пароль — перелогиниваемся
+    let finalGqlData = gqlData;
+    if (!gqlData && session?.username && session?.password) {
+      console.log('[Reviews] Session expired, re-logging in...');
+      try {
+        const loginResult = await kaspiCabinetLogin(session.username, session.password);
+        if (loginResult.success && loginResult.cookies) {
+          // Сохраняем новую сессию
+          await supabase.from('stores').update({
+            kaspi_session: {
+              cookies: loginResult.cookies,
+              merchant_id: loginResult.merchantId || merchantId,
+              created_at: new Date().toISOString(),
+              username: session.username,
+              password: session.password,
+            },
+          }).eq('id', store.id);
+
+          // Повторяем GraphQL с новыми куками
+          finalGqlData = await fetchStarDistribution(merchantId, loginResult.cookies);
+          if (finalGqlData) {
+            console.log('[Reviews] Re-login successful, got star data');
+          }
+        }
+      } catch (e) {
+        console.error('[Reviews] Re-login failed:', e);
+      }
+    }
 
     if (!publicData) {
       return NextResponse.json({ success: false, error: 'Не удалось получить данные с Kaspi' });
     }
 
     // Точный рейтинг и количество нужных отзывов из GraphQL
-    const stars = gqlData?.stars || { five: 0, four: 0, three: 0, two: 0, one: 0 };
+    const hasGqlData = finalGqlData !== null && finalGqlData !== undefined;
+    const stars = finalGqlData?.stars || { five: 0, four: 0, three: 0, two: 0, one: 0 };
     const totalFromStars = stars.five + stars.four + stars.three + stars.two + stars.one;
     const sumFromStars = 5 * stars.five + 4 * stars.four + 3 * stars.three + 2 * stars.two + 1 * stars.one;
     const exactRating = totalFromStars > 0 ? sumFromStars / totalFromStars : publicData.rating;
 
-    // Точный расчёт: (sum + 5*X) / (total + X) >= 4.95
+    // Расчёт: (sum + 5*X) / (total + X) >= 4.95
     let reviewsNeededFor5 = 0;
     if (exactRating < 4.95 && totalFromStars > 0) {
       reviewsNeededFor5 = Math.ceil((4.95 * totalFromStars - sumFromStars) / (5 - 4.95));
@@ -71,20 +96,22 @@ export async function GET(request: NextRequest) {
     }
 
     // Дата окна и когда выпадут не-пятёрки (90-дневное скользящее окно)
-    const nonFiveCount = stars.four + stars.three + stars.two + stars.one;
-    const windowEnd = gqlData?.windowEnd || null; // конец текущего окна
-    // Не-пятёрки выпадут не позднее 90 дней от конца окна
+    const nonFiveCount = totalFromStars > 0
+      ? stars.four + stars.three + stars.two + stars.one
+      : 0;
+    const windowEnd = finalGqlData?.windowEnd || null;
     const nonFiveDropOffBy = windowEnd ? new Date(new Date(windowEnd).getTime() + 90 * 24 * 60 * 60 * 1000).toISOString() : null;
 
     return NextResponse.json({
       success: true,
+      approximate: !hasGqlData,
       rating: publicData.rating,
       exactRating: Math.round(exactRating * 10000) / 10000,
       numberOfReviews: publicData.numberOfReviews,
       totalRatings: totalFromStars || publicData.totalRatings,
       stars,
       nonFiveCount,
-      windowDays: gqlData?.windowDays || 90,
+      windowDays: finalGqlData?.windowDays || 90,
       windowEnd,
       nonFiveDropOffBy,
       cancelled: publicData.cancelled,
@@ -95,7 +122,9 @@ export async function GET(request: NextRequest) {
       name: publicData.name,
       logo: publicData.logo,
       reviewsNeededFor5,
-    } satisfies { success: true } & ReviewData);
+      reviews: reviewsList || [],
+      page,
+    });
   } catch (error) {
     console.error('Reviews API error:', error);
     return NextResponse.json({
@@ -146,6 +175,42 @@ async function fetchPublicMetrics(merchantId: string) {
     name: merchant.name || '',
     logo: merchant.logo || '',
   };
+}
+
+// --- Публичный API: список отзывов ---
+
+async function fetchReviewsList(merchantId: string, page: number, size: number) {
+  try {
+    const resp = await fetch(
+      `https://kaspi.kz/yml/review-view/api/v1/reviews/merchant/${merchantId}?page=${page}&size=${size}`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Referer': `https://kaspi.kz/shop/info/merchant/${merchantId}/reviews`,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      }
+    );
+
+    if (!resp.ok) return [];
+    const json = await resp.json();
+    return (json.data || []).map((r: any) => ({
+      id: r.id,
+      author: r.author,
+      date: r.date,
+      rating: r.rating,
+      text: r.comment?.text || '',
+      plus: r.comment?.plus || '',
+      minus: r.comment?.minus || '',
+      productName: r.product?.name || '',
+      productLink: r.product?.link || '',
+      photos: (r.galleryImages || []).map((img: any) => img.small).filter(Boolean),
+    }));
+  } catch (e) {
+    console.error('[Reviews] List fetch failed:', e);
+    return [];
+  }
 }
 
 // --- GraphQL BFF: точное распределение по звёздам ---

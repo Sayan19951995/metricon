@@ -206,6 +206,9 @@ function AnalyticsPageContent() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [reviewData, setReviewData] = useState<any>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewPage, setReviewPage] = useState(0);
+  const [reviewsLoadingMore, setReviewsLoadingMore] = useState(false);
+  const [reviewsHasMore, setReviewsHasMore] = useState(true);
 
   const fetchAnalyticsData = useCallback(async () => {
     if (!user?.id) return;
@@ -251,15 +254,43 @@ function AnalyticsPageContent() {
   useEffect(() => {
     if (activeTab === 'reviews' && user?.id && !reviewData && !reviewLoading) {
       setReviewLoading(true);
-      fetch(`/api/kaspi/reviews?userId=${user.id}`)
+      fetch(`/api/kaspi/reviews?userId=${user.id}&page=0&size=10`)
         .then(r => r.json())
         .then(data => {
-          if (data.success) setReviewData(data);
+          if (data.success) {
+            setReviewData(data);
+            setReviewPage(0);
+            setReviewsHasMore((data.reviews || []).length >= 10);
+          }
         })
         .catch(err => console.error('Reviews fetch error:', err))
         .finally(() => setReviewLoading(false));
     }
   }, [activeTab, user?.id, reviewData, reviewLoading]);
+
+  const loadMoreReviews = async () => {
+    if (!user?.id || reviewsLoadingMore || !reviewsHasMore) return;
+    setReviewsLoadingMore(true);
+    try {
+      const nextPage = reviewPage + 1;
+      const res = await fetch(`/api/kaspi/reviews?userId=${user.id}&page=${nextPage}&size=10`);
+      const data = await res.json();
+      if (data.success && data.reviews?.length > 0) {
+        setReviewData((prev: any) => ({
+          ...prev,
+          reviews: [...(prev?.reviews || []), ...data.reviews],
+        }));
+        setReviewPage(nextPage);
+        setReviewsHasMore(data.reviews.length >= 10);
+      } else {
+        setReviewsHasMore(false);
+      }
+    } catch (err) {
+      console.error('Load more reviews error:', err);
+    } finally {
+      setReviewsLoadingMore(false);
+    }
+  };
 
   // Инициализация с периодом "Неделя" по умолчанию
   const getDefaultDateRange = () => {
@@ -2182,7 +2213,7 @@ function AnalyticsPageContent() {
                         ))}
                       </div>
                       <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                        {reviewData.exactRating ? `точный: ${reviewData.exactRating}` : `${reviewData.totalRatings} оценок`}
+                        {!reviewData.approximate && reviewData.exactRating ? `точный: ${reviewData.exactRating}` : `${reviewData.totalRatings} оценок`}
                       </div>
                     </div>
 
@@ -2259,8 +2290,25 @@ function AnalyticsPageContent() {
                     </div>
                   </div>
 
+                  {/* Сессия истекла — нет точных данных */}
+                  {reviewData.approximate && (
+                    <div className="mt-6 p-4 bg-gray-50 dark:bg-gray-700/30 rounded-xl border border-gray-200 dark:border-gray-600">
+                      <div className="flex items-start gap-3">
+                        <AlertTriangle className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-gray-700 dark:text-gray-300">
+                            Нет детальных данных — сессия Kaspi истекла
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Перейдите в <Link href="/app/settings/kaspi" className="text-blue-500 hover:underline">Настройки → Kaspi</Link> и авторизуйтесь заново, чтобы увидеть распределение звёзд, расчёт до 5.0 и дату выпадения оценок.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Цель — 5.0 */}
-                  {reviewData.reviewsNeededFor5 > 0 && (
+                  {!reviewData.approximate && reviewData.reviewsNeededFor5 > 0 && (
                     <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
                       <div className="flex items-start gap-3">
                         <Star className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
@@ -2275,7 +2323,7 @@ function AnalyticsPageContent() {
                       </div>
                     </div>
                   )}
-                  {reviewData.exactRating >= 4.95 && (
+                  {!reviewData.approximate && reviewData.exactRating >= 4.95 && (
                     <div className="mt-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
                       <div className="flex items-center gap-3">
                         <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
@@ -2287,7 +2335,7 @@ function AnalyticsPageContent() {
                   )}
 
                   {/* Когда выпадут не-пятёрки */}
-                  {reviewData.nonFiveCount > 0 && (
+                  {!reviewData.approximate && reviewData.nonFiveCount > 0 && (
                     <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
                       <div className="flex items-start gap-3">
                         <Calendar className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
@@ -2347,6 +2395,73 @@ function AnalyticsPageContent() {
                     </div>
                   </div>
                 </div>
+
+                {/* Список отзывов */}
+                {reviewData.reviews && reviewData.reviews.length > 0 && (
+                  <div className="space-y-3">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Последние отзывы</h3>
+                    {reviewData.reviews.map((review: any) => (
+                      <div key={review.id} className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-4 sm:p-5">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className="font-medium text-gray-900 dark:text-white text-sm">{review.author}</span>
+                              <span className="text-xs text-gray-400">{review.date}</span>
+                            </div>
+                            <div className="flex items-center gap-0.5 mt-1">
+                              {[1, 2, 3, 4, 5].map(i => (
+                                <Star
+                                  key={i}
+                                  className={`w-3.5 h-3.5 ${i <= review.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300 dark:text-gray-600'}`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        {review.text && (
+                          <p className="text-sm text-gray-700 dark:text-gray-300 mt-2 leading-relaxed">{review.text}</p>
+                        )}
+                        {review.plus && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            <span className="text-emerald-500 font-medium">+</span> {review.plus}
+                          </p>
+                        )}
+                        {review.minus && (
+                          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                            <span className="text-red-500 font-medium">−</span> {review.minus}
+                          </p>
+                        )}
+                        {review.photos && review.photos.length > 0 && (
+                          <div className="flex gap-2 mt-3 overflow-x-auto">
+                            {review.photos.slice(0, 4).map((url: string, i: number) => (
+                              <img
+                                key={i}
+                                src={url}
+                                alt=""
+                                className="w-16 h-16 rounded-lg object-cover flex-shrink-0"
+                                loading="lazy"
+                              />
+                            ))}
+                          </div>
+                        )}
+                        {review.productName && (
+                          <div className="mt-3 pt-2 border-t border-gray-100 dark:border-gray-700">
+                            <p className="text-xs text-gray-400 truncate">{review.productName}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {reviewsHasMore && (
+                      <button
+                        onClick={loadMoreReviews}
+                        disabled={reviewsLoadingMore}
+                        className="w-full py-3 text-sm font-medium text-blue-500 hover:text-blue-600 bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow transition-all disabled:opacity-50"
+                      >
+                        {reviewsLoadingMore ? 'Загрузка...' : 'Показать ещё'}
+                      </button>
+                    )}
+                  </div>
+                )}
               </>
             ) : (
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-8 text-center">
