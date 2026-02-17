@@ -202,6 +202,11 @@ function AnalyticsPageContent() {
   const [apiData, setApiData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(true);
 
+  // Отзывы / рейтинг
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [reviewData, setReviewData] = useState<any>(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+
   const fetchAnalyticsData = useCallback(async () => {
     if (!user?.id) return;
     try {
@@ -241,6 +246,20 @@ function AnalyticsPageContent() {
       fetchAnalyticsData();
     }
   }, [user?.id, userLoading, fetchAnalyticsData]);
+
+  // Загрузка отзывов при переключении на вкладку
+  useEffect(() => {
+    if (activeTab === 'reviews' && user?.id && !reviewData && !reviewLoading) {
+      setReviewLoading(true);
+      fetch(`/api/kaspi/reviews?userId=${user.id}`)
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) setReviewData(data);
+        })
+        .catch(err => console.error('Reviews fetch error:', err))
+        .finally(() => setReviewLoading(false));
+    }
+  }, [activeTab, user?.id, reviewData, reviewLoading]);
 
   // Инициализация с периодом "Неделя" по умолчанию
   const getDefaultDateRange = () => {
@@ -2134,16 +2153,212 @@ function AnalyticsPageContent() {
 
         {/* Reviews Tab */}
         {activeTab === 'reviews' && (
-          <div className="mt-6">
-            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-8 text-center">
-              <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Star className="w-8 h-8 text-amber-500" />
+          <div className="mt-6 space-y-6">
+            {reviewLoading ? (
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-8 text-center">
+                <div className="animate-spin w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full mx-auto mb-4" />
+                <p className="text-gray-500 dark:text-gray-400">Загружаем данные с Kaspi...</p>
               </div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Отзывы</h3>
-              <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
-                Скоро — подключение отзывов с Kaspi. Мы работаем над интеграцией с системой отзывов Kaspi.kz
-              </p>
-            </div>
+            ) : reviewData ? (
+              <>
+                {/* Рейтинг + цель */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    {/* Текущий рейтинг */}
+                    <div className="flex flex-col items-center">
+                      <div className="text-5xl font-bold text-gray-900 dark:text-white">{reviewData.rating}</div>
+                      <div className="flex items-center gap-0.5 mt-2">
+                        {[1, 2, 3, 4, 5].map(i => (
+                          <Star
+                            key={i}
+                            className={`w-5 h-5 ${
+                              i <= Math.floor(reviewData.rating)
+                                ? 'fill-amber-400 text-amber-400'
+                                : i - 1 < reviewData.rating
+                                  ? 'fill-amber-400/50 text-amber-400'
+                                  : 'text-gray-300 dark:text-gray-600'
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                        {reviewData.exactRating ? `точный: ${reviewData.exactRating}` : `${reviewData.totalRatings} оценок`}
+                      </div>
+                    </div>
+
+                    {/* Разделитель */}
+                    <div className="hidden sm:block w-px h-20 bg-gray-200 dark:bg-gray-700" />
+
+                    {/* Распределение по звёздам */}
+                    {reviewData.stars && reviewData.stars.five > 0 ? (
+                      <div className="flex-1 w-full space-y-1.5">
+                        {[
+                          { label: '5', count: reviewData.stars.five, color: 'bg-emerald-500' },
+                          { label: '4', count: reviewData.stars.four, color: 'bg-lime-500' },
+                          { label: '3', count: reviewData.stars.three, color: 'bg-amber-500' },
+                          { label: '2', count: reviewData.stars.two, color: 'bg-orange-500' },
+                          { label: '1', count: reviewData.stars.one, color: 'bg-red-500' },
+                        ].map(row => {
+                          const pct = reviewData.totalRatings > 0 ? (row.count / reviewData.totalRatings) * 100 : 0;
+                          return (
+                            <div key={row.label} className="flex items-center gap-2">
+                              <span className="text-xs text-gray-500 dark:text-gray-400 w-3 text-right">{row.label}</span>
+                              <Star className="w-3 h-3 fill-amber-400 text-amber-400 flex-shrink-0" />
+                              <div className="flex-1 h-2.5 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                                <div className={`h-full ${row.color} rounded-full`} style={{ width: `${Math.max(pct, 0.5)}%` }} />
+                              </div>
+                              <span className="text-xs text-gray-600 dark:text-gray-300 w-8 text-right">{row.count}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ) : (
+                      <div className="flex-1 space-y-2">
+                        <div className="flex items-center gap-3">
+                          <MessageCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                          <span className="text-gray-700 dark:text-gray-300">
+                            <span className="font-semibold">{reviewData.numberOfReviews}</span> отзывов с текстом
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Разделитель */}
+                    <div className="hidden sm:block w-px h-20 bg-gray-200 dark:bg-gray-700" />
+
+                    {/* Статистика */}
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-3">
+                        <MessageCircle className="w-5 h-5 text-blue-500 flex-shrink-0" />
+                        <span className="text-gray-700 dark:text-gray-300 text-sm">
+                          <span className="font-semibold">{reviewData.numberOfReviews}</span> с текстом
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <ShoppingBag className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                        <span className="text-gray-700 dark:text-gray-300 text-sm">
+                          <span className="font-semibold">{reviewData.salesCount?.toLocaleString('ru-RU') || '—'}</span>+ продаж
+                        </span>
+                      </div>
+                      {reviewData.status && (
+                        <div className="flex items-center gap-3">
+                          <CheckCircle className={`w-5 h-5 flex-shrink-0 ${
+                            reviewData.status === 'PERFECT' ? 'text-emerald-500' : 'text-blue-500'
+                          }`} />
+                          <span className={`font-semibold text-sm ${
+                            reviewData.status === 'PERFECT' ? 'text-emerald-600 dark:text-emerald-400' :
+                            reviewData.status === 'GOOD' ? 'text-blue-600 dark:text-blue-400' :
+                            'text-amber-600 dark:text-amber-400'
+                          }`}>
+                            {reviewData.status === 'PERFECT' ? 'Отличный продавец' :
+                             reviewData.status === 'GOOD' ? 'Хороший продавец' :
+                             reviewData.status}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Цель — 5.0 */}
+                  {reviewData.reviewsNeededFor5 > 0 && (
+                    <div className="mt-6 p-4 bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-200 dark:border-amber-800">
+                      <div className="flex items-start gap-3">
+                        <Star className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            До рейтинга 5.0 нужно ещё {reviewData.reviewsNeededFor5} положительных отзывов
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Точный рейтинг {reviewData.exactRating} — при условии что все новые будут на 5 звёзд
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {reviewData.exactRating >= 4.95 && (
+                    <div className="mt-6 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl border border-emerald-200 dark:border-emerald-800">
+                      <div className="flex items-center gap-3">
+                        <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0" />
+                        <p className="font-medium text-emerald-700 dark:text-emerald-300">
+                          Рейтинг 5.0 достигнут!
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Когда выпадут не-пятёрки */}
+                  {reviewData.nonFiveCount > 0 && (
+                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800">
+                      <div className="flex items-start gap-3">
+                        <Calendar className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                        <div>
+                          <p className="font-medium text-gray-900 dark:text-white">
+                            {reviewData.nonFiveCount} оценок ниже 5 выпадут из рейтинга
+                          </p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                            Kaspi считает рейтинг за последние {reviewData.windowDays || 90} дней.
+                            {reviewData.nonFiveDropOffBy && ` Все текущие не-пятёрки выпадут не позднее ${format(new Date(reviewData.nonFiveDropOffBy), 'd MMMM yyyy', { locale: ru })}.`}
+                            {' '}Если не получать новых оценок ниже 5 — рейтинг вырастет автоматически.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Метрики магазина */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+                        <XCircle className="w-5 h-5 text-red-500" />
+                      </div>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Отмены</span>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{reviewData.cancelled}%</div>
+                    <div className={`text-xs mt-1 ${reviewData.cancelled <= 1 ? 'text-emerald-500' : reviewData.cancelled <= 3 ? 'text-amber-500' : 'text-red-500'}`}>
+                      {reviewData.cancelled <= 1 ? 'Отлично (норма < 1%)' : reviewData.cancelled <= 3 ? 'Внимание (норма < 1%)' : 'Превышение (норма < 1%)'}
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-orange-100 dark:bg-orange-900/30 rounded-xl flex items-center justify-center">
+                        <RotateCcw className="w-5 h-5 text-orange-500" />
+                      </div>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Возвраты</span>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{reviewData.returned}%</div>
+                    <div className={`text-xs mt-1 ${reviewData.returned <= 1 ? 'text-emerald-500' : reviewData.returned <= 2 ? 'text-amber-500' : 'text-red-500'}`}>
+                      {reviewData.returned <= 1 ? 'Отлично (норма < 1%)' : reviewData.returned <= 2 ? 'Внимание (норма < 1%)' : 'Превышение (норма < 1%)'}
+                    </div>
+                  </div>
+
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+                        <Truck className="w-5 h-5 text-blue-500" />
+                      </div>
+                      <span className="text-sm text-gray-500 dark:text-gray-400">Опоздания доставки</span>
+                    </div>
+                    <div className="text-2xl font-bold text-gray-900 dark:text-white">{reviewData.lateDelivery}%</div>
+                    <div className={`text-xs mt-1 ${reviewData.lateDelivery <= 5 ? 'text-emerald-500' : reviewData.lateDelivery <= 10 ? 'text-amber-500' : 'text-red-500'}`}>
+                      {reviewData.lateDelivery <= 5 ? 'Отлично (норма < 5%)' : reviewData.lateDelivery <= 10 ? 'Внимание (норма < 5%)' : 'Превышение (норма < 5%)'}
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-8 text-center">
+                <div className="w-16 h-16 bg-amber-100 dark:bg-amber-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <Star className="w-8 h-8 text-amber-500" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Отзывы</h3>
+                <p className="text-gray-500 dark:text-gray-400 max-w-md mx-auto">
+                  Подключите кабинет Kaspi чтобы видеть рейтинг и отзывы
+                </p>
+              </div>
+            )}
           </div>
         )}
 
