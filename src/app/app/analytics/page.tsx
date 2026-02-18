@@ -202,6 +202,9 @@ function AnalyticsPageContent() {
   const [apiData, setApiData] = useState<any>(null);
   const [dataLoading, setDataLoading] = useState(true);
 
+  // Маркетинг — точные данные за выбранный период
+  const [marketingData, setMarketingData] = useState<{ totalCost: number } | null>(null);
+
   // Отзывы / рейтинг
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [reviewData, setReviewData] = useState<any>(null);
@@ -326,6 +329,22 @@ function AnalyticsPageContent() {
   const [showExpensesLine, setShowExpensesLine] = useState(true);
   const [showProfitLine, setShowProfitLine] = useState(true);
   const [showChartHelp, setShowChartHelp] = useState(false);
+
+  // Загрузка маркетинг данных за выбранный период
+  useEffect(() => {
+    if (!user?.id || !startDate || !endDate) return;
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const sd = `${startDate.getFullYear()}-${pad(startDate.getMonth() + 1)}-${pad(startDate.getDate())}`;
+    const ed = `${endDate.getFullYear()}-${pad(endDate.getMonth() + 1)}-${pad(endDate.getDate())}`;
+    fetch(`/api/kaspi/marketing?userId=${user.id}&startDate=${sd}&endDate=${ed}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.summary) {
+          setMarketingData({ totalCost: d.summary.totalCost || 0 });
+        }
+      })
+      .catch(() => {});
+  }, [user?.id, startDate, endDate]);
 
   // Toggle для показа только рекламных заказов
   const [showAdsOnly, setShowAdsOnly] = useState(false);
@@ -752,11 +771,13 @@ function AnalyticsPageContent() {
     const totalOrders = filteredDailyData.reduce((sum: number, day: DailyData) => sum + day.orders, 0);
     const totalRevenue = filteredDailyData.reduce((sum: number, day: DailyData) => sum + day.revenue, 0);
     const totalCost = filteredDailyData.reduce((sum: number, day: DailyData) => sum + (day.cost || 0), 0);
-    const totalAdvertising = filteredDailyData.reduce((sum: number, day: DailyData) => sum + (day.advertising || 0), 0);
+    const approxAdvertising = filteredDailyData.reduce((sum: number, day: DailyData) => sum + (day.advertising || 0), 0);
+    const totalAdvertising = marketingData ? marketingData.totalCost : approxAdvertising;
     const totalCommissions = filteredDailyData.reduce((sum: number, day: DailyData) => sum + (day.commissions || 0), 0);
     const totalTax = filteredDailyData.reduce((sum: number, day: DailyData) => sum + (day.tax || 0), 0);
     const totalDelivery = filteredDailyData.reduce((sum: number, day: DailyData) => sum + (day.delivery || 0), 0);
-    const totalProfit = filteredDailyData.reduce((sum: number, day: DailyData) => sum + day.profit, 0);
+    const approxProfit = filteredDailyData.reduce((sum: number, day: DailyData) => sum + day.profit, 0);
+    const totalProfit = marketingData ? approxProfit + approxAdvertising - totalAdvertising : approxProfit;
     const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
     // Rebuild topProducts from filtered daily data (by creation date — consistent with top cards)
