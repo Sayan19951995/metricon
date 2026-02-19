@@ -15,6 +15,7 @@
   "dependencies": {
     "@neondatabase/serverless": "^1.0.2",
     "@playwright/test": "^1.57.0",
+    "@sparticuz/chromium": "^143.0.4",
     "@supabase/supabase-js": "^2.93.3",
     "@types/bcrypt": "^6.0.0",
     "@types/cheerio": "^0.22.35",
@@ -30,6 +31,7 @@
     "next": "16.1.1",
     "nodemailer": "^7.0.12",
     "playwright": "^1.57.0",
+    "puppeteer-core": "^24.37.4",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "recharts": "^3.6.0",

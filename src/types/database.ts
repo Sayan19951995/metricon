@@ -279,6 +279,63 @@ export interface Database {
         }
         Relationships: []
       }
+      search_keywords: {
+        Row: {
+          id: string
+          store_id: string
+          product_id: string
+          keyword: string
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          product_id: string
+          keyword: string
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          product_id?: string
+          keyword?: string
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      search_positions: {
+        Row: {
+          id: string
+          store_id: string
+          product_id: string
+          keyword: string
+          position_organic: number | null
+          position_ad: number | null
+          total_results: number | null
+          checked_at: string | null
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          product_id: string
+          keyword: string
+          position_organic?: number | null
+          position_ad?: number | null
+          total_results?: number | null
+          checked_at?: string | null
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          product_id?: string
+          keyword?: string
+          position_organic?: number | null
+          position_ad?: number | null
+          total_results?: number | null
+          checked_at?: string | null
+        }
+        Relationships: []
+      }
       product_groups: {
         Row: {
           id: string
@@ -321,6 +378,7 @@ export interface Database {
           category: string | null
           active: boolean | null
           product_group: string | null
+
           created_at: string | null
         }
         Insert: {
@@ -337,6 +395,7 @@ export interface Database {
           category?: string | null
           active?: boolean | null
           product_group?: string | null
+          track_position?: boolean | null
           created_at?: string | null
         }
         Update: {
@@ -353,6 +412,7 @@ export interface Database {
           category?: string | null
           active?: boolean | null
           product_group?: string | null
+          track_position?: boolean | null
           created_at?: string | null
         }
         Relationships: []
