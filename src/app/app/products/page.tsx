@@ -2,28 +2,20 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import {
-  Search,
-  RefreshCw,
-  Check,
-  X,
-  ChevronUp,
-  ChevronDown,
-  Package,
-  AlertCircle,
-  LogIn,
-  Loader2,
-  Clock,
-  Edit3,
-  Download,
-  Save,
-  HelpCircle,
+  Search, RefreshCw, Check, X, ChevronUp, ChevronDown,
+  Package, AlertCircle, Loader2, Clock, Edit3, Save, HelpCircle,
+  BoxSelect, AlertTriangle, ShoppingBag,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { getStale, setCache } from '@/lib/cache';
-import type { KaspiProduct, KaspiAvailability } from '@/lib/kaspi/api-client';
+import type { KaspiProduct } from '@/lib/kaspi/api-client';
+import ProductsSkeleton from './components/ProductsSkeleton';
+import LoginForm from './components/LoginForm';
+import EditModal from './components/EditModal';
 
 type SortField = 'name' | 'price' | 'stock' | 'preorder';
 type SortDir = 'asc' | 'desc';
+type FilterTab = 'all' | 'preorder' | 'notSpecified' | 'lowStock';
 
 interface CabinetSession {
   connected: boolean;
@@ -34,32 +26,27 @@ interface CabinetSession {
 export default function ProductsPage() {
   const { user, loading: userLoading } = useUser();
 
-  // Состояние сессии кабинета
+  // Session
   const [session, setSession] = useState<CabinetSession | null>(null);
   const [sessionLoading, setSessionLoading] = useState(true);
 
-  // Товары (все загруженные) — с кэшем
+  // Products — with cache
   const CACHE_KEY = `products_${user?.id || ''}`;
   const cached = user?.id ? getStale<{ products: KaspiProduct[]; stats: { inStock: number; notSpecified: number; lowStock: number } }>(CACHE_KEY) : null;
-
   const [allProducts, setAllProducts] = useState<KaspiProduct[]>(cached?.data.products || []);
   const [stats, setStats] = useState<{ inStock: number; notSpecified: number; lowStock: number }>(cached?.data.stats || { inStock: 0, notSpecified: 0, lowStock: 0 });
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const limit = 20;
 
-  // Фильтры
+  // Filters
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterStock, setFilterStock] = useState<'all' | 'preorder' | 'notSpecified'>('all');
-  const [filterLowStock, setFilterLowStock] = useState(false);
-  const [filterNotSpecified, setFilterNotSpecified] = useState(false);
-  const [lowStockThreshold, setLowStockThreshold] = useState(5);
-  const [editingThreshold, setEditingThreshold] = useState(false);
-  const [thresholdValue, setThresholdValue] = useState('5');
-  const thresholdInputRef = useRef<HTMLInputElement>(null);
+  const [filterTab, setFilterTab] = useState<FilterTab>('all');
   const [sortBy, setSortBy] = useState<SortField>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [showRefreshHelp, setShowRefreshHelp] = useState(false);
+  const [lowStockThreshold] = useState(5);
 
   // Inline edit
   const [editingCell, setEditingCell] = useState<{ offerId: string; field: 'price' | 'stock' | 'preorder' } | null>(null);
@@ -68,35 +55,30 @@ export default function ProductsPage() {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const editInputRef = useRef<HTMLInputElement>(null);
 
-  // Ошибка загрузки товаров
-  const [loadError, setLoadError] = useState('');
-
-  // Preorder changes (sku → days для всех складов)
+  // Preorder changes
   const [preorderChanges, setPreorderChanges] = useState<Record<string, number>>({});
-  const [generatingXml, setGeneratingXml] = useState(false);
+  const [savingPreorders, setSavingPreorders] = useState(false);
+  const [preorderSaved, setPreorderSaved] = useState(false);
 
-  // Логин
+  // Login
   const [loginUsername, setLoginUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [loginLoading, setLoginLoading] = useState(false);
   const [loginError, setLoginError] = useState('');
 
-  // Проверка сессии при загрузке
+  // === Effects ===
+
   useEffect(() => {
     if (userLoading) return;
-    if (!user?.id) {
-      setSessionLoading(false);
-      return;
-    }
+    if (!user?.id) { setSessionLoading(false); return; }
     checkSession();
   }, [user?.id, userLoading]);
 
-  // Загрузка товаров когда сессия активна
   useEffect(() => {
-    if (session?.connected && user?.id) {
-      loadProducts();
-    }
+    if (session?.connected && user?.id) loadProducts();
   }, [session?.connected, user?.id]);
+
+  // === API calls ===
 
   const checkSession = async () => {
     if (!user?.id) return;
@@ -104,11 +86,7 @@ export default function ProductsPage() {
     try {
       const res = await fetch(`/api/kaspi/cabinet/session?userId=${user.id}`);
       const data = await res.json();
-      setSession({
-        connected: data.connected || false,
-        merchantId: data.merchantId,
-        username: data.username,
-      });
+      setSession({ connected: data.connected || false, merchantId: data.merchantId, username: data.username });
     } catch {
       setSession({ connected: false });
     } finally {
@@ -143,105 +121,43 @@ export default function ProductsPage() {
     }
   };
 
-  const handleLogin = async () => {
-    if (!user?.id) return;
-    setLoginLoading(true);
-    setLoginError('');
+  // === Inline editing ===
 
-    try {
-      if (!loginUsername.trim() || !loginPassword.trim()) {
-        setLoginError('Введите логин и пароль');
-        setLoginLoading(false);
-        return;
-      }
-
-      const res = await fetch('/api/kaspi/cabinet/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          username: loginUsername.trim(),
-          password: loginPassword.trim(),
-        }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        setSession({
-          connected: true,
-          merchantId: data.merchantId,
-          username: loginUsername || undefined,
-        });
-        setLoginError('');
-      } else {
-        setLoginError(data.error || 'Не удалось подключиться');
-      }
-    } catch {
-      setLoginError('Ошибка подключения');
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
-  // Inline editing
   const startEdit = (offerId: string, field: 'price' | 'stock' | 'preorder', currentValue: number | null) => {
     setEditingCell({ offerId, field });
     setEditValue(currentValue?.toString() || '');
     setTimeout(() => editInputRef.current?.focus(), 50);
   };
 
-  const cancelEdit = () => {
-    setEditingCell(null);
-    setEditValue('');
-  };
+  const cancelEdit = () => { setEditingCell(null); setEditValue(''); };
 
   const saveEdit = useCallback(async () => {
     if (!editingCell || !user?.id) return;
     setSaving(true);
-
     const value = editValue.trim() === '' ? null : parseFloat(editValue);
 
     try {
-      // Находим продукт для обновления
       const product = allProducts.find(p => p.offerId === editingCell.offerId);
       if (!product) throw new Error('Товар не найден');
 
-      // Собираем availabilities с обновлёнными данными
       const availabilities = (product.availabilities || []).map(a => {
         let preOrder = a.preorderPeriod ?? 0;
         if (editingCell.field === 'preorder') {
           preOrder = value !== null && value > 0 ? Math.min(Math.round(value), 30) : 0;
         }
-        return {
-          available: a.available ? 'yes' : 'no',
-          storeId: a.storeId,
-          preOrder,
-        };
+        return { available: a.available ? 'yes' : 'no', storeId: a.storeId, preOrder };
       });
 
-      // Собираем cityPrices с обновлённой ценой
       let cityPrices = product.cityPrices?.map(cp => ({ cityId: cp.cityId, value: cp.value }));
-      if (editingCell.field === 'price' && value !== null) {
-        if (cityPrices && cityPrices.length > 0) {
-          cityPrices = cityPrices.map(cp => ({ ...cp, value: Math.round(value) }));
-        }
+      if (editingCell.field === 'price' && value !== null && cityPrices && cityPrices.length > 0) {
+        cityPrices = cityPrices.map(cp => ({ ...cp, value: Math.round(value) }));
       }
-
-      const body: Record<string, unknown> = {
-        userId: user.id,
-        sku: product.sku || product.masterSku,
-        model: product.name,
-        availabilities,
-        cityPrices,
-      };
 
       const res = await fetch('/api/kaspi/cabinet/products', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ userId: user.id, sku: product.sku || product.masterSku, model: product.name, availabilities, cityPrices }),
       });
-
       const data = await res.json();
 
       if (data.success) {
@@ -257,7 +173,6 @@ export default function ProductsPage() {
         setToast({ message: `${label} обновлён. Изменения на Kaspi в течение минуты`, type: 'success' });
         setTimeout(() => setToast(null), 4000);
       } else {
-        console.error('Save failed:', data);
         setToast({ message: data.error || 'Не удалось сохранить', type: 'error' });
         setTimeout(() => setToast(null), 5000);
       }
@@ -270,39 +185,29 @@ export default function ProductsPage() {
       setEditingCell(null);
       setEditValue('');
     }
-  }, [editingCell, editValue, user?.id]);
+  }, [editingCell, editValue, user?.id, allProducts]);
 
   const handleEditKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') saveEdit();
     if (e.key === 'Escape') cancelEdit();
   };
 
-  // Preorder: сохранить изменение локально
+  // === Preorder ===
+
   const setPreorder = (sku: string, days: number | null) => {
     setPreorderChanges(prev => {
-      if (days === null || days <= 0) {
-        const next = { ...prev };
-        delete next[sku];
-        return next;
-      }
+      if (days === null || days <= 0) { const next = { ...prev }; delete next[sku]; return next; }
       return { ...prev, [sku]: Math.min(days, 30) };
     });
-    // Обновляем в allProducts для отображения
-    setAllProducts(prev => prev.map(p => {
-      if (p.sku !== sku) return p;
-      return { ...p, preorder: days !== null && days > 0 ? Math.min(days, 30) : null };
-    }));
+    setAllProducts(prev => prev.map(p =>
+      p.sku !== sku ? p : { ...p, preorder: days !== null && days > 0 ? Math.min(days, 30) : null }
+    ));
   };
-
-  // Сохранить предзаказы в БД (для автозагрузки)
-  const [savingPreorders, setSavingPreorders] = useState(false);
-  const [preorderSaved, setPreorderSaved] = useState(false);
 
   const savePreorderOverrides = async () => {
     if (!user?.id || Object.keys(preorderChanges).length === 0) return;
     setSavingPreorders(true);
     try {
-      // Собираем batch для pricefeed API
       const products = Object.entries(preorderChanges).map(([sku, days]) => {
         const product = allProducts.find(p => p.sku === sku);
         if (!product) return null;
@@ -310,27 +215,19 @@ export default function ProductsPage() {
           sku: product.sku || product.masterSku || sku,
           model: product.name,
           availabilities: (product.availabilities || []).map(a => ({
-            available: a.available ? 'yes' : 'no',
-            storeId: a.storeId,
+            available: a.available ? 'yes' : 'no', storeId: a.storeId,
             preOrder: days > 0 ? Math.min(days, 30) : 0,
           })),
           cityPrices: product.cityPrices?.map(cp => ({ cityId: cp.cityId, value: cp.value })),
         };
       }).filter(Boolean);
 
-      if (products.length === 0) {
-        alert('Не найдены товары для обновления');
-        return;
-      }
+      if (products.length === 0) { alert('Не найдены товары для обновления'); return; }
 
-      // Отправляем batch через pricefeed API
       const res = await fetch('/api/kaspi/cabinet/products', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          products,
-        }),
+        body: JSON.stringify({ userId: user.id, products }),
       });
       const data = await res.json();
 
@@ -349,56 +246,13 @@ export default function ProductsPage() {
     }
   };
 
-  // Скачать прайс-лист XML
-  const downloadPriceList = async () => {
-    if (!user?.id) return;
-    setGeneratingXml(true);
-    try {
-      // POST с overrides → получаем XML (+ сохраняет overrides в БД)
-      const res = await fetch('/api/kaspi/cabinet/pricelist', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: user.id,
-          overrides: preorderChanges,
-        }),
-      });
-
-      if (!res.ok) {
-        const data = await res.json().catch(() => ({ error: 'Ошибка генерации' }));
-        alert(data.error || 'Не удалось сгенерировать прайс-лист');
-        return;
-      }
-
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = 'pricelist.xml';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      setPreorderChanges({});
-    } catch (err) {
-      console.error('Download error:', err);
-      alert('Ошибка при скачивании прайс-листа');
-    } finally {
-      setGeneratingXml(false);
-    }
-  };
-
   const hasPreorderChanges = Object.keys(preorderChanges).length > 0;
 
-  // Сортировка
+  // === Sorting & Filtering ===
+
   const handleSort = (field: SortField) => {
-    if (sortBy === field) {
-      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
-    } else {
-      setSortBy(field);
-      setSortDir('asc');
-    }
+    if (sortBy === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortBy(field); setSortDir('asc'); }
     setPage(0);
   };
 
@@ -409,21 +263,17 @@ export default function ProductsPage() {
       : <ChevronDown className="w-3.5 h-3.5 inline ml-0.5" />;
   };
 
-  // Динамический подсчёт товаров с низким остатком
+  // Dynamic counts
+  const preorderCount = allProducts.filter(p => p.preorder != null && p.preorder > 0).length;
+  const notSpecifiedCount = allProducts.filter(p => p.stockSpecified === false).length;
   const lowStockCount = allProducts.filter(p => p.stock > 0 && p.stock < lowStockThreshold && p.stockSpecified !== false).length;
 
-  // Фильтрация и сортировка по ВСЕМ товарам
   const filteredSorted = allProducts
     .filter(p => {
-      if (searchTerm && !p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !p.sku.toLowerCase().includes(searchTerm.toLowerCase())) {
-        return false;
-      }
-      if (filterStock === 'preorder') {
-        return p.preorder != null && p.preorder > 0;
-      }
-      if (filterStock === 'notSpecified') {
-        return p.stockSpecified === false;
-      }
+      if (searchTerm && !p.name.toLowerCase().includes(searchTerm.toLowerCase()) && !p.sku.toLowerCase().includes(searchTerm.toLowerCase())) return false;
+      if (filterTab === 'preorder') return p.preorder != null && p.preorder > 0;
+      if (filterTab === 'notSpecified') return p.stockSpecified === false;
+      if (filterTab === 'lowStock') return p.stock > 0 && p.stock < lowStockThreshold && p.stockSpecified !== false;
       return true;
     })
     .sort((a, b) => {
@@ -439,170 +289,35 @@ export default function ProductsPage() {
   const totalPages = Math.ceil(total / limit);
   const filteredProducts = filteredSorted.slice(page * limit, (page + 1) * limit);
 
-  // === РЕНДЕР ===
+  // Pagination helpers — show max 5 page buttons
+  const paginationRange = (): number[] => {
+    if (totalPages <= 5) return Array.from({ length: totalPages }, (_, i) => i);
+    const start = Math.max(0, Math.min(page - 2, totalPages - 5));
+    return Array.from({ length: 5 }, (_, i) => start + i);
+  };
 
-  // Скелетон товаров
-  const ProductsSkeleton = () => (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
-      {/* Header */}
-      <div className="flex justify-between items-start gap-4 mb-6">
-        <div>
-          <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
-          <div className="h-4 w-52 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse mt-2" />
-        </div>
-        <div className="flex gap-2">
-          <div className="h-9 w-9 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
-          <div className="h-9 w-24 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
-        </div>
-      </div>
+  // === Early returns ===
 
-      {/* Filters bar */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm mb-4 flex gap-3">
-        <div className="flex-1 h-9 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse" />
-        <div className="h-9 w-28 bg-gray-100 dark:bg-gray-700 rounded-lg animate-pulse" />
-      </div>
+  if (userLoading || sessionLoading) return <ProductsSkeleton />;
 
-      {/* Stats row */}
-      <div className="flex gap-3 mb-4">
-        {[...Array(3)].map((_, i) => (
-          <div key={i} className="h-6 bg-gray-100 dark:bg-gray-700 rounded-full animate-pulse" style={{ width: `${80 + i * 20}px` }} />
-        ))}
-      </div>
-
-      {/* Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm overflow-hidden">
-        {/* Table header */}
-        <div className="grid grid-cols-6 gap-4 px-4 py-3 border-b border-gray-100 dark:border-gray-700">
-          {['w-32', 'w-20', 'w-16', 'w-16', 'w-20', 'w-16'].map((w, i) => (
-            <div key={i} className={`h-3 ${w} bg-gray-200 dark:bg-gray-600 rounded animate-pulse`} />
-          ))}
-        </div>
-        {/* Table rows */}
-        {[...Array(8)].map((_, rowIdx) => (
-          <div key={rowIdx} className="grid grid-cols-6 gap-4 px-4 py-4 border-b border-gray-50 dark:border-gray-700/50 items-center">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse flex-shrink-0" />
-              <div className="flex-1 space-y-1.5">
-                <div className="h-3.5 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" style={{ width: `${60 + Math.random() * 40}%` }} />
-                <div className="h-2.5 w-16 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="h-3 w-14 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
-              <div className="h-2.5 w-10 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
-            </div>
-            <div className="h-4 w-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-            <div className="h-5 w-16 bg-gray-100 dark:bg-gray-700 rounded-full animate-pulse" />
-            <div className="h-4 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-            <div className="h-5 w-12 bg-gray-100 dark:bg-gray-700 rounded-full animate-pulse" />
-          </div>
-        ))}
-      </div>
-
-      {/* Pagination */}
-      <div className="flex justify-between items-center mt-4">
-        <div className="h-4 w-32 bg-gray-100 dark:bg-gray-700 rounded animate-pulse" />
-        <div className="flex gap-2">
-          {[...Array(3)].map((_, i) => (
-            <div key={i} className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-
-  // Загрузка сессии
-  if (userLoading || sessionLoading) {
-    return <ProductsSkeleton />;
-  }
-
-  // Кабинет не подключен — форма входа
   if (!session?.connected) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
-        <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-bold mb-1 text-gray-900 dark:text-white">Товары</h1>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">Управление товарами на Kaspi</p>
-        </div>
-
-        <div className="max-w-lg mx-auto">
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 sm:p-8">
-            <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-red-50 dark:bg-red-900/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <LogIn className="w-8 h-8 text-red-500" />
-              </div>
-              <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">Подключите Kaspi кабинет</h2>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
-                Для управления товарами, ценами и предзаказами необходимо подключить
-                ваш Kaspi Merchant Cabinet
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Логин (телефон или email)
-                </label>
-                <input
-                  type="text"
-                  value={loginUsername}
-                  onChange={e => setLoginUsername(e.target.value)}
-                  placeholder="+7 (777) 123-45-67"
-                  className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
-                  Пароль
-                </label>
-                <input
-                  type="password"
-                  value={loginPassword}
-                  onChange={e => setLoginPassword(e.target.value)}
-                  placeholder="Пароль от Kaspi кабинета"
-                  className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-2.5 text-sm text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-colors"
-                  onKeyDown={e => e.key === 'Enter' && handleLogin()}
-                />
-              </div>
-
-              {loginError && (
-                <div className="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-900/20 rounded-xl">
-                  <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-                  <p className="text-sm text-red-700 dark:text-red-400">{loginError}</p>
-                </div>
-              )}
-
-              <button
-                onClick={handleLogin}
-                disabled={loginLoading}
-                className="w-full py-3 bg-gradient-to-r from-[#f14635] to-[#ff6b5a] text-white rounded-xl font-semibold text-sm hover:shadow-lg transition-all disabled:opacity-50 cursor-pointer"
-              >
-                {loginLoading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Подключение...
-                  </span>
-                ) : (
-                  'Подключить кабинет'
-                )}
-              </button>
-            </div>
-
-          </div>
-        </div>
-      </div>
+      <LoginForm
+        userId={user?.id || ''}
+        onSuccess={({ merchantId, username }) => {
+          setSession({ connected: true, merchantId, username });
+        }}
+      />
     );
   }
 
-  // === Товары загружены ===
+  // === RENDER ===
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen relative">
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${
-          toast.type === 'success'
-            ? 'bg-emerald-500 text-white'
-            : 'bg-red-500 text-white'
+          toast.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
         }`}>
           {toast.message}
         </div>
@@ -610,77 +325,32 @@ export default function ProductsPage() {
 
       {/* Mobile Edit Modal */}
       {editingCell && (
-        <div className="lg:hidden fixed inset-0 z-50 flex items-end justify-center">
-          <div className="absolute inset-0 bg-black/50" onClick={cancelEdit} />
-          <div className="relative w-full bg-white dark:bg-gray-800 rounded-t-2xl p-6 pb-8">
-            <div className="w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full mx-auto mb-4" />
-            <h3 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">
-              {editingCell.field === 'price' && 'Изменить цену'}
-              {editingCell.field === 'stock' && 'Изменить остаток'}
-              {editingCell.field === 'preorder' && 'Изменить предзаказ'}
-            </h3>
-            <div className="flex items-center gap-3 mb-6">
-              <input
-                ref={editInputRef}
-                type="number"
-                value={editValue}
-                onChange={e => setEditValue(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter') saveEdit();
-                  if (e.key === 'Escape') cancelEdit();
-                }}
-                className="flex-1 px-4 py-3 text-lg border border-gray-300 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                placeholder={editingCell.field === 'price' ? 'Цена' : editingCell.field === 'preorder' ? '0-30 дней' : 'Количество'}
-                min="0"
-                max={editingCell.field === 'preorder' ? 30 : undefined}
-                autoFocus
-              />
-              <span className="text-gray-500 dark:text-gray-400">
-                {editingCell.field === 'price' && '₸'}
-                {editingCell.field === 'stock' && 'шт'}
-                {editingCell.field === 'preorder' && 'д.'}
-              </span>
-            </div>
-            <div className="flex gap-3">
-              <button
-                onClick={cancelEdit}
-                className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium cursor-pointer"
-              >
-                Отмена
-              </button>
-              <button
-                onClick={saveEdit}
-                disabled={saving}
-                className="flex-1 py-3 bg-blue-500 text-white rounded-xl font-medium cursor-pointer disabled:opacity-50"
-              >
-                {saving ? 'Сохранение...' : 'Сохранить'}
-              </button>
-            </div>
-          </div>
-        </div>
+        <EditModal
+          field={editingCell.field}
+          value={editValue}
+          onChange={setEditValue}
+          onSave={saveEdit}
+          onCancel={cancelEdit}
+          saving={saving}
+        />
       )}
+
       {/* Header */}
-      <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Товары</h1>
-        </div>
-        <div className="flex gap-2">
+      <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Товары</h1>
+        <div className="flex gap-2 items-center">
           {hasPreorderChanges && (
             <button
               onClick={savePreorderOverrides}
               disabled={savingPreorders}
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors cursor-pointer border bg-emerald-500 text-white border-emerald-500 hover:bg-emerald-600"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer bg-emerald-500 text-white hover:bg-emerald-600"
             >
-              {savingPreorders ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
+              {savingPreorders ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Сохранить ({Object.keys(preorderChanges).length})
             </button>
           )}
           {preorderSaved && (
-            <span className="flex items-center gap-1 text-sm text-emerald-600 font-medium self-center">
+            <span className="flex items-center gap-1 text-sm text-emerald-600 font-medium">
               <Check className="w-4 h-4" /> Сохранено
             </span>
           )}
@@ -688,21 +358,18 @@ export default function ProductsPage() {
             <button
               onClick={loadProducts}
               disabled={loading}
-              className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors cursor-pointer border border-gray-200 dark:border-gray-700"
+              className="flex items-center gap-2 px-4 py-2 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors cursor-pointer border border-gray-200 dark:border-gray-700"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              Обновить
+              <span className="hidden sm:inline">Обновить</span>
             </button>
-            <button
-              onClick={() => setShowRefreshHelp(prev => !prev)}
-              className="ml-1.5 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            >
+            <button onClick={() => setShowRefreshHelp(p => !p)} className="ml-1 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
               <HelpCircle className="w-4 h-4 text-gray-400" />
             </button>
             {showRefreshHelp && (
               <>
                 <div className="fixed inset-0 z-40" onClick={() => setShowRefreshHelp(false)} />
-                <div className="absolute top-full left-0 sm:left-auto sm:right-0 mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg z-50 max-w-[200px] sm:max-w-none sm:whitespace-nowrap">
+                <div className="absolute top-full right-0 mt-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg z-50 whitespace-nowrap">
                   Загрузить актуальный список товаров из Kaspi
                 </div>
               </>
@@ -711,34 +378,77 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 shadow-sm mb-4">
-        <div className="flex items-center gap-3">
-          <div className="flex-1 flex items-center gap-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2">
-            <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={e => { setSearchTerm(e.target.value); setPage(0); }}
-              placeholder="Поиск по названию или SKU..."
-              className="flex-1 bg-transparent text-sm focus:outline-none text-gray-900 dark:text-white placeholder:text-gray-400"
-            />
+      {/* Stat cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+        <button
+          onClick={() => { setFilterTab('all'); setPage(0); }}
+          className={`bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm text-left transition-all cursor-pointer border-2 ${
+            filterTab === 'all' ? 'border-gray-900 dark:border-gray-100' : 'border-transparent hover:border-gray-200 dark:hover:border-gray-700'
+          }`}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <ShoppingBag className="w-4 h-4 text-gray-400" />
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Все</span>
           </div>
-          <div className="flex gap-1.5">
-            {(['all', 'preorder'] as const).map(f => (
-              <button
-                key={f}
-                onClick={() => { setFilterStock(f); setPage(0); }}
-                className={`px-3 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer whitespace-nowrap ${
-                  filterStock === f
-                    ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
-                    : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                }`}
-              >
-                {f === 'all' ? `Все (${allProducts.length})` : `Предзаказ (${allProducts.filter(p => p.preorder != null && p.preorder > 0).length})`}
-              </button>
-            ))}
+          <p className="text-xl font-bold text-gray-900 dark:text-white">{allProducts.length}</p>
+        </button>
+
+        <button
+          onClick={() => { setFilterTab('preorder'); setPage(0); }}
+          className={`bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm text-left transition-all cursor-pointer border-2 ${
+            filterTab === 'preorder' ? 'border-blue-500' : 'border-transparent hover:border-gray-200 dark:hover:border-gray-700'
+          }`}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <Clock className="w-4 h-4 text-blue-500" />
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Предзаказ</span>
           </div>
+          <p className="text-xl font-bold text-blue-600 dark:text-blue-400">{preorderCount}</p>
+        </button>
+
+        <button
+          onClick={() => { setFilterTab('notSpecified'); setPage(0); }}
+          className={`bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm text-left transition-all cursor-pointer border-2 ${
+            filterTab === 'notSpecified' ? 'border-amber-500' : 'border-transparent hover:border-gray-200 dark:hover:border-gray-700'
+          }`}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <AlertTriangle className="w-4 h-4 text-amber-500" />
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Не указан</span>
+          </div>
+          <p className="text-xl font-bold text-amber-600 dark:text-amber-400">{notSpecifiedCount}</p>
+        </button>
+
+        <button
+          onClick={() => { setFilterTab('lowStock'); setPage(0); }}
+          className={`bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm text-left transition-all cursor-pointer border-2 ${
+            filterTab === 'lowStock' ? 'border-red-500' : 'border-transparent hover:border-gray-200 dark:hover:border-gray-700'
+          }`}
+        >
+          <div className="flex items-center gap-2 mb-1">
+            <BoxSelect className="w-4 h-4 text-red-500" />
+            <span className="text-xs font-medium text-gray-500 dark:text-gray-400">Мало (&lt;{lowStockThreshold})</span>
+          </div>
+          <p className="text-xl font-bold text-red-600 dark:text-red-400">{lowStockCount}</p>
+        </button>
+      </div>
+
+      {/* Search */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-3 shadow-sm mb-4">
+        <div className="flex items-center gap-2.5 bg-gray-50 dark:bg-gray-700/50 rounded-xl px-3 py-2">
+          <Search className="w-4 h-4 text-gray-400 flex-shrink-0" />
+          <input
+            type="text"
+            value={searchTerm}
+            onChange={e => { setSearchTerm(e.target.value); setPage(0); }}
+            placeholder="Поиск по названию или SKU..."
+            className="flex-1 bg-transparent text-sm focus:outline-none text-gray-900 dark:text-white placeholder:text-gray-400"
+          />
+          {searchTerm && (
+            <button onClick={() => { setSearchTerm(''); setPage(0); }} className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-600 rounded cursor-pointer">
+              <X className="w-3.5 h-3.5 text-gray-400" />
+            </button>
+          )}
         </div>
       </div>
 
@@ -750,10 +460,7 @@ export default function ProductsPage() {
             <div>
               <p className="font-medium text-red-800 dark:text-red-300">Не удалось загрузить товары</p>
               <p className="text-sm text-red-600 dark:text-red-400 mt-1">{loadError}</p>
-              <button
-                onClick={loadProducts}
-                className="mt-3 px-4 py-2 bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-200 rounded-lg text-sm font-medium hover:bg-red-200 dark:hover:bg-red-700 transition-colors cursor-pointer"
-              >
+              <button onClick={loadProducts} className="mt-3 px-4 py-2 bg-red-100 dark:bg-red-800 text-red-700 dark:text-red-200 rounded-lg text-sm font-medium hover:bg-red-200 dark:hover:bg-red-700 transition-colors cursor-pointer">
                 Попробовать снова
               </button>
             </div>
@@ -770,37 +477,34 @@ export default function ProductsPage() {
       )}
 
       {/* Empty */}
-      {!loading && filteredProducts.length === 0 && (
+      {!loading && allProducts.length > 0 && filteredProducts.length === 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 shadow-sm text-center">
           <Package className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
           <h3 className="text-lg font-semibold mb-1 text-gray-900 dark:text-white">Товары не найдены</h3>
           <p className="text-gray-500 dark:text-gray-400 text-sm">
-            {searchTerm ? 'Попробуйте изменить поисковый запрос' : 'В кабинете пока нет товаров'}
+            {searchTerm ? 'Попробуйте изменить поисковый запрос' : 'Нет товаров по выбранному фильтру'}
           </p>
         </div>
       )}
 
-      {/* Products Table */}
+      {/* Products */}
       {filteredProducts.length > 0 && (
         <>
           {/* Mobile cards */}
-          <div className="lg:hidden space-y-3">
+          <div className="lg:hidden space-y-2">
             {filteredProducts.map((product) => (
-              <div
-                key={product.offerId || product.sku}
-                className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm"
-              >
+              <div key={product.offerId || product.sku} className="bg-white dark:bg-gray-800 rounded-xl p-3.5 shadow-sm">
                 <div className="flex items-start gap-3">
                   {product.images?.[0] ? (
-                    <img src={product.images[0]} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                    <img src={product.images[0]} alt="" className="w-11 h-11 rounded-lg object-cover flex-shrink-0" />
                   ) : (
-                    <div className="w-12 h-12 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                    <div className="w-11 h-11 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0">
                       <Package className="w-5 h-5 text-gray-400" />
                     </div>
                   )}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate text-gray-900 dark:text-white">{product.name}</p>
-                    <p className="text-xs text-gray-400 mt-0.5">{product.sku} {product.category && `/ ${product.category}`}</p>
+                    <p className="text-[11px] text-gray-400 mt-0.5">{product.sku}</p>
                     <div className="flex items-center gap-3 mt-2">
                       <button
                         onClick={() => startEdit(product.offerId || '', 'price', product.price)}
@@ -809,18 +513,23 @@ export default function ProductsPage() {
                         {product.price.toLocaleString('ru-RU')} &#8376;
                         <Edit3 className="w-3 h-3 text-gray-400" />
                       </button>
-                      <button
-                        onClick={() => startEdit(product.offerId || '', 'preorder', product.preorder ?? 0)}
-                        className={`flex items-center gap-1 text-xs cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
-                          product.preorder != null && product.preorder > 0
-                            ? preorderChanges[product.sku] ? 'text-amber-600 dark:text-amber-400' : 'text-gray-700 dark:text-gray-300'
-                            : 'text-gray-400 dark:text-gray-500'
-                        }`}
-                      >
-                        <Clock className="w-3 h-3" />
-                        {product.preorder != null && product.preorder > 0 ? `${product.preorder} д.` : '—'}
-                        <Edit3 className="w-3 h-3 text-gray-400" />
-                      </button>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {product.stockSpecified === false ? (
+                          <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[10px] font-medium rounded">Не указан</span>
+                        ) : (
+                          <>{product.stock} шт</>
+                        )}
+                      </span>
+                      {product.preorder != null && product.preorder > 0 && (
+                        <button
+                          onClick={() => startEdit(product.offerId || '', 'preorder', product.preorder ?? 0)}
+                          className={`flex items-center gap-0.5 text-[11px] cursor-pointer ${
+                            preorderChanges[product.sku] ? 'text-amber-600' : 'text-blue-600 dark:text-blue-400'
+                          }`}
+                        >
+                          <Clock className="w-3 h-3" /> {product.preorder}д.
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -834,24 +543,20 @@ export default function ProductsPage() {
               <table className="w-full">
                 <thead className="bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
                   <tr>
-                    <th
-                      onClick={() => handleSort('name')}
-                      className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none"
-                    >
-                      Товар<SortIcon field="name" />
-                    </th>
-                    <th
-                      onClick={() => handleSort('price')}
-                      className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none"
-                    >
-                      Цена<SortIcon field="price" />
-                    </th>
-                    <th
-                      onClick={() => handleSort('preorder')}
-                      className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none"
-                    >
-                      Предзаказ<SortIcon field="preorder" />
-                    </th>
+                    {[
+                      { field: 'name' as SortField, label: 'Товар' },
+                      { field: 'price' as SortField, label: 'Цена' },
+                      { field: 'stock' as SortField, label: 'Остаток' },
+                      { field: 'preorder' as SortField, label: 'Предзаказ' },
+                    ].map(col => (
+                      <th
+                        key={col.field}
+                        onClick={() => handleSort(col.field)}
+                        className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors select-none"
+                      >
+                        {col.label}<SortIcon field={col.field} />
+                      </th>
+                    ))}
                   </tr>
                 </thead>
                 <tbody>
@@ -860,7 +565,7 @@ export default function ProductsPage() {
                       key={product.offerId || product.sku}
                       className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors"
                     >
-                      {/* Товар */}
+                      {/* Name */}
                       <td className="py-3 px-4">
                         <div className="flex items-center gap-3">
                           {product.images?.[0] ? (
@@ -871,13 +576,13 @@ export default function ProductsPage() {
                             </div>
                           )}
                           <div className="min-w-0">
-                            <p className="text-sm font-medium truncate max-w-[250px] text-gray-900 dark:text-white">{product.name}</p>
+                            <p className="text-sm font-medium truncate max-w-[300px] text-gray-900 dark:text-white">{product.name}</p>
                             <p className="text-xs text-gray-400">{product.sku}</p>
                           </div>
                         </div>
                       </td>
 
-                      {/* Цена */}
+                      {/* Price */}
                       <td className="py-3 px-4">
                         {editingCell !== null && editingCell.offerId === product.offerId && editingCell.field === 'price' ? (
                           <div className="flex items-center gap-1">
@@ -899,10 +604,7 @@ export default function ProductsPage() {
                             </button>
                           </div>
                         ) : (
-                          <button
-                            onClick={() => startEdit(product.offerId || '', 'price', product.price)}
-                            className="group flex items-center gap-1 cursor-pointer"
-                          >
+                          <button onClick={() => startEdit(product.offerId || '', 'price', product.price)} className="group flex items-center gap-1 cursor-pointer">
                             <span className="text-sm font-semibold text-gray-900 dark:text-white">
                               {product.price.toLocaleString('ru-RU')} &#8376;
                             </span>
@@ -911,7 +613,26 @@ export default function ProductsPage() {
                         )}
                       </td>
 
-                      {/* Предзаказ */}
+                      {/* Stock */}
+                      <td className="py-3 px-4">
+                        {product.stockSpecified === false ? (
+                          <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-xs font-medium rounded-lg">
+                            Не указан
+                          </span>
+                        ) : (
+                          <span className={`text-sm font-medium ${
+                            product.stock === 0
+                              ? 'text-gray-400 dark:text-gray-500'
+                              : product.stock < lowStockThreshold
+                                ? 'text-red-600 dark:text-red-400'
+                                : 'text-gray-900 dark:text-white'
+                          }`}>
+                            {product.stock} шт
+                          </span>
+                        )}
+                      </td>
+
+                      {/* Preorder */}
                       <td className="py-3 px-4">
                         {editingCell !== null && editingCell.offerId === product.offerId && editingCell.field === 'preorder' ? (
                           <div className="flex items-center gap-1">
@@ -922,15 +643,10 @@ export default function ProductsPage() {
                               onChange={e => setEditValue(e.target.value)}
                               onKeyDown={handleEditKeyDown}
                               className="w-16 px-2 py-1 text-sm border border-blue-400 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                              min="0"
-                              max="30"
-                              placeholder="0-30"
+                              min="0" max="30" placeholder="0-30"
                             />
                             <span className="text-xs text-gray-400">д.</span>
-                            <button
-                              onClick={saveEdit}
-                              className="p-1 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer"
-                            >
+                            <button onClick={saveEdit} className="p-1 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
                               <Check className="w-3.5 h-3.5" />
                             </button>
                             <button onClick={cancelEdit} className="p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded cursor-pointer">
@@ -940,20 +656,18 @@ export default function ProductsPage() {
                         ) : (
                           <button
                             onClick={() => startEdit(product.offerId || '', 'preorder', product.preorder ?? null)}
-                            className={`group flex items-center gap-1 cursor-pointer ${
-                              preorderChanges[product.sku] ? 'text-amber-600 dark:text-amber-400' : ''
-                            }`}
+                            className={`group flex items-center gap-1 cursor-pointer ${preorderChanges[product.sku] ? 'text-amber-600 dark:text-amber-400' : ''}`}
                           >
                             {product.preorder && product.preorder > 0 ? (
                               <span className="flex items-center gap-1 text-sm font-medium text-gray-900 dark:text-white">
-                                <Clock className="w-3.5 h-3.5" />
+                                <Clock className="w-3.5 h-3.5 text-blue-500" />
                                 {product.preorder} д.
                                 {preorderChanges[product.sku] && (
                                   <span className="text-[10px] bg-amber-100 dark:bg-amber-900/40 text-amber-600 dark:text-amber-400 px-1 rounded">изм.</span>
                                 )}
                               </span>
                             ) : (
-                              <span className="text-sm text-gray-400 dark:text-gray-500">-</span>
+                              <span className="text-sm text-gray-400 dark:text-gray-500">—</span>
                             )}
                             <Edit3 className="w-3 h-3 text-gray-300 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </button>
@@ -970,28 +684,28 @@ export default function ProductsPage() {
           {totalPages > 1 && (
             <div className="mt-4 flex items-center justify-between">
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Страница {page + 1} из {totalPages} ({total} товаров)
+                {page * limit + 1}–{Math.min((page + 1) * limit, total)} из {total}
               </p>
-              <div className="flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => setPage(p => Math.max(0, p - 1))}
                   disabled={page === 0}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     page === 0
-                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer'
+                      ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer'
                   }`}
                 >
-                  Назад
+                  ←
                 </button>
-                {Array.from({ length: totalPages }, (_, i) => (
+                {paginationRange().map(i => (
                   <button
                     key={i}
                     onClick={() => setPage(i)}
                     className={`w-8 h-8 rounded-lg text-sm font-medium transition-colors cursor-pointer ${
                       i === page
-                        ? 'bg-red-500 text-white'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+                        ? 'bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900'
+                        : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
                     }`}
                   >
                     {i + 1}
@@ -1002,11 +716,11 @@ export default function ProductsPage() {
                   disabled={page >= totalPages - 1}
                   className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
                     page >= totalPages - 1
-                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 cursor-not-allowed'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer'
+                      ? 'text-gray-400 dark:text-gray-500 cursor-not-allowed'
+                      : 'text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer'
                   }`}
                 >
-                  Вперёд
+                  →
                 </button>
               </div>
             </div>

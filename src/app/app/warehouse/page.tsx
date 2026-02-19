@@ -41,6 +41,7 @@ interface Product {
   active: boolean | null;
   product_group: string | null;
   availabilities?: Availability[];
+  kaspi_not_specified?: boolean;
 }
 
 export default function WarehousePage() {
@@ -131,6 +132,7 @@ export default function WarehousePage() {
   // Filters, sorting & pagination
   const [searchTerm, setSearchTerm] = useState('');
   const [showLowStockOnly, setShowLowStockOnly] = useState(false);
+  const [showNotSpecifiedOnly, setShowNotSpecifiedOnly] = useState(false);
   const [groupFilter, setGroupFilter] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 20;
@@ -206,7 +208,7 @@ export default function WarehousePage() {
       // Merge live stock + availabilities from Cabinet by SKU
       const kaspiStockUpdates: { id: string; kaspi_stock: number }[] = [];
       if (cabinetResult.success && cabinetResult.products) {
-        const stockMap = new Map<string, { stock: number; availabilities: Availability[]; name: string; price: number; category: string | null; image_url: string | null }>();
+        const stockMap = new Map<string, { stock: number; availabilities: Availability[]; name: string; price: number; category: string | null; image_url: string | null; notSpecified: boolean }>();
         for (const kp of cabinetResult.products) {
           if (kp.sku) {
             const avails: Availability[] = (kp.availabilities || [])
@@ -222,6 +224,7 @@ export default function WarehousePage() {
               price: kp.price || 0,
               category: kp.category || null,
               image_url: kp.images?.[0] || null,
+              notSpecified: kp.stockSpecified === false,
             });
           }
         }
@@ -277,11 +280,12 @@ export default function WarehousePage() {
             }
             p.kaspi_stock = info.stock;
             p.availabilities = info.availabilities;
+            p.kaspi_not_specified = info.notSpecified;
           }
         }
 
         // Добавляем товары из кабинета которых нет в БД (проверяем и sku, и kaspi_id)
-        const missingProducts: Array<{ sku: string; name: string; price: number; quantity: number; kaspi_stock: number; category: string | null; image_url: string | null; availabilities: Availability[] }> = [];
+        const missingProducts: Array<{ sku: string; name: string; price: number; quantity: number; kaspi_stock: number; category: string | null; image_url: string | null; availabilities: Availability[]; notSpecified: boolean }> = [];
         for (const [sku, info] of stockMap) {
           if (!existingSkus.has(sku) && !existingKaspiIds.has(sku) && info.name) {
             missingProducts.push({ sku, ...info, quantity: 0, kaspi_stock: info.stock });
@@ -315,6 +319,7 @@ export default function WarehousePage() {
               dbProducts.push({
                 ...row,
                 availabilities: mp?.availabilities,
+                kaspi_not_specified: mp?.notSpecified ?? false,
               });
             }
           }
@@ -451,10 +456,11 @@ export default function WarehousePage() {
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
     const matchesLowStock = !showLowStockOnly || (p.quantity ?? 0) < 5;
+    const matchesNotSpecified = !showNotSpecifiedOnly || p.kaspi_not_specified;
     const matchesGroup = groupFilter === null ? true
       : groupFilter === 'none' ? !p.product_group
       : p.product_group === groupFilter;
-    return matchesSearch && matchesLowStock && matchesGroup;
+    return matchesSearch && matchesLowStock && matchesNotSpecified && matchesGroup;
   });
 
   // Sort
@@ -481,6 +487,7 @@ export default function WarehousePage() {
   const costPriceSet = products.filter(p => p.cost_price !== null).length;
   const totalCostValue = products.reduce((sum, p) => sum + ((p.cost_price ?? 0) * (p.quantity ?? 0)), 0);
   const lowStockCount = products.filter(p => (p.quantity ?? 0) < 5).length;
+  const notSpecifiedCount = products.filter(p => p.kaspi_not_specified).length;
 
   // Profit: revenue - cost - expenses (only for products with cost_price)
   const totalExpenses = Math.round(totalValue * totalExpenseRate / 100);
@@ -608,7 +615,7 @@ export default function WarehousePage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-4">
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm">
           <div className="flex items-center gap-2 lg:gap-3">
             <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center shrink-0">
@@ -675,6 +682,22 @@ export default function WarehousePage() {
             <div>
               <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Низкий остаток</p>
               <p className="text-sm lg:text-base font-bold text-red-500">{lowStockCount}</p>
+            </div>
+          </div>
+        </button>
+        <button
+          onClick={() => { setShowNotSpecifiedOnly(!showNotSpecifiedOnly); setPage(0); }}
+          className={`bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm text-left transition-all cursor-pointer ${
+            showNotSpecifiedOnly ? 'ring-2 ring-amber-400' : 'hover:shadow-md'
+          }`}
+        >
+          <div className="flex items-center gap-2 lg:gap-3">
+            <div className="w-8 h-8 lg:w-10 lg:h-10 bg-amber-50 dark:bg-amber-900/30 rounded-lg flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-4 h-4 lg:w-5 lg:h-5 text-amber-500" />
+            </div>
+            <div>
+              <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Не указан</p>
+              <p className="text-sm lg:text-base font-bold text-amber-500">{notSpecifiedCount}</p>
             </div>
           </div>
         </button>
@@ -890,11 +913,13 @@ export default function WarehousePage() {
                       </div>
                     </div>
                   </div>
-                  {(product.quantity ?? 0) < 5 && (
-                    <span className="ml-2 px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-medium rounded">
-                      Мало
-                    </span>
-                  )}
+                  <div className="flex items-center gap-1 ml-2">
+                    {(product.quantity ?? 0) < 5 && (
+                      <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-medium rounded">
+                        Мало
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-3">
@@ -903,9 +928,11 @@ export default function WarehousePage() {
                       className="flex items-center gap-1 font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                     >
                       {product.quantity ?? 0}
-                      {product.kaspi_stock != null && (
+                      {product.kaspi_not_specified ? (
+                        <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[10px] font-medium rounded">Не указан</span>
+                      ) : product.kaspi_stock != null ? (
                         <span className="text-[10px] text-gray-400 font-normal">({product.kaspi_stock})</span>
-                      )}
+                      ) : null}
                       <Edit3 className="w-3 h-3 text-gray-400" />
                     </button>
                     <button
@@ -1094,11 +1121,15 @@ export default function WarehousePage() {
                             }`}>
                               {product.quantity ?? 0}
                             </span>
-                            {product.kaspi_stock != null && (
+                            {product.kaspi_not_specified ? (
+                              <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[10px] font-medium rounded">
+                                Не указан
+                              </span>
+                            ) : product.kaspi_stock != null ? (
                               <span className="text-[10px] text-gray-400 dark:text-gray-500">
                                 ({product.kaspi_stock})
                               </span>
-                            )}
+                            ) : null}
                             <Edit3 className="w-3 h-3 text-gray-300 dark:text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </button>
                           {product.availabilities && product.availabilities.length > 1 && (

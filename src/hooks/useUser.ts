@@ -32,10 +32,13 @@ interface Subscription {
   auto_renew: boolean | null;
 }
 
+type UserRole = 'owner' | 'admin' | 'manager' | 'warehouse' | 'viewer';
+
 interface UserData {
   user: User | null;
   store: Store | null;
   subscription: Subscription | null;
+  role: UserRole;
   loading: boolean;
   error: string | null;
 }
@@ -50,6 +53,7 @@ export function useUser(): UserData {
     user: cached?.user || null,
     store: cached?.store || null,
     subscription: cached?.subscription || null,
+    role: (cached as any)?.role || 'owner',
     loading: !cached,
     error: null
   });
@@ -138,6 +142,7 @@ export function useUser(): UserData {
             user: { id: authUser.id, email: authUser.email || '', name: fallbackName, phone: null, avatar_url: null, created_at: null },
             store: null,
             subscription: null,
+            role: 'owner' as UserRole,
           };
           setCache(CACHE_KEY, result);
           setData({ ...result, loading: false, error: null });
@@ -157,10 +162,25 @@ export function useUser(): UserData {
           console.error('Subscription error:', subResult.error);
         }
 
+        const store = storeResult.data || null;
+
+        // Определяем роль: если user.id == store.user_id → owner, иначе ищем в team_members
+        let role: UserRole = 'owner';
+        if (store && store.user_id !== user.id) {
+          const { data: teamMember } = await supabase
+            .from('team_members' as any)
+            .select('role')
+            .eq('user_id', user.id)
+            .eq('store_id', store.id)
+            .single();
+          role = ((teamMember as any)?.role as UserRole) || 'viewer';
+        }
+
         const result = {
           user,
-          store: storeResult.data || null,
+          store,
           subscription: subResult.data || null,
+          role,
         };
         setCache(CACHE_KEY, result);
         setData({ ...result, loading: false, error: null });

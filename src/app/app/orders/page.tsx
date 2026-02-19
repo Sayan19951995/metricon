@@ -45,6 +45,8 @@ interface Order {
   completed_date: string;
   completed_time: string;
   payment: string;
+  confirmed_at: string | null;
+  confirmed_by: string | null;
 }
 
 // Маппинг статусов Kaspi на наши
@@ -132,6 +134,8 @@ export default function OrdersPage() {
         completed_date: completedDate,
         completed_time: completedTime,
         payment: 'kaspi',
+        confirmed_at: o.confirmed_at || null,
+        confirmed_by: o.confirmed_by || null,
       };
     });
 
@@ -195,6 +199,28 @@ export default function OrdersPage() {
       console.error('Sync failed:', err);
     } finally {
       setSyncing(false);
+    }
+  };
+
+  const handleConfirm = async (order: Order) => {
+    if (!user?.id) return;
+    // Optimistic update
+    setOrders(prev => prev.map(o =>
+      o.id === order.id ? { ...o, confirmed_at: new Date().toISOString(), confirmed_by: user.name || user.email } : o
+    ));
+    try {
+      await fetch('/api/orders/confirm', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId: order.id,
+          userId: user.id,
+          userName: user.name || user.email,
+        }),
+      });
+    } catch (err) {
+      console.error('Confirm failed:', err);
+      await loadOrders(); // revert on error
     }
   };
 
@@ -462,6 +488,21 @@ export default function OrdersPage() {
                 <span className="text-xs text-gray-500 dark:text-gray-400">Итого</span>
                 <span className="text-sm font-bold text-gray-900 dark:text-white">{order.total.toLocaleString()} ₸</span>
               </div>
+              {/* Confirmation status */}
+              <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                {order.confirmed_at ? (
+                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                    Подтверждён {order.confirmed_by ? `(${order.confirmed_by})` : ''}
+                  </span>
+                ) : (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); handleConfirm(order); }}
+                    className="px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-blue-600 transition-colors"
+                  >
+                    Подтвердить
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         ))}
@@ -584,6 +625,18 @@ export default function OrdersPage() {
                 </td>
                 <td className="py-4 px-6 text-right">
                   <div className="flex items-center justify-end gap-2">
+                    {order.confirmed_at ? (
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                        Подтв.
+                      </span>
+                    ) : (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleConfirm(order); }}
+                        className="px-2.5 py-1 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-blue-600 transition-colors cursor-pointer"
+                      >
+                        Подтвердить
+                      </button>
+                    )}
                     <button
                       onClick={() => setSelectedOrder(order)}
                       className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors group cursor-pointer"

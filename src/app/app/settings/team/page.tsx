@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
+import { useUser } from '@/hooks/useUser';
 import {
   ArrowLeft,
   Users,
@@ -11,7 +12,6 @@ import {
   Eye,
   Edit3,
   Trash2,
-  Mail,
   MoreVertical,
   Crown,
   Check,
@@ -106,95 +106,132 @@ const rolePermissions: Record<RoleType, string[]> = {
   ]
 };
 
-// Mock данные команды
-const initialTeamMembers: TeamMember[] = [
-  {
-    id: '1',
-    name: 'Саян Муратов',
-    email: 'sayan@luxstone.kz',
-    avatar: 'СМ',
-    role: 'owner',
-    status: 'active',
-    lastActive: '2 минуты назад'
-  },
-  {
-    id: '2',
-    name: 'Айгерим Касымова',
-    email: 'aigerim@luxstone.kz',
-    avatar: 'АК',
-    role: 'manager',
-    status: 'active',
-    lastActive: '1 час назад'
-  },
-  {
-    id: '3',
-    name: 'Арман Жумабеков',
-    email: 'arman@gmail.com',
-    avatar: 'АЖ',
-    role: 'viewer',
-    status: 'pending',
-    invitedAt: '15.01.2025'
-  }
-];
-
 // Лимиты по тарифам
 const planLimits = {
-  start: { roles: 0, name: 'Старт' },
-  business: { roles: 2, name: 'Бизнес' },
-  pro: { roles: 5, name: 'Pro' }
+  start: { roles: 1, name: 'Старт' },
+  business: { roles: 3, name: 'Бизнес' },
+  pro: { roles: 10, name: 'Pro' }
 };
 
 export default function TeamSettingsPage() {
-  const [teamMembers, setTeamMembers] = useState<TeamMember[]>(initialTeamMembers);
+  const { user, subscription } = useUser();
+  const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
+  const [loading, setLoading] = useState(true);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteName, setInviteName] = useState('');
   const [inviteRole, setInviteRole] = useState<RoleType>('viewer');
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
 
-  // Текущий план (mock)
-  const currentPlan: 'start' | 'business' | 'pro' = 'business';
-  const maxRoles = planLimits[currentPlan].roles;
+  const currentPlan = (subscription?.plan as 'start' | 'business' | 'pro') || 'start';
+  const maxRoles = planLimits[currentPlan]?.roles || 1;
   const currentRolesCount = teamMembers.filter(m => m.role !== 'owner').length;
   const canAddMore = currentRolesCount < maxRoles;
 
-  const handleInvite = () => {
-    if (!inviteEmail || !canAddMore) return;
+  // Загрузка участников из API
+  const loadMembers = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/team?userId=${user.id}`);
+      const json = await res.json();
+      if (json.success) {
+        // Владелец как первый элемент
+        const ownerMember: TeamMember = {
+          id: 'owner',
+          name: user.name || user.email.split('@')[0],
+          email: user.email,
+          avatar: (user.name || user.email).substring(0, 2).toUpperCase(),
+          role: 'owner',
+          status: 'active',
+        };
+        const apiMembers: TeamMember[] = (json.data || []).map((m: any) => ({
+          id: m.id,
+          name: m.name || m.email.split('@')[0],
+          email: m.email,
+          avatar: (m.name || m.email).substring(0, 2).toUpperCase(),
+          role: m.role as RoleType,
+          status: m.status as 'active' | 'pending' | 'inactive',
+          invitedAt: m.created_at ? new Date(m.created_at).toLocaleDateString('ru-RU') : undefined,
+        }));
+        setTeamMembers([ownerMember, ...apiMembers]);
+      }
+    } catch (err) {
+      console.error('Failed to load team:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, user?.name, user?.email]);
 
-    const newMember: TeamMember = {
-      id: Date.now().toString(),
-      name: inviteEmail.split('@')[0],
-      email: inviteEmail,
-      avatar: inviteEmail.substring(0, 2).toUpperCase(),
-      role: inviteRole,
-      status: 'pending',
-      invitedAt: new Date().toLocaleDateString('ru-RU')
-    };
+  useEffect(() => {
+    loadMembers();
+  }, [loadMembers]);
 
-    setTeamMembers(prev => [...prev, newMember]);
-    setShowInviteModal(false);
-    setInviteEmail('');
-    setInviteRole('viewer');
+  const handleInvite = async () => {
+    if (!inviteEmail || !canAddMore || !user?.id) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/team', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          email: inviteEmail,
+          name: inviteName || undefined,
+          role: inviteRole,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        await loadMembers();
+        setShowInviteModal(false);
+        setInviteEmail('');
+        setInviteName('');
+        setInviteRole('viewer');
+      } else {
+        alert(json.message || 'Ошибка');
+      }
+    } catch (err) {
+      console.error('Invite error:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
-  const handleChangeRole = (memberId: string, newRole: RoleType) => {
+  const handleChangeRole = async (memberId: string, newRole: RoleType) => {
+    if (!user?.id) return;
+    // Optimistic update
     setTeamMembers(prev =>
       prev.map(m => m.id === memberId ? { ...m, role: newRole } : m)
     );
     setShowRoleModal(false);
     setSelectedMember(null);
+
+    try {
+      await fetch('/api/team', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, memberId, role: newRole }),
+      });
+    } catch (err) {
+      console.error('Change role error:', err);
+      await loadMembers(); // revert on error
+    }
   };
 
-  const handleRemoveMember = (memberId: string) => {
+  const handleRemoveMember = async (memberId: string) => {
+    if (!user?.id || !confirm('Удалить участника?')) return;
+    setActiveDropdown(null);
     setTeamMembers(prev => prev.filter(m => m.id !== memberId));
-    setActiveDropdown(null);
-  };
 
-  const handleResendInvite = (memberId: string) => {
-    // Mock resend
-    alert('Приглашение отправлено повторно');
-    setActiveDropdown(null);
+    try {
+      await fetch(`/api/team?userId=${user.id}&memberId=${memberId}`, { method: 'DELETE' });
+    } catch (err) {
+      console.error('Remove error:', err);
+      await loadMembers();
+    }
   };
 
   return (
@@ -345,15 +382,6 @@ export default function TeamSettingsPage() {
                               <Shield className="w-4 h-4" />
                               Изменить роль
                             </button>
-                            {member.status === 'pending' && (
-                              <button
-                                onClick={() => handleResendInvite(member.id)}
-                                className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                              >
-                                <Mail className="w-4 h-4" />
-                                Отправить повторно
-                              </button>
-                            )}
                             <button
                               onClick={() => handleRemoveMember(member.id)}
                               className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
@@ -430,6 +458,18 @@ export default function TeamSettingsPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Имя
+                    </label>
+                    <input
+                      type="text"
+                      value={inviteName}
+                      onChange={(e) => setInviteName(e.target.value)}
+                      placeholder="Имя сотрудника"
+                      className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                       Email
                     </label>
                     <input
@@ -478,10 +518,10 @@ export default function TeamSettingsPage() {
                 <div className="flex gap-3 mt-6">
                   <button
                     onClick={handleInvite}
-                    disabled={!inviteEmail}
+                    disabled={!inviteEmail || saving}
                     className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:text-gray-500 dark:disabled:text-gray-400 text-white rounded-xl font-medium transition-colors"
                   >
-                    Отправить приглашение
+                    {saving ? 'Сохранение...' : 'Добавить'}
                   </button>
                   <button
                     onClick={() => setShowInviteModal(false)}

@@ -122,11 +122,50 @@ export async function GET(request: NextRequest) {
 
     const summary = KaspiMarketingClient.aggregateCampaigns(campaigns);
 
+    // Per-product ad data (aggregate across all campaigns)
+    const productAgg: Record<string, { name: string; cost: number; transactions: number; gmv: number; views: number; clicks: number }> = {};
+    for (const campaign of campaigns) {
+      if (campaign.cost <= 0) continue;
+      try {
+        const products = await client.getCampaignProducts(campaign.id, start, end);
+        for (const p of products) {
+          if (p.sku) {
+            const ex = productAgg[p.sku];
+            if (ex) {
+              ex.cost += p.cost || 0;
+              ex.transactions += p.transactions || 0;
+              ex.gmv += p.gmv || 0;
+              ex.views += p.views || 0;
+              ex.clicks += p.clicks || 0;
+            } else {
+              productAgg[p.sku] = {
+                name: p.productName || '',
+                cost: p.cost || 0,
+                transactions: p.transactions || 0,
+                gmv: p.gmv || 0,
+                views: p.views || 0,
+                clicks: p.clicks || 0,
+              };
+            }
+          }
+        }
+      } catch (e) {
+        console.error(`[Marketing] Failed to get products for campaign ${campaign.id}:`, e);
+      }
+    }
+
+    // Products array sorted by cost desc (for frontend)
+    const adProducts = Object.entries(productAgg)
+      .filter(([, d]) => d.cost > 0 || d.transactions > 0)
+      .sort((a, b) => b[1].cost - a[1].cost)
+      .map(([sku, d]) => ({ sku, ...d }));
+
     return NextResponse.json({
       success: true,
       data: {
         campaigns,
         summary,
+        adProducts,
         period: { startDate: start, endDate: end },
       }
     });

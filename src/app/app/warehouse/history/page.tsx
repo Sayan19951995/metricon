@@ -242,6 +242,29 @@ export default function WarehouseHistoryPage() {
         }
       }
 
+      // 4. Create products for draft items (items not linked to existing products)
+      const draftItems = order.items.filter(i => i.type === 'draft' && i.name);
+      if (draftItems.length > 0 && store?.id) {
+        const totalGoodsValueAll = order.items.reduce((s, i) => s + (i.total || 0), 0);
+        for (const item of draftItems) {
+          const itemDeliveryCost = totalGoodsValueAll > 0
+            ? Math.round(acceptDeliveryCost * (item.total / totalGoodsValueAll))
+            : 0;
+          const costPerUnit = item.price_per_unit + (item.quantity > 0 ? itemDeliveryCost / item.quantity : 0);
+          await supabase
+            .from('products')
+            .insert({
+              store_id: store.id,
+              name: item.name,
+              sku: item.sku || null,
+              quantity: item.quantity,
+              cost_price: Math.round(costPerUnit),
+              kaspi_stock: null,
+              active: true,
+            } as any);
+        }
+      }
+
       setAcceptingId(null);
       setAcceptDeliveryCost(0);
       await loadData();

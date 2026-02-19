@@ -203,7 +203,8 @@ function AnalyticsPageContent() {
   const [dataLoading, setDataLoading] = useState(true);
 
   // Маркетинг — точные данные за выбранный период
-  const [marketingData, setMarketingData] = useState<{ totalCost: number } | null>(null);
+  interface AdProduct { sku: string; name: string; cost: number; transactions: number; gmv: number; views: number; clicks: number }
+  const [marketingData, setMarketingData] = useState<{ totalCost: number; adProducts: AdProduct[] } | null>(null);
 
   // Отзывы / рейтинг
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -250,9 +251,12 @@ function AnalyticsPageContent() {
 
   useEffect(() => {
     if (user?.id && !userLoading) {
+      // Параллельная загрузка всех данных при инициализации
       fetchAnalyticsData();
+      fetchProductsList();
+      fetchOperationalExpenses();
     }
-  }, [user?.id, userLoading, fetchAnalyticsData]);
+  }, [user?.id, userLoading]);
 
   // Загрузка отзывов при переключении на вкладку
   const fetchReviews = useCallback(async (filter: number | null, pg: number = 0) => {
@@ -339,8 +343,11 @@ function AnalyticsPageContent() {
     fetch(`/api/kaspi/marketing?userId=${user.id}&startDate=${sd}&endDate=${ed}`)
       .then(r => r.json())
       .then(d => {
-        if (d.success && d.summary) {
-          setMarketingData({ totalCost: d.summary.totalCost || 0 });
+        if (d.success && d.data?.summary) {
+          setMarketingData({
+            totalCost: d.data.summary.totalCost || 0,
+            adProducts: d.data.adProducts || [],
+          });
         }
       })
       .catch(() => {});
@@ -424,11 +431,7 @@ function AnalyticsPageContent() {
     }
   }, [user?.id]);
 
-  useEffect(() => {
-    if (user?.id && !userLoading) {
-      fetchProductsList();
-    }
-  }, [user?.id, userLoading, fetchProductsList]);
+  // fetchProductsList вызывается в общем useEffect при инициализации
 
   // Загрузка операционных расходов из API
   const fetchOperationalExpenses = useCallback(async () => {
@@ -452,11 +455,7 @@ function AnalyticsPageContent() {
     }
   }, [user?.id]);
 
-  useEffect(() => {
-    if (user?.id && !userLoading) {
-      fetchOperationalExpenses();
-    }
-  }, [user?.id, userLoading, fetchOperationalExpenses]);
+  // fetchOperationalExpenses вызывается в общем useEffect при инициализации
 
   // Функция для добавления нового расхода
   const handleAddExpense = async () => {
@@ -506,32 +505,12 @@ function AnalyticsPageContent() {
     }
   };
 
-  // === Маркетинг за выбранный период (отдельный запрос) ===
-  const [periodMarketingCost, setPeriodMarketingCost] = useState<number>(0);
+  // periodMarketingCost теперь берётся из marketingData (один запрос вместо двух)
+  const periodMarketingCost = marketingData?.totalCost ?? 0;
 
   const toLocalDate = (d: Date) => {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
-
-  const fetchPeriodMarketing = useCallback(async () => {
-    if (!user?.id || !startDate || !endDate) return;
-    try {
-      const res = await fetch(`/api/kaspi/marketing?userId=${user.id}&startDate=${toLocalDate(startDate)}&endDate=${toLocalDate(endDate)}`);
-      const json = await res.json();
-      if (json.success && json.data?.summary) {
-        setPeriodMarketingCost(json.data.summary.totalCost || 0);
-      } else {
-        setPeriodMarketingCost(0);
-      }
-    } catch {
-      // Marketing might not be connected
-      setPeriodMarketingCost(0);
-    }
-  }, [user?.id, startDate, endDate]);
-
-  useEffect(() => {
-    fetchPeriodMarketing();
-  }, [fetchPeriodMarketing]);
 
   // Рассчитать дневную сумму операционных расходов для конкретной даты
   const calculateDailyOperationalExpensesForDate = (date: Date) => {
@@ -808,6 +787,7 @@ function AnalyticsPageContent() {
     const storeCommRate = (sourceData.storeSettings?.commissionRate ?? 12.5) / 100;
     const storeTaxRate = (sourceData.storeSettings?.taxRate ?? 4.0) / 100;
 
+    // Always distribute totalAdvertising proportionally by revenue
     const filteredTopProducts = Array.from(periodProductSales.entries())
       .sort((a, b) => b[1].revenue - a[1].revenue)
       .slice(0, 50)
@@ -817,7 +797,8 @@ function AnalyticsPageContent() {
         const commission = d.revenue * storeCommRate;
         const tax = d.revenue * storeTaxRate;
         const delivery = creationTotalDelivery * revenueShare;
-        const adCost = orig.adCost || 0;
+        const adCost = totalAdvertising * revenueShare;
+
         const profit = d.revenue - d.costPrice - commission - tax - delivery - adCost;
         const margin = d.revenue > 0 ? (profit / d.revenue) * 100 : 0;
         return {
@@ -831,6 +812,7 @@ function AnalyticsPageContent() {
           commission,
           tax,
           delivery,
+          adCost,
           profit,
           margin,
         };
@@ -1794,9 +1776,6 @@ function AnalyticsPageContent() {
                     >
                       <div className="p-4 sm:p-5 bg-white/50 dark:bg-gray-800/50">
                 {(() => {
-                  // Расчёт данных для каждого товара
-                  const totalAdSales = data.topProducts.reduce((sum: number, p: any) => sum + (p.adSales || 0), 0);
-
                   // Выручка по группам (для распределения групповых расходов)
                   const grpRevenue: Record<string, number> = {};
                   for (const p of data.topProducts) {
@@ -1835,25 +1814,93 @@ function AnalyticsPageContent() {
 
                   const totalProductRevenue = data.topProducts.reduce((s: number, p: any) => s + (p.revenue || 0), 0);
 
-                  const productsWithData = data.topProducts.map((product: any) => {
-                    const revenueShare = totalProductRevenue > 0 ? (product.revenue || 0) / totalProductRevenue : 0;
-                    const opexForPeriod = calcProductOpex(product.sku, revenueShare, product.revenue || 0);
-                    return {
-                      ...product,
-                      displaySales: product.sales,
-                      totalSales: product.sales,
-                      displayCost: product.costPrice || product.cost || 0,
-                      displayRevenue: product.revenue,
-                      displayAdExpense: product.adCost || 0,
-                      displayCommission: product.commission || 0,
-                      displayTax: product.tax || 0,
-                      displayDelivery: product.delivery || 0,
-                      displayOperational: opexForPeriod,
-                      displayProfit: product.profit ?? (product.revenue - (product.cost || 0)),
-                      displayMargin: Math.round(product.margin ?? (product.revenue > 0 ? ((product.revenue - (product.cost || 0)) / product.revenue) * 100 : 0)),
-                      isAdsMode: showAdsOnlyROI
-                    };
-                  })
+                  let productsWithData: any[];
+
+                  // Real per-product ad costs from Marketing API (match by name)
+                  const adCostByName: Record<string, { cost: number; transactions: number; gmv: number; views: number; clicks: number }> = {};
+                  if (marketingData?.adProducts?.length) {
+                    for (const ap of marketingData.adProducts) {
+                      const key = (ap.name || '').toLowerCase().trim();
+                      if (key) {
+                        const ex = adCostByName[key];
+                        if (ex) {
+                          ex.cost += ap.cost || 0;
+                          ex.transactions += ap.transactions || 0;
+                          ex.gmv += ap.gmv || 0;
+                        } else {
+                          adCostByName[key] = { cost: ap.cost || 0, transactions: ap.transactions || 0, gmv: ap.gmv || 0, views: ap.views || 0, clicks: ap.clicks || 0 };
+                        }
+                      }
+                    }
+                  }
+                  const commRate = (data.storeSettings?.commissionRate ?? 12.5) / 100;
+                  const taxRate = (data.storeSettings?.taxRate ?? 4.0) / 100;
+
+                  if (showAdsOnlyROI && marketingData?.adProducts?.length) {
+                    // === РЕКЛАМА mode: only ad-attributed sales, real ad cost per product ===
+                    const adProducts = marketingData.adProducts;
+                    const totalAdGmv = adProducts.reduce((s, p) => s + (p.gmv || 0), 0);
+                    const totalCostAll = data.topProducts.reduce((s: number, p: any) => s + (p.costPrice || 0), 0);
+
+                    productsWithData = adProducts.map((ap, idx) => {
+                      const gmvShare = totalAdGmv > 0 ? (ap.gmv || 0) / totalAdGmv : 0;
+                      const estCost = totalCostAll * gmvShare;
+                      const adCost = ap.cost || 0;
+                      const commission = (ap.gmv || 0) * commRate;
+                      const tax = (ap.gmv || 0) * taxRate;
+                      const profit = (ap.gmv || 0) - estCost - commission - tax - adCost;
+                      const margin = ap.gmv > 0 ? (profit / ap.gmv) * 100 : 0;
+                      return {
+                        id: String(idx + 1),
+                        sku: ap.sku,
+                        name: ap.name || ap.sku,
+                        group: null,
+                        displaySales: ap.transactions || 0,
+                        totalSales: ap.transactions || 0,
+                        displayCost: estCost,
+                        displayRevenue: ap.gmv || 0,
+                        revenue: ap.gmv || 0,
+                        displayAdExpense: adCost,
+                        displayCommission: commission,
+                        displayTax: tax,
+                        displayDelivery: 0,
+                        displayOperational: 0,
+                        displayProfit: profit,
+                        displayMargin: Math.round(margin),
+                        adViews: ap.views || 0,
+                        adClicks: ap.clicks || 0,
+                      };
+                    });
+                  } else {
+                    // === ВСЕ ПРОДАЖИ mode: all products, REAL ad cost matched by name ===
+                    productsWithData = data.topProducts.map((product: any) => {
+                      const revenueShare = totalProductRevenue > 0 ? (product.revenue || 0) / totalProductRevenue : 0;
+                      const opexForPeriod = calcProductOpex(product.sku, revenueShare, product.revenue || 0);
+                      // Real ad cost from Marketing API (match by product name)
+                      const nameKey = (product.name || '').toLowerCase().trim();
+                      const adMatch = adCostByName[nameKey];
+                      const realAdCost = adMatch ? adMatch.cost : 0;
+                      const baseProfit = (product.revenue || 0) - (product.costPrice || 0) - (product.commission || 0) - (product.tax || 0) - (product.delivery || 0) - realAdCost;
+                      const profitWithOpex = baseProfit - opexForPeriod;
+                      const effectiveMargin = product.revenue > 0 ? (profitWithOpex / product.revenue) * 100 : 0;
+                      return {
+                        ...product,
+                        displaySales: product.sales,
+                        totalSales: product.sales,
+                        displayCost: product.costPrice || product.cost || 0,
+                        displayRevenue: product.revenue,
+                        displayAdExpense: realAdCost,
+                        displayCommission: product.commission || 0,
+                        displayTax: product.tax || 0,
+                        displayDelivery: product.delivery || 0,
+                        displayOperational: opexForPeriod,
+                        displayProfit: profitWithOpex,
+                        displayMargin: Math.round(effectiveMargin),
+                      };
+                    });
+                  }
+
+                  productsWithData = productsWithData
                   // Фильтр по поиску
                   .filter((product: any) =>
                     !productSearch || product.name.toLowerCase().includes(productSearch.toLowerCase())
@@ -1912,14 +1959,22 @@ function AnalyticsPageContent() {
                       {(() => {
                         const groupSlugs = [...new Set(productsWithData.map((p: any) => productGroups[p.sku] || p.group).filter(Boolean))] as string[];
                         if (groupSlugs.length === 0) return null;
-                        const calcGroup = (items: any[]) => ({
-                          count: items.length,
-                          revenue: items.reduce((s: number, p: any) => s + (p.displayRevenue || 0), 0),
-                          profit: items.reduce((s: number, p: any) => s + (p.displayProfit || 0), 0),
-                          margin: items.reduce((s: number, p: any) => s + (p.displayRevenue || 0), 0) > 0
-                            ? (items.reduce((s: number, p: any) => s + (p.displayProfit || 0), 0) / items.reduce((s: number, p: any) => s + (p.displayRevenue || 0), 0)) * 100
-                            : 0,
-                        });
+                        const calcGroup = (items: any[]) => {
+                          const revenue = items.reduce((s: number, p: any) => s + (p.displayRevenue || 0), 0);
+                          const profit = items.reduce((s: number, p: any) => s + (p.displayProfit || 0), 0);
+                          const cost = items.reduce((s: number, p: any) => s + (p.displayCost || 0), 0);
+                          const ad = items.reduce((s: number, p: any) => s + (p.displayAdExpense || 0), 0);
+                          const commission = items.reduce((s: number, p: any) => s + (p.displayCommission || 0), 0);
+                          const tax = items.reduce((s: number, p: any) => s + (p.displayTax || 0), 0);
+                          const delivery = items.reduce((s: number, p: any) => s + (p.displayDelivery || 0), 0);
+                          const operational = items.reduce((s: number, p: any) => s + (p.displayOperational || 0), 0);
+                          const totalExpenses = cost + ad + commission + tax + delivery + operational;
+                          return {
+                            count: items.length,
+                            revenue, profit, cost, ad, commission, tax, delivery, operational, totalExpenses,
+                            margin: revenue > 0 ? (profit / revenue) * 100 : 0,
+                          };
+                        };
                         return (
                           <div className={`grid gap-2 lg:gap-3 mb-2 lg:mb-4 ${groupSlugs.length <= 2 ? 'grid-cols-2' : 'grid-cols-2 lg:grid-cols-3'}`}>
                             {groupSlugs.map(slug => {
@@ -1935,6 +1990,17 @@ function AnalyticsPageContent() {
                                     <div>Выр: {fmt(stats.revenue)} ₸</div>
                                     <div className={stats.profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-500'}>Приб: {stats.profit >= 0 ? '+' : ''}{fmt(stats.profit)} ₸</div>
                                     <div>Маржа: {Math.round(stats.margin)}%</div>
+                                    <div className="text-gray-500 dark:text-gray-500 pt-0.5 border-t border-gray-200/50 dark:border-gray-700/50 mt-0.5">
+                                      Расх: {fmt(stats.totalExpenses)} ₸
+                                    </div>
+                                    <div className="text-[9px] lg:text-[10px] text-gray-400 dark:text-gray-500 pl-1 space-y-0">
+                                      <div>закуп {fmt(stats.cost)}</div>
+                                      {stats.ad > 0 && <div className="text-amber-600 dark:text-amber-400">рекл {fmt(stats.ad)}</div>}
+                                      <div>комис {fmt(stats.commission)}</div>
+                                      <div>налог {fmt(stats.tax)}</div>
+                                      {stats.delivery > 0 && <div>дост {fmt(stats.delivery)}</div>}
+                                      {stats.operational > 0 && <div>опер {fmt(stats.operational)}</div>}
+                                    </div>
                                   </div>
                                 </div>
                               );
