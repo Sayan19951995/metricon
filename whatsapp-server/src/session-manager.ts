@@ -4,6 +4,7 @@ import makeWASocket, {
   WASocket,
   ConnectionState,
   Browsers,
+  fetchLatestBaileysVersion,
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import * as QRCode from 'qrcode';
@@ -198,8 +199,20 @@ class SessionManager {
   private async connect(storeId: string, info: SessionInfo): Promise<void> {
     const { state, saveCreds } = await useMultiFileAuthState(this.getSessionDir(storeId));
 
+    // Получаем актуальную версию WhatsApp Web (без неё — 405 ошибка)
+    let version: [number, number, number];
+    try {
+      const result = await fetchLatestBaileysVersion();
+      version = result.version;
+      console.log(`[${storeId}] Using WA version: ${version.join('.')}`);
+    } catch {
+      version = [2, 3000, 1033105955]; // fallback
+      console.log(`[${storeId}] Using fallback WA version: ${version.join('.')}`);
+    }
+
     const socket = makeWASocket({
       auth: state,
+      version,
       logger: logger as any,
       printQRInTerminal: false,
       browser: Browsers.ubuntu('Chrome'),
