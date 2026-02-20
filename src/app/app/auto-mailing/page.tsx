@@ -256,12 +256,12 @@ export default function AutoMailingPage() {
     }
   };
 
-  // Polling QR при ожидании скана
+  // Polling при подключении или ожидании скана QR
   useEffect(() => {
-    if (activeModal !== 'settings' || waStatus !== 'qr_pending') return;
+    if (activeModal !== 'settings' || (waStatus !== 'qr_pending' && waStatus !== 'connecting')) return;
     const interval = setInterval(async () => {
       await checkWaStatus();
-    }, 5000);
+    }, 3000);
     return () => clearInterval(interval);
   }, [activeModal, waStatus, checkWaStatus]);
 
@@ -1046,6 +1046,16 @@ export default function AutoMailingPage() {
                       <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
                         WhatsApp → Настройки → Связанные устройства → Привязка устройства
                       </p>
+                    </div>
+                  ) : waStatus === 'connecting' ? (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl">
+                        <Loader2 className="w-5 h-5 text-yellow-600 animate-spin" />
+                        <div className="flex-1">
+                          <p className="font-medium text-yellow-700 dark:text-yellow-400">Подключаемся к WhatsApp...</p>
+                          <p className="text-sm text-yellow-600/70 dark:text-yellow-400/70">Генерируем QR-код, подождите</p>
+                        </div>
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-3">
