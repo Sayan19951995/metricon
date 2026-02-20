@@ -2,7 +2,7 @@ import { supabase } from '@/lib/supabase/client';
 import type { UserRole } from '@/lib/permissions';
 
 interface StoreAndRole {
-  store: { id: string; name: string; user_id: string };
+  store: { id: string; name: string; user_id: string | null };
   role: UserRole;
 }
 
