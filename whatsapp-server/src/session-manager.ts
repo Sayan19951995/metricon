@@ -69,8 +69,8 @@ class SessionManager {
 
     await this.connect(storeId, info);
 
-    // Ждём QR или подключение (макс 15 сек)
-    await this.waitForQrOrConnect(storeId, 15000);
+    // Ждём QR или подключение (макс 30 сек)
+    await this.waitForQrOrConnect(storeId, 30000);
 
     const current = this.sessions.get(storeId);
     if (!current) {
@@ -206,6 +206,8 @@ class SessionManager {
     socket.ev.on('connection.update', async (update: Partial<ConnectionState>) => {
       const { connection, lastDisconnect, qr } = update;
 
+      console.log(`[${storeId}] connection.update:`, JSON.stringify({ connection, qr: qr ? 'present' : null, lastDisconnect: lastDisconnect?.error?.message }));
+
       if (qr) {
         // Генерируем QR как base64 PNG
         try {
@@ -231,11 +233,12 @@ class SessionManager {
 
         console.log(`[${storeId}] Disconnected (code: ${statusCode}, reconnect: ${shouldReconnect})`);
 
-        if (shouldReconnect && this.hasCredentials(storeId)) {
-          // Auto-reconnect после небольшой паузы
+        if (shouldReconnect) {
+          // Auto-reconnect — и при наличии credentials, и при ожидании QR
           setTimeout(() => {
             const current = this.sessions.get(storeId);
             if (current && current.status !== 'connected') {
+              console.log(`[${storeId}] Attempting reconnect...`);
               this.connect(storeId, current);
             }
           }, 3000);
