@@ -72,7 +72,10 @@ class SessionManager {
     // Ждём QR или подключение (макс 15 сек)
     await this.waitForQrOrConnect(storeId, 15000);
 
-    const current = this.sessions.get(storeId)!;
+    const current = this.sessions.get(storeId);
+    if (!current) {
+      return { qr: null, status: 'disconnected' };
+    }
     return { qr: current.qr, status: current.status };
   }
 
