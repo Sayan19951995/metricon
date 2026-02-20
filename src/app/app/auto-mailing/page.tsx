@@ -193,22 +193,26 @@ export default function AutoMailingPage() {
   }, [user?.id]);
 
   const handleWaConnect = async () => {
-    if (!user?.id) return;
+    console.log('[WA] handleWaConnect called, userId:', user?.id);
+    if (!user?.id) { console.log('[WA] no userId, aborting'); return; }
     setWaLoading(true);
     setWaQr(null);
     try {
+      console.log('[WA] calling POST /api/whatsapp...');
       const res = await fetch('/api/whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId: user.id }),
       });
+      console.log('[WA] response status:', res.status);
       const json = await res.json();
+      console.log('[WA] response json:', json);
       if (json.success) {
         setWaStatus(json.status);
         if (json.qr) setWaQr(json.qr);
       }
     } catch (err) {
-      console.error('WA connect error:', err);
+      console.error('[WA] connect error:', err);
     } finally {
       setWaLoading(false);
     }
