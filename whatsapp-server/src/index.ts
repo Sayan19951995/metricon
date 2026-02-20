@@ -1,15 +1,16 @@
 import express from 'express';
-import { authMiddleware } from './auth';
-import { sessionManager } from './session-manager';
+import { authMiddleware } from './auth.js';
+import { sessionManager } from './session-manager.js';
 
 const app = express();
 app.use(express.json());
-app.use(authMiddleware);
 
-// Health check (без auth)
+// Health check (без auth — для Railway)
 app.get('/health', (_req, res) => {
   res.json({ ok: true, uptime: process.uptime() });
 });
+
+app.use(authMiddleware);
 
 // === Сессии ===
 
