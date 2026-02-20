@@ -3,6 +3,7 @@ import makeWASocket, {
   useMultiFileAuthState,
   WASocket,
   ConnectionState,
+  Browsers,
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import * as QRCode from 'qrcode';
@@ -10,7 +11,7 @@ import * as path from 'path';
 import * as fs from 'fs';
 import pino from 'pino';
 
-const logger = pino({ level: 'warn' });
+const logger = pino({ level: 'info' });
 
 // Время простоя перед закрытием ленивой сессии (5 минут)
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
@@ -21,7 +22,10 @@ interface SessionInfo {
   status: 'disconnected' | 'qr_pending' | 'connecting' | 'connected';
   idleTimer: ReturnType<typeof setTimeout> | null;
   connectPromise: Promise<void> | null;
+  retryCount: number;
 }
+
+const MAX_RETRIES = 5;
 
 class SessionManager {
   private sessions = new Map<string, SessionInfo>();
@@ -64,13 +68,14 @@ class SessionManager {
       status: 'connecting',
       idleTimer: null,
       connectPromise: null,
+      retryCount: 0,
     };
     this.sessions.set(storeId, info);
 
     await this.connect(storeId, info);
 
-    // Ждём QR или подключение (макс 30 сек)
-    await this.waitForQrOrConnect(storeId, 30000);
+    // Ждём QR или подключение (макс 45 сек)
+    await this.waitForQrOrConnect(storeId, 45000);
 
     const current = this.sessions.get(storeId);
     if (!current) {
@@ -104,6 +109,7 @@ class SessionManager {
       status: 'connecting',
       idleTimer: null,
       connectPromise: null,
+      retryCount: 0,
     };
     this.sessions.set(storeId, info);
 
@@ -196,7 +202,10 @@ class SessionManager {
       auth: state,
       logger: logger as any,
       printQRInTerminal: false,
-      browser: ['Metricon', 'Chrome', '22.0'],
+      browser: Browsers.ubuntu('Chrome'),
+      connectTimeoutMs: 60_000,
+      retryRequestDelayMs: 500,
+      markOnlineOnConnect: false,
     });
 
     info.socket = socket;
@@ -233,15 +242,20 @@ class SessionManager {
 
         console.log(`[${storeId}] Disconnected (code: ${statusCode}, reconnect: ${shouldReconnect})`);
 
-        if (shouldReconnect) {
-          // Auto-reconnect — и при наличии credentials, и при ожидании QR
+        if (shouldReconnect && info.retryCount < MAX_RETRIES) {
+          info.retryCount++;
+          const delay = Math.min(3000 * info.retryCount, 15000);
+          console.log(`[${storeId}] Reconnect attempt ${info.retryCount}/${MAX_RETRIES} in ${delay}ms...`);
           setTimeout(() => {
             const current = this.sessions.get(storeId);
             if (current && current.status !== 'connected') {
-              console.log(`[${storeId}] Attempting reconnect...`);
               this.connect(storeId, current);
             }
-          }, 3000);
+          }, delay);
+        } else if (shouldReconnect) {
+          console.log(`[${storeId}] Max retries reached, giving up`);
+          info.status = 'disconnected';
+          info.connectPromise = null;
         } else {
           info.status = 'disconnected';
           info.connectPromise = null;
