@@ -83,13 +83,30 @@ export async function triggerWhatsAppMessages(
     return { sent: 0, failed: 0 };
   }
 
-  // 3. Отправляем сообщения
+  // 3. Дедупликация — проверяем, какие заказы уже получали сообщение
+  const orderIds = orders.map(o => o.kaspi_order_id).filter(Boolean);
+  const { data: alreadySent } = await supabase
+    .from('message_logs')
+    .select('order_id')
+    .eq('store_id', storeId)
+    .eq('status', 'sent')
+    .in('order_id', orderIds);
+
+  const alreadySentIds = new Set((alreadySent || []).map(r => r.order_id));
+
+  // 4. Отправляем сообщения
   let sent = 0;
   let failed = 0;
 
   for (const order of orders) {
     if (!order.customer_phone) {
       failed++;
+      continue;
+    }
+
+    // Пропускаем если уже отправляли
+    if (alreadySentIds.has(order.kaspi_order_id)) {
+      console.log(`triggerWhatsApp [${storeId}] skip duplicate: ${order.kaspi_order_id}`);
       continue;
     }
 
