@@ -29,7 +29,12 @@ import {
   Wifi,
   WifiOff,
   QrCode,
-  SendHorizontal
+  SendHorizontal,
+  ThumbsUp,
+  ThumbsDown,
+  Save,
+  BarChart3,
+  ChevronRight,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import Image from 'next/image';
@@ -67,6 +72,37 @@ interface MailingSettings {
   maxPerDay?: number;
   enabled?: boolean;
 }
+
+interface FeedbackSettings {
+  enabled: boolean;
+  delay_minutes: number;
+  poll_question: string;
+  good_option: string;
+  bad_option: string;
+  good_response: string;
+  bad_response: string;
+  expire_hours: number;
+}
+
+interface FeedbackStats {
+  totalSent: number;
+  positive: number;
+  negative: number;
+  pending: number;
+  reviewsSent: number;
+  responseRate: number;
+}
+
+const defaultFeedbackSettings: FeedbackSettings = {
+  enabled: false,
+  delay_minutes: 10,
+  poll_question: 'Как вам заказ? Оцените пожалуйста',
+  good_option: 'Отлично',
+  bad_option: 'Плохо',
+  good_response: 'Спасибо! Будем рады, если оставите отзыв:',
+  bad_response: 'Нам жаль это слышать. Расскажите, что случилось?',
+  expire_hours: 24,
+};
 
 const triggerOptions = [
   { value: 'order_created', label: 'При создании заказа', icon: ShoppingCart },
@@ -144,6 +180,16 @@ export default function AutoMailingPage() {
     enabled: true,
   });
 
+  // Feedback state
+  const [fbSettings, setFbSettings] = useState<FeedbackSettings>(defaultFeedbackSettings);
+  const [fbStats, setFbStats] = useState<FeedbackStats>({
+    totalSent: 0, positive: 0, negative: 0, pending: 0, reviewsSent: 0, responseRate: 0,
+  });
+  const [fbExpanded, setFbExpanded] = useState(false);
+  const [fbSettingsOpen, setFbSettingsOpen] = useState(false);
+  const [fbSaving, setFbSaving] = useState(false);
+  const [fbHasChanges, setFbHasChanges] = useState(false);
+
   // WhatsApp state
   const [waStatus, setWaStatus] = useState<string>('disconnected');
   const [waQr, setWaQr] = useState<string | null>(null);
@@ -171,11 +217,26 @@ export default function AutoMailingPage() {
     }
   }, [user?.id, store?.name]);
 
+  const fetchFeedback = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/feedback/settings?userId=${user.id}`);
+      const data = await res.json();
+      if (data.success) {
+        setFbSettings({ ...defaultFeedbackSettings, ...data.data.settings });
+        setFbStats(data.data.stats);
+      }
+    } catch (err) {
+      console.error('Load feedback settings error:', err);
+    }
+  }, [user?.id]);
+
   useEffect(() => {
     if (!userLoading && user?.id) {
       fetchMailings();
+      fetchFeedback();
     }
-  }, [userLoading, user?.id, fetchMailings]);
+  }, [userLoading, user?.id, fetchMailings, fetchFeedback]);
 
   // WhatsApp: проверка статуса при открытии настроек
   const checkWaStatus = useCallback(async () => {
@@ -439,6 +500,45 @@ export default function AutoMailingPage() {
     }
   };
 
+  // Feedback handlers
+  const handleFbToggle = async () => {
+    const newSettings = { ...fbSettings, enabled: !fbSettings.enabled };
+    setFbSettings(newSettings);
+    if (!user?.id) return;
+    try {
+      await fetch('/api/feedback/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, ...newSettings }),
+      });
+    } catch (err) {
+      console.error('Toggle feedback error:', err);
+    }
+  };
+
+  const handleFbSave = async () => {
+    if (!user?.id) return;
+    setFbSaving(true);
+    try {
+      const res = await fetch('/api/feedback/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, ...fbSettings }),
+      });
+      const data = await res.json();
+      if (data.success) setFbHasChanges(false);
+    } catch (err) {
+      console.error('Save feedback settings error:', err);
+    } finally {
+      setFbSaving(false);
+    }
+  };
+
+  const updateFbSetting = (key: keyof FeedbackSettings, value: string | number | boolean) => {
+    setFbSettings(prev => ({ ...prev, [key]: value }));
+    setFbHasChanges(true);
+  };
+
   const applyTemplate = (template: Template) => {
     setFormData({
       ...formData,
@@ -674,6 +774,235 @@ export default function AutoMailingPage() {
                 )}
               </div>
             ))}
+          </div>
+        )}
+      </div>
+
+      {/* Обратная связь после выдачи */}
+      <div className="mt-6 bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+        <button
+          onClick={() => setFbExpanded(!fbExpanded)}
+          className="w-full p-4 sm:p-6 flex items-center justify-between cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+        >
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg">
+              <MessageSquare className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div className="text-left">
+              <h2 className="text-lg font-semibold dark:text-white">Обратная связь после выдачи</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Опрос в WhatsApp + запрос отзывов на Kaspi</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+              fbSettings.enabled
+                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+            }`}>
+              {fbSettings.enabled ? 'Включено' : 'Выключено'}
+            </span>
+            <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${fbExpanded ? 'rotate-90' : ''}`} />
+          </div>
+        </button>
+
+        {fbExpanded && (
+          <div className="border-t border-gray-100 dark:border-gray-700">
+            {/* Включить/выключить + статистика */}
+            <div className="p-4 sm:p-6 space-y-5">
+              <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-xl">
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white">Автоматический опрос</p>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    После выдачи заказа через {fbSettings.delay_minutes} мин
+                  </p>
+                </div>
+                <button
+                  onClick={handleFbToggle}
+                  className={`w-12 h-6 rounded-full transition-colors cursor-pointer ${
+                    fbSettings.enabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  <div className={`w-5 h-5 bg-white rounded-full shadow transform transition-transform ${
+                    fbSettings.enabled ? 'translate-x-6' : 'translate-x-0.5'
+                  }`} />
+                </button>
+              </div>
+
+              {/* Статистика */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 text-center">
+                  <Send className="w-4 h-4 text-blue-500 mx-auto mb-1" />
+                  <div className="text-lg font-bold text-gray-900 dark:text-white">{fbStats.totalSent}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Отправлено</div>
+                </div>
+                <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 text-center">
+                  <ThumbsUp className="w-4 h-4 text-emerald-500 mx-auto mb-1" />
+                  <div className="text-lg font-bold text-emerald-600">{fbStats.positive}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Хорошо</div>
+                </div>
+                <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-3 text-center">
+                  <ThumbsDown className="w-4 h-4 text-red-500 mx-auto mb-1" />
+                  <div className="text-lg font-bold text-red-600">{fbStats.negative}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Плохо</div>
+                </div>
+                <div className="bg-amber-50 dark:bg-amber-900/20 rounded-xl p-3 text-center">
+                  <Star className="w-4 h-4 text-amber-500 mx-auto mb-1" />
+                  <div className="text-lg font-bold text-amber-600">{fbStats.reviewsSent}</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Отзывы</div>
+                </div>
+                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-3 text-center">
+                  <BarChart3 className="w-4 h-4 text-purple-500 mx-auto mb-1" />
+                  <div className="text-lg font-bold text-purple-600">{fbStats.responseRate}%</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">Ответили</div>
+                </div>
+              </div>
+
+              {fbStats.pending > 0 && (
+                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 rounded-xl p-3 flex items-center gap-3">
+                  <Clock className="w-4 h-4 text-amber-500" />
+                  <span className="text-sm text-amber-700 dark:text-amber-400">
+                    <strong>{fbStats.pending}</strong> опросов в очереди на отправку
+                  </span>
+                </div>
+              )}
+
+              {/* Настройки опроса */}
+              <button
+                onClick={() => setFbSettingsOpen(!fbSettingsOpen)}
+                className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-colors cursor-pointer"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Настройки опроса</span>
+                <ChevronRight className={`w-4 h-4 transition-transform ${fbSettingsOpen ? 'rotate-90' : ''}`} />
+              </button>
+
+              {fbSettingsOpen && (
+                <div className="space-y-4 p-4 bg-gray-50 dark:bg-gray-900 rounded-xl">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Задержка после выдачи (мин)
+                      </label>
+                      <input
+                        type="number"
+                        value={fbSettings.delay_minutes}
+                        onChange={(e) => updateFbSetting('delay_minutes', parseInt(e.target.value) || 10)}
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-sm focus:outline-none focus:border-emerald-500"
+                        min={1}
+                        max={1440}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Срок ожидания ответа (часов)
+                      </label>
+                      <input
+                        type="number"
+                        value={fbSettings.expire_hours}
+                        onChange={(e) => updateFbSetting('expire_hours', parseInt(e.target.value) || 24)}
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-sm focus:outline-none focus:border-emerald-500"
+                        min={1}
+                        max={168}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Вопрос опроса
+                    </label>
+                    <input
+                      type="text"
+                      value={fbSettings.poll_question}
+                      onChange={(e) => updateFbSetting('poll_question', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-sm focus:outline-none focus:border-emerald-500"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Вариант &quot;Хорошо&quot;
+                      </label>
+                      <input
+                        type="text"
+                        value={fbSettings.good_option}
+                        onChange={(e) => updateFbSetting('good_option', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                        Вариант &quot;Плохо&quot;
+                      </label>
+                      <input
+                        type="text"
+                        value={fbSettings.bad_option}
+                        onChange={(e) => updateFbSetting('bad_option', e.target.value)}
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-sm focus:outline-none focus:border-emerald-500"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Ответ на &quot;Хорошо&quot; (+ ссылки на отзывы автоматически)
+                    </label>
+                    <textarea
+                      value={fbSettings.good_response}
+                      onChange={(e) => updateFbSetting('good_response', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-sm focus:outline-none focus:border-emerald-500 resize-none"
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Ответ на &quot;Плохо&quot;
+                    </label>
+                    <textarea
+                      value={fbSettings.bad_response}
+                      onChange={(e) => updateFbSetting('bad_response', e.target.value)}
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white rounded-lg text-sm focus:outline-none focus:border-emerald-500 resize-none"
+                      rows={2}
+                    />
+                  </div>
+
+                  {fbHasChanges && (
+                    <button
+                      onClick={handleFbSave}
+                      disabled={fbSaving}
+                      className="flex items-center gap-2 px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50 cursor-pointer"
+                    >
+                      {fbSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                      Сохранить
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Превью опроса */}
+              <div>
+                <p className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Превью опроса в WhatsApp</p>
+                <div className="max-w-xs">
+                  <div className="bg-[#e7ffdb] dark:bg-emerald-900/30 rounded-2xl p-3">
+                    <div className="bg-white dark:bg-gray-800 rounded-xl p-3 border border-gray-200 dark:border-gray-700">
+                      <div className="font-medium text-gray-900 dark:text-white text-sm mb-2">{fbSettings.poll_question}</div>
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                          <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 dark:border-gray-600" />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{fbSettings.good_option}</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-gray-900 rounded-lg border border-gray-200 dark:border-gray-700">
+                          <div className="w-3.5 h-3.5 rounded-full border-2 border-gray-300 dark:border-gray-600" />
+                          <span className="text-sm text-gray-700 dark:text-gray-300">{fbSettings.bad_option}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         )}
       </div>
