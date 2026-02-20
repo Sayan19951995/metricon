@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase/client';
 import { createKaspiClient } from '@/lib/kaspi-api';
 import { KaspiAPIClient } from '@/lib/kaspi/api-client';
 import { KaspiOrder } from '@/types/kaspi';
+import { triggerWhatsAppMessages } from '@/lib/whatsapp/trigger';
 
 interface KaspiSession {
   cookies: string;
@@ -234,6 +235,34 @@ export async function POST(request: NextRequest) {
       productsCreated = newProducts.length;
     }
 
+    // === 3.5 АВТОРАССЫЛКА: WhatsApp при новых заказах ===
+    let waSent = 0;
+    let waFailed = 0;
+    if (ordersCreated > 0) {
+      try {
+        const newOrderInfos = orderOps
+          .filter(op => op.isNew)
+          .map(op => ({
+            kaspi_order_id: op.data.kaspi_order_id,
+            customer_name: op.data.customer_name,
+            customer_phone: op.data.customer_phone,
+            total_amount: op.data.total_amount,
+            delivery_date: op.data.delivery_date,
+            items: (op.data.items || []).map((item: any) => ({
+              product_name: item.product_name,
+              quantity: item.quantity,
+              price: item.price,
+            })),
+          }));
+
+        const waResult = await triggerWhatsAppMessages(store.id, store.name, 'order_created', newOrderInfos);
+        waSent += waResult.sent;
+        waFailed += waResult.failed;
+      } catch (err) {
+        console.error('SYNC: WhatsApp order_created trigger error:', err);
+      }
+    }
+
     // === 4. Отслеживание завершений и возвратов (из уже полученных данных) ===
     let bffSessionActive = !!cabinetClient;
     let completionsDetected = 0;
@@ -321,6 +350,40 @@ export async function POST(request: NextRequest) {
       await parallelMap(archiveUpdates, async ({ id, update }) => {
         await supabase.from('orders').update(update).eq('id', id);
       }, 10);
+
+      // === 4.5 АВТОРАССЫЛКА: WhatsApp при выдаче заказа ===
+      if (completionsDetected > 0) {
+        try {
+          const deliveredOrderInfos: Array<{
+            kaspi_order_id: string;
+            customer_name: string | null;
+            customer_phone: string | null;
+            total_amount: number;
+          }> = [];
+
+          for (const order of completedOrders) {
+            const kaspiStatus = (order.status || order.state || '').toLowerCase();
+            if (kaspiStatus !== 'completed') continue;
+            const dbOrder = dbOrderMap.get(order.orderId);
+            if (dbOrder && dbOrder.status !== 'completed') {
+              deliveredOrderInfos.push({
+                kaspi_order_id: order.orderId,
+                customer_name: `${order.customer?.firstName || ''} ${order.customer?.lastName || ''}`.trim(),
+                customer_phone: order.customer?.cellPhone || null,
+                total_amount: order.totalPrice,
+              });
+            }
+          }
+
+          if (deliveredOrderInfos.length > 0) {
+            const waDelivered = await triggerWhatsAppMessages(store.id, store.name, 'order_delivered', deliveredOrderInfos);
+            waSent += waDelivered.sent;
+            waFailed += waDelivered.failed;
+          }
+        } catch (err) {
+          console.error('SYNC: WhatsApp order_delivered trigger error:', err);
+        }
+      }
     }
 
     console.log(`SYNC: completions=${completionsDetected}, deferred=${completionsDeferred}, returns=${returnsDetected}, ordersCreated=${ordersCreated}, ordersUpdated=${ordersUpdated}, bff=${bffSessionActive}`);
@@ -503,6 +566,8 @@ export async function POST(request: NextRequest) {
         completionsDeferred,
         stockDeductions,
         stockRestored,
+        whatsappSent: waSent,
+        whatsappFailed: waFailed,
         syncTimeMs: totalTime,
       },
     });

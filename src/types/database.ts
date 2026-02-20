@@ -81,9 +81,15 @@ export interface Database {
           store_id: string | null
           trigger_type: string
           name: string
+          subject: string | null
           template_kz: string | null
           template_ru: string | null
           active: boolean | null
+          status: string | null
+          sent_count: number | null
+          delivered_count: number | null
+          opened_count: number | null
+          last_sent_at: string | null
           created_at: string | null
         }
         Insert: {
@@ -91,9 +97,15 @@ export interface Database {
           store_id?: string | null
           trigger_type: string
           name: string
+          subject?: string | null
           template_kz?: string | null
           template_ru?: string | null
           active?: boolean | null
+          status?: string | null
+          sent_count?: number | null
+          delivered_count?: number | null
+          opened_count?: number | null
+          last_sent_at?: string | null
           created_at?: string | null
         }
         Update: {
@@ -101,9 +113,15 @@ export interface Database {
           store_id?: string | null
           trigger_type?: string
           name?: string
+          subject?: string | null
           template_kz?: string | null
           template_ru?: string | null
           active?: boolean | null
+          status?: string | null
+          sent_count?: number | null
+          delivered_count?: number | null
+          opened_count?: number | null
+          last_sent_at?: string | null
           created_at?: string | null
         }
         Relationships: []
@@ -433,6 +451,7 @@ export interface Database {
           commission_rate: number | null
           tax_rate: number | null
           last_synced_at: string | null
+          mailing_settings: Json | null
         }
         Insert: {
           id?: string
@@ -449,6 +468,7 @@ export interface Database {
           commission_rate?: number | null
           tax_rate?: number | null
           last_synced_at?: string | null
+          mailing_settings?: Json | null
         }
         Update: {
           id?: string
@@ -465,6 +485,7 @@ export interface Database {
           commission_rate?: number | null
           tax_rate?: number | null
           last_synced_at?: string | null
+          mailing_settings?: Json | null
         }
         Relationships: []
       }

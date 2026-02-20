@@ -1,49 +1,54 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Mail,
   Send,
   Clock,
   CheckCircle2,
-  XCircle,
   Plus,
   Settings,
   Play,
   Pause,
   Trash2,
   Edit3,
-  Users,
   MessageSquare,
   TrendingUp,
   X,
   ChevronDown,
-  Copy,
   Eye,
   AlertTriangle,
   Bell,
   Package,
   Truck,
   Star,
-  ShoppingCart
+  ShoppingCart,
+  Loader2,
+  Smartphone,
+  Wifi,
+  WifiOff,
+  QrCode,
+  SendHorizontal
 } from 'lucide-react';
+import { useUser } from '@/hooks/useUser';
+import Image from 'next/image';
 
 type MailingStatus = 'active' | 'paused' | 'draft';
 type ModalType = 'create' | 'edit' | 'templates' | 'settings' | 'delete' | 'preview' | null;
 
 interface Mailing {
-  id: number;
+  id: string;
   name: string;
-  trigger: string;
-  triggerType: string;
-  template: string;
-  subject: string;
-  status: MailingStatus;
-  sent: number;
-  delivered: number;
-  opened: number;
-  lastSent?: string;
+  trigger_type: string;
+  subject: string | null;
+  template_ru: string | null;
+  status: string | null;
+  sent_count: number | null;
+  delivered_count: number | null;
+  opened_count: number | null;
+  last_sent_at: string | null;
+  created_at: string | null;
 }
 
 interface Template {
@@ -54,6 +59,15 @@ interface Template {
   variables: string[];
 }
 
+interface MailingSettings {
+  senderName?: string;
+  senderEmail?: string;
+  replyTo?: string;
+  sendTime?: string;
+  maxPerDay?: number;
+  enabled?: boolean;
+}
+
 const triggerOptions = [
   { value: 'order_created', label: 'При создании заказа', icon: ShoppingCart },
   { value: 'order_shipped', label: 'При отправке заказа', icon: Truck },
@@ -62,6 +76,15 @@ const triggerOptions = [
   { value: 'cart_abandoned', label: 'Брошенная корзина (через 24ч)', icon: ShoppingCart },
   { value: 'custom', label: 'Пользовательский триггер', icon: Bell },
 ];
+
+const triggerLabels: Record<string, string> = {
+  order_created: 'При создании заказа',
+  order_shipped: 'При отправке заказа',
+  order_delivered: 'При доставке заказа',
+  review_request: 'Запрос отзыва (через 7 дней)',
+  cart_abandoned: 'Брошенная корзина (через 24ч)',
+  custom: 'Пользовательский триггер',
+};
 
 const defaultTemplates: Template[] = [
   {
@@ -95,91 +118,162 @@ const defaultTemplates: Template[] = [
 ];
 
 export default function AutoMailingPage() {
-  const [mailings, setMailings] = useState<Mailing[]>([
-    {
-      id: 1,
-      name: 'Подтверждение заказа',
-      trigger: 'При создании заказа',
-      triggerType: 'order_created',
-      subject: 'Ваш заказ #{order_id} принят',
-      template: 'Здравствуйте, {customer_name}!\n\nВаш заказ #{order_id} успешно создан...',
-      status: 'active',
-      sent: 1245,
-      delivered: 1230,
-      opened: 890,
-      lastSent: '14.01.2025, 15:30'
-    },
-    {
-      id: 2,
-      name: 'Заказ отправлен',
-      trigger: 'При отправке заказа',
-      triggerType: 'order_shipped',
-      subject: 'Ваш заказ #{order_id} отправлен',
-      template: 'Здравствуйте, {customer_name}!\n\nВаш заказ #{order_id} отправлен...',
-      status: 'active',
-      sent: 987,
-      delivered: 980,
-      opened: 756,
-      lastSent: '14.01.2025, 14:15'
-    },
-    {
-      id: 3,
-      name: 'Запрос отзыва',
-      trigger: 'Через 7 дней после доставки',
-      triggerType: 'review_request',
-      subject: 'Оставьте отзыв о покупке',
-      template: 'Здравствуйте, {customer_name}!\n\nНадеемся, вам понравилась покупка...',
-      status: 'paused',
-      sent: 523,
-      delivered: 515,
-      opened: 234,
-      lastSent: '10.01.2025, 10:00'
-    },
-    {
-      id: 4,
-      name: 'Напоминание о брошенной корзине',
-      trigger: 'Через 24 часа после добавления в корзину',
-      triggerType: 'cart_abandoned',
-      subject: 'Вы забыли товары в корзине',
-      template: 'Здравствуйте, {customer_name}!\n\nВы добавили товары в корзину...',
-      status: 'draft',
-      sent: 0,
-      delivered: 0,
-      opened: 0
-    }
-  ]);
+  const { user, store, loading: userLoading } = useUser();
 
-  const [templates, setTemplates] = useState<Template[]>(defaultTemplates);
+  const [mailings, setMailings] = useState<Mailing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [selectedMailing, setSelectedMailing] = useState<Mailing | null>(null);
-  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Mailing | null>(null);
 
-  // Форма для создания/редактирования
   const [formData, setFormData] = useState({
     name: '',
     triggerType: 'order_created',
     subject: '',
     template: '',
-    status: 'draft' as MailingStatus
+    status: 'draft' as MailingStatus,
   });
 
-  // Настройки
-  const [settings, setSettings] = useState({
-    senderName: 'Luxstone',
-    senderEmail: 'orders@luxstone.kz',
-    replyTo: 'support@luxstone.kz',
+  const [settings, setSettings] = useState<MailingSettings>({
+    senderName: '',
+    senderEmail: '',
+    replyTo: '',
     sendTime: '09:00',
     maxPerDay: 100,
-    enabled: true
+    enabled: true,
   });
+
+  // WhatsApp state
+  const [waStatus, setWaStatus] = useState<string>('disconnected');
+  const [waQr, setWaQr] = useState<string | null>(null);
+  const [waLoading, setWaLoading] = useState(false);
+  const [waTestPhone, setWaTestPhone] = useState('');
+  const [waTestSending, setWaTestSending] = useState(false);
+
+  const fetchMailings = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/auto-mailing?userId=${user.id}`);
+      const json = await res.json();
+      if (json.success) {
+        setMailings(json.data.templates || []);
+        if (json.data.settings && Object.keys(json.data.settings).length > 0) {
+          setSettings(prev => ({ ...prev, ...json.data.settings }));
+        } else if (store?.name) {
+          setSettings(prev => ({ ...prev, senderName: prev.senderName || store.name }));
+        }
+      }
+    } catch (err) {
+      console.error('Failed to fetch mailings:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id, store?.name]);
+
+  useEffect(() => {
+    if (!userLoading && user?.id) {
+      fetchMailings();
+    }
+  }, [userLoading, user?.id, fetchMailings]);
+
+  // WhatsApp: проверка статуса при открытии настроек
+  const checkWaStatus = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const res = await fetch(`/api/whatsapp?userId=${user.id}`);
+      const json = await res.json();
+      if (json.success) {
+        setWaStatus(json.status || 'disconnected');
+        if (json.qr) setWaQr(json.qr);
+      }
+    } catch {
+      setWaStatus('disconnected');
+    }
+  }, [user?.id]);
+
+  const handleWaConnect = async () => {
+    if (!user?.id) return;
+    setWaLoading(true);
+    setWaQr(null);
+    try {
+      const res = await fetch('/api/whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setWaStatus(json.status);
+        if (json.qr) setWaQr(json.qr);
+      }
+    } catch (err) {
+      console.error('WA connect error:', err);
+    } finally {
+      setWaLoading(false);
+    }
+  };
+
+  const handleWaDisconnect = async () => {
+    if (!user?.id) return;
+    setWaLoading(true);
+    try {
+      await fetch(`/api/whatsapp?userId=${user.id}`, { method: 'DELETE' });
+      setWaStatus('disconnected');
+      setWaQr(null);
+    } catch (err) {
+      console.error('WA disconnect error:', err);
+    } finally {
+      setWaLoading(false);
+    }
+  };
+
+  const handleWaTestMessage = async () => {
+    if (!user?.id || !waTestPhone.trim()) return;
+    setWaTestSending(true);
+    try {
+      const res = await fetch('/api/whatsapp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          testPhone: waTestPhone,
+          testMessage: `Тестовое сообщение от ${store?.name || 'Metricon'}. Авторассылка работает!`,
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setWaTestPhone('');
+      }
+    } catch (err) {
+      console.error('WA test error:', err);
+    } finally {
+      setWaTestSending(false);
+    }
+  };
+
+  // Polling QR при ожидании скана
+  useEffect(() => {
+    if (activeModal !== 'settings' || waStatus !== 'qr_pending') return;
+    const interval = setInterval(async () => {
+      await checkWaStatus();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [activeModal, waStatus, checkWaStatus]);
+
+  // Проверяем статус WhatsApp при открытии настроек
+  useEffect(() => {
+    if (activeModal === 'settings') {
+      checkWaStatus();
+    }
+  }, [activeModal, checkWaStatus]);
 
   // Статистика
   const stats = {
-    totalSent: mailings.reduce((sum, m) => sum + m.sent, 0),
-    totalDelivered: mailings.reduce((sum, m) => sum + m.delivered, 0),
-    totalOpened: mailings.reduce((sum, m) => sum + m.opened, 0),
-    activeMailings: mailings.filter(m => m.status === 'active').length
+    totalSent: mailings.reduce((sum, m) => sum + (m.sent_count || 0), 0),
+    totalDelivered: mailings.reduce((sum, m) => sum + (m.delivered_count || 0), 0),
+    totalOpened: mailings.reduce((sum, m) => sum + (m.opened_count || 0), 0),
+    activeMailings: mailings.filter(m => m.status === 'active').length,
   };
 
   const deliveryRate = stats.totalSent > 0
@@ -190,40 +284,41 @@ export default function AutoMailingPage() {
     ? Math.round((stats.totalOpened / stats.totalDelivered) * 100)
     : 0;
 
-  const getStatusColor = (status: MailingStatus) => {
+  const getStatusColor = (status: string | null) => {
     switch (status) {
       case 'active': return 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400';
       case 'paused': return 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
-      case 'draft': return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
+      default: return 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300';
     }
   };
 
-  const getStatusText = (status: MailingStatus) => {
+  const getStatusText = (status: string | null) => {
     switch (status) {
       case 'active': return 'Активна';
       case 'paused': return 'Приостановлена';
-      case 'draft': return 'Черновик';
+      default: return 'Черновик';
     }
   };
 
-  const toggleStatus = (id: number) => {
-    setMailings(mailings.map(m => {
-      if (m.id === id) {
-        const newStatus = m.status === 'active' ? 'paused' : 'active';
-        return { ...m, status: newStatus };
+  const toggleStatus = async (mailing: Mailing) => {
+    const newStatus = mailing.status === 'active' ? 'paused' : 'active';
+    try {
+      const res = await fetch('/api/auto-mailing', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user?.id, id: mailing.id, status: newStatus }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setMailings(prev => prev.map(m => m.id === mailing.id ? { ...m, status: newStatus } : m));
       }
-      return m;
-    }));
+    } catch (err) {
+      console.error('Failed to toggle status:', err);
+    }
   };
 
   const openCreateModal = () => {
-    setFormData({
-      name: '',
-      triggerType: 'order_created',
-      subject: '',
-      template: '',
-      status: 'draft'
-    });
+    setFormData({ name: '', triggerType: 'order_created', subject: '', template: '', status: 'draft' });
     setSelectedMailing(null);
     setActiveModal('create');
   };
@@ -231,10 +326,10 @@ export default function AutoMailingPage() {
   const openEditModal = (mailing: Mailing) => {
     setFormData({
       name: mailing.name,
-      triggerType: mailing.triggerType,
-      subject: mailing.subject,
-      template: mailing.template,
-      status: mailing.status
+      triggerType: mailing.trigger_type,
+      subject: mailing.subject || '',
+      template: mailing.template_ru || '',
+      status: (mailing.status as MailingStatus) || 'draft',
     });
     setSelectedMailing(mailing);
     setActiveModal('edit');
@@ -250,49 +345,93 @@ export default function AutoMailingPage() {
     setActiveModal('preview');
   };
 
-  const handleSaveMailing = () => {
-    const trigger = triggerOptions.find(t => t.value === formData.triggerType);
-
-    if (selectedMailing) {
-      // Редактирование
-      setMailings(mailings.map(m => {
-        if (m.id === selectedMailing.id) {
-          return {
-            ...m,
+  const handleSaveMailing = async () => {
+    if (!user?.id) return;
+    setSaving(true);
+    try {
+      if (selectedMailing) {
+        // Редактирование
+        const res = await fetch('/api/auto-mailing', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            id: selectedMailing.id,
             name: formData.name,
             triggerType: formData.triggerType,
-            trigger: trigger?.label || '',
             subject: formData.subject,
             template: formData.template,
-            status: formData.status
-          };
+            status: formData.status,
+          }),
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          setMailings(prev => prev.map(m => m.id === selectedMailing.id ? json.data : m));
         }
-        return m;
-      }));
-    } else {
-      // Создание
-      const newMailing: Mailing = {
-        id: Math.max(...mailings.map(m => m.id)) + 1,
-        name: formData.name,
-        triggerType: formData.triggerType,
-        trigger: trigger?.label || '',
-        subject: formData.subject,
-        template: formData.template,
-        status: formData.status,
-        sent: 0,
-        delivered: 0,
-        opened: 0
-      };
-      setMailings([...mailings, newMailing]);
+      } else {
+        // Создание
+        const res = await fetch('/api/auto-mailing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            name: formData.name,
+            triggerType: formData.triggerType,
+            subject: formData.subject,
+            template: formData.template,
+            status: formData.status,
+          }),
+        });
+        const json = await res.json();
+        if (json.success && json.data) {
+          setMailings(prev => [json.data, ...prev]);
+        }
+      }
+      setActiveModal(null);
+    } catch (err) {
+      console.error('Failed to save mailing:', err);
+    } finally {
+      setSaving(false);
     }
-    setActiveModal(null);
   };
 
-  const handleDeleteMailing = () => {
-    if (deleteTarget) {
-      setMailings(mailings.filter(m => m.id !== deleteTarget.id));
+  const handleDeleteMailing = async () => {
+    if (!deleteTarget || !user?.id) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/auto-mailing?userId=${user.id}&id=${deleteTarget.id}`, {
+        method: 'DELETE',
+      });
+      const json = await res.json();
+      if (json.success) {
+        setMailings(prev => prev.filter(m => m.id !== deleteTarget.id));
+      }
+    } catch (err) {
+      console.error('Failed to delete mailing:', err);
+    } finally {
+      setSaving(false);
       setDeleteTarget(null);
       setActiveModal(null);
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    if (!user?.id) return;
+    setSaving(true);
+    try {
+      const res = await fetch('/api/auto-mailing', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id, settings }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setActiveModal(null);
+      }
+    } catch (err) {
+      console.error('Failed to save settings:', err);
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -301,9 +440,17 @@ export default function AutoMailingPage() {
       ...formData,
       name: template.name,
       subject: template.subject,
-      template: template.content
+      template: template.content,
     });
     setActiveModal(selectedMailing ? 'edit' : 'create');
+  };
+
+  const formatDate = (dateStr: string | null) => {
+    if (!dateStr) return null;
+    return new Date(dateStr).toLocaleDateString('ru-RU', {
+      day: '2-digit', month: '2-digit', year: 'numeric',
+      hour: '2-digit', minute: '2-digit',
+    });
   };
 
   const statsCards = [
@@ -312,7 +459,7 @@ export default function AutoMailingPage() {
       value: stats.totalSent.toLocaleString(),
       icon: Send,
       color: 'bg-blue-50 dark:bg-blue-900/30',
-      iconColor: 'text-blue-600 dark:text-blue-400'
+      iconColor: 'text-blue-600 dark:text-blue-400',
     },
     {
       label: 'Доставлено',
@@ -320,7 +467,7 @@ export default function AutoMailingPage() {
       subValue: stats.totalDelivered.toLocaleString(),
       icon: CheckCircle2,
       color: 'bg-emerald-50 dark:bg-emerald-900/30',
-      iconColor: 'text-emerald-600 dark:text-emerald-400'
+      iconColor: 'text-emerald-600 dark:text-emerald-400',
     },
     {
       label: 'Открыто',
@@ -328,16 +475,37 @@ export default function AutoMailingPage() {
       subValue: stats.totalOpened.toLocaleString(),
       icon: Mail,
       color: 'bg-purple-50 dark:bg-purple-900/30',
-      iconColor: 'text-purple-600 dark:text-purple-400'
+      iconColor: 'text-purple-600 dark:text-purple-400',
     },
     {
       label: 'Активных рассылок',
       value: stats.activeMailings.toString(),
       icon: TrendingUp,
       color: 'bg-orange-50 dark:bg-orange-900/30',
-      iconColor: 'text-orange-600 dark:text-orange-400'
-    }
+      iconColor: 'text-orange-600 dark:text-orange-400',
+    },
   ];
+
+  if (userLoading || loading) {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        <div className="mb-6 lg:mb-8">
+          <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
+          <div className="h-4 w-72 bg-gray-200 dark:bg-gray-700 rounded mt-2 animate-pulse" />
+        </div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 mb-6">
+          {[1, 2, 3, 4].map(i => (
+            <div key={i} className="bg-gray-100 dark:bg-gray-800 rounded-xl p-4 h-28 animate-pulse" />
+          ))}
+        </div>
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="h-20 bg-gray-100 dark:bg-gray-700 rounded-xl mb-4 animate-pulse" />
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
@@ -352,10 +520,7 @@ export default function AutoMailingPage() {
         {statsCards.map((card) => {
           const Icon = card.icon;
           return (
-            <div
-              key={card.label}
-              className={`${card.color} rounded-xl p-4`}
-            >
+            <div key={card.label} className={`${card.color} rounded-xl p-4`}>
               <div className="flex items-center gap-2 mb-3">
                 <div className={`p-2 rounded-lg ${card.color}`}>
                   <Icon className={`w-5 h-5 ${card.iconColor}`} />
@@ -402,95 +567,111 @@ export default function AutoMailingPage() {
           <h2 className="text-lg font-semibold dark:text-white">Рассылки</h2>
         </div>
 
-        <div className="divide-y divide-gray-100 dark:divide-gray-700">
-          {mailings.map((mailing) => (
-            <div
-              key={mailing.id}
-              className="p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+        {mailings.length === 0 ? (
+          <div className="p-8 text-center">
+            <Mail className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+            <p className="text-gray-500 dark:text-gray-400 font-medium">Нет рассылок</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">Создайте первую автоматическую рассылку</p>
+            <button
+              onClick={openCreateModal}
+              className="mt-4 px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
             >
-              <div className="flex flex-col lg:flex-row lg:items-center gap-4">
-                {/* Info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-3 mb-2">
-                    <h3 className="font-semibold text-gray-900 dark:text-white">{mailing.name}</h3>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(mailing.status)}`}>
-                      {getStatusText(mailing.status)}
-                    </span>
+              Создать рассылку
+            </button>
+          </div>
+        ) : (
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
+            {mailings.map((mailing) => (
+              <div
+                key={mailing.id}
+                className="p-4 sm:p-6 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+              >
+                <div className="flex flex-col lg:flex-row lg:items-center gap-4">
+                  {/* Info */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-3 mb-2">
+                      <h3 className="font-semibold text-gray-900 dark:text-white">{mailing.name}</h3>
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${getStatusColor(mailing.status)}`}>
+                        {getStatusText(mailing.status)}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
+                      <Clock className="w-3.5 h-3.5 inline mr-1" />
+                      {triggerLabels[mailing.trigger_type] || mailing.trigger_type}
+                    </p>
+                    {mailing.subject && (
+                      <p className="text-sm text-gray-400 dark:text-gray-500 truncate">Тема: {mailing.subject}</p>
+                    )}
                   </div>
-                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-                    <Clock className="w-3.5 h-3.5 inline mr-1" />
-                    {mailing.trigger}
-                  </p>
-                  <p className="text-sm text-gray-400 dark:text-gray-500 truncate">Тема: {mailing.subject}</p>
-                </div>
 
-                {/* Stats */}
-                <div className="flex items-center gap-6 text-sm">
-                  <div className="text-center">
-                    <p className="font-semibold text-gray-900 dark:text-white">{mailing.sent.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Отправлено</p>
+                  {/* Stats */}
+                  <div className="flex items-center gap-6 text-sm">
+                    <div className="text-center">
+                      <p className="font-semibold text-gray-900 dark:text-white">{(mailing.sent_count || 0).toLocaleString()}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Отправлено</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-semibold text-emerald-600">{(mailing.delivered_count || 0).toLocaleString()}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Доставлено</p>
+                    </div>
+                    <div className="text-center">
+                      <p className="font-semibold text-purple-600">{(mailing.opened_count || 0).toLocaleString()}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">Открыто</p>
+                    </div>
                   </div>
-                  <div className="text-center">
-                    <p className="font-semibold text-emerald-600">{mailing.delivered.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Доставлено</p>
-                  </div>
-                  <div className="text-center">
-                    <p className="font-semibold text-purple-600">{mailing.opened.toLocaleString()}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Открыто</p>
-                  </div>
-                </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => openPreviewModal(mailing)}
-                    className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
-                    title="Предпросмотр"
-                  >
-                    <Eye className="w-4 h-4" />
-                  </button>
-                  {mailing.status !== 'draft' && (
+                  {/* Actions */}
+                  <div className="flex items-center gap-2">
                     <button
-                      onClick={() => toggleStatus(mailing.id)}
-                      className={`p-2 rounded-lg transition-colors cursor-pointer ${
-                        mailing.status === 'active'
-                          ? 'bg-yellow-100 hover:bg-yellow-200 text-yellow-700'
-                          : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-700'
-                      }`}
-                      title={mailing.status === 'active' ? 'Приостановить' : 'Запустить'}
+                      onClick={() => openPreviewModal(mailing)}
+                      className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
+                      title="Предпросмотр"
                     >
-                      {mailing.status === 'active' ? (
-                        <Pause className="w-4 h-4" />
-                      ) : (
-                        <Play className="w-4 h-4" />
-                      )}
+                      <Eye className="w-4 h-4" />
                     </button>
-                  )}
-                  <button
-                    onClick={() => openEditModal(mailing)}
-                    className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
-                    title="Редактировать"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => openDeleteModal(mailing)}
-                    className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-gray-300 hover:text-red-600 transition-colors cursor-pointer"
-                    title="Удалить"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                    {mailing.status !== 'draft' && (
+                      <button
+                        onClick={() => toggleStatus(mailing)}
+                        className={`p-2 rounded-lg transition-colors cursor-pointer ${
+                          mailing.status === 'active'
+                            ? 'bg-yellow-100 hover:bg-yellow-200 text-yellow-700'
+                            : 'bg-emerald-100 hover:bg-emerald-200 text-emerald-700'
+                        }`}
+                        title={mailing.status === 'active' ? 'Приостановить' : 'Запустить'}
+                      >
+                        {mailing.status === 'active' ? (
+                          <Pause className="w-4 h-4" />
+                        ) : (
+                          <Play className="w-4 h-4" />
+                        )}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => openEditModal(mailing)}
+                      className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-300 transition-colors cursor-pointer"
+                      title="Редактировать"
+                    >
+                      <Edit3 className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => openDeleteModal(mailing)}
+                      className="p-2 rounded-lg bg-gray-100 dark:bg-gray-700 hover:bg-red-100 dark:hover:bg-red-900/30 text-gray-600 dark:text-gray-300 hover:text-red-600 transition-colors cursor-pointer"
+                      title="Удалить"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {mailing.lastSent && (
-                <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
-                  Последняя отправка: {mailing.lastSent}
-                </p>
-              )}
-            </div>
-          ))}
-        </div>
+                {mailing.last_sent_at && (
+                  <p className="text-xs text-gray-400 dark:text-gray-500 mt-3">
+                    Последняя отправка: {formatDate(mailing.last_sent_at)}
+                  </p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Info Card */}
@@ -533,7 +714,6 @@ export default function AutoMailingPage() {
               </div>
 
               <div className="p-6 space-y-5">
-                {/* Название */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Название рассылки
@@ -547,7 +727,6 @@ export default function AutoMailingPage() {
                   />
                 </div>
 
-                {/* Триггер */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Когда отправлять
@@ -568,7 +747,6 @@ export default function AutoMailingPage() {
                   </div>
                 </div>
 
-                {/* Тема письма */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Тема сообщения
@@ -582,7 +760,6 @@ export default function AutoMailingPage() {
                   />
                 </div>
 
-                {/* Шаблон сообщения */}
                 <div>
                   <div className="flex items-center justify-between mb-2">
                     <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -607,7 +784,6 @@ export default function AutoMailingPage() {
                   </p>
                 </div>
 
-                {/* Статус */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Статус
@@ -636,7 +812,6 @@ export default function AutoMailingPage() {
                   </div>
                 </div>
 
-                {/* Кнопки */}
                 <div className="flex gap-3 pt-4">
                   <button
                     onClick={() => setActiveModal(null)}
@@ -646,9 +821,10 @@ export default function AutoMailingPage() {
                   </button>
                   <button
                     onClick={handleSaveMailing}
-                    disabled={!formData.name || !formData.subject || !formData.template}
-                    className="flex-1 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                    disabled={!formData.name || !formData.subject || !formData.template || saving}
+                    className="flex-1 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
                   >
+                    {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                     {activeModal === 'create' ? 'Создать' : 'Сохранить'}
                   </button>
                 </div>
@@ -679,7 +855,7 @@ export default function AutoMailingPage() {
               </div>
 
               <div className="p-6 space-y-4">
-                {templates.map((template) => (
+                {defaultTemplates.map((template) => (
                   <div
                     key={template.id}
                     className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:border-emerald-300 dark:hover:border-emerald-600 transition-colors"
@@ -735,7 +911,6 @@ export default function AutoMailingPage() {
               </div>
 
               <div className="p-6 space-y-5">
-                {/* Включить/выключить */}
                 <div className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900 rounded-xl">
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">Авторассылка включена</p>
@@ -753,59 +928,150 @@ export default function AutoMailingPage() {
                   </button>
                 </div>
 
-                {/* Имя отправителя */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Имя отправителя
                   </label>
                   <input
                     type="text"
-                    value={settings.senderName}
+                    value={settings.senderName || ''}
                     onChange={(e) => setSettings({ ...settings, senderName: e.target.value })}
                     className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                 </div>
 
-                {/* Email отправителя */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Email отправителя
                   </label>
                   <input
                     type="email"
-                    value={settings.senderEmail}
+                    value={settings.senderEmail || ''}
                     onChange={(e) => setSettings({ ...settings, senderEmail: e.target.value })}
                     className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                 </div>
 
-                {/* Reply-To */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Email для ответов (Reply-To)
                   </label>
                   <input
                     type="email"
-                    value={settings.replyTo}
+                    value={settings.replyTo || ''}
                     onChange={(e) => setSettings({ ...settings, replyTo: e.target.value })}
                     className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                 </div>
 
-                {/* Лимит в день */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                     Максимум сообщений в день
                   </label>
                   <input
                     type="number"
-                    value={settings.maxPerDay}
+                    value={settings.maxPerDay || 0}
                     onChange={(e) => setSettings({ ...settings, maxPerDay: parseInt(e.target.value) || 0 })}
                     className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
                   />
                 </div>
 
-                {/* Кнопки */}
+                {/* WhatsApp подключение */}
+                <div className="border-t border-gray-200 dark:border-gray-700 pt-5">
+                  <div className="flex items-center gap-2 mb-4">
+                    <Smartphone className="w-5 h-5 text-emerald-600" />
+                    <h3 className="font-semibold text-gray-900 dark:text-white">WhatsApp</h3>
+                  </div>
+
+                  {waStatus === 'connected' ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 p-4 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
+                        <Wifi className="w-5 h-5 text-emerald-600" />
+                        <div className="flex-1">
+                          <p className="font-medium text-emerald-700 dark:text-emerald-400">WhatsApp подключен</p>
+                          <p className="text-sm text-emerald-600/70 dark:text-emerald-400/70">Сообщения отправляются автоматически</p>
+                        </div>
+                        <button
+                          onClick={handleWaDisconnect}
+                          disabled={waLoading}
+                          className="px-3 py-1.5 bg-red-100 hover:bg-red-200 text-red-600 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+                        >
+                          {waLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Отключить'}
+                        </button>
+                      </div>
+
+                      {/* Тестовое сообщение */}
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                          Тестовое сообщение
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                            type="tel"
+                            value={waTestPhone}
+                            onChange={(e) => setWaTestPhone(e.target.value)}
+                            placeholder="+7 777 123 4567"
+                            className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 text-gray-900 dark:text-white rounded-xl text-sm focus:outline-none focus:border-emerald-500 transition-colors"
+                          />
+                          <button
+                            onClick={handleWaTestMessage}
+                            disabled={waTestSending || !waTestPhone.trim()}
+                            className="px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 disabled:bg-gray-300 dark:disabled:bg-gray-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer flex items-center gap-2"
+                          >
+                            {waTestSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <SendHorizontal className="w-4 h-4" />}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : waStatus === 'qr_pending' && waQr ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center gap-3 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl">
+                        <QrCode className="w-5 h-5 text-yellow-600" />
+                        <p className="text-sm text-yellow-700 dark:text-yellow-400">
+                          Отсканируйте QR-код в WhatsApp на телефоне
+                        </p>
+                      </div>
+                      <div className="flex justify-center p-4 bg-white dark:bg-gray-900 rounded-xl">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img
+                          src={waQr}
+                          alt="WhatsApp QR"
+                          className="w-64 h-64"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
+                        WhatsApp → Настройки → Связанные устройства → Привязка устройства
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3 p-4 bg-gray-50 dark:bg-gray-900 rounded-xl">
+                        <WifiOff className="w-5 h-5 text-gray-400" />
+                        <div className="flex-1">
+                          <p className="font-medium text-gray-700 dark:text-gray-300">WhatsApp не подключен</p>
+                          <p className="text-sm text-gray-500 dark:text-gray-400">Подключите для автоматической отправки</p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={handleWaConnect}
+                        disabled={waLoading}
+                        className="w-full px-4 py-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
+                      >
+                        {waLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Smartphone className="w-4 h-4" />}
+                        Подключить WhatsApp
+                      </button>
+
+                      <div className="p-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                        <p className="text-xs text-blue-700 dark:text-blue-400 leading-relaxed">
+                          <strong>Как не получить блокировку:</strong> не отправляйте более 50 сообщений в день,
+                          используйте персонализированные шаблоны, не рассылайте спам.
+                          Рекомендуем использовать отдельный номер для бизнеса.
+                        </p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
                 <div className="flex gap-3 pt-4">
                   <button
                     onClick={() => setActiveModal(null)}
@@ -814,9 +1080,11 @@ export default function AutoMailingPage() {
                     Отмена
                   </button>
                   <button
-                    onClick={() => setActiveModal(null)}
-                    className="flex-1 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                    onClick={handleSaveSettings}
+                    disabled={saving}
+                    className="flex-1 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
                   >
+                    {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                     Сохранить
                   </button>
                 </div>
@@ -842,7 +1110,7 @@ export default function AutoMailingPage() {
                 </div>
                 <h2 className="text-xl font-bold text-center mb-2 dark:text-white">Удалить рассылку?</h2>
                 <p className="text-gray-500 dark:text-gray-400 text-center text-sm mb-6">
-                  Вы уверены, что хотите удалить рассылку "{deleteTarget.name}"?
+                  Вы уверены, что хотите удалить рассылку &quot;{deleteTarget.name}&quot;?
                   Это действие нельзя отменить.
                 </p>
 
@@ -858,8 +1126,10 @@ export default function AutoMailingPage() {
                   </button>
                   <button
                     onClick={handleDeleteMailing}
-                    className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer"
+                    disabled={saving}
+                    className="flex-1 px-4 py-2.5 bg-red-500 hover:bg-red-600 text-white rounded-xl text-sm font-medium transition-colors cursor-pointer flex items-center justify-center gap-2"
                   >
+                    {saving && <Loader2 className="w-4 h-4 animate-spin" />}
                     Удалить
                   </button>
                 </div>
@@ -890,30 +1160,29 @@ export default function AutoMailingPage() {
               </div>
 
               <div className="p-6">
-                {/* Email Preview */}
                 <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
-                  {/* Header */}
                   <div className="bg-gray-50 dark:bg-gray-900 p-4 border-b border-gray-200 dark:border-gray-700">
                     <div className="flex items-center gap-3 mb-3">
                       <div className="w-10 h-10 bg-emerald-500 rounded-full flex items-center justify-center">
-                        <span className="text-white font-semibold">L</span>
+                        <span className="text-white font-semibold">{(settings.senderName || 'M')[0]}</span>
                       </div>
                       <div>
-                        <p className="font-medium text-gray-900 dark:text-white">{settings.senderName}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{settings.senderEmail}</p>
+                        <p className="font-medium text-gray-900 dark:text-white">{settings.senderName || store?.name || 'Магазин'}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{settings.senderEmail || ''}</p>
                       </div>
                     </div>
-                    <p className="font-medium text-gray-900 dark:text-white">{selectedMailing.subject.replace('{order_id}', '12345')}</p>
+                    <p className="font-medium text-gray-900 dark:text-white">
+                      {(selectedMailing.subject || '').replace('{order_id}', '12345')}
+                    </p>
                   </div>
 
-                  {/* Body */}
                   <div className="p-4">
                     <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-line">
-                      {selectedMailing.template
+                      {(selectedMailing.template_ru || '')
                         .replace('{customer_name}', 'Алексей')
                         .replace('{order_id}', '12345')
                         .replace('{order_total}', '150 000')
-                        .replace('{shop_name}', settings.senderName)
+                        .replace('{shop_name}', settings.senderName || store?.name || 'Магазин')
                       }
                     </p>
                   </div>
