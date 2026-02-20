@@ -78,6 +78,26 @@ export async function waSendMessage(storeId: string, phone: string, message: str
 }
 
 /**
+ * Отправить Poll (опрос) через WhatsApp.
+ */
+export async function waSendPoll(
+  storeId: string,
+  phone: string,
+  question: string,
+  options: string[]
+): Promise<{ success: boolean; messageId?: string }> {
+  try {
+    return await waFetch('/poll/send', {
+      method: 'POST',
+      body: JSON.stringify({ storeId, phone, question, options }),
+    });
+  } catch (err) {
+    console.error(`waSendPoll error [${storeId}]:`, err);
+    return { success: false };
+  }
+}
+
+/**
  * Отправить пакет сообщений (с задержками между ними).
  */
 export async function waSendBatch(

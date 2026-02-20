@@ -12,6 +12,99 @@ export type Json =
 export interface Database {
   public: {
     Tables: {
+      feedback_queue: {
+        Row: {
+          id: string
+          store_id: string
+          order_id: string
+          customer_phone: string
+          customer_name: string | null
+          items: Json
+          scheduled_at: string
+          status: string
+          poll_message_id: string | null
+          poll_sent_at: string | null
+          responded_at: string | null
+          response: string | null
+          review_links_sent: boolean | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          order_id: string
+          customer_phone: string
+          customer_name?: string | null
+          items?: Json
+          scheduled_at: string
+          status?: string
+          poll_message_id?: string | null
+          poll_sent_at?: string | null
+          responded_at?: string | null
+          response?: string | null
+          review_links_sent?: boolean | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          order_id?: string
+          customer_phone?: string
+          customer_name?: string | null
+          items?: Json
+          scheduled_at?: string
+          status?: string
+          poll_message_id?: string | null
+          poll_sent_at?: string | null
+          responded_at?: string | null
+          response?: string | null
+          review_links_sent?: boolean | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
+      feedback_settings: {
+        Row: {
+          id: string
+          store_id: string
+          enabled: boolean | null
+          delay_minutes: number | null
+          poll_question: string | null
+          good_option: string | null
+          bad_option: string | null
+          good_response: string | null
+          bad_response: string | null
+          expire_hours: number | null
+          created_at: string | null
+        }
+        Insert: {
+          id?: string
+          store_id: string
+          enabled?: boolean | null
+          delay_minutes?: number | null
+          poll_question?: string | null
+          good_option?: string | null
+          bad_option?: string | null
+          good_response?: string | null
+          bad_response?: string | null
+          expire_hours?: number | null
+          created_at?: string | null
+        }
+        Update: {
+          id?: string
+          store_id?: string
+          enabled?: boolean | null
+          delay_minutes?: number | null
+          poll_question?: string | null
+          good_option?: string | null
+          bad_option?: string | null
+          good_response?: string | null
+          bad_response?: string | null
+          expire_hours?: number | null
+          created_at?: string | null
+        }
+        Relationships: []
+      }
       daily_stats: {
         Row: {
           id: string

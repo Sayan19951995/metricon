@@ -17,6 +17,15 @@ const logger = pino({ level: 'info' });
 // Время простоя перед закрытием ленивой сессии (5 минут)
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
 
+// Callback для обработки входящих сообщений (poll ответы, текст)
+type IncomingMessageHandler = (storeId: string, msg: {
+  from: string;
+  messageId: string;
+  text?: string;
+  pollVotes?: Array<{ name: string; voters: string[] }>;
+  pollCreationMessageId?: string;
+}) => void;
+
 interface SessionInfo {
   socket: WASocket | null;
   qr: string | null;           // base64 QR image
@@ -31,6 +40,7 @@ const MAX_RETRIES = 5;
 class SessionManager {
   private sessions = new Map<string, SessionInfo>();
   private authDir: string;
+  private incomingHandler: IncomingMessageHandler | null = null;
 
   constructor() {
     this.authDir = process.env.AUTH_DIR || path.join(process.cwd(), 'auth_sessions');
@@ -148,6 +158,45 @@ class SessionManager {
       console.error(`[${storeId}] Send error:`, err);
       return false;
     }
+  }
+
+  /**
+   * Отправить Poll (опрос).
+   */
+  async sendPoll(storeId: string, phone: string, question: string, options: string[]): Promise<{ success: boolean; messageId?: string }> {
+    const connected = await this.ensureConnected(storeId);
+    if (!connected) {
+      console.error(`[${storeId}] Cannot send poll: not connected`);
+      return { success: false };
+    }
+
+    const session = this.sessions.get(storeId);
+    if (!session?.socket) return { success: false };
+
+    try {
+      const jid = this.normalizePhone(phone);
+      const result = await session.socket.sendMessage(jid, {
+        poll: {
+          name: question,
+          values: options,
+          selectableCount: 1,
+        },
+      });
+      this.resetIdleTimer(storeId);
+      const messageId = result?.key?.id || null;
+      console.log(`[${storeId}] Poll sent to ${jid}, messageId=${messageId}`);
+      return { success: true, messageId: messageId || undefined };
+    } catch (err) {
+      console.error(`[${storeId}] Send poll error:`, err);
+      return { success: false };
+    }
+  }
+
+  /**
+   * Установить обработчик входящих сообщений (для feedback).
+   */
+  onIncomingMessage(handler: IncomingMessageHandler): void {
+    this.incomingHandler = handler;
   }
 
   /**
@@ -273,6 +322,53 @@ class SessionManager {
           info.status = 'disconnected';
           info.connectPromise = null;
           this.sessions.delete(storeId);
+        }
+      }
+    });
+
+    // Обработка входящих сообщений (текст от клиентов)
+    socket.ev.on('messages.upsert', ({ messages: msgs }) => {
+      if (!this.incomingHandler) return;
+      for (const msg of msgs) {
+        if (msg.key.fromMe) continue;
+        const from = msg.key.remoteJid;
+        if (!from) continue;
+
+        const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || undefined;
+        if (text) {
+          this.incomingHandler(storeId, {
+            from,
+            messageId: msg.key.id || '',
+            text,
+          });
+        }
+      }
+    });
+
+    // Обработка ответов на Poll
+    socket.ev.on('messages.update', (updates) => {
+      if (!this.incomingHandler) return;
+      for (const update of updates) {
+        const pollUpdate = (update as any).update?.pollUpdates;
+        if (!pollUpdate || pollUpdate.length === 0) continue;
+
+        const from = update.key.remoteJid;
+        if (!from) continue;
+
+        for (const pu of pollUpdate) {
+          const votes: Array<{ name: string; voters: string[] }> = (pu.vote || []).map((v: any) => ({
+            name: v.optionName || '',
+            voters: v.voters || [],
+          }));
+
+          if (votes.length > 0) {
+            this.incomingHandler(storeId, {
+              from,
+              messageId: update.key.id || '',
+              pollVotes: votes,
+              pollCreationMessageId: update.key.id || '',
+            });
+          }
         }
       }
     });

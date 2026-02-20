@@ -1,6 +1,8 @@
 import express from 'express';
 import { authMiddleware } from './auth.js';
 import { sessionManager } from './session-manager.js';
+import { initFeedbackHandler } from './feedback-handler.js';
+import { feedbackScheduler } from './feedback-scheduler.js';
 
 const app = express();
 app.use(express.json());
@@ -107,8 +109,29 @@ app.post('/message/send-batch', async (req, res) => {
   }
 });
 
+// Отправить poll (опрос)
+app.post('/poll/send', async (req, res) => {
+  try {
+    const { storeId, phone, question, options } = req.body;
+    if (!storeId || !phone || !question || !Array.isArray(options)) {
+      res.status(400).json({ error: 'storeId, phone, question, options[] обязательны' });
+      return;
+    }
+
+    const result = await sessionManager.sendPoll(storeId, phone, question, options);
+    res.json(result);
+  } catch (err) {
+    console.error('poll/send error:', err);
+    res.status(500).json({ error: 'Internal error' });
+  }
+});
+
 const PORT = parseInt(process.env.PORT || '3001');
 
 app.listen(PORT, () => {
   console.log(`WhatsApp server running on port ${PORT}`);
+
+  // Инициализация feedback системы
+  initFeedbackHandler();
+  feedbackScheduler.start();
 });

@@ -380,6 +380,47 @@ export async function POST(request: NextRequest) {
             waSent += waDelivered.sent;
             waFailed += waDelivered.failed;
           }
+
+          // === FEEDBACK: добавляем в очередь опросов ===
+          try {
+            const { data: fbSettings } = await supabase
+              .from('feedback_settings')
+              .select('enabled, delay_minutes')
+              .eq('store_id', store.id)
+              .single();
+
+            if (fbSettings?.enabled) {
+              const delayMinutes = fbSettings.delay_minutes || 10;
+              const scheduledAt = new Date(Date.now() + delayMinutes * 60 * 1000).toISOString();
+
+              for (const order of completedOrders) {
+                const kaspiStatus = (order.status || order.state || '').toLowerCase();
+                if (kaspiStatus !== 'completed') continue;
+                const dbOrder = dbOrderMap.get(order.orderId);
+                if (dbOrder && dbOrder.status !== 'completed' && order.customer?.cellPhone) {
+                  const items = (order.entries || []).map((e: any) => ({
+                    product_name: e.product?.name || e.productName || '',
+                    kaspi_id: e.product?.code || e.productCode || '',
+                    quantity: e.quantity || 1,
+                    price: e.totalPrice || e.basePrice || 0,
+                  }));
+
+                  await supabase.from('feedback_queue').upsert({
+                    store_id: store.id,
+                    order_id: order.orderId,
+                    customer_phone: order.customer.cellPhone,
+                    customer_name: `${order.customer?.firstName || ''} ${order.customer?.lastName || ''}`.trim(),
+                    items,
+                    scheduled_at: scheduledAt,
+                    status: 'pending',
+                  }, { onConflict: 'store_id,order_id' });
+                }
+              }
+              console.log(`SYNC: Feedback queue entries added for ${store.id}`);
+            }
+          } catch (fbErr) {
+            console.error('SYNC: Feedback queue error:', fbErr);
+          }
         } catch (err) {
           console.error('SYNC: WhatsApp order_delivered trigger error:', err);
         }
