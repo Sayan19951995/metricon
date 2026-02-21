@@ -1886,12 +1886,22 @@ function AnalyticsPageContent() {
                   if (showAdsOnlyROI && marketingData?.adProducts?.length) {
                     // === РЕКЛАМА mode: only ad-attributed sales, real ad cost per product ===
                     const adProducts = marketingData.adProducts;
-                    const totalAdGmv = adProducts.reduce((s, p) => s + (p.gmv || 0), 0);
                     const totalCostAll = data.topProducts.reduce((s: number, p: any) => s + (p.costPrice || 0), 0);
 
+                    // Build cost-to-revenue ratio from real sales data (matched by name)
+                    const costRatioByName: Record<string, number> = {};
+                    for (const p of data.topProducts) {
+                      const key = (p.name || '').toLowerCase().trim();
+                      if (key && p.revenue > 0) {
+                        costRatioByName[key] = (p.costPrice || 0) / p.revenue;
+                      }
+                    }
+                    const avgCostRatio = totalProductRevenue > 0 ? totalCostAll / totalProductRevenue : 0;
+
                     productsWithData = adProducts.map((ap, idx) => {
-                      const gmvShare = totalAdGmv > 0 ? (ap.gmv || 0) / totalAdGmv : 0;
-                      const estCost = totalCostAll * gmvShare;
+                      const nameKey = (ap.name || '').toLowerCase().trim();
+                      const costRatio = costRatioByName[nameKey] ?? avgCostRatio;
+                      const estCost = (ap.gmv || 0) * costRatio;
                       const adCost = ap.cost || 0;
                       const commission = (ap.gmv || 0) * commRate;
                       const tax = (ap.gmv || 0) * taxRate;
