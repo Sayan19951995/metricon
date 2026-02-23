@@ -18,6 +18,7 @@ import {
   ShoppingBag,
   Loader2,
   RefreshCw,
+  UserCheck,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { supabase } from '@/lib/supabase/client';
@@ -47,6 +48,8 @@ interface Order {
   payment: string;
   confirmed_at: string | null;
   confirmed_by: string | null;
+  sale_source: string | null;
+  sale_comment: string | null;
 }
 
 // Маппинг статусов Kaspi на наши
@@ -75,6 +78,82 @@ function mapKaspiStatus(status: string): OrderStatus {
   return 'new';
 }
 
+function ClaimSaleModal({ order, comment, onCommentChange, onConfirm, onCancel }: {
+  order: Order;
+  comment: string;
+  onCommentChange: (v: string) => void;
+  onConfirm: (channel: string) => void;
+  onCancel: () => void;
+}) {
+  const [selectedChannel, setSelectedChannel] = useState('');
+  const channels = ['Instagram', 'TikTok', 'WhatsApp', 'Telegram', 'Facebook', '2GIS', 'Телефон', 'Другое'];
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.15 }}
+        className="bg-white dark:bg-gray-800 rounded-2xl w-full max-w-sm shadow-2xl p-6"
+      >
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 bg-indigo-100 dark:bg-indigo-900/40 rounded-xl flex items-center justify-center">
+            <UserCheck className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <div>
+            <h3 className="font-semibold text-gray-900 dark:text-white">Моя продажа</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Заказ № {order.code}</p>
+          </div>
+        </div>
+
+        {/* Channel selection */}
+        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Откуда клиент?</p>
+        <div className="grid grid-cols-4 gap-1.5 mb-5">
+          {channels.map((ch) => (
+            <button
+              key={ch}
+              onClick={() => setSelectedChannel(ch)}
+              className={`px-2 py-2 text-xs font-medium rounded-xl transition-colors cursor-pointer border ${
+                selectedChannel === ch
+                  ? 'bg-indigo-500 text-white border-indigo-500'
+                  : 'bg-gray-50 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-200 dark:border-gray-600 hover:border-indigo-300 hover:text-indigo-600 dark:hover:text-indigo-400'
+              }`}
+            >
+              {ch}
+            </button>
+          ))}
+        </div>
+
+        {/* Contact input */}
+        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+          Контакт клиента <span className="text-gray-400 font-normal normal-case">(необязательно)</span>
+        </p>
+        <input
+          type="text"
+          value={comment}
+          onChange={(e) => onCommentChange(e.target.value)}
+          placeholder="instagram.com/username или +7 777 123 45 67"
+          className="w-full px-3 py-2.5 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:border-indigo-400 dark:focus:border-indigo-500 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 mb-4"
+        />
+
+        <button
+          onClick={() => selectedChannel && onConfirm(selectedChannel)}
+          disabled={!selectedChannel}
+          className="w-full py-3 bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-200 dark:disabled:bg-gray-700 disabled:cursor-not-allowed text-white disabled:text-gray-400 dark:disabled:text-gray-500 rounded-xl text-sm font-medium transition-colors cursor-pointer mb-2"
+        >
+          Записать на себя
+        </button>
+        <button
+          onClick={onCancel}
+          className="w-full py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors cursor-pointer"
+        >
+          Отмена
+        </button>
+      </motion.div>
+    </div>
+  );
+}
+
 export default function OrdersPage() {
   const router = useRouter();
   const { user, store, loading: userLoading } = useUser();
@@ -86,6 +165,8 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
+  const [claimTarget, setClaimTarget] = useState<Order | null>(null);
+  const [claimComment, setClaimComment] = useState('');
 
   const mapOrderData = (data: any[]): Order[] => {
     const mapped = data.map((o: any) => {
@@ -136,6 +217,8 @@ export default function OrdersPage() {
         payment: 'kaspi',
         confirmed_at: o.confirmed_at || null,
         confirmed_by: o.confirmed_by || null,
+        sale_source: o.sale_source || null,
+        sale_comment: o.sale_comment || null,
       };
     });
 
@@ -202,12 +285,17 @@ export default function OrdersPage() {
     }
   };
 
-  const handleConfirm = async (order: Order) => {
+  const handleConfirm = async (order: Order, saleSource: string, saleComment?: string) => {
     if (!user?.id) return;
+    const userName = user.name || user.email || '';
+    const comment = saleComment || null;
     // Optimistic update
     setOrders(prev => prev.map(o =>
-      o.id === order.id ? { ...o, confirmed_at: new Date().toISOString(), confirmed_by: user.name || user.email } : o
+      o.id === order.id ? { ...o, confirmed_at: new Date().toISOString(), confirmed_by: userName, sale_source: saleSource, sale_comment: comment } : o
     ));
+    if (selectedOrder?.id === order.id) {
+      setSelectedOrder(prev => prev ? { ...prev, confirmed_at: new Date().toISOString(), confirmed_by: userName, sale_source: saleSource, sale_comment: comment } : null);
+    }
     try {
       await fetch('/api/orders/confirm', {
         method: 'POST',
@@ -215,11 +303,30 @@ export default function OrdersPage() {
         body: JSON.stringify({
           orderId: order.id,
           userId: user.id,
-          userName: user.name || user.email,
+          userName,
+          saleSource,
+          saleComment: comment,
         }),
       });
     } catch (err) {
       console.error('Confirm failed:', err);
+      await loadOrders(); // revert on error
+    }
+  };
+
+  const handleUnconfirm = async (order: Order, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!user?.id) return;
+    // Optimistic update
+    setOrders(prev => prev.map(o =>
+      o.id === order.id ? { ...o, confirmed_at: null, confirmed_by: null, sale_source: null, sale_comment: null } : o
+    ));
+    try {
+      await fetch(`/api/orders/confirm?orderId=${order.id}&userId=${user.id}`, {
+        method: 'DELETE',
+      });
+    } catch (err) {
+      console.error('Unconfirm failed:', err);
       await loadOrders(); // revert on error
     }
   };
@@ -488,18 +595,30 @@ export default function OrdersPage() {
                 <span className="text-xs text-gray-500 dark:text-gray-400">Итого</span>
                 <span className="text-sm font-bold text-gray-900 dark:text-white">{order.total.toLocaleString()} ₸</span>
               </div>
-              {/* Confirmation status */}
+              {/* Manager sale claim */}
               <div className="flex items-center justify-between mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
                 {order.confirmed_at ? (
-                  <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                    Подтверждён {order.confirmed_by ? `(${order.confirmed_by})` : ''}
-                  </span>
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center gap-1.5">
+                      <UserCheck className="w-3.5 h-3.5 text-emerald-500" />
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
+                        {order.confirmed_by || 'Менеджер'}
+                      </span>
+                    </div>
+                    <button
+                      onClick={(e) => handleUnconfirm(order, e)}
+                      className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      Отменить
+                    </button>
+                  </div>
                 ) : (
                   <button
-                    onClick={(e) => { e.stopPropagation(); handleConfirm(order); }}
-                    className="px-3 py-1.5 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-blue-600 transition-colors"
+                    onClick={(e) => { e.stopPropagation(); setClaimTarget(order); }}
+                    className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-medium rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors border border-indigo-200 dark:border-indigo-700"
                   >
-                    Подтвердить
+                    <UserCheck className="w-3.5 h-3.5" />
+                    Моя продажа
                   </button>
                 )}
               </div>
@@ -626,15 +745,33 @@ export default function OrdersPage() {
                 <td className="py-4 px-6 text-right">
                   <div className="flex items-center justify-end gap-2">
                     {order.confirmed_at ? (
-                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">
-                        Подтв.
-                      </span>
+                      <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1 px-2 py-1 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg">
+                          <UserCheck className="w-3 h-3 text-emerald-500" />
+                          <div className="flex flex-col">
+                            <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium max-w-[80px] truncate leading-tight">
+                              {order.confirmed_by?.split(' ')[0] || 'Менеджер'}
+                            </span>
+                            {order.sale_source && (
+                              <span className="text-[10px] text-gray-400 leading-tight">{order.sale_source}</span>
+                            )}
+                          </div>
+                        </div>
+                        <button
+                          onClick={(e) => handleUnconfirm(order, e)}
+                          className="p-1 text-gray-300 hover:text-red-400 transition-colors cursor-pointer"
+                          title="Снять отметку"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
                     ) : (
                       <button
-                        onClick={(e) => { e.stopPropagation(); handleConfirm(order); }}
-                        className="px-2.5 py-1 bg-blue-500 text-white text-xs font-medium rounded-lg hover:bg-blue-600 transition-colors cursor-pointer"
+                        onClick={(e) => { e.stopPropagation(); setClaimTarget(order); }}
+                        className="flex items-center gap-1 px-2.5 py-1 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs font-medium rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors cursor-pointer border border-indigo-200 dark:border-indigo-700"
                       >
-                        Подтвердить
+                        <UserCheck className="w-3 h-3" />
+                        Моя продажа
                       </button>
                     )}
                     <button
@@ -666,6 +803,21 @@ export default function OrdersPage() {
       </div>
 
       {/* Order Details Modal */}
+      {/* Claim sale channel modal */}
+      {claimTarget && (
+        <ClaimSaleModal
+          order={claimTarget}
+          comment={claimComment}
+          onCommentChange={setClaimComment}
+          onConfirm={(channel) => {
+            handleConfirm(claimTarget, channel, claimComment.trim() || undefined);
+            setClaimTarget(null);
+            setClaimComment('');
+          }}
+          onCancel={() => { setClaimTarget(null); setClaimComment(''); }}
+        />
+      )}
+
       {selectedOrder && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <motion.div
@@ -773,6 +925,51 @@ export default function OrdersPage() {
                     {selectedOrder.total.toLocaleString()} ₸
                   </span>
                 </div>
+              </div>
+
+              {/* Manager Sale Block */}
+              <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-4 space-y-3">
+                <h3 className="font-semibold text-gray-900 dark:text-white">Продажа менеджера</h3>
+                {selectedOrder.confirmed_at ? (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center">
+                        <UserCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedOrder.confirmed_by || 'Менеджер'}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {new Date(selectedOrder.confirmed_at).toLocaleDateString('ru-RU')} • {new Date(selectedOrder.confirmed_at).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                        {selectedOrder.sale_source && (
+                          <span className="inline-block mt-1 px-2 py-0.5 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-xs rounded-full">
+                            {selectedOrder.sale_source}
+                          </span>
+                        )}
+                        {selectedOrder.sale_comment && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 break-all">{selectedOrder.sale_comment}</p>
+                        )}
+                      </div>
+                    </div>
+                    <button
+                      onClick={(e) => { handleUnconfirm(selectedOrder, e); setSelectedOrder({ ...selectedOrder, confirmed_at: null, confirmed_by: null }); }}
+                      className="text-xs text-gray-400 hover:text-red-500 transition-colors cursor-pointer"
+                    >
+                      Снять отметку
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Этот заказ ещё не записан на менеджера</p>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setClaimTarget(selectedOrder); }}
+                      className="flex items-center gap-2 px-4 py-2 bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 text-sm font-medium rounded-lg hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors cursor-pointer border border-indigo-200 dark:border-indigo-700"
+                    >
+                      <UserCheck className="w-4 h-4" />
+                      Это моя продажа
+                    </button>
+                  </div>
+                )}
               </div>
 
               {/* Action Buttons */}

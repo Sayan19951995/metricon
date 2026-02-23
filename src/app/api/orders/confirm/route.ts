@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase/client';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { orderId, userId, userName } = body;
+    const { orderId, userId, userName, saleSource, saleComment } = body;
 
     if (!orderId || !userId) {
       return NextResponse.json({
@@ -17,11 +17,20 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    if (!saleSource) {
+      return NextResponse.json({
+        success: false,
+        message: 'Укажите канал продажи',
+      }, { status: 400 });
+    }
+
     const { error } = await supabase
       .from('orders')
       .update({
         confirmed_at: new Date().toISOString(),
         confirmed_by: userName || userId,
+        sale_source: saleSource,
+        sale_comment: saleComment || null,
       } as any)
       .eq('id', orderId);
 
@@ -58,6 +67,8 @@ export async function DELETE(request: NextRequest) {
       .update({
         confirmed_at: null,
         confirmed_by: null,
+        sale_source: null,
+        sale_comment: null,
       } as any)
       .eq('id', orderId);
 

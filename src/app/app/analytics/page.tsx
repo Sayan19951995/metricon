@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, ChevronUp, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Plus, X, Trash2, HelpCircle, BarChart3, RotateCcw } from 'lucide-react';
+import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, ChevronUp, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Plus, X, Trash2, HelpCircle, BarChart3, RotateCcw, UserCheck } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { getSmoothPath } from '@/lib/smoothPath';
 
@@ -156,9 +156,10 @@ const emptyAnalyticsData = {
   marketing: { totalCost: 0, totalGmv: 0, roas: 0, campaigns: [] },
   storeSettings: { commissionRate: 12.5, taxRate: 4.0 },
   operationalExpenses: [],
+  managerSales: [] as Array<{ manager: string; count: number; revenue: number; channels: Record<string, number>; topChannel: string }>,
 };
 
-type TabType = 'finances' | 'sales' | 'reviews';
+type TabType = 'finances' | 'sales' | 'managers' | 'reviews';
 
 // Компонент-обёртка для Suspense
 export default function AnalyticsPage() {
@@ -240,7 +241,7 @@ function AnalyticsPageContent() {
   const { user, loading: userLoading } = useUser();
   const searchParams = useSearchParams();
   const tabFromUrl = searchParams.get('tab') as TabType | null;
-  const validTabs: TabType[] = ['finances', 'sales', 'reviews'];
+  const validTabs: TabType[] = ['finances', 'sales', 'managers', 'reviews'];
   const initialTab = tabFromUrl && validTabs.includes(tabFromUrl) ? tabFromUrl : 'finances';
   const [activeTab, setActiveTab] = useState<TabType>(initialTab);
 
@@ -418,7 +419,8 @@ function AnalyticsPageContent() {
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
     revenue: false,      // Структура выручки
     sources: false,      // Источники продаж и способы доставки
-    adProducts: false    // Рентабельность по товарам
+    adProducts: false,   // Рентабельность по товарам
+    managers: false,     // Продажи менеджеров
   });
 
   const toggleSection = (section: string) => {
@@ -1019,6 +1021,16 @@ function AnalyticsPageContent() {
                   }`}
                 >
                   Заказы и реклама
+                </button>
+                <button
+                  onClick={() => setActiveTab('managers')}
+                  className={`px-4 sm:px-6 py-2 sm:py-2.5 rounded-xl text-xs sm:text-sm font-medium transition-all cursor-pointer whitespace-nowrap ${
+                    activeTab === 'managers'
+                      ? 'bg-emerald-500 text-white shadow-sm'
+                      : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  Менеджеры
                 </button>
                 <button
                   onClick={() => setActiveTab('reviews')}
@@ -2335,6 +2347,104 @@ function AnalyticsPageContent() {
 
           </>
         )}
+
+        {/* Managers Tab */}
+        {activeTab === 'managers' && (() => {
+          const managerSales: Array<{ manager: string; count: number; revenue: number; channels: Record<string, number>; topChannel: string }> = apiData?.managerSales || [];
+          const totalManagerOrders = managerSales.reduce((s, m) => s + m.count, 0);
+          const totalManagerRevenue = managerSales.reduce((s, m) => s + m.revenue, 0);
+          const channelColors: Record<string, string> = {
+            'Instagram': 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
+            'TikTok': 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300',
+            'WhatsApp': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
+            'Telegram': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
+            'Facebook': 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300',
+            '2GIS': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
+            'Телефон': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
+            'Другое': 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
+          };
+          return (
+            <div className="mt-6 space-y-4">
+              {/* Итоговые карточки */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 sm:p-5 shadow-sm">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-violet-100 dark:bg-violet-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                      <UserCheck className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Менеджеров</span>
+                  </div>
+                  <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{managerSales.length}</div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 sm:p-5 shadow-sm">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-violet-100 dark:bg-violet-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                      <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Заказов</span>
+                  </div>
+                  <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{totalManagerOrders}</div>
+                </div>
+                <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 sm:p-5 shadow-sm col-span-2 sm:col-span-1">
+                  <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-violet-100 dark:bg-violet-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
+                      <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600 dark:text-violet-400" />
+                    </div>
+                    <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Выручка</span>
+                  </div>
+                  <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{fmt(totalManagerRevenue)} ₸</div>
+                </div>
+              </div>
+
+              {/* Таблица менеджеров */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                  <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">Результаты менеджеров</h3>
+                </div>
+                {managerSales.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">
+                    Нет данных за выбранный период
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs sm:text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
+                          <th className="text-left px-4 sm:px-6 py-3 text-gray-500 dark:text-gray-400 font-medium">#</th>
+                          <th className="text-left px-4 sm:px-6 py-3 text-gray-500 dark:text-gray-400 font-medium">Менеджер</th>
+                          <th className="text-right px-4 sm:px-6 py-3 text-gray-500 dark:text-gray-400 font-medium">Заказов</th>
+                          <th className="text-right px-4 sm:px-6 py-3 text-gray-500 dark:text-gray-400 font-medium">Выручка</th>
+                          <th className="text-left px-4 sm:px-6 py-3 text-gray-500 dark:text-gray-400 font-medium hidden sm:table-cell">Каналы</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {managerSales.map((m, i) => (
+                          <tr key={i} className="border-b border-gray-50 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                            <td className="px-4 sm:px-6 py-3 text-gray-400 dark:text-gray-500 font-medium">{i + 1}</td>
+                            <td className="px-4 sm:px-6 py-3 font-semibold text-gray-900 dark:text-white">{m.manager}</td>
+                            <td className="px-4 sm:px-6 py-3 text-right text-gray-700 dark:text-gray-300">{m.count}</td>
+                            <td className="px-4 sm:px-6 py-3 text-right font-semibold text-gray-900 dark:text-white">{fmt(m.revenue)} ₸</td>
+                            <td className="px-4 sm:px-6 py-3 hidden sm:table-cell">
+                              <div className="flex flex-wrap gap-1">
+                                {Object.entries(m.channels)
+                                  .sort((a, b) => b[1] - a[1])
+                                  .map(([ch, cnt]) => (
+                                    <span key={ch} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${channelColors[ch] || channelColors['Другое']}`}>
+                                      {ch} <span className="opacity-60">×{cnt}</span>
+                                    </span>
+                                  ))}
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </div>
+          );
+        })()}
 
         {/* Reviews Tab */}
         {activeTab === 'reviews' && (

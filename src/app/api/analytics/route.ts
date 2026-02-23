@@ -61,7 +61,7 @@ export async function GET(request: NextRequest) {
     // === 1. Поступления по дате выдачи (completed_at) ===
     const completedOrdersResult = await supabase
       .from('orders')
-      .select('total_amount, completed_at, status, delivery_cost, delivery_mode, delivery_address, items')
+      .select('total_amount, completed_at, status, delivery_cost, delivery_mode, delivery_address, items, confirmed_by, sale_source')
       .eq('store_id', store.id)
       .not('completed_at', 'is', null)
       .eq('status', 'completed')
@@ -644,6 +644,34 @@ export async function GET(request: NextRequest) {
     }
     const organicOrders = totalOrders - adOrdersCount;
 
+    // === 9. Продажи по менеджерам ===
+    interface ManagerAgg {
+      count: number;
+      revenue: number;
+      channels: Record<string, number>;
+    }
+    const managerMap = new Map<string, ManagerAgg>();
+    for (const order of completedOrders) {
+      const manager = (order as any).confirmed_by as string | null;
+      if (!manager) continue;
+      const amount = order.total_amount || 0;
+      const channel = ((order as any).sale_source as string | null) || 'Другое';
+      const existing = managerMap.get(manager);
+      if (existing) {
+        existing.count += 1;
+        existing.revenue += amount;
+        existing.channels[channel] = (existing.channels[channel] || 0) + 1;
+      } else {
+        managerMap.set(manager, { count: 1, revenue: amount, channels: { [channel]: 1 } });
+      }
+    }
+    const managerSales = Array.from(managerMap.entries())
+      .sort((a, b) => b[1].revenue - a[1].revenue)
+      .map(([manager, agg]) => {
+        const topChannel = Object.entries(agg.channels).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+        return { manager, count: agg.count, revenue: agg.revenue, channels: agg.channels, topChannel };
+      });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -703,6 +731,7 @@ export async function GET(request: NextRequest) {
         },
         operationalExpenses: opExpenses || [],
         productGroupsMeta,
+        managerSales,
       }
     });
 

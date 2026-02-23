@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight, BarChart3, CheckCircle, Building2 } from 'lucide-react';
+import { supabase } from '@/lib/supabase/client';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -86,11 +87,43 @@ export default function RegisterPage() {
     setIsLoading(true);
     setErrors({});
 
-    // Симуляция запроса к API
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    try {
+      // 1. Создаём пользователя в Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: { name: formData.name },
+        },
+      });
 
-    // Mock успешной регистрации
-    router.push('/app');
+      if (error) throw error;
+      if (!data.user) throw new Error('Не удалось создать аккаунт');
+
+      // 2. Сохраняем профиль в таблице users
+      const { error: userError } = await supabase.from('users').insert({
+        id: data.user.id,
+        email: formData.email,
+        name: formData.name,
+        phone: formData.phone,
+      });
+
+      if (userError) throw userError;
+
+      // 3. Создаём магазин
+      const { error: storeError } = await supabase.from('stores').insert({
+        user_id: data.user.id,
+        name: formData.storeName,
+      });
+
+      if (storeError) throw storeError;
+
+      router.push('/app');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Ошибка при регистрации';
+      setErrors({ general: message });
+      setIsLoading(false);
+    }
   };
 
   const features = [
@@ -177,6 +210,12 @@ export default function RegisterPage() {
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Создать аккаунт</h2>
               <p className="text-gray-500">Шаг {step} из 2</p>
             </div>
+
+            {errors.general && (
+              <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-red-600 text-sm text-center">
+                {errors.general}
+              </div>
+            )}
 
             {/* Progress Bar */}
             <div className="flex gap-2 mb-8">
