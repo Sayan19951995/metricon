@@ -126,17 +126,16 @@ export async function GET(req: NextRequest) {
         const expireHours = s.expire_hours || 24;
         const cutoff = new Date(Date.now() - expireHours * 60 * 60 * 1000).toISOString();
 
-        const { count } = await supabaseAdmin
+        const { data: expiredRows } = await supabaseAdmin
           .from('feedback_queue')
           .update({ status: 'expired' } as any)
           .eq('store_id', s.store_id)
           .eq('status', 'poll_sent')
           .lt('poll_sent_at', cutoff)
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          .select('*', { count: 'exact', head: true } as any);
+          .select('id');
 
-        if (count && count > 0) {
-          expiredCount += count;
+        if (expiredRows && expiredRows.length > 0) {
+          expiredCount += expiredRows.length;
         }
       }
     }
