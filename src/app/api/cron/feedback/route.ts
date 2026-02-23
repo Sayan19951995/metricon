@@ -132,7 +132,8 @@ export async function GET(req: NextRequest) {
           .eq('store_id', s.store_id)
           .eq('status', 'poll_sent')
           .lt('poll_sent_at', cutoff)
-          .select('*', { count: 'exact', head: true });
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .select('*', { count: 'exact', head: true } as any);
 
         if (count && count > 0) {
           expiredCount += count;
