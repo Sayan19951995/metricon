@@ -105,16 +105,16 @@ export async function POST(request: NextRequest) {
 
     let result;
     if (existing) {
-      result = await supabase
+      result = await (supabase as any)
         .from('auto_pricing_rules')
-        .update(ruleData as any)
+        .update(ruleData)
         .eq('id', existing.id)
         .select()
         .single();
     } else {
-      result = await supabase
+      result = await (supabase as any)
         .from('auto_pricing_rules')
-        .insert(ruleData as any)
+        .insert(ruleData)
         .select()
         .single();
     }
