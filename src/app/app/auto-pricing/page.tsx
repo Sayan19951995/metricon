@@ -43,6 +43,7 @@ interface AutoPricingRule {
   last_price_change_at: string | null;
   error_message: string | null;
   price_changes_24h: number;
+  created_at: string | null;
 }
 
 interface BFFProduct {
