@@ -61,12 +61,13 @@ export async function GET(request: NextRequest) {
     // === 1. Поступления по дате выдачи (completed_at) ===
     const completedOrdersResult = await supabase
       .from('orders')
-      .select('total_amount, completed_at, status, delivery_cost, delivery_mode, delivery_address, items, confirmed_by, sale_source')
+      .select('total_amount, completed_at, status, delivery_cost, delivery_mode, delivery_address, items, confirmed_by, sale_source' as string)
       .eq('store_id', store.id)
       .not('completed_at', 'is', null)
       .eq('status', 'completed')
       .order('completed_at', { ascending: true });
-    const completedOrders = completedOrdersResult.data || [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const completedOrders = (completedOrdersResult.data || []) as any[];
 
     // Группируем по дате completed_at в UTC+5 (Казахстан)
     const dayNames = ['Вс', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
