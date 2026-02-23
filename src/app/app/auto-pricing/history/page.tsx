@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   ArrowLeft,
   Search,
@@ -8,157 +8,59 @@ import {
   TrendingUp,
   Minus,
   Calendar,
-  Clock
+  Clock,
+  Loader2
 } from 'lucide-react';
+import { useUser } from '@/hooks/useUser';
 
 // Типы
 type ChangeType = 'decrease' | 'increase' | 'match';
 
 interface PriceChange {
   id: string;
-  productId: number;
-  productName: string;
-  productSku: string;
-  productImage: string;
-  changeType: ChangeType;
-  oldPrice: number;
-  newPrice: number;
-  competitorPrice: number;
-  competitorName: string;
-  reason: string;
-  timestamp: string;
-  position: number;
+  sku: string;
+  product_name: string;
+  change_type: ChangeType;
+  old_price: number;
+  new_price: number;
+  competitor_price: number | null;
+  competitor_name: string | null;
+  reason: string | null;
+  created_at: string;
 }
 
-// Mock данные истории
-const mockHistory: PriceChange[] = [
-  {
-    id: 'ch-1',
-    productId: 1,
-    productName: 'iPhone 14 Pro 256GB',
-    productSku: 'APL-IP14P-256',
-    productImage: '📱',
-    changeType: 'decrease',
-    oldPrice: 451900,
-    newPrice: 449900,
-    competitorPrice: 451900,
-    competitorName: 'TechStore KZ',
-    reason: 'Демпинг: цена снижена на 2000 ₸ ниже конкурента',
-    timestamp: '2025-01-16T10:30:00',
-    position: 2,
-  },
-  {
-    id: 'ch-2',
-    productId: 4,
-    productName: 'MacBook Pro 14" M3',
-    productSku: 'APL-MBP14-M3',
-    productImage: '💻',
-    changeType: 'decrease',
-    oldPrice: 1155000,
-    newPrice: 1149900,
-    competitorPrice: 1155000,
-    competitorName: 'Digital Store',
-    reason: 'Демпинг: цена снижена на 5100 ₸ ниже конкурента',
-    timestamp: '2025-01-16T11:00:00',
-    position: 1,
-  },
-  {
-    id: 'ch-3',
-    productId: 2,
-    productName: 'Samsung Galaxy S24 Ultra',
-    productSku: 'SAM-S24U-256',
-    productImage: '📱',
-    changeType: 'increase',
-    oldPrice: 545900,
-    newPrice: 549900,
-    competitorPrice: 555000,
-    competitorName: 'Mobile World',
-    reason: 'Позиция: цена повышена для оптимизации маржи',
-    timestamp: '2025-01-16T09:15:00',
-    position: 3,
-  },
-  {
-    id: 'ch-4',
-    productId: 1,
-    productName: 'iPhone 14 Pro 256GB',
-    productSku: 'APL-IP14P-256',
-    productImage: '📱',
-    changeType: 'decrease',
-    oldPrice: 455000,
-    newPrice: 451900,
-    competitorPrice: 453000,
-    competitorName: 'Gadget KZ',
-    reason: 'Демпинг: цена снижена на 1100 ₸ ниже конкурента',
-    timestamp: '2025-01-16T08:45:00',
-    position: 3,
-  },
-  {
-    id: 'ch-5',
-    productId: 3,
-    productName: 'AirPods Pro 2',
-    productSku: 'APL-APP2',
-    productImage: '🎧',
-    changeType: 'match',
-    oldPrice: 91900,
-    newPrice: 89900,
-    competitorPrice: 89900,
-    competitorName: 'Apple Store KZ',
-    reason: 'Паритет: цена установлена равной конкуренту',
-    timestamp: '2025-01-15T18:45:00',
-    position: 1,
-  },
-  {
-    id: 'ch-6',
-    productId: 4,
-    productName: 'MacBook Pro 14" M3',
-    productSku: 'APL-MBP14-M3',
-    productImage: '💻',
-    changeType: 'decrease',
-    oldPrice: 1165000,
-    newPrice: 1155000,
-    competitorPrice: 1160000,
-    competitorName: 'iStore KZ',
-    reason: 'Демпинг: цена снижена на 5000 ₸ ниже конкурента',
-    timestamp: '2025-01-15T16:30:00',
-    position: 2,
-  },
-  {
-    id: 'ch-7',
-    productId: 1,
-    productName: 'iPhone 14 Pro 256GB',
-    productSku: 'APL-IP14P-256',
-    productImage: '📱',
-    changeType: 'increase',
-    oldPrice: 448000,
-    newPrice: 455000,
-    competitorPrice: 460000,
-    competitorName: 'MegaStore',
-    reason: 'Позиция: конкурент поднял цену, оптимизация маржи',
-    timestamp: '2025-01-15T14:20:00',
-    position: 1,
-  },
-  {
-    id: 'ch-8',
-    productId: 2,
-    productName: 'Samsung Galaxy S24 Ultra',
-    productSku: 'SAM-S24U-256',
-    productImage: '📱',
-    changeType: 'decrease',
-    oldPrice: 555000,
-    newPrice: 545900,
-    competitorPrice: 549000,
-    competitorName: 'Galaxy Store',
-    reason: 'Демпинг: цена снижена на 3100 ₸ ниже конкурента',
-    timestamp: '2025-01-15T12:00:00',
-    position: 2,
-  },
-];
-
 export default function AutoPricingHistoryPage() {
-  const [history] = useState<PriceChange[]>(mockHistory);
+  const { user, loading: userLoading } = useUser();
+  const [history, setHistory] = useState<PriceChange[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<ChangeType | 'all'>('all');
   const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'all'>('all');
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    async function loadHistory() {
+      setLoading(true);
+      try {
+        const params = new URLSearchParams({ userId: user!.id });
+        if (typeFilter !== 'all') params.set('type', typeFilter);
+        if (dateFilter !== 'all') params.set('period', dateFilter);
+
+        const res = await fetch(`/api/auto-pricing/history?${params}`);
+        const data = await res.json();
+        if (data.success) {
+          setHistory(data.history || []);
+        }
+      } catch (err) {
+        console.error('Failed to load history:', err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadHistory();
+  }, [user?.id, typeFilter, dateFilter]);
 
   // Форматирование даты
   const formatDate = (dateStr: string) => {
@@ -178,33 +80,17 @@ export default function AutoPricingHistoryPage() {
     });
   };
 
-  // Фильтрация истории
+  // Фильтрация по поиску (клиентская)
   const filteredHistory = history.filter(change => {
-    const matchesSearch = change.productName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          change.productSku.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesType = typeFilter === 'all' || change.changeType === typeFilter;
-
-    // Фильтр по дате
-    const changeDate = new Date(change.timestamp);
-    const now = new Date();
-    let matchesDate = true;
-
-    if (dateFilter === 'today') {
-      matchesDate = changeDate.toDateString() === now.toDateString();
-    } else if (dateFilter === 'week') {
-      const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-      matchesDate = changeDate >= weekAgo;
-    } else if (dateFilter === 'month') {
-      const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-      matchesDate = changeDate >= monthAgo;
-    }
-
-    return matchesSearch && matchesType && matchesDate;
+    if (!searchQuery) return true;
+    const q = searchQuery.toLowerCase();
+    return (change.product_name || '').toLowerCase().includes(q) ||
+           change.sku.toLowerCase().includes(q);
   });
 
   // Группировка по дням
   const groupedHistory = filteredHistory.reduce((groups, change) => {
-    const date = formatDate(change.timestamp);
+    const date = formatDate(change.created_at);
     if (!groups[date]) {
       groups[date] = [];
     }
@@ -233,10 +119,21 @@ export default function AutoPricingHistoryPage() {
   // Статистика
   const stats = {
     total: filteredHistory.length,
-    decreases: filteredHistory.filter(c => c.changeType === 'decrease').length,
-    increases: filteredHistory.filter(c => c.changeType === 'increase').length,
-    matches: filteredHistory.filter(c => c.changeType === 'match').length,
+    decreases: filteredHistory.filter(c => c.change_type === 'decrease').length,
+    increases: filteredHistory.filter(c => c.change_type === 'increase').length,
+    matches: filteredHistory.filter(c => c.change_type === 'match').length,
   };
+
+  if (userLoading || loading) {
+    return (
+      <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+          <span className="ml-3 text-gray-500 dark:text-gray-400">Загрузка истории...</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 sm:p-6 max-w-[1400px] mx-auto">
@@ -347,7 +244,7 @@ export default function AutoPricingHistoryPage() {
               onChange={(e) => setDateFilter(e.target.value as typeof dateFilter)}
               className="px-2 sm:px-3 py-1.5 sm:py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-xs sm:text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             >
-              <option value="all">Всё время</option>
+              <option value="all">Все время</option>
               <option value="today">Сегодня</option>
               <option value="week">Неделя</option>
               <option value="month">Месяц</option>
@@ -365,7 +262,7 @@ export default function AutoPricingHistoryPage() {
             <p className="text-gray-500 dark:text-gray-400 text-sm">
               {searchQuery || typeFilter !== 'all' || dateFilter !== 'all'
                 ? 'Попробуйте изменить параметры поиска'
-                : 'Изменения цен будут отображаться здесь'}
+                : 'Изменения цен будут отображаться здесь после работы крона'}
             </p>
           </div>
         ) : (
@@ -384,43 +281,38 @@ export default function AutoPricingHistoryPage() {
                       {/* Mobile Layout */}
                       <div className="sm:hidden">
                         <div className="flex items-start gap-2">
-                          {/* Change Type Icon */}
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${getChangeColor(change.changeType)}`}>
-                            {getChangeIcon(change.changeType)}
+                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${getChangeColor(change.change_type)}`}>
+                            {getChangeIcon(change.change_type)}
                           </div>
 
                           <div className="flex-1 min-w-0">
-                            {/* Product name and time */}
                             <div className="flex items-center justify-between gap-2 mb-1">
-                              <span className="font-medium text-gray-900 dark:text-white text-sm truncate">{change.productName}</span>
-                              <span className="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0">{formatTime(change.timestamp)}</span>
+                              <span className="font-medium text-gray-900 dark:text-white text-sm truncate">{change.product_name || change.sku}</span>
+                              <span className="text-[10px] text-gray-400 dark:text-gray-500 flex-shrink-0">{formatTime(change.created_at)}</span>
                             </div>
 
-                            {/* Prices */}
                             <div className="flex items-center gap-1.5 text-xs mb-1">
                               <span className="text-gray-400 dark:text-gray-500 line-through">
-                                {(change.oldPrice / 1000).toFixed(0)}к
+                                {(change.old_price / 1000).toFixed(0)}к
                               </span>
-                              <span className="text-gray-400 dark:text-gray-500">→</span>
+                              <span className="text-gray-400 dark:text-gray-500">&rarr;</span>
                               <span className="font-bold text-gray-900 dark:text-white">
-                                {(change.newPrice / 1000).toFixed(0)}к ₸
+                                {(change.new_price / 1000).toFixed(0)}к ₸
                               </span>
                               <span className={`font-medium ${
-                                change.changeType === 'decrease' ? 'text-red-600 dark:text-red-400' :
-                                change.changeType === 'increase' ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'
+                                change.change_type === 'decrease' ? 'text-red-600 dark:text-red-400' :
+                                change.change_type === 'increase' ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'
                               }`}>
-                                ({change.changeType === 'decrease' ? '-' : change.changeType === 'increase' ? '+' : ''}
-                                {(Math.abs(change.newPrice - change.oldPrice) / 1000).toFixed(0)}к)
+                                ({change.change_type === 'decrease' ? '-' : change.change_type === 'increase' ? '+' : ''}
+                                {(Math.abs(change.new_price - change.old_price) / 1000).toFixed(0)}к)
                               </span>
                             </div>
 
-                            {/* Position */}
-                            <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                              Позиция: <span className={`font-bold ${
-                                change.position === 1 ? 'text-emerald-600 dark:text-emerald-400' :
-                                change.position <= 3 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-600 dark:text-gray-400'
-                              }`}>#{change.position}</span>
-                            </div>
+                            {change.competitor_name && (
+                              <div className="text-[10px] text-gray-500 dark:text-gray-400">
+                                {change.competitor_name}{change.competitor_price ? ` (${(change.competitor_price / 1000).toFixed(0)}к ₸)` : ''}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -431,78 +323,67 @@ export default function AutoPricingHistoryPage() {
                           {/* Time */}
                           <div className="w-12 lg:w-16 text-center">
                             <div className="text-xs lg:text-sm font-medium text-gray-900 dark:text-white">
-                              {formatTime(change.timestamp)}
+                              {formatTime(change.created_at)}
                             </div>
                           </div>
 
                           {/* Change Type Icon */}
-                          <div className={`w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center ${getChangeColor(change.changeType)}`}>
-                            {getChangeIcon(change.changeType)}
+                          <div className={`w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center ${getChangeColor(change.change_type)}`}>
+                            {getChangeIcon(change.change_type)}
                           </div>
 
                           {/* Product */}
-                          <div className="w-8 h-8 lg:w-10 lg:h-10 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center text-lg lg:text-xl">
-                            {change.productImage}
-                          </div>
-
                           <div className="flex-1 min-w-0">
-                            <div className="font-medium text-gray-900 dark:text-white text-xs lg:text-sm truncate">{change.productName}</div>
-                            <div className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 font-mono">{change.productSku}</div>
+                            <div className="font-medium text-gray-900 dark:text-white text-xs lg:text-sm truncate">{change.product_name || change.sku}</div>
+                            <div className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 font-mono">{change.sku}</div>
                           </div>
 
                           {/* Price Change */}
                           <div className="text-right">
                             <div className="flex items-center gap-1 lg:gap-2 text-xs lg:text-sm">
                               <span className="text-gray-400 dark:text-gray-500 line-through hidden lg:inline">
-                                {change.oldPrice.toLocaleString('ru-RU')} ₸
+                                {change.old_price.toLocaleString('ru-RU')} ₸
                               </span>
                               <span className="text-gray-400 dark:text-gray-500 line-through lg:hidden">
-                                {(change.oldPrice / 1000).toFixed(0)}к
+                                {(change.old_price / 1000).toFixed(0)}к
                               </span>
-                              <span className="text-gray-400 dark:text-gray-500">→</span>
+                              <span className="text-gray-400 dark:text-gray-500">&rarr;</span>
                               <span className="font-bold text-gray-900 dark:text-white hidden lg:inline">
-                                {change.newPrice.toLocaleString('ru-RU')} ₸
+                                {change.new_price.toLocaleString('ru-RU')} ₸
                               </span>
                               <span className="font-bold text-gray-900 dark:text-white lg:hidden">
-                                {(change.newPrice / 1000).toFixed(0)}к
+                                {(change.new_price / 1000).toFixed(0)}к
                               </span>
                             </div>
                             <div className={`text-[10px] lg:text-xs font-medium ${
-                              change.changeType === 'decrease' ? 'text-red-600 dark:text-red-400' :
-                              change.changeType === 'increase' ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'
+                              change.change_type === 'decrease' ? 'text-red-600 dark:text-red-400' :
+                              change.change_type === 'increase' ? 'text-emerald-600 dark:text-emerald-400' : 'text-blue-600 dark:text-blue-400'
                             }`}>
-                              {change.changeType === 'decrease' ? '-' : change.changeType === 'increase' ? '+' : ''}
-                              {Math.abs(change.newPrice - change.oldPrice).toLocaleString('ru-RU')} ₸
+                              {change.change_type === 'decrease' ? '-' : change.change_type === 'increase' ? '+' : ''}
+                              {Math.abs(change.new_price - change.old_price).toLocaleString('ru-RU')} ₸
                             </div>
                           </div>
 
-                          {/* Competitor - hidden on smaller screens */}
-                          <div className="w-28 lg:w-32 text-right hidden lg:block">
-                            <div className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Конкурент</div>
-                            <div className="text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300">
-                              {change.competitorPrice.toLocaleString('ru-RU')} ₸
+                          {/* Competitor */}
+                          {change.competitor_name && (
+                            <div className="w-28 lg:w-32 text-right hidden lg:block">
+                              <div className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Конкурент</div>
+                              <div className="text-xs lg:text-sm font-medium text-gray-700 dark:text-gray-300">
+                                {change.competitor_price ? `${change.competitor_price.toLocaleString('ru-RU')} ₸` : '—'}
+                              </div>
+                              <div className="text-[10px] lg:text-xs text-gray-400 dark:text-gray-500 truncate" title={change.competitor_name}>
+                                {change.competitor_name}
+                              </div>
                             </div>
-                            <div className="text-[10px] lg:text-xs text-gray-400 dark:text-gray-500 truncate" title={change.competitorName}>
-                              {change.competitorName}
-                            </div>
-                          </div>
-
-                          {/* Position */}
-                          <div className="w-12 lg:w-16 text-center">
-                            <div className={`text-base lg:text-lg font-bold ${
-                              change.position === 1 ? 'text-emerald-600 dark:text-emerald-400' :
-                              change.position <= 3 ? 'text-amber-600 dark:text-amber-400' : 'text-gray-600 dark:text-gray-400'
-                            }`}>
-                              #{change.position}
-                            </div>
-                            <div className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">позиция</div>
-                          </div>
+                          )}
                         </div>
 
-                        {/* Reason - hidden on mobile */}
-                        <div className="mt-2 ml-20 lg:ml-24 text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 hidden lg:block">
-                          {change.reason}
-                        </div>
+                        {/* Reason */}
+                        {change.reason && (
+                          <div className="mt-2 ml-20 lg:ml-24 text-[10px] lg:text-xs text-gray-500 dark:text-gray-400 hidden lg:block">
+                            {change.reason}
+                          </div>
+                        )}
                       </div>
                     </div>
                   ))}

@@ -2,6 +2,8 @@
 
 # dependencies
 /node_modules
+/wa-server/node_modules
+/wa-server/auth
 /.pnp
 .pnp.*
 .yarn/*

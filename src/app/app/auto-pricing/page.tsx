@@ -1,13 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Search,
   TrendingDown,
   Play,
   Pause,
   Settings,
-  ChevronDown,
   Zap,
   Target,
   Shield,
@@ -19,23 +18,52 @@ import {
   ChevronLeft,
   ChevronRight,
   ToggleLeft,
-  ToggleRight
+  ToggleRight,
+  Loader2,
+  RefreshCw
 } from 'lucide-react';
+import { useUser } from '@/hooks/useUser';
 
 // Типы
 type Strategy = 'undercut' | 'match' | 'position';
 
-interface Product {
-  id: number;
-  name: string;
+interface AutoPricingRule {
+  id: string;
   sku: string;
+  product_name: string | null;
+  strategy: Strategy;
+  min_price: number;
+  max_price: number;
+  step: number;
+  target_position: number | null;
+  status: 'active' | 'paused' | 'error';
+  last_competitor_price: number | null;
+  last_competitor_name: string | null;
+  last_check_at: string | null;
+  last_price_change_at: string | null;
+  error_message: string | null;
+  price_changes_24h: number;
+}
+
+interface BFFProduct {
+  sku: string;
+  name: string;
+  price: number;
+  stock: number;
+  images: string[];
+  shopLink?: string;
+  masterSku?: string;
+}
+
+interface Product {
+  sku: string;
+  name: string;
   image: string;
   currentPrice: number;
-  competitorPrice: number;
-  competitorName: string;
-  position: number;
-  // Настройки автоцены (null = выключено)
+  competitorPrice: number | null;
+  competitorName: string | null;
   autoPricing: {
+    id: string;
     enabled: boolean;
     strategy: Strategy;
     minPrice: number;
@@ -45,190 +73,9 @@ interface Product {
     status: 'active' | 'paused' | 'error';
     lastUpdate: string;
     priceChanges24h: number;
+    errorMessage: string | null;
   } | null;
 }
-
-// Mock данные всех товаров
-const mockProducts: Product[] = [
-  {
-    id: 1,
-    name: 'iPhone 14 Pro 256GB',
-    sku: 'APL-IP14P-256',
-    image: '📱',
-    currentPrice: 449900,
-    competitorPrice: 451900,
-    competitorName: 'TechStore KZ',
-    position: 2,
-    autoPricing: {
-      enabled: true,
-      strategy: 'undercut',
-      minPrice: 420000,
-      maxPrice: 480000,
-      step: 1000,
-      status: 'active',
-      lastUpdate: '2025-01-16T10:30:00',
-      priceChanges24h: 5,
-    },
-  },
-  {
-    id: 2,
-    name: 'Samsung Galaxy S24 Ultra',
-    sku: 'SAM-S24U-256',
-    image: '📱',
-    currentPrice: 549900,
-    competitorPrice: 545900,
-    competitorName: 'Mobile World',
-    position: 3,
-    autoPricing: {
-      enabled: true,
-      strategy: 'position',
-      minPrice: 500000,
-      maxPrice: 580000,
-      step: 2000,
-      targetPosition: 1,
-      status: 'active',
-      lastUpdate: '2025-01-16T09:15:00',
-      priceChanges24h: 3,
-    },
-  },
-  {
-    id: 3,
-    name: 'AirPods Pro 2',
-    sku: 'APL-APP2',
-    image: '🎧',
-    currentPrice: 89900,
-    competitorPrice: 89900,
-    competitorName: 'Apple Store KZ',
-    position: 1,
-    autoPricing: {
-      enabled: true,
-      strategy: 'match',
-      minPrice: 85000,
-      maxPrice: 95000,
-      step: 500,
-      status: 'paused',
-      lastUpdate: '2025-01-15T18:45:00',
-      priceChanges24h: 0,
-    },
-  },
-  {
-    id: 4,
-    name: 'MacBook Pro 14" M3',
-    sku: 'APL-MBP14-M3',
-    image: '💻',
-    currentPrice: 1149900,
-    competitorPrice: 1155000,
-    competitorName: 'Digital Store',
-    position: 1,
-    autoPricing: {
-      enabled: true,
-      strategy: 'undercut',
-      minPrice: 1100000,
-      maxPrice: 1200000,
-      step: 5000,
-      status: 'active',
-      lastUpdate: '2025-01-16T11:00:00',
-      priceChanges24h: 2,
-    },
-  },
-  {
-    id: 5,
-    name: 'Sony WH-1000XM5',
-    sku: 'SNY-WH1000',
-    image: '🎧',
-    currentPrice: 149900,
-    competitorPrice: 148900,
-    competitorName: 'AudioPro KZ',
-    position: 4,
-    autoPricing: {
-      enabled: true,
-      strategy: 'undercut',
-      minPrice: 140000,
-      maxPrice: 160000,
-      step: 1000,
-      status: 'error',
-      lastUpdate: '2025-01-16T08:00:00',
-      priceChanges24h: 0,
-    },
-  },
-  {
-    id: 6,
-    name: 'iPad Pro 12.9" M2',
-    sku: 'APL-IPADP-129',
-    image: '📱',
-    currentPrice: 599900,
-    competitorPrice: 605000,
-    competitorName: 'iStore KZ',
-    position: 2,
-    autoPricing: null, // Автоцена выключена
-  },
-  {
-    id: 7,
-    name: 'Samsung Galaxy Watch 6',
-    sku: 'SAM-GW6-44',
-    image: '⌚',
-    currentPrice: 149900,
-    competitorPrice: 152000,
-    competitorName: 'Watch World',
-    position: 3,
-    autoPricing: null,
-  },
-  {
-    id: 8,
-    name: 'Apple Watch Ultra 2',
-    sku: 'APL-AWU2',
-    image: '⌚',
-    currentPrice: 449900,
-    competitorPrice: 455000,
-    competitorName: 'Apple Store KZ',
-    position: 2,
-    autoPricing: null,
-  },
-  {
-    id: 9,
-    name: 'Google Pixel 8 Pro',
-    sku: 'GGL-PX8P',
-    image: '📱',
-    currentPrice: 399900,
-    competitorPrice: 405000,
-    competitorName: 'TechStore KZ',
-    position: 1,
-    autoPricing: null,
-  },
-  {
-    id: 10,
-    name: 'Sony PlayStation 5',
-    sku: 'SNY-PS5',
-    image: '🎮',
-    currentPrice: 299900,
-    competitorPrice: 295000,
-    competitorName: 'Game Zone',
-    position: 3,
-    autoPricing: null,
-  },
-  {
-    id: 11,
-    name: 'Xbox Series X',
-    sku: 'MS-XSX',
-    image: '🎮',
-    currentPrice: 279900,
-    competitorPrice: 282000,
-    competitorName: 'Game Zone',
-    position: 1,
-    autoPricing: null,
-  },
-  {
-    id: 12,
-    name: 'Nintendo Switch OLED',
-    sku: 'NTD-SWOLED',
-    image: '🎮',
-    currentPrice: 179900,
-    competitorPrice: 175000,
-    competitorName: 'Game World',
-    position: 4,
-    autoPricing: null,
-  },
-];
 
 // Стратегии
 const strategies: { value: Strategy; label: string; description: string; icon: React.ReactNode }[] = [
@@ -255,7 +102,10 @@ const strategies: { value: Strategy; label: string; description: string; icon: R
 const ITEMS_PER_PAGE = 10;
 
 export default function AutoPricingPage() {
-  const [products, setProducts] = useState<Product[]>(mockProducts);
+  const { user, loading: userLoading } = useUser();
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'enabled' | 'disabled'>('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -268,8 +118,79 @@ export default function AutoPricingPage() {
   const [editStep, setEditStep] = useState<number>(1000);
   const [editTargetPosition, setEditTargetPosition] = useState<number>(1);
 
+  // Загрузка данных
+  const loadData = useCallback(async () => {
+    if (!user?.id) return;
+    setLoading(true);
+
+    try {
+      // Загрузка товаров из BFF и правил из БД параллельно
+      const [productsRes, rulesRes] = await Promise.all([
+        fetch(`/api/kaspi/cabinet/products?userId=${user.id}`),
+        fetch(`/api/auto-pricing?userId=${user.id}`),
+      ]);
+
+      const productsData = await productsRes.json();
+      const rulesData = await rulesRes.json();
+
+      if (!productsData.success) {
+        console.error('Failed to load products:', productsData.error);
+        setLoading(false);
+        return;
+      }
+
+      const bffProducts: BFFProduct[] = productsData.products || [];
+      const rules: AutoPricingRule[] = rulesData.success ? (rulesData.rules || []) : [];
+
+      // Build rule map by SKU
+      const ruleMap = new Map<string, AutoPricingRule>();
+      for (const rule of rules) {
+        ruleMap.set(rule.sku, rule);
+      }
+
+      // Merge BFF products + rules
+      const merged: Product[] = bffProducts.map(p => {
+        const rule = ruleMap.get(p.sku);
+        return {
+          sku: p.sku,
+          name: p.name,
+          image: p.images?.[0] || '',
+          currentPrice: p.price,
+          competitorPrice: rule?.last_competitor_price ?? null,
+          competitorName: rule?.last_competitor_name ?? null,
+          autoPricing: rule ? {
+            id: rule.id,
+            enabled: true,
+            strategy: rule.strategy,
+            minPrice: rule.min_price,
+            maxPrice: rule.max_price,
+            step: rule.step,
+            targetPosition: rule.target_position ?? undefined,
+            status: rule.status,
+            lastUpdate: rule.last_price_change_at || rule.last_check_at || rule.created_at || '',
+            priceChanges24h: rule.price_changes_24h || 0,
+            errorMessage: rule.error_message,
+          } : null,
+        };
+      });
+
+      setProducts(merged);
+    } catch (err) {
+      console.error('Failed to load data:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (user?.id) {
+      loadData();
+    }
+  }, [user?.id, loadData]);
+
   // Форматирование даты
   const formatDate = (dateStr: string) => {
+    if (!dateStr) return '';
     const date = new Date(dateStr);
     const now = new Date();
     const diff = now.getTime() - date.getTime();
@@ -283,47 +204,96 @@ export default function AutoPricingPage() {
   };
 
   // Включить/выключить автоцену для товара
-  const toggleAutoPricing = (productId: number) => {
-    setProducts(prev => prev.map(product => {
-      if (product.id === productId) {
-        if (product.autoPricing) {
-          // Выключить
-          return { ...product, autoPricing: null };
-        } else {
-          // Включить с дефолтными настройками
-          return {
-            ...product,
-            autoPricing: {
-              enabled: true,
-              strategy: 'undercut' as Strategy,
-              minPrice: Math.round(product.currentPrice * 0.9),
-              maxPrice: Math.round(product.currentPrice * 1.1),
-              step: 1000,
-              status: 'active' as const,
-              lastUpdate: new Date().toISOString(),
-              priceChanges24h: 0,
-            }
-          };
+  const toggleAutoPricing = async (sku: string) => {
+    if (!user?.id) return;
+    const product = products.find(p => p.sku === sku);
+    if (!product) return;
+
+    setSaving(true);
+    try {
+      if (product.autoPricing) {
+        // Удалить правило
+        await fetch(`/api/auto-pricing?userId=${user.id}&id=${product.autoPricing.id}`, {
+          method: 'DELETE',
+        });
+        setProducts(prev => prev.map(p =>
+          p.sku === sku ? { ...p, autoPricing: null } : p
+        ));
+      } else {
+        // Создать правило с дефолтными настройками
+        const res = await fetch('/api/auto-pricing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId: user.id,
+            sku,
+            productName: product.name,
+            strategy: 'undercut',
+            minPrice: Math.round(product.currentPrice * 0.9),
+            maxPrice: Math.round(product.currentPrice * 1.1),
+            step: 1000,
+          }),
+        });
+        const data = await res.json();
+        if (data.success && data.rule) {
+          setProducts(prev => prev.map(p =>
+            p.sku === sku ? {
+              ...p,
+              autoPricing: {
+                id: data.rule.id,
+                enabled: true,
+                strategy: 'undercut',
+                minPrice: data.rule.min_price,
+                maxPrice: data.rule.max_price,
+                step: data.rule.step,
+                status: 'active',
+                lastUpdate: data.rule.created_at || new Date().toISOString(),
+                priceChanges24h: 0,
+                errorMessage: null,
+              },
+            } : p
+          ));
         }
       }
-      return product;
-    }));
+    } catch (err) {
+      console.error('Toggle auto-pricing error:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Поставить на паузу / возобновить
-  const togglePause = (productId: number) => {
-    setProducts(prev => prev.map(product => {
-      if (product.id === productId && product.autoPricing) {
-        return {
-          ...product,
-          autoPricing: {
-            ...product.autoPricing,
-            status: product.autoPricing.status === 'active' ? 'paused' : 'active'
-          }
-        };
+  const togglePause = async (sku: string) => {
+    if (!user?.id) return;
+    const product = products.find(p => p.sku === sku);
+    if (!product?.autoPricing) return;
+
+    const newStatus = product.autoPricing.status === 'active' ? 'paused' : 'active';
+    setSaving(true);
+    try {
+      const res = await fetch('/api/auto-pricing', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          id: product.autoPricing.id,
+          status: newStatus,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setProducts(prev => prev.map(p =>
+          p.sku === sku && p.autoPricing ? {
+            ...p,
+            autoPricing: { ...p.autoPricing, status: newStatus, errorMessage: null },
+          } : p
+        ));
       }
-      return product;
-    }));
+    } catch (err) {
+      console.error('Toggle pause error:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Открыть модалку редактирования
@@ -345,31 +315,53 @@ export default function AutoPricingPage() {
   };
 
   // Сохранить изменения
-  const saveSettings = () => {
-    if (!editingProduct) return;
+  const saveSettings = async () => {
+    if (!editingProduct || !user?.id) return;
     if (editMinPrice >= editMaxPrice) return;
 
-    setProducts(prev => prev.map(product => {
-      if (product.id === editingProduct.id) {
-        return {
-          ...product,
-          autoPricing: {
-            enabled: true,
-            strategy: editStrategy,
-            minPrice: editMinPrice,
-            maxPrice: editMaxPrice,
-            step: editStep,
-            targetPosition: editStrategy === 'position' ? editTargetPosition : undefined,
-            status: product.autoPricing?.status || 'active',
-            lastUpdate: product.autoPricing?.lastUpdate || new Date().toISOString(),
-            priceChanges24h: product.autoPricing?.priceChanges24h || 0,
-          }
-        };
+    setSaving(true);
+    try {
+      const res = await fetch('/api/auto-pricing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          sku: editingProduct.sku,
+          productName: editingProduct.name,
+          strategy: editStrategy,
+          minPrice: editMinPrice,
+          maxPrice: editMaxPrice,
+          step: editStep,
+          targetPosition: editStrategy === 'position' ? editTargetPosition : undefined,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.rule) {
+        setProducts(prev => prev.map(p =>
+          p.sku === editingProduct.sku ? {
+            ...p,
+            autoPricing: {
+              id: data.rule.id,
+              enabled: true,
+              strategy: editStrategy,
+              minPrice: editMinPrice,
+              maxPrice: editMaxPrice,
+              step: editStep,
+              targetPosition: editStrategy === 'position' ? editTargetPosition : undefined,
+              status: data.rule.status || p.autoPricing?.status || 'active',
+              lastUpdate: p.autoPricing?.lastUpdate || new Date().toISOString(),
+              priceChanges24h: p.autoPricing?.priceChanges24h || 0,
+              errorMessage: null,
+            },
+          } : p
+        ));
+        setEditingProduct(null);
       }
-      return product;
-    }));
-
-    setEditingProduct(null);
+    } catch (err) {
+      console.error('Save settings error:', err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   // Фильтрация товаров
@@ -406,7 +398,6 @@ export default function AutoPricingPage() {
     enabled: products.filter(p => p.autoPricing !== null).length,
     active: products.filter(p => p.autoPricing?.status === 'active').length,
     errors: products.filter(p => p.autoPricing?.status === 'error').length,
-    firstPlace: products.filter(p => p.position === 1).length,
     changesTotal: products.reduce((sum, p) => sum + (p.autoPricing?.priceChanges24h || 0), 0),
   };
 
@@ -422,6 +413,18 @@ export default function AutoPricingPage() {
     return s?.label || strategy;
   };
 
+  // Loading state
+  if (userLoading || loading) {
+    return (
+      <div className="p-4 sm:p-6 max-w-[1600px] mx-auto">
+        <div className="flex items-center justify-center py-20">
+          <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
+          <span className="ml-3 text-gray-500 dark:text-gray-400">Загрузка товаров...</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-4 sm:p-6 max-w-[1600px] mx-auto">
       {/* Header */}
@@ -430,18 +433,28 @@ export default function AutoPricingPage() {
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Автоцена</h1>
           <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base mt-1 hidden sm:block">Автоматическое управление ценами для конкуренции на Kaspi</p>
         </div>
-        <a
-          href="/app/auto-pricing/history"
-          className="px-3 py-2 sm:px-4 sm:py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium text-xs sm:text-sm flex items-center gap-2 w-fit"
-        >
-          <History className="w-4 h-4" />
-          <span className="hidden sm:inline">История изменений</span>
-          <span className="sm:hidden">История</span>
-        </a>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={loadData}
+            disabled={loading}
+            className="p-2 sm:p-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+            title="Обновить"
+          >
+            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+          </button>
+          <a
+            href="/app/auto-pricing/history"
+            className="px-3 py-2 sm:px-4 sm:py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors font-medium text-xs sm:text-sm flex items-center gap-2 w-fit"
+          >
+            <History className="w-4 h-4" />
+            <span className="hidden sm:inline">История изменений</span>
+            <span className="sm:hidden">История</span>
+          </a>
+        </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4 mb-4 sm:mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
         <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm">
           <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
             <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
@@ -482,18 +495,6 @@ export default function AutoPricingPage() {
             <span className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">Ошибки</span>
           </div>
           <div className="text-lg sm:text-2xl font-bold text-red-600">{stats.errors}</div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-3 sm:p-5 shadow-sm col-span-2 sm:col-span-1">
-          <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-purple-100 dark:bg-purple-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
-              <Target className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
-            </div>
-            <span className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">На 1 месте</span>
-          </div>
-          <div className="text-lg sm:text-2xl font-bold text-purple-600">
-            {stats.firstPlace}<span className="text-xs sm:text-base font-normal text-gray-400 dark:text-gray-500">/{stats.total}</span>
-          </div>
         </div>
       </div>
 
@@ -550,22 +551,29 @@ export default function AutoPricingPage() {
             <div className="w-12 h-12 sm:w-16 sm:h-16 bg-gray-100 dark:bg-gray-700 rounded-xl sm:rounded-2xl flex items-center justify-center mx-auto mb-3 sm:mb-4">
               <Zap className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />
             </div>
-            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-2">Товаров не найдено</h3>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">Попробуйте изменить параметры поиска</p>
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 dark:text-white mb-2">
+              {products.length === 0 ? 'Нет товаров' : 'Товаров не найдено'}
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">
+              {products.length === 0
+                ? 'Подключите Kaspi кабинет для загрузки товаров'
+                : 'Попробуйте изменить параметры поиска'}
+            </p>
           </div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {paginatedProducts.map(product => (
               <div
-                key={product.id}
+                key={product.sku}
                 className={`p-3 sm:p-4 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${product.autoPricing?.status === 'error' ? 'bg-red-50 dark:bg-red-900/20' : ''}`}
               >
                 {/* Mobile Layout */}
                 <div className="sm:hidden">
                   <div className="flex items-start gap-3">
-                    {/* Toggle - smaller on mobile */}
+                    {/* Toggle */}
                     <button
-                      onClick={() => toggleAutoPricing(product.id)}
+                      onClick={() => toggleAutoPricing(product.sku)}
+                      disabled={saving}
                       className="flex-shrink-0 cursor-pointer transition-transform duration-200 hover:scale-110 active:scale-95 mt-0.5"
                       title={product.autoPricing ? 'Выключить автоцену' : 'Включить автоцену'}
                     >
@@ -595,14 +603,16 @@ export default function AutoPricingPage() {
                         )}
                       </div>
 
-                      {/* Price and position row */}
-                      <div className="flex items-center justify-between gap-2 mb-1">
+                      {/* Price row */}
+                      <div className="flex items-center gap-2 mb-1">
                         <span className="text-sm font-bold text-gray-900 dark:text-white">
                           {product.currentPrice.toLocaleString('ru-RU')} ₸
                         </span>
-                        <span className={`text-sm font-bold ${product.position === 1 ? 'text-emerald-600' : product.position <= 3 ? 'text-amber-600' : 'text-gray-600'}`}>
-                          #{product.position}
-                        </span>
+                        {product.competitorPrice && (
+                          <span className="text-xs text-gray-400">
+                            / {product.competitorPrice.toLocaleString('ru-RU')} ₸
+                          </span>
+                        )}
                       </div>
 
                       {/* Strategy and SKU */}
@@ -621,7 +631,8 @@ export default function AutoPricingPage() {
                     <div className="flex items-center gap-1">
                       {product.autoPricing && (
                         <button
-                          onClick={() => togglePause(product.id)}
+                          onClick={() => togglePause(product.sku)}
+                          disabled={saving}
                           className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                             product.autoPricing.status === 'active'
                               ? 'bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 text-amber-600'
@@ -644,7 +655,7 @@ export default function AutoPricingPage() {
                   {product.autoPricing?.status === 'error' && (
                     <div className="mt-2 p-2 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-start gap-1.5 text-xs text-red-700 dark:text-red-400">
                       <AlertTriangle className="w-3.5 h-3.5 flex-shrink-0 mt-0.5" />
-                      <span>Достигнут минимальный порог</span>
+                      <span>{product.autoPricing.errorMessage || 'Достигнут минимальный порог'}</span>
                     </div>
                   )}
                 </div>
@@ -654,7 +665,8 @@ export default function AutoPricingPage() {
                   <div className="flex items-center gap-4">
                     {/* Toggle */}
                     <button
-                      onClick={() => toggleAutoPricing(product.id)}
+                      onClick={() => toggleAutoPricing(product.sku)}
+                      disabled={saving}
                       className="flex-shrink-0 cursor-pointer transition-transform duration-200 hover:scale-110 active:scale-95"
                       title={product.autoPricing ? 'Выключить автоцену' : 'Включить автоцену'}
                     >
@@ -665,9 +677,13 @@ export default function AutoPricingPage() {
                       )}
                     </button>
 
-                    {/* Product Info */}
-                    <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center text-xl flex-shrink-0">
-                      {product.image}
+                    {/* Product Image */}
+                    <div className="w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden">
+                      {product.image ? (
+                        <img src={product.image} alt="" className="w-full h-full object-cover rounded-xl" />
+                      ) : (
+                        <span className="text-gray-400 text-sm">?</span>
+                      )}
                     </div>
 
                     <div className="flex-1 min-w-0">
@@ -696,8 +712,12 @@ export default function AutoPricingPage() {
                               {getStrategyIcon(product.autoPricing.strategy)}
                               {getStrategyLabel(product.autoPricing.strategy)}
                             </span>
-                            <span className="hidden lg:inline">•</span>
-                            <span className="hidden lg:inline">Обновлено {formatDate(product.autoPricing.lastUpdate)}</span>
+                            {product.autoPricing.lastUpdate && (
+                              <>
+                                <span className="hidden lg:inline">•</span>
+                                <span className="hidden lg:inline">Обновлено {formatDate(product.autoPricing.lastUpdate)}</span>
+                              </>
+                            )}
                           </>
                         )}
                       </div>
@@ -708,17 +728,11 @@ export default function AutoPricingPage() {
                       <div className="text-base font-bold text-gray-900 dark:text-white">
                         {product.currentPrice.toLocaleString('ru-RU')} ₸
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 hidden lg:block">
-                        Конкурент: {product.competitorPrice.toLocaleString('ru-RU')} ₸
-                      </div>
-                    </div>
-
-                    {/* Position */}
-                    <div className="w-14 text-center">
-                      <div className={`text-base font-bold ${product.position === 1 ? 'text-emerald-600' : product.position <= 3 ? 'text-amber-600' : 'text-gray-600'}`}>
-                        #{product.position}
-                      </div>
-                      <div className="text-[10px] text-gray-500 dark:text-gray-400">позиция</div>
+                      {product.competitorPrice && (
+                        <div className="text-xs text-gray-500 dark:text-gray-400 hidden lg:block">
+                          Конкурент: {product.competitorPrice.toLocaleString('ru-RU')} ₸
+                        </div>
+                      )}
                     </div>
 
                     {/* Price Range (only if enabled) - hidden on tablets */}
@@ -733,7 +747,7 @@ export default function AutoPricingPage() {
                             <div
                               className="h-full bg-emerald-500 rounded-full"
                               style={{
-                                width: `${((product.currentPrice - product.autoPricing.minPrice) / (product.autoPricing.maxPrice - product.autoPricing.minPrice)) * 100}%`,
+                                width: `${Math.max(0, Math.min(100, ((product.currentPrice - product.autoPricing.minPrice) / (product.autoPricing.maxPrice - product.autoPricing.minPrice)) * 100))}%`,
                               }}
                             />
                           </div>
@@ -747,7 +761,8 @@ export default function AutoPricingPage() {
                     <div className="flex items-center gap-1.5">
                       {product.autoPricing && (
                         <button
-                          onClick={() => togglePause(product.id)}
+                          onClick={() => togglePause(product.sku)}
+                          disabled={saving}
                           className={`p-1.5 rounded-lg transition-colors cursor-pointer ${
                             product.autoPricing.status === 'active'
                               ? 'bg-amber-100 dark:bg-amber-900/30 hover:bg-amber-200 dark:hover:bg-amber-900/50 text-amber-600'
@@ -773,7 +788,7 @@ export default function AutoPricingPage() {
                   {product.autoPricing?.status === 'error' && (
                     <div className="mt-3 p-2.5 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center gap-2 text-sm text-red-700 dark:text-red-400">
                       <AlertTriangle className="w-4 h-4 flex-shrink-0" />
-                      <span>Не удалось обновить цену: достигнут минимальный порог. Конкурент: {product.competitorName} ({product.competitorPrice.toLocaleString('ru-RU')} ₸)</span>
+                      <span>{product.autoPricing.errorMessage || 'Не удалось обновить цену: достигнут минимальный порог'}{product.competitorName ? `. Конкурент: ${product.competitorName}` : ''}{product.competitorPrice ? ` (${product.competitorPrice.toLocaleString('ru-RU')} ₸)` : ''}</span>
                     </div>
                   )}
                 </div>
@@ -796,7 +811,7 @@ export default function AutoPricingPage() {
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+              {Array.from({ length: Math.min(totalPages, 7) }, (_, i) => i + 1).map(page => (
                 <button
                   key={page}
                   onClick={() => setCurrentPage(page)}
@@ -830,16 +845,16 @@ export default function AutoPricingPage() {
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm sm:text-base">Как работает автоцена?</h3>
             <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 sm:mb-3 hidden sm:block">
-              Включите автоцену для товара, и система будет автоматически корректировать цены в пределах заданного диапазона.
+              Включите автоцену для товара, и система будет автоматически корректировать цены в пределах заданного диапазона каждые 15 минут.
             </p>
             <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-4 text-xs sm:text-sm">
               <div className="flex items-center gap-1.5">
                 <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 flex-shrink-0" />
-                <span><strong>Демпинг</strong><span className="hidden sm:inline"> — дешевле</span></span>
+                <span><strong>Демпинг</strong><span className="hidden sm:inline"> — дешевле конкурента</span></span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 flex-shrink-0" />
-                <span><strong>Паритет</strong><span className="hidden sm:inline"> — равная</span></span>
+                <span><strong>Паритет</strong><span className="hidden sm:inline"> — равная цена</span></span>
               </div>
               <div className="flex items-center gap-1.5">
                 <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600 flex-shrink-0" />
@@ -963,6 +978,13 @@ export default function AutoPricingPage() {
                 />
                 <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 mt-1">На сколько изменяется цена за раз</p>
               </div>
+
+              {/* Current competitor info */}
+              {editingProduct.competitorPrice && (
+                <div className="p-2 sm:p-3 bg-gray-50 dark:bg-gray-900 rounded-lg text-xs sm:text-sm text-gray-600 dark:text-gray-400">
+                  Последний конкурент: <strong>{editingProduct.competitorName || 'Неизвестный'}</strong> — {editingProduct.competitorPrice.toLocaleString('ru-RU')} ₸
+                </div>
+              )}
             </div>
 
             {/* Footer */}
@@ -975,10 +997,10 @@ export default function AutoPricingPage() {
               </button>
               <button
                 onClick={saveSettings}
-                disabled={editMinPrice >= editMaxPrice}
+                disabled={editMinPrice >= editMaxPrice || saving}
                 className="px-3 sm:px-4 py-2 sm:py-2.5 bg-emerald-500 text-white rounded-lg sm:rounded-xl hover:bg-emerald-600 transition-colors font-medium text-xs sm:text-sm flex items-center gap-1.5 sm:gap-2 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
-                <Check className="w-4 h-4" />
+                {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
                 Сохранить
               </button>
             </div>
