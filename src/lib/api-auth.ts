@@ -1,5 +1,12 @@
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@supabase/supabase-js';
 import type { UserRole } from '@/lib/permissions';
+
+// Серверный клиент с service role — нужен чтобы обойти RLS в API-роутах
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
 
 interface StoreAndRole {
   store: { id: string; name: string; user_id: string | null };
@@ -12,7 +19,7 @@ interface StoreAndRole {
  */
 export async function getStoreAndRole(userId: string): Promise<StoreAndRole | null> {
   // 1. Проверяем, является ли пользователь владельцем магазина
-  const { data: ownStore } = await supabase
+  const { data: ownStore } = await supabaseAdmin
     .from('stores')
     .select('id, name, user_id')
     .eq('user_id', userId)
@@ -23,7 +30,7 @@ export async function getStoreAndRole(userId: string): Promise<StoreAndRole | nu
   }
 
   // 2. Проверяем, является ли участником команды
-  const { data: member } = await supabase
+  const { data: member } = await supabaseAdmin
     .from('team_members' as any)
     .select('store_id, role')
     .eq('user_id', userId)
@@ -31,7 +38,7 @@ export async function getStoreAndRole(userId: string): Promise<StoreAndRole | nu
     .single();
 
   if (member) {
-    const { data: store } = await supabase
+    const { data: store } = await supabaseAdmin
       .from('stores')
       .select('id, name, user_id')
       .eq('id', (member as any).store_id)
