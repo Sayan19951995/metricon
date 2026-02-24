@@ -2495,19 +2495,21 @@ function AnalyticsPageContent() {
                               <text x="50" y="60" textAnchor="middle" className="fill-gray-400 text-[8px]">товаров</text>
                             </svg>
 
-                            <div className="flex-1 min-w-0 space-y-1">
-                              {prods.slice(0, 4).map((p, i) => {
+                            <div className="flex-1 min-w-0 space-y-1.5">
+                              {prods.slice(0, 5).map((p, i) => {
                                 const pct = mRev > 0 ? ((p.revenue / mRev) * 100).toFixed(0) : '0';
                                 return (
-                                  <div key={p.code} className="flex items-center gap-2 text-xs">
+                                  <div key={p.code} className="flex items-center gap-1.5 text-xs">
                                     <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: donutColors[i % donutColors.length] }} />
-                                    <span className="truncate text-gray-700 dark:text-gray-300">{p.name}</span>
-                                    <span className="ml-auto shrink-0 text-gray-400">{pct}%</span>
+                                    <span className="truncate text-gray-700 dark:text-gray-300 flex-1 min-w-0">{p.name}</span>
+                                    <span className="shrink-0 text-gray-500 dark:text-gray-400 font-medium">{p.qty}шт</span>
+                                    <span className="shrink-0 text-gray-400 dark:text-gray-500">{fmt(p.revenue)}</span>
+                                    <span className="shrink-0 text-gray-400 w-7 text-right">{pct}%</span>
                                   </div>
                                 );
                               })}
-                              {prods.length > 4 && (
-                                <div className="text-[10px] text-gray-400 dark:text-gray-500 pl-4">+{prods.length - 4} ещё</div>
+                              {prods.length > 5 && (
+                                <div className="text-[10px] text-gray-400 dark:text-gray-500 pl-4">+{prods.length - 5} ещё</div>
                               )}
                             </div>
                           </div>
