@@ -162,18 +162,27 @@ export function useUser(): UserData {
           console.error('Subscription error:', subResult.error);
         }
 
-        const store = storeResult.data || null;
-
-        // Определяем роль: если user.id == store.user_id → owner, иначе ищем в team_members
+        let store = storeResult.data || null;
         let role: UserRole = 'owner';
-        if (store && store.user_id !== user.id) {
-          const { data: teamMember } = await supabase
+
+        if (!store) {
+          // Возможно, это член команды — ищем через team_members
+          const { data: membership } = await supabase
             .from('team_members' as any)
-            .select('role')
+            .select('store_id, role')
             .eq('user_id', user.id)
-            .eq('store_id', store.id)
+            .eq('status', 'active')
             .single();
-          role = ((teamMember as any)?.role as UserRole) || 'viewer';
+
+          if (membership) {
+            const { data: teamStore } = await supabase
+              .from('stores')
+              .select('*')
+              .eq('id', (membership as any).store_id)
+              .single();
+            store = teamStore || null;
+            role = ((membership as any).role as UserRole) || 'viewer';
+          }
         }
 
         const result = {
