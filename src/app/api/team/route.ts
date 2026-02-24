@@ -1,5 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@supabase/supabase-js';
+
+// Серверный клиент с service role — обходит RLS
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  { auth: { autoRefreshToken: false, persistSession: false } }
+);
 
 /**
  * GET /api/team?userId=xxx — получить участников команды
@@ -12,7 +19,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Находим store владельца
-    const { data: store } = await supabase
+    const { data: store } = await supabaseAdmin
       .from('stores')
       .select('id')
       .eq('user_id', userId)
@@ -22,7 +29,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Магазин не найден' }, { status: 404 });
     }
 
-    const { data: members, error } = await supabase
+    const { data: members, error } = await supabaseAdmin
       .from('team_members' as any)
       .select('*')
       .eq('store_id', store.id)
@@ -63,7 +70,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { data: store } = await supabase
+    const { data: store } = await supabaseAdmin
       .from('stores')
       .select('id')
       .eq('user_id', userId)
@@ -122,7 +129,7 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Проверяем что userId — владелец store, которому принадлежит member
-    const { data: store } = await supabase
+    const { data: store } = await supabaseAdmin
       .from('stores')
       .select('id')
       .eq('user_id', userId)
@@ -132,7 +139,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Нет прав' }, { status: 403 });
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('team_members' as any)
       .update({ role })
       .eq('id', memberId)
@@ -166,7 +173,7 @@ export async function DELETE(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { data: store } = await supabase
+    const { data: store } = await supabaseAdmin
       .from('stores')
       .select('id')
       .eq('user_id', userId)
@@ -176,7 +183,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Нет прав' }, { status: 403 });
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('team_members' as any)
       .delete()
       .eq('id', memberId)

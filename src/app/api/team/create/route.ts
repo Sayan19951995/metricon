@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { supabase } from '@/lib/supabase/client';
 
 // Серверный клиент с правами администратора
 const supabaseAdmin = createClient(
@@ -41,8 +40,8 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Находим магазин владельца
-    const { data: store } = await supabase
+    // Находим магазин владельца (через admin чтобы обойти RLS)
+    const { data: store } = await supabaseAdmin
       .from('stores')
       .select('id')
       .eq('user_id', ownerUserId)
