@@ -22,7 +22,7 @@ interface OrderItem {
 
 export default function AddOrderPage() {
   const router = useRouter();
-  const { user, loading: userLoading } = useUser();
+  const { user, store, loading: userLoading } = useUser();
   const [source, setSource] = useState('cash');
   const [date, setDate] = useState('');
   const [comment, setComment] = useState('');
@@ -44,13 +44,14 @@ export default function AddOrderPage() {
   // Load store products
   useEffect(() => {
     if (!user) return;
+    const params = store ? `storeId=${store.id}` : `userId=${user.id}`;
     setProductsLoading(true);
-    fetch(`/api/products?userId=${user.id}`)
+    fetch(`/api/products?${params}`)
       .then(r => r.json())
       .then(d => { if (d.success) setStoreProducts(d.data || []); })
       .catch(() => {})
       .finally(() => setProductsLoading(false));
-  }, [user]);
+  }, [user, store]);
 
   // Focus search when picker opens
   useEffect(() => {
@@ -109,6 +110,7 @@ export default function AddOrderPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           userId: user.id,
+          storeId: store?.id,
           source,
           date: date || new Date().toISOString(),
           comment,

@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase/client';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { userId, source, date, comment, items, totalAmount } = body;
+    const { userId, storeId: bodyStoreId, source, date, comment, items, totalAmount } = body;
 
     if (!userId || !items || items.length === 0) {
       return NextResponse.json({
@@ -13,17 +13,33 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const storeResult = await supabase
-      .from('stores')
-      .select('id')
-      .eq('user_id', userId)
-      .single();
+    let storeId = bodyStoreId;
 
-    if (!storeResult.data) {
-      return NextResponse.json({ success: false, message: 'Магазин не найден' }, { status: 400 });
+    if (!storeId) {
+      // Try owner's store
+      const storeResult = await supabase
+        .from('stores')
+        .select('id')
+        .eq('user_id', userId)
+        .single();
+
+      if (storeResult.data) {
+        storeId = storeResult.data.id;
+      } else {
+        // Fallback: team member
+        const { data: membership } = await (supabase as any)
+          .from('team_members')
+          .select('store_id')
+          .eq('user_id', userId)
+          .eq('status', 'active')
+          .single();
+        if (membership) storeId = membership.store_id;
+      }
     }
 
-    const storeId = storeResult.data.id;
+    if (!storeId) {
+      return NextResponse.json({ success: false, message: 'Магазин не найден' }, { status: 400 });
+    }
 
     // Get user name for confirmed_by
     const userResult = await supabase
