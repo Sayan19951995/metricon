@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Магазин не найден' }, { status: 404 });
     }
 
-    const { data: member, error } = await (supabase
+    const { data: member, error } = await (supabaseAdmin
       .from('team_members' as any)
       .insert({
         store_id: store.id,
