@@ -223,7 +223,7 @@ export default function OrdersPage() {
     });
 
     return mapped.filter(o =>
-      !['completed', 'archive', 'cancelled', 'returned'].includes(o.status)
+      o.code.startsWith('M-') || !['completed', 'archive', 'cancelled', 'returned'].includes(o.status)
     );
   };
 
