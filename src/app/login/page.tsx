@@ -1,16 +1,32 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, BarChart3, CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+
+// Устанавливает индикаторную куку, которую читает middleware
+function setSessionCookie() {
+  document.cookie = 'metricon-session=1; path=/; max-age=604800; samesite=strict';
+}
 
 export default function LoginPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // Слушаем событие входа (для OAuth редиректа с #access_token в хэше)
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        setSessionCookie();
+        router.push('/app');
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [router]);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
@@ -53,6 +69,7 @@ export default function LoginPage() {
 
       if (error) throw error;
 
+      setSessionCookie();
       router.push('/app');
     } catch (err: any) {
       setErrors({ general: err.message || 'Неверный email или пароль' });

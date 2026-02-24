@@ -160,6 +160,7 @@ export default function SettingsPage() {
   ];
 
   const handleLogout = async () => {
+    document.cookie = 'metricon-session=; path=/; max-age=0';
     await supabase.auth.signOut();
     router.push('/');
   };

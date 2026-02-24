@@ -22,6 +22,7 @@ export default function Topbar() {
   }, []);
 
   const handleLogout = async () => {
+    document.cookie = 'metricon-session=; path=/; max-age=0';
     await supabase.auth.signOut();
     window.location.href = '/login';
   };
