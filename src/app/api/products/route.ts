@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     const productsResult = await supabase
       .from('products')
-      .select('kaspi_id, name')
+      .select('kaspi_id, name, price, cost_price')
       .eq('store_id', store.id)
       .order('name', { ascending: true });
     const products = productsResult.data || [];

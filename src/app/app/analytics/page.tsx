@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef, useEffect, Suspense, useCallback } from 'react';
+import React, { useState, useRef, useEffect, Suspense, useCallback } from 'react';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -156,7 +156,7 @@ const emptyAnalyticsData = {
   marketing: { totalCost: 0, totalGmv: 0, roas: 0, campaigns: [] },
   storeSettings: { commissionRate: 12.5, taxRate: 4.0 },
   operationalExpenses: [],
-  managerSales: [] as Array<{ manager: string; count: number; revenue: number; channels: Record<string, number>; topChannel: string }>,
+  managerSales: [] as Array<{ manager: string; count: number; revenue: number; channels: Record<string, number>; topChannel: string; orders: Array<{ orderId: string; amount: number; channel: string; comment: string | null; status: string; customer: string; productName: string; itemsCount: number; confirmedAt: string | null; createdAt: string | null }>; products: Array<{ code: string; name: string; qty: number; revenue: number }> }>,
 };
 
 type TabType = 'finances' | 'sales' | 'managers' | 'reviews';
@@ -414,6 +414,10 @@ function AnalyticsPageContent() {
   const PRODUCTS_PER_PAGE = 10;
   const [productGroups, setProductGroups] = useState<Record<string, string | null>>({});
   const [groupsMeta, setGroupsMeta] = useState<Array<{ slug: string; name: string; color: string }>>([]);
+
+  // Менеджеры: фильтр + развёрнутый менеджер
+  const [managerFilter, setManagerFilter] = useState<string | null>(null);
+  const [expandedManager, setExpandedManager] = useState<string | null>(null);
 
   // Состояние сворачиваемых секций в табе Sales
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
@@ -2350,9 +2354,17 @@ function AnalyticsPageContent() {
 
         {/* Managers Tab */}
         {activeTab === 'managers' && (() => {
-          const managerSales: Array<{ manager: string; count: number; revenue: number; channels: Record<string, number>; topChannel: string }> = apiData?.managerSales || [];
-          const totalManagerOrders = managerSales.reduce((s, m) => s + m.count, 0);
-          const totalManagerRevenue = managerSales.reduce((s, m) => s + m.revenue, 0);
+          type ManagerOrder = { orderId: string; amount: number; channel: string; comment: string | null; status: string; customer: string; productName: string; itemsCount: number; confirmedAt: string | null; createdAt: string | null };
+          const allManagerSales: Array<{ manager: string; count: number; revenue: number; channels: Record<string, number>; topChannel: string; orders: ManagerOrder[] }> = apiData?.managerSales || [];
+          const managerNames = allManagerSales.map(m => m.manager);
+
+          // Фильтрация по выбранному менеджеру
+          const filtered = managerFilter
+            ? allManagerSales.filter(m => m.manager === managerFilter)
+            : allManagerSales;
+          const totalManagerOrders = filtered.reduce((s, m) => s + m.count, 0);
+          const totalManagerRevenue = filtered.reduce((s, m) => s + m.revenue, 0);
+
           const channelColors: Record<string, string> = {
             'Instagram': 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
             'TikTok': 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300',
@@ -2363,85 +2375,362 @@ function AnalyticsPageContent() {
             'Телефон': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
             'Другое': 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
           };
+
+          const statusLabel = (s: string) => {
+            switch (s) {
+              case 'new': return 'Новый';
+              case 'sign_required': return 'Подписание';
+              case 'pickup': return 'Самовывоз';
+              case 'delivery': return 'Доставка';
+              case 'kaspi_delivery_awaiting': case 'kaspi_delivery_packing': return 'Сборка';
+              case 'kaspi_delivery_transfer': case 'kaspi_delivery_transmitted': return 'В пути';
+              case 'completed': case 'archive': return 'Завершён';
+              case 'cancelled': return 'Отменён';
+              case 'returned': return 'Возврат';
+              default: return s;
+            }
+          };
+          const statusColor = (s: string) => {
+            if (['completed', 'archive'].includes(s)) return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300';
+            if (s === 'cancelled') return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300';
+            if (s === 'returned') return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300';
+            if (s === 'new') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
+            return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
+          };
+
+          const fmtDate = (d: string | null) => {
+            if (!d) return '—';
+            const dt = new Date(d);
+            const dd = String(dt.getDate()).padStart(2, '0');
+            const mm = String(dt.getMonth() + 1).padStart(2, '0');
+            const hh = String(dt.getHours()).padStart(2, '0');
+            const min = String(dt.getMinutes()).padStart(2, '0');
+            return `${dd}.${mm} ${hh}:${min}`;
+          };
+
           return (
             <div className="mt-6 space-y-4">
-              {/* Итоговые карточки */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
-                <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 sm:p-5 shadow-sm">
-                  <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-violet-100 dark:bg-violet-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
-                      <UserCheck className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600 dark:text-violet-400" />
-                    </div>
-                    <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Менеджеров</span>
-                  </div>
-                  <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{managerSales.length}</div>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 sm:p-5 shadow-sm">
-                  <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-violet-100 dark:bg-violet-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
-                      <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600 dark:text-violet-400" />
-                    </div>
-                    <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Заказов</span>
-                  </div>
-                  <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{totalManagerOrders}</div>
-                </div>
-                <div className="bg-white dark:bg-gray-800 rounded-2xl p-3 sm:p-5 shadow-sm col-span-2 sm:col-span-1">
-                  <div className="flex items-center gap-2 sm:gap-3 mb-2">
-                    <div className="w-8 h-8 sm:w-10 sm:h-10 bg-violet-100 dark:bg-violet-900/30 rounded-lg sm:rounded-xl flex items-center justify-center">
-                      <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 text-violet-600 dark:text-violet-400" />
-                    </div>
-                    <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-400">Выручка</span>
-                  </div>
-                  <div className="text-lg sm:text-2xl font-bold text-gray-900 dark:text-white">{fmt(totalManagerRevenue)} ₸</div>
-                </div>
+              {/* Фильтр по менеджеру */}
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setManagerFilter(null)}
+                  className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                    !managerFilter
+                      ? 'bg-violet-600 text-white'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  Все
+                </button>
+                {managerNames.map(name => (
+                  <button
+                    key={name}
+                    onClick={() => setManagerFilter(managerFilter === name ? null : name)}
+                    className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                      managerFilter === name
+                        ? 'bg-violet-600 text-white'
+                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {name}
+                  </button>
+                ))}
               </div>
+
+              {/* Карточки менеджеров с donut-диаграммами */}
+              {(() => {
+                const donutColors = ['#8b5cf6', '#ec4899', '#06b6d4', '#f59e0b', '#10b981', '#f43f5e', '#6366f1', '#14b8a6'];
+                const R = 40, C = 2 * Math.PI * R;
+
+                return (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+                    {filtered.map((m) => {
+                      const prods = (m.products || []).slice(0, 6);
+                      const mRev = m.revenue || 1;
+                      let offset = 0;
+
+                      return (
+                        <div
+                          key={m.manager}
+                          className={`bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 shadow-sm cursor-pointer transition-all ${
+                            managerFilter === m.manager ? 'ring-2 ring-violet-500' : 'hover:shadow-md'
+                          }`}
+                          onClick={() => setManagerFilter(managerFilter === m.manager ? null : m.manager)}
+                        >
+                          {/* Заголовок */}
+                          <div className="flex items-center gap-3 mb-4">
+                            <div className="w-10 h-10 bg-violet-100 dark:bg-violet-900/30 rounded-xl flex items-center justify-center">
+                              <UserCheck className="w-5 h-5 text-violet-600 dark:text-violet-400" />
+                            </div>
+                            <div>
+                              <div className="font-bold text-gray-900 dark:text-white">{m.manager}</div>
+                              <div className="text-xs text-gray-500 dark:text-gray-400">{m.count} заказов · {fmt(m.revenue)} ₸</div>
+                            </div>
+                          </div>
+
+                          {/* Donut + легенда */}
+                          <div className="flex items-center gap-4">
+                            <svg width="100" height="100" viewBox="0 0 100 100" className="shrink-0">
+                              {prods.length > 0 ? prods.map((p, i) => {
+                                const share = p.revenue / mRev;
+                                const dash = share * C;
+                                const el = (
+                                  <circle
+                                    key={p.code}
+                                    cx="50" cy="50" r={R}
+                                    fill="none"
+                                    stroke={donutColors[i % donutColors.length]}
+                                    strokeWidth="14"
+                                    strokeDasharray={`${dash} ${C - dash}`}
+                                    strokeDashoffset={-offset}
+                                    transform="rotate(-90 50 50)"
+                                  />
+                                );
+                                offset += dash;
+                                return el;
+                              }) : (
+                                <circle cx="50" cy="50" r={R} fill="none" stroke="#374151" strokeWidth="14" />
+                              )}
+                              <text x="50" y="48" textAnchor="middle" className="fill-gray-900 dark:fill-white text-[11px] font-bold">{prods.length}</text>
+                              <text x="50" y="60" textAnchor="middle" className="fill-gray-400 text-[8px]">товаров</text>
+                            </svg>
+
+                            <div className="flex-1 min-w-0 space-y-1">
+                              {prods.slice(0, 4).map((p, i) => {
+                                const pct = mRev > 0 ? ((p.revenue / mRev) * 100).toFixed(0) : '0';
+                                return (
+                                  <div key={p.code} className="flex items-center gap-2 text-xs">
+                                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: donutColors[i % donutColors.length] }} />
+                                    <span className="truncate text-gray-700 dark:text-gray-300">{p.name}</span>
+                                    <span className="ml-auto shrink-0 text-gray-400">{pct}%</span>
+                                  </div>
+                                );
+                              })}
+                              {prods.length > 4 && (
+                                <div className="text-[10px] text-gray-400 dark:text-gray-500 pl-4">+{prods.length - 4} ещё</div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Каналы */}
+                          <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                            {Object.entries(m.channels)
+                              .sort((a, b) => b[1] - a[1])
+                              .map(([ch, cnt]) => (
+                                <span key={ch} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${channelColors[ch] || channelColors['Другое']}`}>
+                                  {ch} <span className="opacity-60">×{cnt}</span>
+                                </span>
+                              ))}
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Суммарная карточка когда "Все" */}
+                    {!managerFilter && filtered.length > 0 && (
+                      <div className="bg-gradient-to-br from-violet-500/10 to-violet-600/5 dark:from-violet-500/20 dark:to-violet-600/10 rounded-2xl p-4 sm:p-5 shadow-sm border border-violet-200/50 dark:border-violet-500/20">
+                        <div className="flex items-center gap-3 mb-3">
+                          <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center">
+                            <BarChart3 className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <div className="font-bold text-gray-900 dark:text-white">Итого</div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">{filtered.length} менеджеров</div>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Заказов</div>
+                            <div className="text-xl font-bold text-gray-900 dark:text-white">{totalManagerOrders}</div>
+                          </div>
+                          <div>
+                            <div className="text-xs text-gray-500 dark:text-gray-400">Выручка</div>
+                            <div className="text-xl font-bold text-gray-900 dark:text-white">{fmt(totalManagerRevenue)} ₸</div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Таблица менеджеров */}
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
                 <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
                   <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">Результаты менеджеров</h3>
                 </div>
-                {managerSales.length === 0 ? (
+                {filtered.length === 0 ? (
                   <div className="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">
                     Нет данных за выбранный период
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-xs sm:text-sm">
+                    <table className="w-full text-xs sm:text-sm table-fixed">
+                      <colgroup>
+                        <col className="w-10" />
+                        <col />
+                        <col className="w-[100px]" />
+                        <col className="w-[140px]" />
+                        <col className="w-[160px]" />
+                      </colgroup>
                       <thead>
                         <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
-                          <th className="text-left px-4 sm:px-6 py-3 text-gray-500 dark:text-gray-400 font-medium">#</th>
-                          <th className="text-left px-4 sm:px-6 py-3 text-gray-500 dark:text-gray-400 font-medium">Менеджер</th>
-                          <th className="text-right px-4 sm:px-6 py-3 text-gray-500 dark:text-gray-400 font-medium">Заказов</th>
-                          <th className="text-right px-4 sm:px-6 py-3 text-gray-500 dark:text-gray-400 font-medium">Выручка</th>
-                          <th className="text-left px-4 sm:px-6 py-3 text-gray-500 dark:text-gray-400 font-medium hidden sm:table-cell">Каналы</th>
+                          <th className="py-3 pl-4 sm:pl-6 text-gray-500 dark:text-gray-400 font-medium"></th>
+                          <th className="text-left py-3 px-3 text-gray-500 dark:text-gray-400 font-medium">Менеджер</th>
+                          <th className="text-right py-3 px-3 text-gray-500 dark:text-gray-400 font-medium">Заказов</th>
+                          <th className="text-right py-3 px-3 text-gray-500 dark:text-gray-400 font-medium">Выручка</th>
+                          <th className="text-left py-3 px-3 pr-4 sm:pr-6 text-gray-500 dark:text-gray-400 font-medium hidden sm:table-cell">Каналы</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {managerSales.map((m, i) => (
-                          <tr key={i} className="border-b border-gray-50 dark:border-gray-700/50 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                            <td className="px-4 sm:px-6 py-3 text-gray-400 dark:text-gray-500 font-medium">{i + 1}</td>
-                            <td className="px-4 sm:px-6 py-3 font-semibold text-gray-900 dark:text-white">{m.manager}</td>
-                            <td className="px-4 sm:px-6 py-3 text-right text-gray-700 dark:text-gray-300">{m.count}</td>
-                            <td className="px-4 sm:px-6 py-3 text-right font-semibold text-gray-900 dark:text-white">{fmt(m.revenue)} ₸</td>
-                            <td className="px-4 sm:px-6 py-3 hidden sm:table-cell">
-                              <div className="flex flex-wrap gap-1">
-                                {Object.entries(m.channels)
-                                  .sort((a, b) => b[1] - a[1])
-                                  .map(([ch, cnt]) => (
-                                    <span key={ch} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${channelColors[ch] || channelColors['Другое']}`}>
-                                      {ch} <span className="opacity-60">×{cnt}</span>
-                                    </span>
-                                  ))}
-                              </div>
-                            </td>
-                          </tr>
+                        {filtered.map((m, i) => (
+                          <React.Fragment key={m.manager}>
+                            <tr
+                              className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
+                              onClick={() => setExpandedManager(expandedManager === m.manager ? null : m.manager)}
+                            >
+                              <td className="py-3 pl-4 sm:pl-6 text-gray-400 dark:text-gray-500">
+                                {expandedManager === m.manager
+                                  ? <ChevronUp className="w-4 h-4" />
+                                  : <ChevronDown className="w-4 h-4" />}
+                              </td>
+                              <td className="py-3 px-3 font-semibold text-gray-900 dark:text-white">{m.manager}</td>
+                              <td className="py-3 px-3 text-right text-gray-700 dark:text-gray-300">{m.count}</td>
+                              <td className="py-3 px-3 text-right font-semibold text-gray-900 dark:text-white">{fmt(m.revenue)} ₸</td>
+                              <td className="py-3 px-3 pr-4 sm:pr-6 hidden sm:table-cell">
+                                <div className="flex flex-wrap gap-1">
+                                  {Object.entries(m.channels)
+                                    .sort((a, b) => b[1] - a[1])
+                                    .map(([ch, cnt]) => (
+                                      <span key={ch} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${channelColors[ch] || channelColors['Другое']}`}>
+                                        {ch} <span className="opacity-60">×{cnt}</span>
+                                      </span>
+                                    ))}
+                                </div>
+                              </td>
+                            </tr>
+                            {/* Раскрытие — список заказов менеджера */}
+                            {expandedManager === m.manager && (
+                              <tr>
+                                <td colSpan={5} className="p-0">
+                                  <div className="bg-gray-50 dark:bg-gray-900/50 px-4 sm:px-8 py-3">
+                                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Заказы ({m.orders.length})</div>
+                                    <div className="space-y-2">
+                                      {m.orders.map((o, j) => (
+                                        <div key={j} className="bg-white dark:bg-gray-800 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 shadow-sm">
+                                          <div className="flex-1 min-w-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                              <span className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm truncate">{o.productName}</span>
+                                              {o.itemsCount > 1 && <span className="text-[10px] text-gray-400">×{o.itemsCount}</span>}
+                                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${statusColor(o.status)}`}>
+                                                {statusLabel(o.status)}
+                                              </span>
+                                            </div>
+                                            <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-500 dark:text-gray-400">
+                                              {o.orderId && <span className="font-mono">№{o.orderId}</span>}
+                                              {o.customer && <span>{o.customer}</span>}
+                                              <span>{fmtDate(o.confirmedAt)}</span>
+                                            </div>
+                                            {o.comment && (
+                                              <div className="mt-1 text-[11px] text-gray-400 dark:text-gray-500 italic">
+                                                {o.comment}
+                                              </div>
+                                            )}
+                                          </div>
+                                          <div className="flex items-center gap-3 shrink-0">
+                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${channelColors[o.channel] || channelColors['Другое']}`}>
+                                              {o.channel}
+                                            </span>
+                                            <span className="font-bold text-gray-900 dark:text-white text-sm whitespace-nowrap">{fmt(o.amount)} ₸</span>
+                                          </div>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 )}
               </div>
+
+              {/* Блоки товаров по менеджерам */}
+              {(() => {
+                // Собираем товары: если выбран менеджер — его товары, иначе — объединённые по всем
+                let productsToShow: Array<{ code: string; name: string; qty: number; revenue: number }> = [];
+                let blockTitle = 'Товары менеджеров';
+                let blockSubtitle = '';
+                let totalRev = 0;
+
+                if (managerFilter && filtered[0]) {
+                  const selected = filtered[0];
+                  productsToShow = selected.products || [];
+                  blockTitle = `Товары — ${selected.manager}`;
+                  blockSubtitle = `${productsToShow.length} товаров, ${selected.count} заказов`;
+                  totalRev = selected.revenue || 1;
+                } else {
+                  // Объединяем товары всех менеджеров
+                  const combined = new Map<string, { name: string; qty: number; revenue: number }>();
+                  for (const m of filtered) {
+                    for (const p of (m.products || [])) {
+                      const ex = combined.get(p.code);
+                      if (ex) {
+                        ex.qty += p.qty;
+                        ex.revenue += p.revenue;
+                      } else {
+                        combined.set(p.code, { name: p.name, qty: p.qty, revenue: p.revenue });
+                      }
+                    }
+                  }
+                  productsToShow = Array.from(combined.entries())
+                    .map(([code, d]) => ({ code, ...d }))
+                    .sort((a, b) => b.revenue - a.revenue);
+                  blockTitle = 'Товары всех менеджеров';
+                  blockSubtitle = `${productsToShow.length} товаров`;
+                  totalRev = filtered.reduce((s, m) => s + m.revenue, 0) || 1;
+                }
+
+                if (productsToShow.length === 0) return null;
+
+                return (
+                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+                    <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                      <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">{blockTitle}</h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{blockSubtitle}</p>
+                    </div>
+                    <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {productsToShow.map((p, i) => {
+                        const share = totalRev > 0 ? (p.revenue / totalRev) * 100 : 0;
+                        return (
+                          <div key={p.code} className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4">
+                            <div className="flex items-start justify-between gap-2 mb-2">
+                              <div className="min-w-0 flex-1">
+                                <div className="font-semibold text-gray-900 dark:text-white text-sm truncate" title={p.name}>{p.name}</div>
+                              </div>
+                              <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">#{i + 1}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-3">
+                              <span>{p.qty} шт.</span>
+                              <span className="font-bold text-gray-900 dark:text-white text-sm">{fmt(p.revenue)} ₸</span>
+                            </div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
+                              <div
+                                className="bg-violet-500 h-1.5 rounded-full transition-all"
+                                style={{ width: `${Math.min(share, 100)}%` }}
+                              />
+                            </div>
+                            <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{share.toFixed(1)}% выручки</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           );
         })()}

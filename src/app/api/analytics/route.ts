@@ -645,32 +645,87 @@ export async function GET(request: NextRequest) {
     }
     const organicOrders = totalOrders - adOrdersCount;
 
-    // === 9. Продажи по менеджерам ===
+    // === 9. Продажи по менеджерам (все подтверждённые заказы, не только completed) ===
+    const confirmedOrdersResult = await supabase
+      .from('orders')
+      .select('kaspi_order_id, total_amount, confirmed_by, confirmed_at, sale_source, status, customer_name, items, created_at' as string)
+      .eq('store_id', store.id)
+      .not('confirmed_by', 'is', null)
+      .order('confirmed_at', { ascending: false });
+    const confirmedOrders = (confirmedOrdersResult.data || []) as any[];
+
+    interface ManagerOrder {
+      orderId: string;
+      amount: number;
+      channel: string;
+      comment: string | null;
+      status: string;
+      customer: string;
+      productName: string;
+      itemsCount: number;
+      confirmedAt: string | null;
+      createdAt: string | null;
+    }
     interface ManagerAgg {
       count: number;
       revenue: number;
       channels: Record<string, number>;
+      orders: ManagerOrder[];
+      productMap: Map<string, { name: string; qty: number; revenue: number }>;
     }
     const managerMap = new Map<string, ManagerAgg>();
-    for (const order of completedOrders) {
-      const manager = (order as any).confirmed_by as string | null;
+    for (const order of confirmedOrders) {
+      const manager = order.confirmed_by as string | null;
       if (!manager) continue;
       const amount = order.total_amount || 0;
-      const channel = ((order as any).sale_source as string | null) || 'Другое';
+      const channel = (order.sale_source as string | null) || 'Другое';
+      const items = order.items as Array<{ product_code: string; product_name: string; quantity: number; total: number }> | null;
+      const productName = items && items.length > 0 ? items[0].product_name : 'Товар';
+      const itemsCount = items ? items.reduce((s: number, it: any) => s + (it.quantity || 1), 0) : 1;
+      const orderDetail: ManagerOrder = {
+        orderId: order.kaspi_order_id || '',
+        amount,
+        channel,
+        comment: order.sale_comment ?? null,
+        status: order.status || '',
+        customer: order.customer_name || '',
+        productName,
+        itemsCount,
+        confirmedAt: order.confirmed_at || null,
+        createdAt: order.created_at || null,
+      };
       const existing = managerMap.get(manager);
       if (existing) {
         existing.count += 1;
         existing.revenue += amount;
         existing.channels[channel] = (existing.channels[channel] || 0) + 1;
+        existing.orders.push(orderDetail);
       } else {
-        managerMap.set(manager, { count: 1, revenue: amount, channels: { [channel]: 1 } });
+        managerMap.set(manager, { count: 1, revenue: amount, channels: { [channel]: 1 }, orders: [orderDetail], productMap: new Map() });
+      }
+      // Агрегация товаров по менеджеру
+      const mgr = managerMap.get(manager)!;
+      if (items) {
+        for (const item of items) {
+          const code = item.product_code || item.product_name;
+          const ex = mgr.productMap.get(code);
+          if (ex) {
+            ex.qty += item.quantity || 1;
+            ex.revenue += item.total || 0;
+          } else {
+            mgr.productMap.set(code, { name: item.product_name, qty: item.quantity || 1, revenue: item.total || 0 });
+          }
+        }
       }
     }
     const managerSales = Array.from(managerMap.entries())
       .sort((a, b) => b[1].revenue - a[1].revenue)
       .map(([manager, agg]) => {
         const topChannel = Object.entries(agg.channels).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
-        return { manager, count: agg.count, revenue: agg.revenue, channels: agg.channels, topChannel };
+        const products = Array.from(agg.productMap.entries())
+          .map(([code, p]) => ({ code, name: p.name, qty: p.qty, revenue: p.revenue }))
+          .sort((a, b) => b.revenue - a.revenue);
+        return { manager, count: agg.count, revenue: agg.revenue, channels: agg.channels, topChannel, orders: agg.orders, products };
       });
 
     return NextResponse.json({
