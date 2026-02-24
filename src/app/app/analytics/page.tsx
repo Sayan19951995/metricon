@@ -2355,7 +2355,7 @@ function AnalyticsPageContent() {
         {/* Managers Tab */}
         {activeTab === 'managers' && (() => {
           type ManagerOrder = { orderId: string; amount: number; channel: string; comment: string | null; status: string; customer: string; productName: string; itemsCount: number; confirmedAt: string | null; createdAt: string | null };
-          const allManagerSales: Array<{ manager: string; count: number; revenue: number; channels: Record<string, number>; topChannel: string; orders: ManagerOrder[] }> = apiData?.managerSales || [];
+          const allManagerSales: Array<{ manager: string; count: number; revenue: number; channels: Record<string, number>; topChannel: string; orders: ManagerOrder[]; products: Array<{ code: string; name: string; qty: number; revenue: number }> }> = apiData?.managerSales || [];
           const managerNames = allManagerSales.map(m => m.manager);
 
           // Фильтрация по выбранному менеджеру
