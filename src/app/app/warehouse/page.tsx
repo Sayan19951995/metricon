@@ -174,6 +174,43 @@ export default function WarehousePage() {
 
   const totalExpenseRate = expenseRates.ad + expenseRates.commission + expenseRates.tax + expenseRates.delivery;
 
+  // Quick receive modal (for warehouse role)
+  const [showQuickReceive, setShowQuickReceive] = useState(false);
+  const [quickSearch, setQuickSearch] = useState('');
+  const [quickProduct, setQuickProduct] = useState<Product | null>(null);
+  const [quickQty, setQuickQty] = useState('');
+  const [quickSaving, setQuickSaving] = useState(false);
+
+  const quickFiltered = quickSearch.trim()
+    ? products.filter(p =>
+        p.name.toLowerCase().includes(quickSearch.toLowerCase()) ||
+        (p.sku && p.sku.toLowerCase().includes(quickSearch.toLowerCase()))
+      ).slice(0, 8)
+    : [];
+
+  const handleQuickReceive = async () => {
+    if (!quickProduct || !store?.id || !quickQty) return;
+    const qty = parseInt(quickQty);
+    if (isNaN(qty) || qty <= 0) return;
+    setQuickSaving(true);
+    try {
+      const newQty = (quickProduct.quantity ?? 0) + qty;
+      const update: Record<string, unknown> = { quantity: newQty };
+      if (user?.id) { update.stock_updated_by = user.id; update.stock_updated_at = new Date().toISOString(); }
+      const { error } = await supabase.from('products').update(update).eq('id', quickProduct.id);
+      if (error) throw error;
+      const updatedProducts = products.map(p => p.id === quickProduct.id ? { ...p, ...update } : p);
+      setProducts(updatedProducts);
+      if (cacheKey) setCache(cacheKey, updatedProducts);
+      setToast({ message: `+${qty} шт — ${quickProduct.name}`, type: 'success' });
+      setTimeout(() => setToast(null), 3000);
+      setQuickProduct(null); setQuickSearch(''); setQuickQty('');
+    } catch (err) {
+      setToast({ message: 'Ошибка сохранения', type: 'error' });
+      setTimeout(() => setToast(null), 4000);
+    } finally { setQuickSaving(false); }
+  };
+
   // Inline editing
   const [editingCell, setEditingCell] = useState<{ id: string; field: 'cost_price' | 'quantity' } | null>(null);
   const [editValue, setEditValue] = useState('');
@@ -564,6 +601,75 @@ export default function WarehousePage() {
         </div>
       )}
 
+      {/* Quick Receive Modal */}
+      {showQuickReceive && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50" onClick={() => { setShowQuickReceive(false); setQuickProduct(null); setQuickSearch(''); setQuickQty(''); }} />
+          <div className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Быстрая приёмка</h3>
+
+            {!quickProduct ? (
+              <div>
+                <div className="relative mb-2">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={quickSearch}
+                    onChange={e => setQuickSearch(e.target.value)}
+                    placeholder="Поиск товара..."
+                    autoFocus
+                    className="w-full pl-9 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+                <div className="space-y-1 max-h-64 overflow-y-auto">
+                  {quickFiltered.map(p => (
+                    <button
+                      key={p.id}
+                      onClick={() => { setQuickProduct(p); setQuickSearch(''); }}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors"
+                    >
+                      <span className="text-sm text-gray-900 dark:text-white truncate">{p.name}</span>
+                      <span className="text-xs text-gray-400 ml-2 shrink-0">{p.quantity ?? 0} шт</span>
+                    </button>
+                  ))}
+                  {quickSearch.trim() && quickFiltered.length === 0 && (
+                    <p className="text-sm text-gray-400 text-center py-4">Ничего не найдено</p>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-xl px-4 py-3 mb-4">
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">{quickProduct.name}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">Текущий остаток: {quickProduct.quantity ?? 0} шт</p>
+                </div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Добавить количество</label>
+                <div className="flex items-center gap-3 mb-5">
+                  <input
+                    type="number"
+                    value={quickQty}
+                    onChange={e => setQuickQty(e.target.value)}
+                    placeholder="0"
+                    min="1"
+                    autoFocus
+                    className="flex-1 px-4 py-3 text-lg border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                  <span className="text-gray-500 dark:text-gray-400 text-sm">шт</span>
+                </div>
+                <div className="flex gap-3">
+                  <button onClick={() => setQuickProduct(null)} className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium cursor-pointer">
+                    Назад
+                  </button>
+                  <button onClick={handleQuickReceive} disabled={quickSaving || !quickQty} className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium cursor-pointer disabled:opacity-50">
+                    {quickSaving ? 'Сохранение...' : 'Принять'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Mobile Edit Modal */}
       {editingCell && (
         <div className="lg:hidden fixed inset-0 z-50 flex items-end justify-center">
@@ -608,32 +714,44 @@ export default function WarehousePage() {
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Остатки и себестоимость товаров</p>
         </div>
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => loadProducts(true)}
-            disabled={refreshing}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-            <span className="hidden sm:inline">Обновить</span>
-          </button>
-          <Link
-            href="/app/warehouse/history"
-            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
-          >
-            <History className="w-4 h-4" />
-            <span className="hidden sm:inline">Приёмки</span>
-          </Link>
-          <Link
-            href="/app/warehouse/settings"
-            className="p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors"
-          >
-            <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-          </Link>
+          {role === 'warehouse' ? (
+            <button
+              onClick={() => setShowQuickReceive(true)}
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-colors text-sm font-medium cursor-pointer"
+            >
+              <Check className="w-4 h-4" />
+              <span>Быстрая приёмка</span>
+            </button>
+          ) : (
+            <>
+              <button
+                onClick={() => loadProducts(true)}
+                disabled={refreshing}
+                className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
+              >
+                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">Обновить</span>
+              </button>
+              <Link
+                href="/app/warehouse/history"
+                className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                <History className="w-4 h-4" />
+                <span className="hidden sm:inline">Приёмки</span>
+              </Link>
+              <Link
+                href="/app/warehouse/settings"
+                className="p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors"
+              >
+                <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
+      {/* Stats — скрыто для кладовщика */}
+      {role !== 'warehouse' && <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm">
           <div className="flex items-center gap-2 lg:gap-3">
             <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center shrink-0">
@@ -719,7 +837,7 @@ export default function WarehousePage() {
             </div>
           </div>
         </button>
-      </div>
+      </div>}
 
       {/* Expense rates panel */}
       {showExpensePanel && (
