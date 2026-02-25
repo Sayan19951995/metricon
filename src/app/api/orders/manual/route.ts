@@ -96,3 +96,52 @@ export async function POST(request: NextRequest) {
     }, { status: 500 });
   }
 }
+
+/**
+ * DELETE /api/orders/manual?orderId=xxx&userId=yyy — удалить офлайн заказ (только owner)
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const params = new URL(request.url).searchParams;
+    const orderId = params.get('orderId');
+    const userId = params.get('userId');
+
+    if (!orderId || !userId) {
+      return NextResponse.json({ success: false, message: 'orderId и userId обязательны' }, { status: 400 });
+    }
+
+    // Verify user is the store owner
+    const storeResult = await supabase.from('stores').select('id').eq('user_id', userId).single();
+    if (!storeResult.data) {
+      return NextResponse.json({ success: false, message: 'Нет прав для удаления' }, { status: 403 });
+    }
+    const storeId = storeResult.data.id;
+
+    // Fetch the order — ensure it belongs to this store and is a manual order
+    const { data: order, error: fetchError } = await supabase
+      .from('orders')
+      .select('id, kaspi_order_id')
+      .eq('id', orderId)
+      .eq('store_id', storeId)
+      .single();
+
+    if (fetchError || !order) {
+      return NextResponse.json({ success: false, message: 'Заказ не найден' }, { status: 404 });
+    }
+
+    if (!order.kaspi_order_id?.startsWith('M-')) {
+      return NextResponse.json({ success: false, message: 'Можно удалять только офлайн заказы' }, { status: 400 });
+    }
+
+    const { error } = await supabase.from('orders').delete().eq('id', orderId);
+    if (error) throw error;
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Manual order delete error:', error);
+    return NextResponse.json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Ошибка удаления заказа',
+    }, { status: 500 });
+  }
+}

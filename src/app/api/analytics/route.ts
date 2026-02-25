@@ -648,7 +648,7 @@ export async function GET(request: NextRequest) {
     // === 9. Продажи по менеджерам (все подтверждённые заказы, не только completed) ===
     const confirmedOrdersResult = await supabase
       .from('orders')
-      .select('kaspi_order_id, total_amount, confirmed_by, confirmed_at, sale_source, status, customer_name, items, created_at' as string)
+      .select('kaspi_order_id, total_amount, confirmed_by, confirmed_at, sale_comment, sale_source, status, customer_name, items, created_at' as string)
       .eq('store_id', store.id)
       .not('confirmed_by', 'is', null)
       .order('confirmed_at', { ascending: false });
@@ -729,34 +729,39 @@ export async function GET(request: NextRequest) {
       });
 
     // === 10. Товары без себестоимости (из всех завершённых заказов) ===
-    // Build map: product_code → name (from order items)
-    const allOrderProducts = new Map<string, string>();
-    for (const order of [...completedOrders, ...confirmedOrders]) {
-      const orderItems = order.items as any[] | null;
-      if (orderItems) for (const it of orderItems) {
-        if (it.product_code && !allOrderProducts.has(it.product_code)) {
-          allOrderProducts.set(it.product_code, it.product_name || it.product_code);
-        }
-      }
-    }
     let productsWithoutCost: Array<{ code: string; name: string }> = [];
-    if (allOrderProducts.size > 0) {
-      const codes = [...allOrderProducts.keys()];
-      // 1. Products in DB with cost_price IS NULL
-      const missingCostResult = await supabase
-        .from('products')
-        .select('kaspi_id, name')
-        .eq('store_id', store.id)
-        .is('cost_price', null)
-        .in('kaspi_id', codes);
-      const missingSet = new Set((missingCostResult.data || []).map((p: any) => p.kaspi_id));
-      productsWithoutCost = (missingCostResult.data || []).map((p: any) => ({ code: p.kaspi_id, name: p.name }));
-      // 2. custom_ products not in DB at all (old orders before auto-creation was added)
-      for (const [code, name] of allOrderProducts) {
-        if (code.startsWith('custom_') && !costPriceMap.has(code) && !missingSet.has(code)) {
-          productsWithoutCost.push({ code, name });
+    try {
+      // Build map: product_code → name (from order items)
+      const allOrderProducts = new Map<string, string>();
+      for (const order of [...completedOrders, ...confirmedOrders]) {
+        const orderItems = order.items as any[] | null;
+        if (orderItems) for (const it of orderItems) {
+          if (it.product_code && !allOrderProducts.has(it.product_code)) {
+            allOrderProducts.set(it.product_code, it.product_name || it.product_code);
+          }
         }
       }
+      if (allOrderProducts.size > 0) {
+        // Limit to avoid URI-too-long errors; custom_ products are checked separately anyway
+        const codes = [...allOrderProducts.keys()].slice(0, 500);
+        // 1. Products in DB with cost_price IS NULL
+        const missingCostResult = await supabase
+          .from('products')
+          .select('kaspi_id, name')
+          .eq('store_id', store.id)
+          .is('cost_price', null)
+          .in('kaspi_id', codes);
+        const missingSet = new Set((missingCostResult.data || []).map((p: any) => p.kaspi_id));
+        productsWithoutCost = (missingCostResult.data || []).map((p: any) => ({ code: p.kaspi_id, name: p.name }));
+        // 2. custom_ products not in DB at all (old orders before auto-creation was added)
+        for (const [code, name] of allOrderProducts) {
+          if (code.startsWith('custom_') && !costPriceMap.has(code) && !missingSet.has(code)) {
+            productsWithoutCost.push({ code, name });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('[Analytics] productsWithoutCost error (non-fatal):', err);
     }
 
     return NextResponse.json({

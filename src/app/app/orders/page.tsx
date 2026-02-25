@@ -19,6 +19,7 @@ import {
   Loader2,
   RefreshCw,
   UserCheck,
+  Trash2,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { supabase } from '@/lib/supabase/client';
@@ -156,7 +157,7 @@ function ClaimSaleModal({ order, comment, onCommentChange, onConfirm, onCancel }
 
 export default function OrdersPage() {
   const router = useRouter();
-  const { user, store, loading: userLoading } = useUser();
+  const { user, store, role, loading: userLoading } = useUser();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterStatus, setFilterStatus] = useState<FilterStatus>('all');
   const [sortField, setSortField] = useState<SortField>('date');
@@ -327,6 +328,21 @@ export default function OrdersPage() {
       });
     } catch (err) {
       console.error('Unconfirm failed:', err);
+      await loadOrders(); // revert on error
+    }
+  };
+
+  const handleDeleteOrder = async (order: Order) => {
+    if (!user?.id) return;
+    if (!window.confirm(`Удалить офлайн заказ ${order.code}? Это действие нельзя отменить.`)) return;
+    setOrders(prev => prev.filter(o => o.id !== order.id));
+    setSelectedOrder(null);
+    try {
+      await fetch(`/api/orders/manual?orderId=${order.id}&userId=${user.id}`, {
+        method: 'DELETE',
+      });
+    } catch (err) {
+      console.error('Delete order failed:', err);
       await loadOrders(); // revert on error
     }
   };
@@ -973,7 +989,16 @@ export default function OrdersPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-4">
+              <div className="pt-4 flex flex-col gap-2">
+                {role === 'owner' && selectedOrder.code.startsWith('M-') && (
+                  <button
+                    onClick={() => handleDeleteOrder(selectedOrder)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/40 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium transition-colors cursor-pointer border border-red-200 dark:border-red-800"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Удалить заказ
+                  </button>
+                )}
                 <button
                   onClick={() => setSelectedOrder(null)}
                   className="w-full px-4 py-3 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium transition-colors cursor-pointer"
