@@ -4,8 +4,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, LogOut } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { supabase } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 import { canAccess } from '@/lib/permissions';
 
 // Тип для пунктов меню
@@ -129,9 +131,16 @@ const planNames: Record<string, string> = {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const { user, store, subscription, role } = useUser();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    document.cookie = 'metricon-session=; Max-Age=0; path=/';
+    router.replace('/login');
+  };
 
   const displayName = user?.name || store?.name || 'Пользователь';
   const storeName = store?.name || '';
@@ -179,15 +188,24 @@ export default function Sidebar() {
 
         {/* Профиль пользователя — скрыт при свёрнутом сайдбаре */}
         <div className={cn('transition-opacity duration-200', isExpanded ? 'opacity-100' : 'lg:opacity-0')}>
-          <Link href="/app/profile" className="flex items-center gap-3 p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center overflow-hidden flex-shrink-0">
-              <span className="text-white font-semibold text-base">{initial}</span>
-            </div>
-            <div className="flex-1 min-w-0 whitespace-nowrap">
-              <div className="text-white font-medium text-sm truncate">{displayName}</div>
-              {storeName && <div className="text-white/60 text-xs">{storeName}</div>}
-            </div>
-          </Link>
+          <div className="flex items-center gap-2">
+            <Link href="/app/profile" className="flex-1 flex items-center gap-3 p-2 rounded-xl bg-white/5 hover:bg-white/10 transition-colors min-w-0">
+              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-400 to-cyan-400 flex items-center justify-center overflow-hidden flex-shrink-0">
+                <span className="text-white font-semibold text-base">{initial}</span>
+              </div>
+              <div className="flex-1 min-w-0 whitespace-nowrap">
+                <div className="text-white font-medium text-sm truncate">{displayName}</div>
+                {storeName && <div className="text-white/60 text-xs">{storeName}</div>}
+              </div>
+            </Link>
+            <button
+              onClick={handleLogout}
+              title="Выйти"
+              className="p-2 rounded-xl bg-white/5 hover:bg-red-500/20 text-white/60 hover:text-red-300 transition-colors flex-shrink-0"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 
