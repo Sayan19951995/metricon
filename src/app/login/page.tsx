@@ -202,7 +202,7 @@ export default function LoginPage() {
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="flex-1 py-3 pr-4 bg-transparent focus:outline-none dark:text-white dark:placeholder-gray-500"
+                    className="flex-1 py-3 pr-4 bg-transparent focus:outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                     placeholder="example@mail.com"
                   />
                 </div>
@@ -226,7 +226,7 @@ export default function LoginPage() {
                     type={showPassword ? 'text' : 'password'}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="flex-1 py-3 bg-transparent focus:outline-none dark:text-white dark:placeholder-gray-500"
+                    className="flex-1 py-3 bg-transparent focus:outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
                     placeholder="••••••••"
                   />
                   <button
