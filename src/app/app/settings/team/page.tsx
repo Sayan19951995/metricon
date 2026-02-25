@@ -13,6 +13,7 @@ import {
   Edit3,
   Trash2,
   MoreVertical,
+  LogOut,
   Crown,
   Check,
   X,
@@ -365,43 +366,21 @@ export default function TeamSettingsPage() {
 
                   {/* Actions */}
                   {member.role !== 'owner' && (
-                    <div className="relative">
+                    <div className="flex items-center gap-1">
                       <button
-                        onClick={() => setActiveDropdown(activeDropdown === member.id ? null : member.id)}
+                        onClick={() => { setSelectedMember(member); setShowRoleModal(true); }}
+                        title="Изменить роль"
                         className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
                       >
-                        <MoreVertical className="w-4 h-4 text-gray-400 dark:text-gray-500" />
+                        <Shield className="w-4 h-4 text-gray-400 dark:text-gray-500" />
                       </button>
-
-                      <AnimatePresence>
-                        {activeDropdown === member.id && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.95 }}
-                            className="absolute right-0 bottom-full mb-1 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-100 dark:border-gray-700 py-1 z-10"
-                          >
-                            <button
-                              onClick={() => {
-                                setSelectedMember(member);
-                                setShowRoleModal(true);
-                                setActiveDropdown(null);
-                              }}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
-                            >
-                              <Shield className="w-4 h-4" />
-                              Изменить роль
-                            </button>
-                            <button
-                              onClick={() => handleRemoveMember(member.id)}
-                              className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                              Удалить
-                            </button>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+                      <button
+                        onClick={() => handleRemoveMember(member.id)}
+                        title="Удалить из команды"
+                        className="p-2 hover:bg-red-50 dark:hover:bg-red-900/30 rounded-lg transition-colors"
+                      >
+                        <LogOut className="w-4 h-4 text-red-400" />
+                      </button>
                     </div>
                   )}
                 </div>
