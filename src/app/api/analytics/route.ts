@@ -728,6 +728,23 @@ export async function GET(request: NextRequest) {
         return { manager, count: agg.count, revenue: agg.revenue, channels: agg.channels, topChannel, orders: agg.orders, products };
       });
 
+    // === 10. Товары без себестоимости (из подтверждённых заказов) ===
+    const allOrderProductCodes = new Set<string>();
+    for (const order of confirmedOrders) {
+      const orderItems = order.items as any[] | null;
+      if (orderItems) for (const it of orderItems) if (it.product_code) allOrderProductCodes.add(it.product_code);
+    }
+    let productsWithoutCost: Array<{ code: string; name: string }> = [];
+    if (allOrderProductCodes.size > 0) {
+      const missingCostResult = await supabase
+        .from('products')
+        .select('kaspi_id, name')
+        .eq('store_id', store.id)
+        .is('cost_price', null)
+        .in('kaspi_id', [...allOrderProductCodes]);
+      productsWithoutCost = (missingCostResult.data || []).map((p: any) => ({ code: p.kaspi_id, name: p.name }));
+    }
+
     return NextResponse.json({
       success: true,
       data: {
@@ -788,6 +805,7 @@ export async function GET(request: NextRequest) {
         operationalExpenses: opExpenses || [],
         productGroupsMeta,
         managerSales,
+        productsWithoutCost,
       }
     });
 

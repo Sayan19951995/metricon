@@ -71,6 +71,22 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
+    // Create product records for custom items (product_code starts with 'custom_')
+    // This allows analytics to find cost prices via costPriceMap
+    const customItems = (items as any[]).filter((it: any) => it.product_code?.startsWith('custom_'));
+    if (customItems.length > 0) {
+      await supabase.from('products').insert(
+        customItems.map((it: any) => ({
+          store_id: storeId,
+          kaspi_id: it.product_code,
+          name: it.product_name,
+          price: it.price,
+          cost_price: it.cost_price ?? null,
+          active: true,
+        }))
+      );
+    }
+
     return NextResponse.json({ success: true, orderId: manualId });
   } catch (error) {
     console.error('Manual order error:', error);

@@ -59,26 +59,43 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const { userId, kaspiId, productGroup } = await request.json();
+    const { userId, kaspiId, productGroup, costPrice } = await request.json();
 
     if (!userId || !kaspiId) {
       return NextResponse.json({ success: false, message: 'userId и kaspiId обязательны' }, { status: 400 });
     }
 
-    const storeResult = await supabase
-      .from('stores')
-      .select('id')
-      .eq('user_id', userId)
-      .single();
+    // Resolve store — support both owner and team member
+    let storeId: string | null = null;
+    const storeResult = await supabase.from('stores').select('id').eq('user_id', userId).single();
+    if (storeResult.data) {
+      storeId = storeResult.data.id;
+    } else {
+      const { data: membership } = await (supabase as any)
+        .from('team_members')
+        .select('store_id')
+        .eq('user_id', userId)
+        .eq('status', 'active')
+        .single();
+      if (membership) storeId = membership.store_id;
+    }
 
-    if (!storeResult.data) {
+    if (!storeId) {
       return NextResponse.json({ success: false, message: 'Магазин не найден' }, { status: 400 });
+    }
+
+    const updates: Record<string, unknown> = {};
+    if (productGroup !== undefined) updates.product_group = productGroup || null;
+    if (costPrice !== undefined) updates.cost_price = costPrice;
+
+    if (Object.keys(updates).length === 0) {
+      return NextResponse.json({ success: false, message: 'Нет полей для обновления' }, { status: 400 });
     }
 
     const { error } = await supabase
       .from('products')
-      .update({ product_group: productGroup || null })
-      .eq('store_id', storeResult.data.id)
+      .update(updates)
+      .eq('store_id', storeId)
       .eq('kaspi_id', kaspiId);
 
     if (error) throw error;

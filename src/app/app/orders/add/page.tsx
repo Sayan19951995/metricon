@@ -18,6 +18,7 @@ interface OrderItem {
   price: number;
   quantity: number;
   isCustom?: boolean;
+  costPrice?: number;
 }
 
 export default function AddOrderPage() {
@@ -40,6 +41,7 @@ export default function AddOrderPage() {
   const [showCustom, setShowCustom] = useState(false);
   const [customName, setCustomName] = useState('');
   const [customPrice, setCustomPrice] = useState('');
+  const [customCostPrice, setCustomCostPrice] = useState('');
 
   // Load store products
   useEffect(() => {
@@ -74,9 +76,11 @@ export default function AddOrderPage() {
   const addCustomProduct = () => {
     if (!customName.trim() || !customPrice) return;
     const id = `custom_${Date.now()}`;
-    setItems([...items, { id, name: customName.trim(), price: Number(customPrice), quantity: 1, isCustom: true }]);
+    const costPrice = customCostPrice ? Number(customCostPrice) : undefined;
+    setItems([...items, { id, name: customName.trim(), price: Number(customPrice), quantity: 1, isCustom: true, costPrice }]);
     setCustomName('');
     setCustomPrice('');
+    setCustomCostPrice('');
     setShowCustom(false);
     setShowPicker(false);
   };
@@ -120,6 +124,7 @@ export default function AddOrderPage() {
             price: i.price,
             quantity: i.quantity,
             total: i.price * i.quantity,
+            cost_price: i.costPrice ?? null,
           })),
           totalAmount: total,
         }),
@@ -367,7 +372,12 @@ export default function AddOrderPage() {
                                 : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                             }`}
                           >
-                            <div className="font-medium text-sm text-gray-900 dark:text-white truncate">{p.name}</div>
+                            <div className="flex items-center gap-1.5">
+                              <span className="font-medium text-sm text-gray-900 dark:text-white truncate">{p.name}</span>
+                              {p.cost_price === null && (
+                                <span title="Нет себестоимости — прибыль не будет рассчитана" className="text-amber-500 text-xs shrink-0">⚠️</span>
+                              )}
+                            </div>
                             <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                               {p.price ? `${fmt(p.price)} ₸` : 'Цена не указана'}
                               {alreadyAdded && <span className="text-emerald-600 ml-2">Добавлен</span>}
@@ -398,6 +408,19 @@ export default function AddOrderPage() {
                     type="number"
                     value={customPrice}
                     onChange={e => setCustomPrice(e.target.value)}
+                    placeholder="0"
+                    min="0"
+                    className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1 block">
+                    Себестоимость (₸) <span className="text-gray-400 font-normal">— необязательно, для аналитики прибыли</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={customCostPrice}
+                    onChange={e => setCustomCostPrice(e.target.value)}
                     placeholder="0"
                     min="0"
                     className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500"

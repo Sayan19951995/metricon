@@ -40,6 +40,8 @@ import DateRangeCalendar from '@/components/DateRangeCalendar';
 import {
   LineChart,
   Line,
+  AreaChart,
+  Area,
   BarChart,
   Bar,
   PieChart,
@@ -157,6 +159,7 @@ const emptyAnalyticsData = {
   storeSettings: { commissionRate: 12.5, taxRate: 4.0 },
   operationalExpenses: [],
   managerSales: [] as Array<{ manager: string; count: number; revenue: number; channels: Record<string, number>; topChannel: string; orders: Array<{ orderId: string; amount: number; channel: string; comment: string | null; status: string; customer: string; productName: string; itemsCount: number; confirmedAt: string | null; createdAt: string | null }>; products: Array<{ code: string; name: string; qty: number; revenue: number }> }>,
+  productsWithoutCost: [] as Array<{ code: string; name: string }>,
 };
 
 type TabType = 'finances' | 'sales' | 'managers' | 'reviews';
@@ -418,6 +421,11 @@ function AnalyticsPageContent() {
   // Менеджеры: фильтр + развёрнутый менеджер
   const [managerFilter, setManagerFilter] = useState<string | null>(null);
   const [expandedManager, setExpandedManager] = useState<string | null>(null);
+
+  // Себестоимость: inline редактирование в баннере
+  const [costEditMap, setCostEditMap] = useState<Record<string, string>>({});
+  const [costSaving, setCostSaving] = useState(false);
+  const [costDismissed, setCostDismissed] = useState(false);
 
   // Состояние сворачиваемых секций в табе Sales
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({
@@ -1001,6 +1009,65 @@ function AnalyticsPageContent() {
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-1 sm:mb-2">Аналитика</h1>
             <p className="text-gray-500 dark:text-gray-400 text-xs sm:text-sm">Детальная статистика по вашим заказам</p>
           </div>
+
+          {/* Banner: товары без себестоимости */}
+          {!costDismissed && (apiData?.productsWithoutCost?.length ?? 0) > 0 && (
+            <div className="mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-4">
+              <div className="flex items-start justify-between gap-3 mb-3">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                  <span className="text-sm font-semibold text-amber-800 dark:text-amber-300">
+                    {(apiData?.productsWithoutCost?.length ?? 0)} {(apiData?.productsWithoutCost?.length ?? 0) === 1 ? 'товар без себестоимости' : 'товара без себестоимости'} — прибыль рассчитана неверно
+                  </span>
+                </div>
+                <button onClick={() => setCostDismissed(true)} className="text-amber-400 hover:text-amber-600 dark:hover:text-amber-300 transition-colors shrink-0">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+              <div className="space-y-2">
+                {(apiData?.productsWithoutCost ?? []).map((p: { code: string; name: string }) => (
+                  <div key={p.code} className="flex items-center gap-3">
+                    <span className="text-sm text-amber-700 dark:text-amber-300 flex-1 truncate">{p.name}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="Себест. ₸"
+                        value={costEditMap[p.code] ?? ''}
+                        onChange={e => setCostEditMap(prev => ({ ...prev, [p.code]: e.target.value }))}
+                        className="w-28 px-3 py-1.5 text-sm bg-white dark:bg-gray-800 border border-amber-300 dark:border-amber-700 rounded-lg text-gray-900 dark:text-white focus:outline-none focus:border-amber-500"
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <button
+                onClick={async () => {
+                  const entries = Object.entries(costEditMap).filter(([, v]) => v && Number(v) > 0);
+                  if (entries.length === 0) return;
+                  setCostSaving(true);
+                  try {
+                    await Promise.all(entries.map(([code, val]) =>
+                      fetch('/api/products', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ userId: user?.id, kaspiId: code, costPrice: Number(val) }),
+                      })
+                    ));
+                    setCostEditMap({});
+                    setCostDismissed(true);
+                    fetchAnalyticsData();
+                  } finally {
+                    setCostSaving(false);
+                  }
+                }}
+                disabled={costSaving || Object.values(costEditMap).every(v => !v || Number(v) <= 0)}
+                className="mt-3 px-4 py-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-medium transition-colors"
+              >
+                {costSaving ? 'Сохраняем...' : 'Сохранить'}
+              </button>
+            </div>
+          )}
 
           {/* Tabs - horizontal scroll on mobile */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
@@ -2356,15 +2423,10 @@ function AnalyticsPageContent() {
         {activeTab === 'managers' && (() => {
           type ManagerOrder = { orderId: string; amount: number; channel: string; comment: string | null; status: string; customer: string; productName: string; itemsCount: number; confirmedAt: string | null; createdAt: string | null };
           const allManagerSales: Array<{ manager: string; count: number; revenue: number; channels: Record<string, number>; topChannel: string; orders: ManagerOrder[]; products: Array<{ code: string; name: string; qty: number; revenue: number }> }> = apiData?.managerSales || [];
+          const MANAGER_COLORS = ['#8b5cf6', '#ec4899', '#06b6d4', '#f59e0b', '#10b981', '#f43f5e', '#6366f1', '#14b8a6', '#a78bfa', '#fb7185'];
           const managerNames = allManagerSales.map(m => m.manager);
 
-          // Фильтрация по выбранному менеджеру
-          const filtered = managerFilter
-            ? allManagerSales.filter(m => m.manager === managerFilter)
-            : allManagerSales;
-          const totalManagerOrders = filtered.reduce((s, m) => s + m.count, 0);
-          const totalManagerRevenue = filtered.reduce((s, m) => s + m.revenue, 0);
-
+          // Вспомогательные функции
           const channelColors: Record<string, string> = {
             'Instagram': 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300',
             'TikTok': 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300',
@@ -2375,7 +2437,6 @@ function AnalyticsPageContent() {
             'Телефон': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
             'Другое': 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
           };
-
           const statusLabel = (s: string) => {
             switch (s) {
               case 'new': return 'Новый';
@@ -2397,7 +2458,6 @@ function AnalyticsPageContent() {
             if (s === 'new') return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300';
             return 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300';
           };
-
           const fmtDate = (d: string | null) => {
             if (!d) return '—';
             const dt = new Date(d);
@@ -2408,331 +2468,293 @@ function AnalyticsPageContent() {
             return `${dd}.${mm} ${hh}:${min}`;
           };
 
+          // Строим данные для графика: группируем все заказы по дням, по менеджерам
+          type ChartPoint = Record<string, number | string>;
+          const chartDayMap = new Map<string, ChartPoint>();
+          for (const m of allManagerSales) {
+            for (const o of m.orders) {
+              const dateStr = o.createdAt || o.confirmedAt;
+              if (!dateStr) continue;
+              const utcMs = new Date(dateStr).getTime();
+              const kzDate = new Date(utcMs + 5 * 3600000).toISOString().split('T')[0];
+              const [, mo, dd2] = kzDate.split('-');
+              const label = `${dd2}.${mo}`;
+              const ex = chartDayMap.get(kzDate);
+              if (ex) {
+                ex[m.manager] = ((ex[m.manager] as number) || 0) + o.amount;
+              } else {
+                const pt: ChartPoint = { date: label };
+                pt[m.manager] = o.amount;
+                chartDayMap.set(kzDate, pt);
+              }
+            }
+          }
+          // Заполняем нули для менеджеров без продаж в этот день
+          for (const [, pt] of chartDayMap) {
+            for (const name of managerNames) {
+              if (pt[name] === undefined) pt[name] = 0;
+            }
+          }
+          const chartData = Array.from(chartDayMap.entries())
+            .sort((a, b) => a[0].localeCompare(b[0]))
+            .map(([, pt]) => pt);
+
+          // Строим объединённый список товаров (для выбранного менеджера или всех)
+          const filteredForProducts = managerFilter
+            ? allManagerSales.filter(m => m.manager === managerFilter)
+            : allManagerSales;
+          const productsMap = new Map<string, { name: string; qty: number; revenue: number }>();
+          for (const m of filteredForProducts) {
+            for (const p of (m.products || [])) {
+              const ex = productsMap.get(p.code);
+              if (ex) { ex.qty += p.qty; ex.revenue += p.revenue; }
+              else productsMap.set(p.code, { name: p.name, qty: p.qty, revenue: p.revenue });
+            }
+          }
+          const productsList = Array.from(productsMap.entries())
+            .map(([code, d]) => ({ code, ...d }))
+            .sort((a, b) => b.revenue - a.revenue);
+
+          // Список продаж (с фильтром по менеджеру)
+          type DayOrder = ManagerOrder & { managerName: string };
+          const salesSource = managerFilter
+            ? allManagerSales.filter(m => m.manager === managerFilter)
+            : allManagerSales;
+          const allOrders: DayOrder[] = [];
+          for (const m of salesSource) {
+            for (const o of m.orders) allOrders.push({ ...o, managerName: m.manager });
+          }
+          allOrders.sort((a, b) => {
+            const da = a.createdAt || a.confirmedAt || '';
+            const db = b.createdAt || b.confirmedAt || '';
+            return db.localeCompare(da);
+          });
+
+          const totalManagerRevenue = allManagerSales.reduce((s, m) => s + m.revenue, 0);
+          const totalManagerOrders = allManagerSales.reduce((s, m) => s + m.count, 0);
+
           return (
             <div className="mt-6 space-y-4">
-              {/* Фильтр по менеджеру */}
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setManagerFilter(null)}
-                  className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                    !managerFilter
-                      ? 'bg-violet-600 text-white'
-                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                  }`}
-                >
-                  Все
-                </button>
-                {managerNames.map(name => (
+
+              {/* 1. Карточки-фильтры менеджеров */}
+              {allManagerSales.length > 0 && (
+                <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 sm:gap-3">
+                  {/* Итого */}
                   <button
-                    key={name}
-                    onClick={() => setManagerFilter(managerFilter === name ? null : name)}
-                    className={`px-3 py-1.5 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                      managerFilter === name
-                        ? 'bg-violet-600 text-white'
-                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
-                    }`}
+                    onClick={() => setManagerFilter(null)}
+                    className={`text-left p-4 rounded-2xl border-2 transition-all cursor-pointer col-span-2 sm:col-span-1 ${!managerFilter ? 'border-violet-500 bg-gradient-to-br from-violet-500 to-violet-600 shadow-lg shadow-violet-500/30' : 'border-transparent bg-white dark:bg-gray-800 shadow-sm hover:shadow-md'}`}
                   >
-                    {name}
+                    <div className={`text-[10px] font-bold uppercase tracking-widest mb-1 ${!managerFilter ? 'text-violet-200' : 'text-gray-400 dark:text-gray-500'}`}>Все менеджеры</div>
+                    <div className={`text-xl sm:text-2xl font-bold ${!managerFilter ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{fmt(totalManagerRevenue)} ₸</div>
+                    <div className={`text-xs mt-1 font-medium ${!managerFilter ? 'text-violet-200' : 'text-gray-500 dark:text-gray-400'}`}>{totalManagerOrders} продаж · {allManagerSales.length} менеджеров</div>
                   </button>
-                ))}
-              </div>
-
-              {/* Карточки менеджеров с donut-диаграммами */}
-              {(() => {
-                const donutColors = ['#8b5cf6', '#ec4899', '#06b6d4', '#f59e0b', '#10b981', '#f43f5e', '#6366f1', '#14b8a6'];
-                const R = 40, C = 2 * Math.PI * R;
-
-                return (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
-                    {filtered.map((m) => {
-                      const prods = (m.products || []).slice(0, 6);
-                      const mRev = m.revenue || 1;
-                      let offset = 0;
-
-                      return (
-                        <div
-                          key={m.manager}
-                          className={`bg-white dark:bg-gray-800 rounded-2xl p-4 sm:p-5 shadow-sm cursor-pointer transition-all ${
-                            managerFilter === m.manager ? 'ring-2 ring-violet-500' : 'hover:shadow-md'
-                          }`}
-                          onClick={() => setManagerFilter(managerFilter === m.manager ? null : m.manager)}
-                        >
-                          {/* Заголовок */}
-                          <div className="flex items-center gap-3 mb-4">
-                            <div className="w-10 h-10 bg-violet-100 dark:bg-violet-900/30 rounded-xl flex items-center justify-center">
-                              <UserCheck className="w-5 h-5 text-violet-600 dark:text-violet-400" />
-                            </div>
-                            <div>
-                              <div className="font-bold text-gray-900 dark:text-white">{m.manager}</div>
-                              <div className="text-xs text-gray-500 dark:text-gray-400">{m.count} заказов · {fmt(m.revenue)} ₸</div>
-                            </div>
-                          </div>
-
-                          {/* Donut + легенда */}
-                          <div className="flex items-center gap-4">
-                            <svg width="100" height="100" viewBox="0 0 100 100" className="shrink-0">
-                              {prods.length > 0 ? prods.map((p, i) => {
-                                const share = p.revenue / mRev;
-                                const dash = share * C;
-                                const el = (
-                                  <circle
-                                    key={p.code}
-                                    cx="50" cy="50" r={R}
-                                    fill="none"
-                                    stroke={donutColors[i % donutColors.length]}
-                                    strokeWidth="14"
-                                    strokeDasharray={`${dash} ${C - dash}`}
-                                    strokeDashoffset={-offset}
-                                    transform="rotate(-90 50 50)"
-                                  />
-                                );
-                                offset += dash;
-                                return el;
-                              }) : (
-                                <circle cx="50" cy="50" r={R} fill="none" stroke="#374151" strokeWidth="14" />
-                              )}
-                              <text x="50" y="48" textAnchor="middle" className="fill-gray-900 dark:fill-white text-[11px] font-bold">{prods.length}</text>
-                              <text x="50" y="60" textAnchor="middle" className="fill-gray-400 text-[8px]">товаров</text>
-                            </svg>
-
-                            <div className="flex-1 min-w-0 space-y-1.5">
-                              {prods.slice(0, 5).map((p, i) => {
-                                const pct = mRev > 0 ? ((p.revenue / mRev) * 100).toFixed(0) : '0';
-                                return (
-                                  <div key={p.code} className="flex items-center gap-1.5 text-xs">
-                                    <div className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: donutColors[i % donutColors.length] }} />
-                                    <span className="truncate text-gray-700 dark:text-gray-300 flex-1 min-w-0">{p.name}</span>
-                                    <span className="shrink-0 text-gray-500 dark:text-gray-400 font-medium">{p.qty}шт</span>
-                                    <span className="shrink-0 text-gray-400 dark:text-gray-500">{fmt(p.revenue)}</span>
-                                    <span className="shrink-0 text-gray-400 w-7 text-right">{pct}%</span>
-                                  </div>
-                                );
-                              })}
-                              {prods.length > 5 && (
-                                <div className="text-[10px] text-gray-400 dark:text-gray-500 pl-4">+{prods.length - 5} ещё</div>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Каналы */}
-                          <div className="flex flex-wrap gap-1 mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                            {Object.entries(m.channels)
-                              .sort((a, b) => b[1] - a[1])
-                              .map(([ch, cnt]) => (
-                                <span key={ch} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${channelColors[ch] || channelColors['Другое']}`}>
-                                  {ch} <span className="opacity-60">×{cnt}</span>
-                                </span>
-                              ))}
-                          </div>
+                  {allManagerSales.map((m, i) => {
+                    const active = managerFilter === m.manager;
+                    const color = MANAGER_COLORS[i % MANAGER_COLORS.length];
+                    const pct = totalManagerRevenue > 0 ? ((m.revenue / totalManagerRevenue) * 100).toFixed(0) : '0';
+                    return (
+                      <button
+                        key={m.manager}
+                        onClick={() => setManagerFilter(active ? null : m.manager)}
+                        className="text-left p-4 rounded-2xl border-2 transition-all cursor-pointer shadow-sm hover:shadow-md"
+                        style={active
+                          ? { borderColor: color, background: `linear-gradient(135deg, ${color}, ${color}cc)`, boxShadow: `0 8px 24px ${color}40` }
+                          : { borderColor: 'transparent', backgroundColor: 'white' }
+                        }
+                      >
+                        <div className="flex items-center gap-1.5 mb-1">
+                          <span className="w-2 h-2 rounded-full" style={{ backgroundColor: active ? 'rgba(255,255,255,0.7)' : color }} />
+                          <span className={`text-[10px] font-bold uppercase tracking-widest truncate max-w-[110px] ${active ? 'text-white/80' : 'text-gray-400 dark:text-gray-500'}`}>{m.manager}</span>
                         </div>
-                      );
-                    })}
+                        <div className={`text-xl sm:text-2xl font-bold ${active ? 'text-white' : 'text-gray-900 dark:text-white'}`}>{fmt(m.revenue)} ₸</div>
+                        <div className={`text-xs mt-1 font-medium ${active ? 'text-white/70' : 'text-gray-500 dark:text-gray-400'}`}>{m.count} продаж · {pct}%</div>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
 
-                    {/* Суммарная карточка когда "Все" */}
-                    {!managerFilter && filtered.length > 0 && (
-                      <div className="bg-gradient-to-br from-violet-500/10 to-violet-600/5 dark:from-violet-500/20 dark:to-violet-600/10 rounded-2xl p-4 sm:p-5 shadow-sm border border-violet-200/50 dark:border-violet-500/20">
-                        <div className="flex items-center gap-3 mb-3">
-                          <div className="w-10 h-10 bg-violet-600 rounded-xl flex items-center justify-center">
-                            <BarChart3 className="w-5 h-5 text-white" />
-                          </div>
-                          <div>
-                            <div className="font-bold text-gray-900 dark:text-white">Итого</div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">{filtered.length} менеджеров</div>
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">Заказов</div>
-                            <div className="text-xl font-bold text-gray-900 dark:text-white">{totalManagerOrders}</div>
-                          </div>
-                          <div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400">Выручка</div>
-                            <div className="text-xl font-bold text-gray-900 dark:text-white">{fmt(totalManagerRevenue)} ₸</div>
-                          </div>
-                        </div>
+              {/* 2. Area-график */}
+              {chartData.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="px-4 sm:px-6 pt-5 pb-2">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">График продаж за период</h3>
+                      <div className="flex items-center gap-3">
+                        {(managerFilter ? managerNames.filter(n => n === managerFilter) : managerNames).map((name, i) => {
+                          const idx = managerNames.indexOf(name);
+                          return (
+                            <div key={name} className="flex items-center gap-1.5">
+                              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: MANAGER_COLORS[idx % MANAGER_COLORS.length] }} />
+                              <span className="text-xs text-gray-500 dark:text-gray-400">{name}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  <ResponsiveContainer width="100%" height={240}>
+                    <AreaChart data={chartData} margin={{ top: 8, right: 16, left: 0, bottom: 0 }}>
+                      <defs>
+                        {managerNames.map((name, i) => (
+                          <linearGradient key={name} id={`mgr-${i}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={MANAGER_COLORS[i % MANAGER_COLORS.length]} stopOpacity={0.25} />
+                            <stop offset="95%" stopColor={MANAGER_COLORS[i % MANAGER_COLORS.length]} stopOpacity={0} />
+                          </linearGradient>
+                        ))}
+                      </defs>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" strokeOpacity={0.6} />
+                      <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => v >= 1000000 ? `${(v/1000000).toFixed(1)}M` : v >= 1000 ? `${(v/1000).toFixed(0)}K` : String(v)} width={48} />
+                      <Tooltip
+                        formatter={(value) => [`${fmt(Number(value))} ₸`]}
+                        contentStyle={{ borderRadius: 12, border: 'none', boxShadow: '0 4px 24px rgba(0,0,0,0.12)', fontSize: 12 }}
+                      />
+                      {managerNames.map((name, i) => {
+                        const hidden = managerFilter !== null && managerFilter !== name;
+                        return (
+                          <Area
+                            key={name}
+                            type="monotone"
+                            dataKey={name}
+                            stroke={hidden ? 'transparent' : MANAGER_COLORS[i % MANAGER_COLORS.length]}
+                            strokeWidth={2.5}
+                            fill={hidden ? 'transparent' : `url(#mgr-${i})`}
+                            dot={hidden ? false : { r: 3, fill: MANAGER_COLORS[i % MANAGER_COLORS.length], strokeWidth: 0 }}
+                            activeDot={hidden ? false : { r: 5, strokeWidth: 2, stroke: '#fff' }}
+                          />
+                        );
+                      })}
+                    </AreaChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+
+              {/* 3. Проданные товары + фильтр-карточки внутри */}
+              {productsList.length > 0 && (
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+                  <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                    <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white mb-3">Проданные товары</h3>
+                    {allManagerSales.length > 0 && (
+                      <div className="flex flex-wrap gap-2">
+                        {(() => {
+                          const active = !managerFilter;
+                          return (
+                            <button
+                              onClick={() => setManagerFilter(null)}
+                              className={`text-left px-3 py-2 rounded-xl border-2 transition-all cursor-pointer ${active ? 'border-violet-500 bg-violet-50 dark:bg-violet-900/20' : 'border-gray-100 dark:border-gray-700 hover:border-violet-300 dark:hover:border-violet-700'}`}
+                            >
+                              <div className={`text-[10px] font-semibold uppercase tracking-wide mb-0.5 ${active ? 'text-violet-600 dark:text-violet-400' : 'text-gray-400 dark:text-gray-500'}`}>Все</div>
+                              <div className={`text-sm font-bold leading-tight ${active ? 'text-violet-700 dark:text-violet-300' : 'text-gray-900 dark:text-white'}`}>{fmt(totalManagerRevenue)} ₸</div>
+                              <div className={`text-[10px] mt-0.5 ${active ? 'text-violet-500' : 'text-gray-400 dark:text-gray-500'}`}>{totalManagerOrders} продаж</div>
+                            </button>
+                          );
+                        })()}
+                        {allManagerSales.map((m, i) => {
+                          const active = managerFilter === m.manager;
+                          const color = MANAGER_COLORS[i % MANAGER_COLORS.length];
+                          return (
+                            <button
+                              key={m.manager}
+                              onClick={() => setManagerFilter(active ? null : m.manager)}
+                              className="text-left px-3 py-2 rounded-xl border-2 transition-all cursor-pointer"
+                              style={{ borderColor: active ? color : '#e5e7eb', backgroundColor: active ? color + '15' : 'transparent' }}
+                            >
+                              <div className="flex items-center gap-1 mb-0.5">
+                                <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                                <span className="text-[10px] font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400 truncate max-w-[100px]">{m.manager}</span>
+                              </div>
+                              <div className="text-sm font-bold leading-tight text-gray-900 dark:text-white">{fmt(m.revenue)} ₸</div>
+                              <div className="text-[10px] mt-0.5 text-gray-400 dark:text-gray-500">{m.count} продаж</div>
+                            </button>
+                          );
+                        })}
                       </div>
                     )}
                   </div>
-                );
-              })()}
-
-              {/* Таблица менеджеров */}
-              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
-                <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-                  <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">Результаты менеджеров</h3>
-                </div>
-                {filtered.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400 dark:text-gray-500 text-sm">
-                    Нет данных за выбранный период
-                  </div>
-                ) : (
                   <div className="overflow-x-auto">
-                    <table className="w-full text-xs sm:text-sm table-fixed">
-                      <colgroup>
-                        <col className="w-10" />
-                        <col />
-                        <col className="w-[100px]" />
-                        <col className="w-[140px]" />
-                        <col className="w-[160px]" />
-                      </colgroup>
+                    <table className="w-full text-xs sm:text-sm">
                       <thead>
                         <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
-                          <th className="py-3 pl-4 sm:pl-6 text-gray-500 dark:text-gray-400 font-medium"></th>
-                          <th className="text-left py-3 px-3 text-gray-500 dark:text-gray-400 font-medium">Менеджер</th>
-                          <th className="text-right py-3 px-3 text-gray-500 dark:text-gray-400 font-medium">Заказов</th>
-                          <th className="text-right py-3 px-3 text-gray-500 dark:text-gray-400 font-medium">Выручка</th>
-                          <th className="text-left py-3 px-3 pr-4 sm:pr-6 text-gray-500 dark:text-gray-400 font-medium hidden sm:table-cell">Каналы</th>
+                          <th className="text-left py-3 px-4 sm:px-6 text-gray-500 dark:text-gray-400 font-medium">Товар</th>
+                          <th className="text-right py-3 px-3 text-gray-500 dark:text-gray-400 font-medium">Кол-во</th>
+                          <th className="text-right py-3 px-3 pr-4 sm:pr-6 text-gray-500 dark:text-gray-400 font-medium">Сумма</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {filtered.map((m, i) => (
-                          <React.Fragment key={m.manager}>
-                            <tr
-                              className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors cursor-pointer"
-                              onClick={() => setExpandedManager(expandedManager === m.manager ? null : m.manager)}
-                            >
-                              <td className="py-3 pl-4 sm:pl-6 text-gray-400 dark:text-gray-500">
-                                {expandedManager === m.manager
-                                  ? <ChevronUp className="w-4 h-4" />
-                                  : <ChevronDown className="w-4 h-4" />}
-                              </td>
-                              <td className="py-3 px-3 font-semibold text-gray-900 dark:text-white">{m.manager}</td>
-                              <td className="py-3 px-3 text-right text-gray-700 dark:text-gray-300">{m.count}</td>
-                              <td className="py-3 px-3 text-right font-semibold text-gray-900 dark:text-white">{fmt(m.revenue)} ₸</td>
-                              <td className="py-3 px-3 pr-4 sm:pr-6 hidden sm:table-cell">
-                                <div className="flex flex-wrap gap-1">
-                                  {Object.entries(m.channels)
-                                    .sort((a, b) => b[1] - a[1])
-                                    .map(([ch, cnt]) => (
-                                      <span key={ch} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${channelColors[ch] || channelColors['Другое']}`}>
-                                        {ch} <span className="opacity-60">×{cnt}</span>
-                                      </span>
-                                    ))}
-                                </div>
-                              </td>
-                            </tr>
-                            {/* Раскрытие — список заказов менеджера */}
-                            {expandedManager === m.manager && (
-                              <tr>
-                                <td colSpan={5} className="p-0">
-                                  <div className="bg-gray-50 dark:bg-gray-900/50 px-4 sm:px-8 py-3">
-                                    <div className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Заказы ({m.orders.length})</div>
-                                    <div className="space-y-2">
-                                      {m.orders.map((o, j) => (
-                                        <div key={j} className="bg-white dark:bg-gray-800 rounded-xl p-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 shadow-sm">
-                                          <div className="flex-1 min-w-0">
-                                            <div className="flex items-center gap-2 flex-wrap">
-                                              <span className="font-semibold text-gray-900 dark:text-white text-xs sm:text-sm truncate">{o.productName}</span>
-                                              {o.itemsCount > 1 && <span className="text-[10px] text-gray-400">×{o.itemsCount}</span>}
-                                              <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${statusColor(o.status)}`}>
-                                                {statusLabel(o.status)}
-                                              </span>
-                                            </div>
-                                            <div className="flex items-center gap-3 mt-1 text-[11px] text-gray-500 dark:text-gray-400">
-                                              {o.orderId && <span className="font-mono">№{o.orderId}</span>}
-                                              {o.customer && <span>{o.customer}</span>}
-                                              <span>{fmtDate(o.confirmedAt)}</span>
-                                            </div>
-                                            {o.comment && (
-                                              <div className="mt-1 text-[11px] text-gray-400 dark:text-gray-500 italic">
-                                                {o.comment}
-                                              </div>
-                                            )}
-                                          </div>
-                                          <div className="flex items-center gap-3 shrink-0">
-                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${channelColors[o.channel] || channelColors['Другое']}`}>
-                                              {o.channel}
-                                            </span>
-                                            <span className="font-bold text-gray-900 dark:text-white text-sm whitespace-nowrap">{fmt(o.amount)} ₸</span>
-                                          </div>
-                                        </div>
-                                      ))}
-                                    </div>
-                                  </div>
-                                </td>
-                              </tr>
-                            )}
-                          </React.Fragment>
+                        {productsList.map((p) => (
+                          <tr key={p.code} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                            <td className="py-3 px-4 sm:px-6 text-gray-900 dark:text-white font-medium">{p.name}</td>
+                            <td className="py-3 px-3 text-right text-gray-600 dark:text-gray-400">{p.qty} шт.</td>
+                            <td className="py-3 px-3 pr-4 sm:pr-6 text-right font-semibold text-gray-900 dark:text-white">{fmt(p.revenue)} ₸</td>
+                          </tr>
                         ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 4. Список продаж */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+                <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
+                  <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">
+                    {managerFilter ? `Продажи — ${managerFilter}` : 'Список продаж'}
+                  </h3>
+                </div>
+                {allOrders.length === 0 ? (
+                  <div className="text-center py-10 text-gray-400 dark:text-gray-500 text-sm">Нет продаж</div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-xs sm:text-sm">
+                      <thead>
+                        <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
+                          <th className="text-left py-3 px-4 sm:px-6 text-gray-500 dark:text-gray-400 font-medium">Дата</th>
+                          {!managerFilter && <th className="text-left py-3 px-3 text-gray-500 dark:text-gray-400 font-medium hidden sm:table-cell">Менеджер</th>}
+                          <th className="text-left py-3 px-3 text-gray-500 dark:text-gray-400 font-medium">Товар</th>
+                          <th className="text-left py-3 px-3 text-gray-500 dark:text-gray-400 font-medium hidden sm:table-cell">Канал</th>
+                          <th className="text-left py-3 px-3 text-gray-500 dark:text-gray-400 font-medium hidden sm:table-cell">Статус</th>
+                          <th className="text-right py-3 px-3 pr-4 sm:pr-6 text-gray-500 dark:text-gray-400 font-medium">Сумма</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allOrders.map((o, i) => {
+                          const mIdx = managerNames.indexOf(o.managerName);
+                          return (
+                            <tr key={i} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                              <td className="py-3 px-4 sm:px-6 text-gray-500 dark:text-gray-400 whitespace-nowrap">{fmtDate(o.createdAt || o.confirmedAt)}</td>
+                              {!managerFilter && (
+                                <td className="py-3 px-3 hidden sm:table-cell">
+                                  <span className="inline-flex items-center gap-1 text-xs font-medium" style={{ color: MANAGER_COLORS[mIdx % MANAGER_COLORS.length] }}>
+                                    <span className="w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: MANAGER_COLORS[mIdx % MANAGER_COLORS.length] }} />
+                                    {o.managerName}
+                                  </span>
+                                </td>
+                              )}
+                              <td className="py-3 px-3 text-gray-900 dark:text-white max-w-[180px]">
+                                <div className="truncate" title={o.productName}>{o.productName}</div>
+                                {o.itemsCount > 1 && <span className="text-[10px] text-gray-400">×{o.itemsCount}</span>}
+                              </td>
+                              <td className="py-3 px-3 hidden sm:table-cell">
+                                <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-medium ${channelColors[o.channel] || channelColors['Другое']}`}>
+                                  {o.channel}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3 hidden sm:table-cell">
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${statusColor(o.status)}`}>
+                                  {statusLabel(o.status)}
+                                </span>
+                              </td>
+                              <td className="py-3 px-3 pr-4 sm:pr-6 text-right font-semibold text-gray-900 dark:text-white whitespace-nowrap">{fmt(o.amount)} ₸</td>
+                            </tr>
+                          );
+                        })}
                       </tbody>
                     </table>
                   </div>
                 )}
               </div>
 
-              {/* Блоки товаров по менеджерам */}
-              {(() => {
-                // Собираем товары: если выбран менеджер — его товары, иначе — объединённые по всем
-                let productsToShow: Array<{ code: string; name: string; qty: number; revenue: number }> = [];
-                let blockTitle = 'Товары менеджеров';
-                let blockSubtitle = '';
-                let totalRev = 0;
-
-                if (managerFilter && filtered[0]) {
-                  const selected = filtered[0];
-                  productsToShow = selected.products || [];
-                  blockTitle = `Товары — ${selected.manager}`;
-                  blockSubtitle = `${productsToShow.length} товаров, ${selected.count} заказов`;
-                  totalRev = selected.revenue || 1;
-                } else {
-                  // Объединяем товары всех менеджеров
-                  const combined = new Map<string, { name: string; qty: number; revenue: number }>();
-                  for (const m of filtered) {
-                    for (const p of (m.products || [])) {
-                      const ex = combined.get(p.code);
-                      if (ex) {
-                        ex.qty += p.qty;
-                        ex.revenue += p.revenue;
-                      } else {
-                        combined.set(p.code, { name: p.name, qty: p.qty, revenue: p.revenue });
-                      }
-                    }
-                  }
-                  productsToShow = Array.from(combined.entries())
-                    .map(([code, d]) => ({ code, ...d }))
-                    .sort((a, b) => b.revenue - a.revenue);
-                  blockTitle = 'Товары всех менеджеров';
-                  blockSubtitle = `${productsToShow.length} товаров`;
-                  totalRev = filtered.reduce((s, m) => s + m.revenue, 0) || 1;
-                }
-
-                if (productsToShow.length === 0) return null;
-
-                return (
-                  <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
-                    <div className="px-4 sm:px-6 py-4 border-b border-gray-100 dark:border-gray-700">
-                      <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">{blockTitle}</h3>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{blockSubtitle}</p>
-                    </div>
-                    <div className="p-4 sm:p-6 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                      {productsToShow.map((p, i) => {
-                        const share = totalRev > 0 ? (p.revenue / totalRev) * 100 : 0;
-                        return (
-                          <div key={p.code} className="bg-gray-50 dark:bg-gray-900/50 rounded-xl p-4">
-                            <div className="flex items-start justify-between gap-2 mb-2">
-                              <div className="min-w-0 flex-1">
-                                <div className="font-semibold text-gray-900 dark:text-white text-sm truncate" title={p.name}>{p.name}</div>
-                              </div>
-                              <span className="text-xs text-gray-400 dark:text-gray-500 shrink-0">#{i + 1}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400 mb-3">
-                              <span>{p.qty} шт.</span>
-                              <span className="font-bold text-gray-900 dark:text-white text-sm">{fmt(p.revenue)} ₸</span>
-                            </div>
-                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                              <div
-                                className="bg-violet-500 h-1.5 rounded-full transition-all"
-                                style={{ width: `${Math.min(share, 100)}%` }}
-                              />
-                            </div>
-                            <div className="text-[10px] text-gray-400 dark:text-gray-500 mt-1">{share.toFixed(1)}% выручки</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })()}
             </div>
           );
         })()}
