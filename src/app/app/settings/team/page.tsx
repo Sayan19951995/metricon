@@ -425,7 +425,7 @@ export default function TeamSettingsPage() {
             <h2 className="font-semibold text-gray-900 dark:text-white lg:text-lg">Описание ролей</h2>
           </div>
           <div className="divide-y divide-gray-50 dark:divide-gray-700">
-            {(Object.keys(roleDescriptions) as RoleType[]).map((role) => {
+            {(['owner', 'manager', 'warehouse'] as RoleType[]).map((role) => {
               const { name, description, color, icon: Icon } = roleDescriptions[role];
               const permissions = rolePermissions[role];
 
@@ -523,7 +523,7 @@ export default function TeamSettingsPage() {
                       Роль
                     </label>
                     <div className="space-y-2">
-                      {(['admin', 'manager', 'warehouse', 'viewer'] as RoleType[]).map((role) => {
+                      {(['manager', 'warehouse'] as RoleType[]).map((role) => {
                         const { name, description, color, icon: Icon } = roleDescriptions[role];
                         return (
                           <button
@@ -588,7 +588,7 @@ export default function TeamSettingsPage() {
                 </p>
 
                 <div className="space-y-2">
-                  {(['admin', 'manager', 'warehouse', 'viewer'] as RoleType[]).map((role) => {
+                  {(['manager', 'warehouse'] as RoleType[]).map((role) => {
                     const { name, description, color, icon: Icon } = roleDescriptions[role];
                     return (
                       <button
