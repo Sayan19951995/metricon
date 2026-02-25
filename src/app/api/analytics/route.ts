@@ -728,9 +728,9 @@ export async function GET(request: NextRequest) {
         return { manager, count: agg.count, revenue: agg.revenue, channels: agg.channels, topChannel, orders: agg.orders, products };
       });
 
-    // === 10. Товары без себестоимости (из подтверждённых заказов) ===
+    // === 10. Товары без себестоимости (из всех завершённых заказов) ===
     const allOrderProductCodes = new Set<string>();
-    for (const order of confirmedOrders) {
+    for (const order of [...completedOrders, ...confirmedOrders]) {
       const orderItems = order.items as any[] | null;
       if (orderItems) for (const it of orderItems) if (it.product_code) allOrderProductCodes.add(it.product_code);
     }
