@@ -227,7 +227,7 @@ export default function Sidebar() {
             </svg>
             <div className={cn('flex-1 whitespace-nowrap transition-opacity duration-200', isExpanded ? 'opacity-100' : 'lg:opacity-0')}>
               <div className="flex items-center justify-between">
-                <span>Мой план</span>
+                <span>{currentPlan}</span>
                 <svg className="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                 </svg>
