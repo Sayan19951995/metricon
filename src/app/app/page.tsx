@@ -76,7 +76,14 @@ interface DashboardData {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const { user, loading: userLoading } = useUser();
+  const { user, role, loading: userLoading } = useUser();
+
+  // Менеджер видит только заказы
+  useEffect(() => {
+    if (!userLoading && role === 'manager') {
+      router.replace('/app/orders');
+    }
+  }, [role, userLoading, router]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showGrowthTooltip, setShowGrowthTooltip] = useState(false);
   const [chartTooltip, setChartTooltip] = useState<{ idx: number; x: number; y: number } | null>(null);

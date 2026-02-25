@@ -2,13 +2,13 @@ export type UserRole = 'owner' | 'admin' | 'manager' | 'warehouse' | 'viewer';
 
 // Какие роли имеют доступ к какому разделу
 const routeAccess: Record<string, UserRole[]> = {
-  '/app':             ['owner', 'admin', 'manager', 'viewer'],
-  '/app/products':    ['owner', 'admin', 'manager', 'viewer'],
+  '/app':             ['owner', 'admin', 'viewer'],
+  '/app/products':    ['owner', 'admin', 'viewer'],
   '/app/orders':      ['owner', 'admin', 'manager', 'viewer'],
-  '/app/warehouse':   ['owner', 'admin', 'manager', 'warehouse'],
+  '/app/warehouse':   ['owner', 'admin', 'warehouse'],
   '/app/advertising': ['owner', 'admin'],
   '/app/expenses':    ['owner', 'admin'],
-  '/app/analytics':   ['owner', 'admin', 'manager', 'viewer'],
+  '/app/analytics':   ['owner', 'admin', 'viewer'],
   '/app/auto-mailing':['owner', 'admin'],
   '/app/auto-pricing':['owner', 'admin'],
   '/app/settings':    ['owner', 'admin'],
@@ -18,9 +18,9 @@ const routeAccess: Record<string, UserRole[]> = {
 
 // Какие роли могут РЕДАКТИРОВАТЬ (viewer может только смотреть)
 const writeAccess: Record<string, UserRole[]> = {
-  '/app/products':  ['owner', 'admin', 'manager'],
+  '/app/products':  ['owner', 'admin'],
   '/app/orders':    ['owner', 'admin', 'manager'],
-  '/app/warehouse': ['owner', 'admin', 'manager', 'warehouse'],
+  '/app/warehouse': ['owner', 'admin', 'warehouse'],
 };
 
 /**
