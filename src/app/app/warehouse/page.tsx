@@ -40,12 +40,14 @@ interface Product {
   category: string | null;
   active: boolean | null;
   product_group: string | null;
+  stock_updated_by?: string | null;
+  stock_updated_at?: string | null;
   availabilities?: Availability[];
   kaspi_not_specified?: boolean;
 }
 
 export default function WarehousePage() {
-  const { user, store, loading: userLoading } = useUser();
+  const { user, store, role, loading: userLoading } = useUser();
 
   // Products from Supabase
   const cacheKey = store?.id ? `warehouse_products_${store.id}` : '';
@@ -412,9 +414,14 @@ export default function WarehousePage() {
     }
 
     try {
-      const update = editingCell.field === 'cost_price'
+      const update: Record<string, unknown> = editingCell.field === 'cost_price'
         ? { cost_price: value }
         : { quantity: value !== null ? Math.round(value) : 0 };
+
+      if (role === 'warehouse' && user?.id) {
+        update.stock_updated_by = user.id;
+        update.stock_updated_at = new Date().toISOString();
+      }
 
       const { error } = await supabase
         .from('products')
@@ -443,15 +450,26 @@ export default function WarehousePage() {
       setEditingCell(null);
       setEditValue('');
     }
-  }, [editingCell, editValue, store?.id, products, cacheKey]);
+  }, [editingCell, editValue, store?.id, products, cacheKey, role, user?.id]);
 
   const handleEditKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') saveEdit();
     if (e.key === 'Escape') cancelEdit();
   };
 
+  // For warehouse role — show only products this user stocked today
+  const warehouseTodayStart = new Date();
+  warehouseTodayStart.setHours(0, 0, 0, 0);
+  const visibleProducts = role === 'warehouse'
+    ? products.filter(p =>
+        p.stock_updated_by === user?.id &&
+        p.stock_updated_at != null &&
+        new Date(p.stock_updated_at) >= warehouseTodayStart
+      )
+    : products;
+
   // Filtering
-  const filtered = products.filter(p => {
+  const filtered = visibleProducts.filter(p => {
     const matchesSearch = !searchTerm ||
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -831,13 +849,24 @@ export default function WarehousePage() {
       </div>
 
       {/* Empty state */}
-      {!loading && products.length === 0 && (
+      {!loading && visibleProducts.length === 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 shadow-sm text-center">
           <Package className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-          <h3 className="text-lg font-semibold mb-1 text-gray-900 dark:text-white">Нет товаров</h3>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            Товары добавляются автоматически при синхронизации заказов с Kaspi
-          </p>
+          {role === 'warehouse' ? (
+            <>
+              <h3 className="text-lg font-semibold mb-1 text-gray-900 dark:text-white">Нет пополнений сегодня</h3>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
+                Здесь появятся товары, которые вы обновите сегодня
+              </p>
+            </>
+          ) : (
+            <>
+              <h3 className="text-lg font-semibold mb-1 text-gray-900 dark:text-white">Нет товаров</h3>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">
+                Товары добавляются автоматически при синхронизации заказов с Kaspi
+              </p>
+            </>
+          )}
         </div>
       )}
 

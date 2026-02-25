@@ -78,10 +78,11 @@ export default function DashboardPage() {
   const router = useRouter();
   const { user, role, loading: userLoading } = useUser();
 
-  // Менеджер видит только заказы
+  // Менеджер видит только заказы, складовщик — только склад
   useEffect(() => {
-    if (!userLoading && role === 'manager') {
-      router.replace('/app/orders');
+    if (!userLoading) {
+      if (role === 'manager') router.replace('/app/orders');
+      if (role === 'warehouse') router.replace('/app/warehouse');
     }
   }, [role, userLoading, router]);
   const [showNotifications, setShowNotifications] = useState(false);
