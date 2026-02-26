@@ -185,8 +185,8 @@ export default function WarehousePage() {
     ? products.filter(p =>
         p.name.toLowerCase().includes(quickSearch.toLowerCase()) ||
         (p.sku && p.sku.toLowerCase().includes(quickSearch.toLowerCase()))
-      ).slice(0, 8)
-    : [];
+      ).slice(0, 20)
+    : products.slice(0, 20);
 
   const handleQuickReceive = async () => {
     if (!quickProduct || !store?.id || !quickQty) return;
