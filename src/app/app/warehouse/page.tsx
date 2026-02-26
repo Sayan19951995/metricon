@@ -176,7 +176,7 @@ export default function WarehousePage() {
   const totalExpenseRate = expenseRates.ad + expenseRates.commission + expenseRates.tax + expenseRates.delivery;
 
   // Warehouse role: receive form + history
-  interface ReceiveItem { product_id: string; name: string; quantity: number; }
+  interface ReceiveItem { product_id: string; name: string; quantity: number; image_url?: string | null; }
   interface WarehouseOrder { id: string; items: any[]; created_at: string; supplier: string; }
   const [showReceiveModal, setShowReceiveModal] = useState(false);
   const [receiveSearch, setReceiveSearch] = useState('');
@@ -219,6 +219,7 @@ export default function WarehousePage() {
         name: ri.name,
         product_id: ri.product_id,
         quantity: ri.quantity,
+        image_url: ri.image_url || null,
         price_per_unit: 0,
         total: 0,
       }));
@@ -671,12 +672,19 @@ export default function WarehousePage() {
                       <button
                         key={p.id}
                         onClick={() => {
-                          setReceiveItems(prev => [...prev, { product_id: p.id, name: p.name, quantity: 1 }]);
+                          setReceiveItems(prev => [...prev, { product_id: p.id, name: p.name, quantity: 1, image_url: p.image_url }]);
                           setReceiveSearch('');
                         }}
                         className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors border-b last:border-b-0 border-gray-50 dark:border-gray-700"
                       >
                         <Plus className="w-4 h-4 text-emerald-500 shrink-0" />
+                        {p.image_url ? (
+                          <img src={p.image_url} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" />
+                        ) : (
+                          <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-600 flex items-center justify-center shrink-0">
+                            <Package className="w-4 h-4 text-gray-400" />
+                          </div>
+                        )}
                         <span className="text-sm text-gray-900 dark:text-white truncate">{p.name}</span>
                       </button>
                     ))}
@@ -692,6 +700,13 @@ export default function WarehousePage() {
                     <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Добавленные товары</p>
                     {receiveItems.map((item, idx) => (
                       <div key={item.product_id} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-700 rounded-xl px-4 py-3">
+                        {item.image_url ? (
+                          <img src={item.image_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center shrink-0">
+                            <Package className="w-5 h-5 text-gray-400" />
+                          </div>
+                        )}
                         <span className="flex-1 text-sm text-gray-900 dark:text-white truncate">{item.name}</span>
                         <input
                           type="number"
@@ -775,10 +790,10 @@ export default function WarehousePage() {
             <div className="divide-y divide-gray-50 dark:divide-gray-700">
               {warehouseOrders.map(order => {
                 const date = new Date(order.created_at);
-                const items = (order.items || []) as Array<{ name: string; quantity: number }>;
+                const items = (order.items || []) as Array<{ name: string; quantity: number; image_url?: string }>;
                 return (
                   <div key={order.id} className="px-5 py-4">
-                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center justify-between mb-3">
                       <span className="text-sm font-medium text-gray-900 dark:text-white">
                         {date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' })}
                       </span>
@@ -786,11 +801,18 @@ export default function WarehousePage() {
                         {date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
-                    <div className="space-y-1">
+                    <div className="space-y-2">
                       {items.map((item, i) => (
-                        <div key={i} className="flex items-center justify-between text-sm">
-                          <span className="text-gray-600 dark:text-gray-400 truncate">{item.name}</span>
-                          <span className="text-gray-900 dark:text-white font-medium ml-2 shrink-0">+{item.quantity} шт</span>
+                        <div key={i} className="flex items-center gap-3 text-sm">
+                          {item.image_url ? (
+                            <img src={item.image_url} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                              <Package className="w-4 h-4 text-gray-400" />
+                            </div>
+                          )}
+                          <span className="flex-1 text-gray-600 dark:text-gray-400 truncate">{item.name}</span>
+                          <span className="text-gray-900 dark:text-white font-medium shrink-0">+{item.quantity} шт</span>
                         </div>
                       ))}
                     </div>
