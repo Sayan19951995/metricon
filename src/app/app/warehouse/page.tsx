@@ -371,6 +371,11 @@ export default function WarehousePage() {
             p.kaspi_stock = info.stock;
             p.availabilities = info.availabilities;
             p.kaspi_not_specified = info.notSpecified;
+            // Подтянуть фото из Kaspi если его нет
+            if (!p.image_url && info.image_url) {
+              p.image_url = info.image_url;
+              supabase.from('products').update({ image_url: info.image_url }).eq('id', p.id).then(() => {});
+            }
           }
         }
 
