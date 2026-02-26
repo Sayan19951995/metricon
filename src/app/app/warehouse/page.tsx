@@ -16,6 +16,7 @@ import {
   ChevronDown,
   TrendingUp,
   Sliders,
+  Plus,
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@/hooks/useUser';
@@ -174,41 +175,90 @@ export default function WarehousePage() {
 
   const totalExpenseRate = expenseRates.ad + expenseRates.commission + expenseRates.tax + expenseRates.delivery;
 
-  // Quick receive modal (for warehouse role)
-  const [showQuickReceive, setShowQuickReceive] = useState(false);
-  const [quickSearch, setQuickSearch] = useState('');
-  const [quickProduct, setQuickProduct] = useState<Product | null>(null);
-  const [quickQty, setQuickQty] = useState('');
-  const [quickSaving, setQuickSaving] = useState(false);
+  // Warehouse role: receive form + history
+  interface ReceiveItem { product_id: string; name: string; quantity: number; }
+  interface WarehouseOrder { id: string; items: any[]; created_at: string; supplier: string; }
+  const [showReceiveModal, setShowReceiveModal] = useState(false);
+  const [receiveSearch, setReceiveSearch] = useState('');
+  const [receiveItems, setReceiveItems] = useState<ReceiveItem[]>([]);
+  const [receiveSaving, setReceiveSaving] = useState(false);
+  const [warehouseOrders, setWarehouseOrders] = useState<WarehouseOrder[]>([]);
+  const [warehouseOrdersLoading, setWarehouseOrdersLoading] = useState(true);
 
-  const quickFiltered = quickSearch.trim()
+  const receiveSearchResults = receiveSearch.trim()
     ? products.filter(p =>
-        p.name.toLowerCase().includes(quickSearch.toLowerCase()) ||
-        (p.sku && p.sku.toLowerCase().includes(quickSearch.toLowerCase()))
-      ).slice(0, 20)
-    : products.slice(0, 20);
+        p.name.toLowerCase().includes(receiveSearch.toLowerCase()) ||
+        (p.sku && p.sku.toLowerCase().includes(receiveSearch.toLowerCase()))
+      ).filter(p => !receiveItems.find(ri => ri.product_id === p.id)).slice(0, 8)
+    : [];
 
-  const handleQuickReceive = async () => {
-    if (!quickProduct || !store?.id || !quickQty) return;
-    const qty = parseInt(quickQty);
-    if (isNaN(qty) || qty <= 0) return;
-    setQuickSaving(true);
+  const loadWarehouseOrders = useCallback(async () => {
+    if (!store?.id || !user?.id) return;
     try {
-      const newQty = (quickProduct.quantity ?? 0) + qty;
-      const update: Record<string, unknown> = { quantity: newQty };
-      if (user?.id) { update.stock_updated_by = user.id; update.stock_updated_at = new Date().toISOString(); }
-      const { error } = await supabase.from('products').update(update).eq('id', quickProduct.id);
+      const { data } = await supabase
+        .from('restock_orders')
+        .select('*')
+        .eq('store_id', store.id)
+        .eq('created_by', user.id)
+        .order('created_at', { ascending: false });
+      setWarehouseOrders((data || []) as unknown as WarehouseOrder[]);
+    } catch (err) { console.error('Load warehouse orders:', err); }
+    finally { setWarehouseOrdersLoading(false); }
+  }, [store?.id, user?.id]);
+
+  useEffect(() => {
+    if (role === 'warehouse') loadWarehouseOrders();
+  }, [role, loadWarehouseOrders]);
+
+  const handleReceiveSubmit = async () => {
+    if (receiveItems.length === 0 || !store?.id || !user?.id) return;
+    setReceiveSaving(true);
+    try {
+      const items = receiveItems.map(ri => ({
+        type: 'existing' as const,
+        name: ri.name,
+        product_id: ri.product_id,
+        quantity: ri.quantity,
+        price_per_unit: 0,
+        total: 0,
+      }));
+
+      const { error } = await supabase.from('restock_orders').insert({
+        store_id: store.id,
+        supplier: user.name || user.email || 'Кладовщик',
+        status: 'completed',
+        order_date: new Date().toISOString(),
+        items: items as any,
+        total_amount: 0,
+        delivery_cost: 0,
+        created_by: user.id,
+      } as any);
       if (error) throw error;
-      const updatedProducts = products.map(p => p.id === quickProduct.id ? { ...p, ...update } : p);
-      setProducts(updatedProducts);
-      if (cacheKey) setCache(cacheKey, updatedProducts);
-      setToast({ message: `+${qty} шт — ${quickProduct.name}`, type: 'success' });
+
+      // Update product quantities
+      for (const ri of receiveItems) {
+        const product = products.find(p => p.id === ri.product_id);
+        if (product) {
+          const newQty = (product.quantity ?? 0) + ri.quantity;
+          await supabase.from('products').update({
+            quantity: newQty,
+            stock_updated_by: user.id,
+            stock_updated_at: new Date().toISOString(),
+          } as any).eq('id', ri.product_id);
+        }
+      }
+
+      setShowReceiveModal(false);
+      setReceiveItems([]);
+      setReceiveSearch('');
+      setToast({ message: 'Приёмка сохранена', type: 'success' });
       setTimeout(() => setToast(null), 3000);
-      setQuickProduct(null); setQuickSearch(''); setQuickQty('');
+      loadWarehouseOrders();
     } catch (err) {
+      console.error('Receive error:', err);
       setToast({ message: 'Ошибка сохранения', type: 'error' });
       setTimeout(() => setToast(null), 4000);
-    } finally { setQuickSaving(false); }
+    } finally { setReceiveSaving(false); }
   };
 
   // Inline editing
@@ -494,19 +544,8 @@ export default function WarehousePage() {
     if (e.key === 'Escape') cancelEdit();
   };
 
-  // For warehouse role — show only products this user stocked today
-  const warehouseTodayStart = new Date();
-  warehouseTodayStart.setHours(0, 0, 0, 0);
-  const visibleProducts = role === 'warehouse'
-    ? products.filter(p =>
-        p.stock_updated_by === user?.id &&
-        p.stock_updated_at != null &&
-        new Date(p.stock_updated_at) >= warehouseTodayStart
-      )
-    : products;
-
   // Filtering
-  const filtered = visibleProducts.filter(p => {
+  const filtered = products.filter(p => {
     const matchesSearch = !searchTerm ||
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -590,6 +629,182 @@ export default function WarehousePage() {
     );
   }
 
+  // ==================== WAREHOUSE ROLE VIEW ====================
+  if (role === 'warehouse') {
+    return (
+      <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+        {/* Toast */}
+        {toast && (
+          <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${
+            toast.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
+          }`}>{toast.message}</div>
+        )}
+
+        {/* Receive Modal */}
+        {showReceiveModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/50" onClick={() => { setShowReceiveModal(false); setReceiveItems([]); setReceiveSearch(''); }} />
+            <div className="relative w-full max-w-lg bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-h-[90vh] flex flex-col">
+              <div className="p-6 border-b border-gray-100 dark:border-gray-700">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white">Новая приёмка</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Найдите товары и укажите количество</p>
+              </div>
+
+              <div className="p-6 flex-1 overflow-y-auto">
+                {/* Search */}
+                <div className="relative mb-3">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    value={receiveSearch}
+                    onChange={e => setReceiveSearch(e.target.value)}
+                    placeholder="Поиск товара..."
+                    autoFocus
+                    className="w-full pl-9 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+                  />
+                </div>
+
+                {/* Search results */}
+                {receiveSearch.trim() && receiveSearchResults.length > 0 && (
+                  <div className="mb-4 border border-gray-100 dark:border-gray-700 rounded-xl overflow-hidden">
+                    {receiveSearchResults.map(p => (
+                      <button
+                        key={p.id}
+                        onClick={() => {
+                          setReceiveItems(prev => [...prev, { product_id: p.id, name: p.name, quantity: 1 }]);
+                          setReceiveSearch('');
+                        }}
+                        className="w-full flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors border-b last:border-b-0 border-gray-50 dark:border-gray-700"
+                      >
+                        <Plus className="w-4 h-4 text-emerald-500 shrink-0" />
+                        <span className="text-sm text-gray-900 dark:text-white truncate">{p.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {receiveSearch.trim() && receiveSearchResults.length === 0 && (
+                  <p className="text-sm text-gray-400 text-center mb-4">Ничего не найдено</p>
+                )}
+
+                {/* Added items */}
+                {receiveItems.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Добавленные товары</p>
+                    {receiveItems.map((item, idx) => (
+                      <div key={item.product_id} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-700 rounded-xl px-4 py-3">
+                        <span className="flex-1 text-sm text-gray-900 dark:text-white truncate">{item.name}</span>
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={e => {
+                            const val = parseInt(e.target.value) || 0;
+                            setReceiveItems(prev => prev.map((ri, i) => i === idx ? { ...ri, quantity: Math.max(1, val) } : ri));
+                          }}
+                          min="1"
+                          className="w-20 px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg text-center bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                        />
+                        <span className="text-xs text-gray-400">шт</span>
+                        <button
+                          onClick={() => setReceiveItems(prev => prev.filter((_, i) => i !== idx))}
+                          className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {receiveItems.length === 0 && !receiveSearch.trim() && (
+                  <div className="text-center py-8">
+                    <Package className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                    <p className="text-sm text-gray-400">Найдите и добавьте товары</p>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-6 border-t border-gray-100 dark:border-gray-700 flex gap-3">
+                <button
+                  onClick={() => { setShowReceiveModal(false); setReceiveItems([]); setReceiveSearch(''); }}
+                  className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium cursor-pointer"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleReceiveSubmit}
+                  disabled={receiveSaving || receiveItems.length === 0}
+                  className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium cursor-pointer disabled:opacity-50"
+                >
+                  {receiveSaving ? 'Сохранение...' : `Принять (${receiveItems.length})`}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Header */}
+        <div className="mb-6 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Склад</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Приёмка товаров</p>
+          </div>
+          <button
+            onClick={() => setShowReceiveModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-colors text-sm font-medium cursor-pointer"
+          >
+            <Plus className="w-4 h-4" />
+            <span>Новая приёмка</span>
+          </button>
+        </div>
+
+        {/* History */}
+        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-700">
+            <h2 className="font-semibold text-gray-900 dark:text-white">Мои накладные</h2>
+          </div>
+
+          {warehouseOrdersLoading ? (
+            <div className="p-8 flex justify-center"><Loader2 className="w-6 h-6 animate-spin text-gray-400" /></div>
+          ) : warehouseOrders.length === 0 ? (
+            <div className="p-12 text-center">
+              <Package className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+              <h3 className="text-lg font-semibold mb-1 text-gray-900 dark:text-white">Нет приёмок</h3>
+              <p className="text-gray-500 dark:text-gray-400 text-sm">Нажмите «Новая приёмка» чтобы добавить товары на склад</p>
+            </div>
+          ) : (
+            <div className="divide-y divide-gray-50 dark:divide-gray-700">
+              {warehouseOrders.map(order => {
+                const date = new Date(order.created_at);
+                const items = (order.items || []) as Array<{ name: string; quantity: number }>;
+                return (
+                  <div key={order.id} className="px-5 py-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-900 dark:text-white">
+                        {date.toLocaleDateString('ru-RU', { day: '2-digit', month: 'long', year: 'numeric' })}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                    <div className="space-y-1">
+                      {items.map((item, i) => (
+                        <div key={i} className="flex items-center justify-between text-sm">
+                          <span className="text-gray-600 dark:text-gray-400 truncate">{item.name}</span>
+                          <span className="text-gray-900 dark:text-white font-medium ml-2 shrink-0">+{item.quantity} шт</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ==================== OWNER/ADMIN VIEW ====================
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen relative" onClick={() => groupMenuId && setGroupMenuId(null)}>
       {/* Toast */}
@@ -598,75 +813,6 @@ export default function WarehousePage() {
           toast.type === 'success' ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'
         }`}>
           {toast.message}
-        </div>
-      )}
-
-      {/* Quick Receive Modal */}
-      {showQuickReceive && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-black/50" onClick={() => { setShowQuickReceive(false); setQuickProduct(null); setQuickSearch(''); setQuickQty(''); }} />
-          <div className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-4">Быстрая приёмка</h3>
-
-            {!quickProduct ? (
-              <div>
-                <div className="relative mb-2">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                  <input
-                    type="text"
-                    value={quickSearch}
-                    onChange={e => setQuickSearch(e.target.value)}
-                    placeholder="Поиск товара..."
-                    autoFocus
-                    className="w-full pl-9 pr-4 py-2.5 border border-gray-200 dark:border-gray-600 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  />
-                </div>
-                <div className="space-y-1 max-h-64 overflow-y-auto">
-                  {quickFiltered.map(p => (
-                    <button
-                      key={p.id}
-                      onClick={() => { setQuickProduct(p); setQuickSearch(''); }}
-                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 text-left transition-colors"
-                    >
-                      <span className="text-sm text-gray-900 dark:text-white truncate">{p.name}</span>
-                      <span className="text-xs text-gray-400 ml-2 shrink-0">{p.quantity ?? 0} шт</span>
-                    </button>
-                  ))}
-                  {quickSearch.trim() && quickFiltered.length === 0 && (
-                    <p className="text-sm text-gray-400 text-center py-4">Ничего не найдено</p>
-                  )}
-                </div>
-              </div>
-            ) : (
-              <div>
-                <div className="bg-gray-50 dark:bg-gray-700 rounded-xl px-4 py-3 mb-4">
-                  <p className="font-medium text-gray-900 dark:text-white text-sm">{quickProduct.name}</p>
-                  <p className="text-xs text-gray-400 mt-0.5">Текущий остаток: {quickProduct.quantity ?? 0} шт</p>
-                </div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Добавить количество</label>
-                <div className="flex items-center gap-3 mb-5">
-                  <input
-                    type="number"
-                    value={quickQty}
-                    onChange={e => setQuickQty(e.target.value)}
-                    placeholder="0"
-                    min="1"
-                    autoFocus
-                    className="flex-1 px-4 py-3 text-lg border border-gray-200 dark:border-gray-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-                  />
-                  <span className="text-gray-500 dark:text-gray-400 text-sm">шт</span>
-                </div>
-                <div className="flex gap-3">
-                  <button onClick={() => setQuickProduct(null)} className="flex-1 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium cursor-pointer">
-                    Назад
-                  </button>
-                  <button onClick={handleQuickReceive} disabled={quickSaving || !quickQty} className="flex-1 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium cursor-pointer disabled:opacity-50">
-                    {quickSaving ? 'Сохранение...' : 'Принять'}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
       )}
 
@@ -714,44 +860,32 @@ export default function WarehousePage() {
           <p className="text-gray-500 dark:text-gray-400 text-sm mt-1">Остатки и себестоимость товаров</p>
         </div>
         <div className="flex items-center gap-2">
-          {role === 'warehouse' ? (
-            <button
-              onClick={() => setShowQuickReceive(true)}
-              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl transition-colors text-sm font-medium cursor-pointer"
-            >
-              <Check className="w-4 h-4" />
-              <span>Быстрая приёмка</span>
-            </button>
-          ) : (
-            <>
-              <button
-                onClick={() => loadProducts(true)}
-                disabled={refreshing}
-                className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
-              >
-                <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">Обновить</span>
-              </button>
-              <Link
-                href="/app/warehouse/history"
-                className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
-              >
-                <History className="w-4 h-4" />
-                <span className="hidden sm:inline">Приёмки</span>
-              </Link>
-              <Link
-                href="/app/warehouse/settings"
-                className="p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors"
-              >
-                <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
-              </Link>
-            </>
-          )}
+          <button
+            onClick={() => loadProducts(true)}
+            disabled={refreshing}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Обновить</span>
+          </button>
+          <Link
+            href="/app/warehouse/history"
+            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors text-sm font-medium text-gray-700 dark:text-gray-300"
+          >
+            <History className="w-4 h-4" />
+            <span className="hidden sm:inline">Приёмки</span>
+          </Link>
+          <Link
+            href="/app/warehouse/settings"
+            className="p-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors"
+          >
+            <Settings className="w-5 h-5 text-gray-600 dark:text-gray-400" />
+          </Link>
         </div>
       </div>
 
-      {/* Stats — скрыто для кладовщика */}
-      {role !== 'warehouse' && <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
+      {/* Stats */}
+      <div className="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-4">
         <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm">
           <div className="flex items-center gap-2 lg:gap-3">
             <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center shrink-0">
@@ -837,7 +971,7 @@ export default function WarehousePage() {
             </div>
           </div>
         </button>
-      </div>}
+      </div>
 
       {/* Expense rates panel */}
       {showExpensePanel && (
@@ -967,24 +1101,13 @@ export default function WarehousePage() {
       </div>
 
       {/* Empty state */}
-      {!loading && visibleProducts.length === 0 && (
+      {!loading && products.length === 0 && (
         <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 shadow-sm text-center">
           <Package className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-          {role === 'warehouse' ? (
-            <>
-              <h3 className="text-lg font-semibold mb-1 text-gray-900 dark:text-white">Нет пополнений сегодня</h3>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
-                Здесь появятся товары, которые вы обновите сегодня
-              </p>
-            </>
-          ) : (
-            <>
-              <h3 className="text-lg font-semibold mb-1 text-gray-900 dark:text-white">Нет товаров</h3>
-              <p className="text-gray-500 dark:text-gray-400 text-sm">
-                Товары добавляются автоматически при синхронизации заказов с Kaspi
-              </p>
-            </>
-          )}
+          <h3 className="text-lg font-semibold mb-1 text-gray-900 dark:text-white">Нет товаров</h3>
+          <p className="text-gray-500 dark:text-gray-400 text-sm">
+            Товары добавляются автоматически при синхронизации заказов с Kaspi
+          </p>
         </div>
       )}
 

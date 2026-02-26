@@ -267,6 +267,7 @@ export interface Database {
           total_amount: number
           delivery_cost: number
           notes: string | null
+          created_by: string | null
           created_at: string | null
         }
         Insert: {
@@ -280,6 +281,7 @@ export interface Database {
           total_amount?: number
           delivery_cost?: number
           notes?: string | null
+          created_by?: string | null
           created_at?: string | null
         }
         Update: {
@@ -293,6 +295,7 @@ export interface Database {
           total_amount?: number
           delivery_cost?: number
           notes?: string | null
+          created_by?: string | null
           created_at?: string | null
         }
         Relationships: []

@@ -43,7 +43,7 @@ interface RestockOrder {
 type StatusFilter = 'all' | 'in_transit' | 'completed' | 'cancelled';
 
 export default function WarehouseHistoryPage() {
-  const { store, loading: userLoading } = useUser();
+  const { user, store, loading: userLoading } = useUser();
 
   const [orders, setOrders] = useState<RestockOrder[]>([]);
   const [loading, setLoading] = useState(true);
@@ -169,7 +169,8 @@ export default function WarehouseHistoryPage() {
         total_amount,
         delivery_cost: form.delivery_cost || 0,
         notes: form.notes.trim() || null,
-      });
+        created_by: user?.id || null,
+      } as any);
 
       if (insertError) throw insertError;
 
