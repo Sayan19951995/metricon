@@ -1168,7 +1168,15 @@ export default function WarehousePage() {
             {paginated.map(product => (
               <div key={product.id} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
                 <div className="flex items-start justify-between mb-2">
-                  <div className="flex-1 min-w-0">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    {product.image_url ? (
+                      <img src={product.image_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                    ) : (
+                      <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                        <Package className="w-5 h-5 text-gray-400" />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
                     <p className="font-medium text-sm truncate text-gray-900 dark:text-white">{product.name}</p>
                     <div className="flex items-center gap-1.5 mt-0.5">
                       <p className="text-xs text-gray-400">{product.sku || '—'}</p>
@@ -1209,6 +1217,7 @@ export default function WarehousePage() {
                         })()}
                       </div>
                     </div>
+                  </div>
                   </div>
                   <div className="flex items-center gap-1 ml-2">
                     {(product.quantity ?? 0) < 5 && (
@@ -1341,9 +1350,18 @@ export default function WarehousePage() {
                   <tr key={product.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                     {/* Product */}
                     <td className="py-3 px-6">
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium truncate text-gray-900 dark:text-white">{product.name}</p>
-                        <p className="text-xs text-gray-400">{product.sku || '—'}</p>
+                      <div className="flex items-center gap-3 min-w-0">
+                        {product.image_url ? (
+                          <img src={product.image_url} alt="" className="w-9 h-9 rounded-lg object-cover shrink-0" />
+                        ) : (
+                          <div className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                            <Package className="w-4 h-4 text-gray-400" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate text-gray-900 dark:text-white">{product.name}</p>
+                          <p className="text-xs text-gray-400">{product.sku || '—'}</p>
+                        </div>
                       </div>
                     </td>
 

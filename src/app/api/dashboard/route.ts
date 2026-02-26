@@ -246,9 +246,29 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    const topProducts = Array.from(productSales.values())
-      .sort((a, b) => b.revenue - a.revenue)
+    // Fetch product images for top products
+    const topProductKeys = Array.from(productSales.entries())
+      .sort((a, b) => b[1].revenue - a[1].revenue)
       .slice(0, 5);
+
+    const { data: productImages } = await supabase
+      .from('products')
+      .select('kaspi_id, name, image_url')
+      .eq('store_id', store.id)
+      .not('image_url', 'is', null);
+
+    const imageMap = new Map<string, string>();
+    if (productImages) {
+      for (const p of productImages) {
+        if (p.kaspi_id && p.image_url) imageMap.set(p.kaspi_id, p.image_url);
+        if (p.name && p.image_url) imageMap.set(p.name, p.image_url);
+      }
+    }
+
+    const topProducts = topProductKeys.map(([key, val]) => ({
+      ...val,
+      image_url: imageMap.get(key) || imageMap.get(val.name) || null,
+    }));
 
     // === Рост ===
     const currentWeekTotal = currentWeekData.reduce((a, b) => a + b, 0);

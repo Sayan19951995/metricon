@@ -9,9 +9,11 @@ import {
   Minus,
   Calendar,
   Clock,
-  Loader2
+  Loader2,
+  Package
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { supabase } from '@/lib/supabase/client';
 
 // Типы
 type ChangeType = 'decrease' | 'increase' | 'match';
@@ -30,12 +32,33 @@ interface PriceChange {
 }
 
 export default function AutoPricingHistoryPage() {
-  const { user, loading: userLoading } = useUser();
+  const { user, store, loading: userLoading } = useUser();
   const [history, setHistory] = useState<PriceChange[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [typeFilter, setTypeFilter] = useState<ChangeType | 'all'>('all');
   const [dateFilter, setDateFilter] = useState<'today' | 'week' | 'month' | 'all'>('all');
+  const [productImageMap, setProductImageMap] = useState<Map<string, string>>(new Map());
+
+  // Load product images
+  useEffect(() => {
+    if (!store?.id) return;
+    supabase
+      .from('products')
+      .select('kaspi_id, name, image_url')
+      .eq('store_id', store.id)
+      .not('image_url', 'is', null)
+      .then(({ data }) => {
+        if (data) {
+          const map = new Map<string, string>();
+          data.forEach((p: any) => {
+            if (p.kaspi_id && p.image_url) map.set(p.kaspi_id, p.image_url);
+            if (p.name && p.image_url) map.set(p.name, p.image_url);
+          });
+          setProductImageMap(map);
+        }
+      });
+  }, [store?.id]);
 
   useEffect(() => {
     if (!user?.id) return;
@@ -281,9 +304,13 @@ export default function AutoPricingHistoryPage() {
                       {/* Mobile Layout */}
                       <div className="sm:hidden">
                         <div className="flex items-start gap-2">
-                          <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${getChangeColor(change.change_type)}`}>
-                            {getChangeIcon(change.change_type)}
-                          </div>
+                          {(productImageMap.get(change.sku) || productImageMap.get(change.product_name)) ? (
+                            <img src={(productImageMap.get(change.sku) || productImageMap.get(change.product_name))} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" />
+                          ) : (
+                            <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${getChangeColor(change.change_type)}`}>
+                              {getChangeIcon(change.change_type)}
+                            </div>
+                          )}
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center justify-between gap-2 mb-1">
@@ -327,10 +354,14 @@ export default function AutoPricingHistoryPage() {
                             </div>
                           </div>
 
-                          {/* Change Type Icon */}
-                          <div className={`w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center ${getChangeColor(change.change_type)}`}>
-                            {getChangeIcon(change.change_type)}
-                          </div>
+                          {/* Product Image */}
+                          {(productImageMap.get(change.sku) || productImageMap.get(change.product_name)) ? (
+                            <img src={(productImageMap.get(change.sku) || productImageMap.get(change.product_name))} alt="" className="w-8 h-8 lg:w-10 lg:h-10 rounded-lg object-cover shrink-0" />
+                          ) : (
+                            <div className={`w-7 h-7 lg:w-8 lg:h-8 rounded-lg flex items-center justify-center ${getChangeColor(change.change_type)}`}>
+                              {getChangeIcon(change.change_type)}
+                            </div>
+                          )}
 
                           {/* Product */}
                           <div className="flex-1 min-w-0">

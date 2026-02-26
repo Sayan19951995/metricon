@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import { KaspiMarketingClient, MarketingSession, MarketingCampaign } from '@/lib/kaspi/marketing-client';
+import { KaspiAPIClient } from '@/lib/kaspi/api-client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -35,18 +36,57 @@ export async function GET(request: NextRequest) {
     // === 0. Загрузить себестоимость товаров ===
     const productsResult = await supabase
       .from('products')
-      .select('kaspi_id, cost_price, product_group')
+      .select('id, kaspi_id, sku, name, cost_price, product_group, image_url')
       .eq('store_id', store.id);
     const productsDb = productsResult.data || [];
 
     const costPriceMap = new Map<string, number>();
     const groupMap = new Map<string, string>();
+    const imageMap = new Map<string, string>();
+
+    // Первый проход: заполнить из БД
     for (const p of productsDb) {
       if (p.kaspi_id && p.cost_price) {
         costPriceMap.set(p.kaspi_id, Number(p.cost_price));
       }
+      if (p.kaspi_id && p.image_url) imageMap.set(p.kaspi_id, p.image_url);
+      if (p.sku && p.image_url) imageMap.set(p.sku, p.image_url);
+      if (p.name && p.image_url) imageMap.set(p.name, p.image_url);
       if (p.kaspi_id && p.product_group) {
         groupMap.set(p.kaspi_id, p.product_group);
+      }
+    }
+
+    // Если фото нет ни у одного товара — подтянуть из Kaspi Cabinet
+    if (imageMap.size === 0 && productsDb.length > 0) {
+      try {
+        const session = (store as any).kaspi_session as { cookies?: string; merchant_id?: string } | null;
+        if (session?.cookies && (session.merchant_id || store.kaspi_merchant_id)) {
+          const merchantId = session.merchant_id || store.kaspi_merchant_id || '';
+          const client = new KaspiAPIClient(session.cookies, merchantId);
+          const cabinetProducts = await client.getAllProducts();
+          const cabBySku = new Map<string, string>();
+          const cabByName = new Map<string, string>();
+          for (const kp of cabinetProducts) {
+            const img = kp.images?.[0];
+            if (!img) continue;
+            if (kp.sku) cabBySku.set(kp.sku, img);
+            if (kp.name) cabByName.set(kp.name.toLowerCase().trim(), img);
+          }
+          for (const p of productsDb) {
+            const img = (p.sku && cabBySku.get(p.sku))
+              || (p.name && cabByName.get(p.name.toLowerCase().trim()))
+              || null;
+            if (img) {
+              if (p.kaspi_id) imageMap.set(p.kaspi_id, img);
+              if (p.sku) imageMap.set(p.sku, img);
+              if (p.name) imageMap.set(p.name, img);
+              supabase.from('products').update({ image_url: img } as any).eq('id', p.id).then(() => {});
+            }
+          }
+        }
+      } catch (cabinetErr) {
+        console.error('Analytics: Cabinet image fetch error:', cabinetErr);
       }
     }
 
@@ -598,7 +638,7 @@ export async function GET(request: NextRequest) {
           id: String(idx + 1),
           name: data.name,
           sku: code,
-          image: '',
+          image: imageMap.get(code) || imageMap.get(data.name) || '',
           sales: data.sold,
           revenue: data.revenue,
           costPrice: data.costPrice,

@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, ChevronUp, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Plus, X, Trash2, HelpCircle, BarChart3, RotateCcw, UserCheck } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { supabase } from '@/lib/supabase/client';
 import { getSmoothPath } from '@/lib/smoothPath';
 
 // Компонент подсказки (кликабельный для мобильных)
@@ -241,7 +242,7 @@ function AnalyticsPageSkeleton() {
 
 // Основной контент страницы
 function AnalyticsPageContent() {
-  const { user, loading: userLoading } = useUser();
+  const { user, store, loading: userLoading } = useUser();
   const searchParams = useSearchParams();
   const tabFromUrl = searchParams.get('tab') as TabType | null;
   const validTabs: TabType[] = ['finances', 'sales', 'managers', 'reviews'];
@@ -308,6 +309,81 @@ function AnalyticsPageContent() {
       fetchOperationalExpenses();
     }
   }, [user?.id, userLoading]);
+
+  // Подтянуть фото товаров из Kaspi Cabinet если их нет в БД
+  const imagesSynced = useRef(false);
+  useEffect(() => {
+    if (!apiData || !user?.id || !store?.id || imagesSynced.current) return;
+    const topProducts = apiData.topProducts || [];
+    const hasMissing = topProducts.some((p: any) => !p.image);
+    if (!hasMissing) return;
+    imagesSynced.current = true;
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/kaspi/cabinet/products?userId=${user.id}`);
+        const json = await res.json();
+        if (!json.success || !json.products) return;
+
+        // Построить маппинг: sku → image, name → image
+        const cabinetImageBySku = new Map<string, string>();
+        const cabinetImageByName = new Map<string, string>();
+        for (const kp of json.products) {
+          const img = kp.images?.[0];
+          if (!img) continue;
+          if (kp.sku) cabinetImageBySku.set(kp.sku, img);
+          if (kp.name) cabinetImageByName.set(kp.name.toLowerCase().trim(), img);
+        }
+
+        // Загрузить kaspi_id → sku маппинг из products таблицы
+        const { data: dbProducts } = await supabase
+          .from('products')
+          .select('id, sku, kaspi_id, name, image_url')
+          .eq('store_id', store.id);
+
+        // Построить универсальный маппинг: kaspi_id → image, sku → image, name → image
+        const imageMap = new Map<string, string>();
+        // Сначала из кабинета по sku
+        for (const [sku, img] of cabinetImageBySku) {
+          imageMap.set(sku, img);
+        }
+        // Потом через products таблицу: kaspi_id → sku → image
+        if (dbProducts) {
+          for (const p of dbProducts) {
+            // Если у товара уже есть фото в БД — используем его
+            if (p.image_url) {
+              if (p.kaspi_id) imageMap.set(p.kaspi_id, p.image_url);
+              if (p.sku) imageMap.set(p.sku, p.image_url);
+              if (p.name) imageMap.set(p.name.toLowerCase().trim(), p.image_url);
+              continue;
+            }
+            // Иначе ищем фото из кабинета по sku или name
+            const img = (p.sku && cabinetImageBySku.get(p.sku))
+              || (p.name && cabinetImageByName.get(p.name.toLowerCase().trim()))
+              || null;
+            if (img) {
+              if (p.kaspi_id) imageMap.set(p.kaspi_id, img);
+              if (p.sku) imageMap.set(p.sku, img);
+              if (p.name) imageMap.set(p.name.toLowerCase().trim(), img);
+              // Сохранить в БД (fire-and-forget)
+              supabase.from('products').update({ image_url: img } as any).eq('id', p.id).then(() => {});
+            }
+          }
+        }
+
+        // Обновить topProducts в стейте
+        const updated = topProducts.map((p: any) => {
+          if (p.image) return p;
+          const img = imageMap.get(p.sku) || imageMap.get((p.name || '').toLowerCase().trim());
+          return img ? { ...p, image: img } : p;
+        });
+        setApiData((prev: any) => prev ? { ...prev, topProducts: updated } : prev);
+      } catch (err) {
+        console.error('Cabinet image sync error:', err);
+      }
+    })();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [apiData, user?.id, store?.id]);
 
   // Загрузка отзывов при переключении на вкладку
   const fetchReviews = useCallback(async (filter: number | null, pg: number = 0) => {
@@ -1981,6 +2057,12 @@ function AnalyticsPageContent() {
                     }
                     const avgCostRatio = totalProductRevenue > 0 ? totalCostAll / totalProductRevenue : 0;
 
+                    // Маппинг имя → image из topProducts
+                    const imageByName: Record<string, string> = {};
+                    for (const p of data.topProducts) {
+                      if (p.image && p.name) imageByName[(p.name || '').toLowerCase().trim()] = p.image;
+                    }
+
                     productsWithData = adProducts.map((ap, idx) => {
                       const nameKey = (ap.name || '').toLowerCase().trim();
                       const costRatio = costRatioByName[nameKey] ?? avgCostRatio;
@@ -1994,6 +2076,7 @@ function AnalyticsPageContent() {
                         id: String(idx + 1),
                         sku: ap.sku,
                         name: ap.name || ap.sku,
+                        image: imageByName[nameKey] || '',
                         group: null,
                         displaySales: ap.transactions || 0,
                         totalSales: ap.transactions || 0,
@@ -2154,6 +2237,13 @@ function AnalyticsPageContent() {
                           <div key={product.id} className="bg-white dark:bg-gray-800 rounded-lg px-2.5 py-1.5 lg:px-4 lg:py-3 shadow-sm">
                             <div className="flex items-center justify-between gap-2">
                               <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                                {product.image ? (
+                                  <img src={product.image} alt="" className="w-7 h-7 lg:w-9 lg:h-9 rounded-lg object-cover shrink-0" />
+                                ) : (
+                                  <div className="w-7 h-7 lg:w-9 lg:h-9 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                                    <Package className="w-3.5 h-3.5 lg:w-4 lg:h-4 text-gray-400" />
+                                  </div>
+                                )}
                                 {(productGroups[product.sku] || product.group) && (() => {
                                   const slug = productGroups[product.sku] || product.group;
                                   const meta = groupsMeta.find(g => g.slug === slug);
@@ -3199,9 +3289,15 @@ function AnalyticsPageContent() {
                     <div className="space-y-3">
                       {data.topProducts.slice(0, 3).map((product: any) => (
                         <div key={product.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                          <div className="text-2xl">{product.image}</div>
-                          <div className="flex-1">
-                            <div className="font-medium text-gray-900">{product.name}</div>
+                          {product.image ? (
+                            <img src={product.image} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center shrink-0">
+                              <Package className="w-5 h-5 text-gray-400" />
+                            </div>
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="font-medium text-gray-900 truncate">{product.name}</div>
                             <div className="text-sm text-gray-500">{product.sku}</div>
                           </div>
                           <div className="text-right">
@@ -3584,7 +3680,13 @@ function AnalyticsPageContent() {
                       {data.topProducts.slice(0, 3).map((product: any, i: number) => (
                         <div key={product.id} className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
                           <div className="text-lg font-bold text-gray-400 w-6">{i + 1}</div>
-                          <div className="text-2xl">{product.image}</div>
+                          {product.image ? (
+                            <img src={product.image} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center shrink-0">
+                              <Package className="w-5 h-5 text-gray-400" />
+                            </div>
+                          )}
                           <div className="flex-1 min-w-0">
                             <div className="font-medium text-gray-900 truncate">{product.name}</div>
                             <div className="text-sm text-gray-500">{product.sales} шт</div>

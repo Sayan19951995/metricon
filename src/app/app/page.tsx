@@ -61,6 +61,7 @@ interface DashboardData {
     name: string;
     sold: number;
     revenue: number;
+    image_url?: string | null;
   }>;
   todaySoldProducts: Array<{
     name: string;
@@ -1162,6 +1163,13 @@ export default function DashboardPage() {
                   }`}>
                     {index + 1}
                   </div>
+                  {product.image_url ? (
+                    <img src={product.image_url} alt="" className="w-6 h-6 rounded-md object-cover shrink-0" />
+                  ) : (
+                    <div className="w-6 h-6 rounded-md bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                      <Package className="w-3 h-3 text-gray-400" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <span className="text-gray-700 dark:text-gray-300 truncate block">{product.name}</span>
                   </div>

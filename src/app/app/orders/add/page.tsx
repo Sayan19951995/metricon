@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Calendar, MessageSquare, ShoppingBag, X, Search, Minus, Loader2 } from 'lucide-react';
+import { ArrowLeft, Plus, Calendar, MessageSquare, ShoppingBag, X, Search, Minus, Loader2, Package } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 
 interface StoreProduct {
@@ -10,6 +10,7 @@ interface StoreProduct {
   name: string;
   price: number | null;
   cost_price: number | null;
+  image_url: string | null;
 }
 
 interface OrderItem {
@@ -19,6 +20,7 @@ interface OrderItem {
   quantity: number;
   isCustom?: boolean;
   costPrice?: number;
+  image_url?: string | null;
 }
 
 export default function AddOrderPage() {
@@ -67,7 +69,7 @@ export default function AddOrderPage() {
     if (existing) {
       setItems(items.map(i => i.id === p.kaspi_id ? { ...i, quantity: i.quantity + 1 } : i));
     } else {
-      setItems([...items, { id: p.kaspi_id, name: p.name, price: p.price || 0, quantity: 1 }]);
+      setItems([...items, { id: p.kaspi_id, name: p.name, price: p.price || 0, quantity: 1, image_url: p.image_url }]);
     }
     setShowPicker(false);
     setSearch('');
@@ -201,6 +203,13 @@ export default function AddOrderPage() {
             <div className="space-y-2 mb-4">
               {items.map((item) => (
                 <div key={item.id} className="flex items-center gap-3 bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
+                  {item.image_url ? (
+                    <img src={item.image_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-600 flex items-center justify-center shrink-0">
+                      <Package className="w-5 h-5 text-gray-400" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm text-gray-900 dark:text-white truncate">{item.name}</div>
                     <div className="text-xs text-gray-500 dark:text-gray-400">{fmt(item.price)} ₸ / шт.</div>
@@ -372,15 +381,26 @@ export default function AddOrderPage() {
                                 : 'hover:bg-gray-50 dark:hover:bg-gray-700/50'
                             }`}
                           >
-                            <div className="flex items-center gap-1.5">
-                              <span className="font-medium text-sm text-gray-900 dark:text-white truncate">{p.name}</span>
-                              {p.cost_price === null && (
-                                <span title="Нет себестоимости — прибыль не будет рассчитана" className="text-amber-500 text-xs shrink-0">⚠️</span>
+                            <div className="flex items-center gap-3">
+                              {p.image_url ? (
+                                <img src={p.image_url} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                              ) : (
+                                <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                                  <Package className="w-5 h-5 text-gray-400" />
+                                </div>
                               )}
-                            </div>
-                            <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                              {p.price ? `${fmt(p.price)} ₸` : 'Цена не указана'}
-                              {alreadyAdded && <span className="text-emerald-600 ml-2">Добавлен</span>}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-1.5">
+                                  <span className="font-medium text-sm text-gray-900 dark:text-white truncate">{p.name}</span>
+                                  {p.cost_price === null && (
+                                    <span title="Нет себестоимости — прибыль не будет рассчитана" className="text-amber-500 text-xs shrink-0">⚠️</span>
+                                  )}
+                                </div>
+                                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                                  {p.price ? `${fmt(p.price)} ₸` : 'Цена не указана'}
+                                  {alreadyAdded && <span className="text-emerald-600 ml-2">Добавлен</span>}
+                                </div>
+                              </div>
                             </div>
                           </button>
                         );

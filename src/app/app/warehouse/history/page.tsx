@@ -14,6 +14,7 @@ interface DBProduct {
   name: string;
   sku: string | null;
   price: number | null;
+  image_url: string | null;
 }
 
 interface RestockItem {
@@ -117,19 +118,33 @@ export default function WarehouseHistoryPage() {
   }, [store?.id]);
 
   useEffect(() => {
-    if (store?.id) loadData();
+    if (store?.id) {
+      loadData();
+      loadProducts();
+    }
   }, [store?.id]);
+
+  // Product image map for order items
+  const [productImageMap, setProductImageMap] = useState<Map<string, string>>(new Map());
 
   // Load products for autocomplete
   const loadProducts = useCallback(async () => {
     if (!store?.id) return;
     const { data } = await supabase
       .from('products')
-      .select('id, name, sku, price')
+      .select('id, name, sku, price, image_url')
       .eq('store_id', store.id)
       .not('name', 'eq', '')
       .order('name');
-    if (data) setDbProducts(data as DBProduct[]);
+    if (data) {
+      setDbProducts(data as DBProduct[]);
+      const map = new Map<string, string>();
+      for (const p of data) {
+        if (p.id && p.image_url) map.set(p.id, p.image_url);
+        if (p.name && p.image_url) map.set(p.name, p.image_url);
+      }
+      setProductImageMap(map);
+    }
   }, [store?.id]);
 
   const openModal = () => {
@@ -621,22 +636,36 @@ export default function WarehouseHistoryPage() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                            {order.items.map((item, idx) => (
+                            {order.items.map((item, idx) => {
+                              const imgUrl = item.product_id ? productImageMap.get(item.product_id) : productImageMap.get(item.name);
+                              return (
                               <tr key={idx}>
                                 <td className="px-4 py-2.5 text-sm text-gray-900 dark:text-white">
                                   <div className="flex items-center gap-2">
-                                    {item.name}
-                                    {item.type === 'draft' && (
-                                      <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">Новый</span>
+                                    {imgUrl ? (
+                                      <img src={imgUrl} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" />
+                                    ) : (
+                                      <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                                        <Package className="w-4 h-4 text-gray-400" />
+                                      </div>
                                     )}
+                                    <div>
+                                      <div className="flex items-center gap-2">
+                                        {item.name}
+                                        {item.type === 'draft' && (
+                                          <span className="text-[10px] bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 px-1.5 py-0.5 rounded font-medium">Новый</span>
+                                        )}
+                                      </div>
+                                      {item.sku && <div className="text-[10px] text-gray-400">{item.sku}</div>}
+                                    </div>
                                   </div>
-                                  {item.sku && <div className="text-[10px] text-gray-400">{item.sku}</div>}
                                 </td>
                                 <td className="px-4 py-2.5 text-sm text-center text-gray-600 dark:text-gray-300">{item.quantity}</td>
                                 <td className="px-4 py-2.5 text-sm text-right text-gray-600 dark:text-gray-300">{(item.price_per_unit || 0).toLocaleString('ru-RU')} ₸</td>
                                 <td className="px-4 py-2.5 text-sm text-right font-medium text-gray-900 dark:text-white">{(item.total || 0).toLocaleString('ru-RU')} ₸</td>
                               </tr>
-                            ))}
+                              );
+                            })}
                           </tbody>
                           <tfoot className="bg-gray-100 dark:bg-gray-700/50">
                             <tr>
@@ -790,10 +819,17 @@ export default function WarehouseHistoryPage() {
                               <button
                                 key={p.id}
                                 onClick={() => selectProduct(idx, p)}
-                                className="w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center justify-between"
+                                className="w-full px-3 py-2 text-left hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors flex items-center gap-2"
                               >
-                                <div>
-                                  <div className="text-sm text-gray-900 dark:text-white">{p.name}</div>
+                                {p.image_url ? (
+                                  <img src={p.image_url} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                                    <Package className="w-4 h-4 text-gray-400" />
+                                  </div>
+                                )}
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm text-gray-900 dark:text-white truncate">{p.name}</div>
                                   {p.sku && <div className="text-[10px] text-gray-400">{p.sku}</div>}
                                 </div>
                                 {p.price && <span className="text-xs text-gray-500 shrink-0">{p.price.toLocaleString('ru-RU')} ₸</span>}

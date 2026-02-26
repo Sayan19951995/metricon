@@ -168,6 +168,7 @@ export default function OrdersPage() {
   const [syncing, setSyncing] = useState(false);
   const [claimTarget, setClaimTarget] = useState<Order | null>(null);
   const [claimComment, setClaimComment] = useState('');
+  const [productImageMap, setProductImageMap] = useState<Map<string, string>>(new Map());
 
   const mapOrderData = (data: any[]): Order[] => {
     const mapped = data.map((o: any) => {
@@ -259,6 +260,66 @@ export default function OrdersPage() {
       const activeOnly = mapOrderData(data || []);
       setOrders(activeOnly);
       setCache(cacheKey, activeOnly);
+
+      // Load product images
+      const { data: prods } = await supabase
+        .from('products')
+        .select('kaspi_id, name, image_url')
+        .eq('store_id', store.id)
+        .not('image_url', 'is', null);
+      const map = new Map<string, string>();
+      if (prods) {
+        prods.forEach((p: any) => {
+          if (p.kaspi_id && p.image_url) map.set(p.kaspi_id, p.image_url);
+          if (p.name && p.image_url) map.set(p.name, p.image_url);
+        });
+      }
+      setProductImageMap(map);
+
+      // Если фото мало — подтянуть из Kaspi Cabinet и сохранить в БД
+      if (map.size === 0 && user?.id) {
+        try {
+          const cabRes = await fetch(`/api/kaspi/cabinet/products?userId=${user.id}`);
+          const cabJson = await cabRes.json();
+          if (cabJson.success && cabJson.products) {
+            // sku → image и name → image из кабинета
+            const cabBySku = new Map<string, string>();
+            const cabByName = new Map<string, string>();
+            for (const kp of cabJson.products) {
+              const img = kp.images?.[0];
+              if (!img) continue;
+              if (kp.sku) cabBySku.set(kp.sku, img);
+              if (kp.name) cabByName.set(kp.name.toLowerCase().trim(), img);
+            }
+            // Загрузить products для маппинга kaspi_id → sku → image
+            const { data: dbProds } = await supabase
+              .from('products')
+              .select('id, sku, kaspi_id, name, image_url')
+              .eq('store_id', store.id);
+            const imgMap = new Map<string, string>();
+            if (dbProds) {
+              for (const p of dbProds) {
+                const img = p.image_url
+                  || (p.sku && cabBySku.get(p.sku))
+                  || (p.name && cabByName.get(p.name.toLowerCase().trim()))
+                  || null;
+                if (img) {
+                  if (p.kaspi_id) imgMap.set(p.kaspi_id, img);
+                  if (p.sku) imgMap.set(p.sku, img);
+                  if (p.name) imgMap.set(p.name, img);
+                  // Сохранить в БД если нет
+                  if (!p.image_url) {
+                    supabase.from('products').update({ image_url: img } as any).eq('id', p.id).then(() => {});
+                  }
+                }
+              }
+            }
+            setProductImageMap(imgMap);
+          }
+        } catch (cabErr) {
+          console.error('Cabinet image sync error:', cabErr);
+        }
+      }
     } catch (err) {
       console.error('Failed to load orders:', err);
     } finally {
@@ -595,13 +656,22 @@ export default function OrdersPage() {
             <div className="pt-2 border-t border-gray-100 dark:border-gray-700">
               <div className="space-y-1.5 mb-2">
                 {order.itemsList.length > 0 ? order.itemsList.map((item: any, i: number) => (
-                  <div key={i}>
-                    <p className="text-xs text-gray-700 dark:text-gray-300 truncate">
-                      {item.product_name || 'Товар'} — {item.quantity || 1} шт.
-                    </p>
-                    <p className="text-[11px] text-gray-400">
-                      {Number(item.price || 0).toLocaleString()} ₸ / шт.
-                    </p>
+                  <div key={i} className="flex items-center gap-2">
+                    {(productImageMap.get(item.product_code) || productImageMap.get(item.product_name)) ? (
+                      <img src={(productImageMap.get(item.product_code) || productImageMap.get(item.product_name))} alt="" className="w-8 h-8 rounded-lg object-cover shrink-0" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                        <Package className="w-4 h-4 text-gray-400" />
+                      </div>
+                    )}
+                    <div className="min-w-0">
+                      <p className="text-xs text-gray-700 dark:text-gray-300 truncate">
+                        {item.product_name || 'Товар'} — {item.quantity || 1} шт.
+                      </p>
+                      <p className="text-[11px] text-gray-400">
+                        {Number(item.price || 0).toLocaleString()} ₸ / шт.
+                      </p>
+                    </div>
                   </div>
                 )) : (
                   <p className="text-xs text-gray-500 dark:text-gray-400">{order.items} шт.</p>
@@ -737,9 +807,18 @@ export default function OrdersPage() {
                 <td className="py-4 px-6">
                   <div className="space-y-0.5">
                     {order.itemsList.length > 0 ? order.itemsList.map((item: any, i: number) => (
-                      <p key={i} className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[250px]">
-                        {item.product_name || 'Товар'} — {item.quantity || 1} шт.
-                      </p>
+                      <div key={i} className="flex items-center gap-2 py-0.5">
+                        {(productImageMap.get(item.product_code) || productImageMap.get(item.product_name)) ? (
+                          <img src={(productImageMap.get(item.product_code) || productImageMap.get(item.product_name))} alt="" className="w-7 h-7 rounded-md object-cover shrink-0" />
+                        ) : (
+                          <div className="w-7 h-7 rounded-md bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                            <Package className="w-3.5 h-3.5 text-gray-400" />
+                          </div>
+                        )}
+                        <span className="text-sm text-gray-700 dark:text-gray-300 truncate max-w-[200px]">
+                          {item.product_name || 'Товар'} — {item.quantity || 1} шт.
+                        </span>
+                      </div>
                     )) : (
                       <span className="text-sm text-gray-700 dark:text-gray-300">{order.items} шт.</span>
                     )}
@@ -889,12 +968,19 @@ export default function OrdersPage() {
                 <div className="space-y-2">
                   {selectedOrder.itemsList && selectedOrder.itemsList.length > 0 ? (
                     selectedOrder.itemsList.map((item: any, i: number) => (
-                      <div key={i} className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-600 last:border-0">
-                        <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white">{item.product_name || 'Товар'}</p>
+                      <div key={i} className="flex items-center gap-3 py-2 border-b border-gray-100 dark:border-gray-600 last:border-0">
+                        {(productImageMap.get(item.product_code) || productImageMap.get(item.product_name)) ? (
+                          <img src={(productImageMap.get(item.product_code) || productImageMap.get(item.product_name))} alt="" className="w-10 h-10 rounded-lg object-cover shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center shrink-0">
+                            <Package className="w-5 h-5 text-gray-400" />
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.product_name || 'Товар'}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{item.quantity || 1} шт. x {Number(item.price || 0).toLocaleString()} ₸</p>
                         </div>
-                        <p className="text-sm font-semibold text-gray-900 dark:text-white">{Number(item.total || 0).toLocaleString()} ₸</p>
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white shrink-0">{Number(item.total || 0).toLocaleString()} ₸</p>
                       </div>
                     ))
                   ) : (
