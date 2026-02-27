@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase/client';
 import { getStale, setCache } from '@/lib/cache';
+import { getUTM, clearUTM } from '@/lib/utm';
 
 interface User {
   id: string;
@@ -44,8 +45,9 @@ interface UserData {
 }
 
 const CACHE_KEY = 'user_data';
+const IMPERSONATE_KEY = 'admin_impersonating';
 
-export function useUser(): UserData {
+export function useUser(): UserData & { impersonating: boolean; stopImpersonating: () => void } {
   const stale = getStale<{ user: User; store: Store | null; subscription: Subscription | null }>(CACHE_KEY);
   const cached = stale?.data ?? null;
 
@@ -57,6 +59,14 @@ export function useUser(): UserData {
     loading: !cached,
     error: null
   });
+
+  const [impersonating, setImpersonating] = useState(false);
+
+  const stopImpersonating = () => {
+    localStorage.removeItem(IMPERSONATE_KEY);
+    setImpersonating(false);
+    window.location.href = '/admin/users';
+  };
 
   useEffect(() => {
     async function fetchUserData() {
@@ -79,11 +89,27 @@ export function useUser(): UserData {
           return;
         }
 
+        // Check for impersonation
+        const impersonateRaw = localStorage.getItem(IMPERSONATE_KEY);
+        let targetUserId: string | null = null;
+        if (impersonateRaw) {
+          try {
+            const imp = JSON.parse(impersonateRaw);
+            // Only impersonate if the current auth user is the admin who started it
+            if (imp.adminId === authUser.id && imp.targetId) {
+              targetUserId = imp.targetId;
+              setImpersonating(true);
+            }
+          } catch { /* ignore bad JSON */ }
+        }
+
+        const lookupUserId = targetUserId || authUser.id;
+
         // Ищем пользователя в таблице users
         let { data: user, error: userError } = await supabase
           .from('users')
           .select('*')
-          .eq('id', authUser.id)
+          .eq('id', lookupUserId)
           .single();
 
         // Если не найден по id, ищем по email
@@ -96,6 +122,12 @@ export function useUser(): UserData {
 
           if (userByEmail) {
             user = userByEmail;
+          } else if (targetUserId) {
+            // Impersonating a non-existent user — bail
+            localStorage.removeItem(IMPERSONATE_KEY);
+            setImpersonating(false);
+            setData(prev => ({ ...prev, loading: false, error: 'Пользователь не найден' }));
+            return;
           } else {
             // Создаём запись (первый вход через Google)
             const name = authUser.user_metadata?.full_name
@@ -103,13 +135,15 @@ export function useUser(): UserData {
               || authUser.email?.split('@')[0]
               || 'Пользователь';
 
+            const utm = getUTM();
             const { data: newUser, error: createError } = await supabase
               .from('users')
               .insert({
                 id: authUser.id,
                 email: authUser.email!,
                 name: name,
-              })
+                ...utm,
+              } as any)
               .select()
               .single();
 
@@ -117,6 +151,7 @@ export function useUser(): UserData {
               console.error('Error creating user:', createError);
             } else {
               user = newUser;
+              clearUTM();
 
               // Создаём бесплатную подписку для нового пользователя
               await supabase.from('subscriptions').insert({
@@ -234,5 +269,5 @@ export function useUser(): UserData {
     };
   }, []);
 
-  return data;
+  return { ...data, impersonating, stopImpersonating };
 }

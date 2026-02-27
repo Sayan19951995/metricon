@@ -50,10 +50,15 @@ export async function GET(request: NextRequest) {
         phone: u.phone,
         createdAt: u.created_at,
         isAdmin: u.is_admin || false,
+        isBlocked: u.is_blocked || false,
         storeName: store?.name || null,
         kaspiConnected: !!store?.kaspi_merchant_id,
         plan: sub?.plan || null,
         subscriptionStatus: sub?.status || null,
+        subscriptionEnd: sub?.end_date || null,
+        utmSource: u.utm_source || null,
+        utmMedium: u.utm_medium || null,
+        utmCampaign: u.utm_campaign || null,
       };
     });
 
@@ -68,7 +73,7 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * PATCH /api/admin/users — update user (block/unblock, change plan, make admin)
+ * PATCH /api/admin/users — update user (block/unblock, change plan, make admin, create subscription)
  */
 export async function PATCH(request: NextRequest) {
   try {
@@ -100,6 +105,56 @@ export async function PATCH(request: NextRequest) {
           .update({ plan: value })
           .eq('user_id', targetUserId);
         if (error) throw error;
+        break;
+      }
+      case 'blockUser': {
+        const { error } = await supabase
+          .from('users')
+          .update({ is_blocked: value } as any)
+          .eq('id', targetUserId);
+        if (error) throw error;
+        break;
+      }
+      case 'createSubscription': {
+        // value = { plan: string, durationDays: number }
+        const { plan, durationDays } = value;
+        const startDate = new Date();
+        const endDate = new Date();
+        endDate.setDate(endDate.getDate() + (durationDays || 30));
+
+        // Check if subscription already exists
+        const { data: existingSub } = await supabase
+          .from('subscriptions')
+          .select('id')
+          .eq('user_id', targetUserId)
+          .single();
+
+        if (existingSub) {
+          // Update existing
+          const { error } = await supabase
+            .from('subscriptions')
+            .update({
+              plan,
+              status: 'active',
+              start_date: startDate.toISOString(),
+              end_date: endDate.toISOString(),
+            })
+            .eq('user_id', targetUserId);
+          if (error) throw error;
+        } else {
+          // Create new
+          const { error } = await supabase
+            .from('subscriptions')
+            .insert({
+              user_id: targetUserId,
+              plan,
+              status: 'active',
+              start_date: startDate.toISOString(),
+              end_date: endDate.toISOString(),
+              auto_renew: false,
+            });
+          if (error) throw error;
+        }
         break;
       }
       default:

@@ -20,7 +20,10 @@ import {
   ToggleLeft,
   ToggleRight,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 
@@ -79,23 +82,26 @@ interface Product {
 }
 
 // Стратегии
-const strategies: { value: Strategy; label: string; description: string; icon: React.ReactNode }[] = [
+const strategies: { value: Strategy; label: string; shortDesc: string; fullDesc: string; icon: React.ReactNode }[] = [
   {
     value: 'undercut',
     label: 'Демпинг',
-    description: 'Всегда дешевле конкурента',
+    shortDesc: 'Всегда дешевле конкурента',
+    fullDesc: 'Автоматически устанавливает цену ниже самого дешёвого конкурента на указанный шаг. Если конкурент снижает цену — вы тоже снижаете. Цена не опустится ниже минимальной границы.',
     icon: <TrendingDown className="w-4 h-4" />
   },
   {
     value: 'match',
     label: 'Паритет',
-    description: 'Равная цена с конкурентом',
+    shortDesc: 'Равная цена с конкурентом',
+    fullDesc: 'Поддерживает вашу цену на уровне самого дешёвого конкурента. Вы не демпингуете, но и не теряете позиции. Хороший баланс между маржой и конкурентоспособностью.',
     icon: <Target className="w-4 h-4" />
   },
   {
     value: 'position',
     label: 'Позиция',
-    description: 'Удержание позиции в выдаче',
+    shortDesc: 'Удержание позиции в выдаче',
+    fullDesc: 'Подбирает цену так, чтобы удерживать заданную позицию в выдаче Kaspi (1–10). Если позиция теряется — цена снижается; если позиция лучше целевой — цена повышается для максимизации прибыли.',
     icon: <Zap className="w-4 h-4" />
   },
 ];
@@ -110,6 +116,7 @@ export default function AutoPricingPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'enabled' | 'disabled'>('all');
   const [currentPage, setCurrentPage] = useState(1);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Состояние модалки редактирования
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -118,6 +125,7 @@ export default function AutoPricingPage() {
   const [editMaxPrice, setEditMaxPrice] = useState<number>(0);
   const [editStep, setEditStep] = useState<number>(1000);
   const [editTargetPosition, setEditTargetPosition] = useState<number>(1);
+  const [showStrategyHint, setShowStrategyHint] = useState(false);
 
   // Загрузка данных
   const loadData = useCallback(async () => {
@@ -417,7 +425,7 @@ export default function AutoPricingPage() {
   // Loading state
   if (userLoading || loading) {
     return (
-      <div className="p-4 sm:p-6 max-w-[1600px] mx-auto">
+      <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto bg-gray-50 dark:bg-gray-900 min-h-screen">
         <div className="flex items-center justify-center py-20">
           <Loader2 className="w-8 h-8 text-emerald-500 animate-spin" />
           <span className="ml-3 text-gray-500 dark:text-gray-400">Загрузка товаров...</span>
@@ -427,11 +435,16 @@ export default function AutoPricingPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-[1600px] mx-auto">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-[1600px] mx-auto bg-gray-50 dark:bg-gray-900 min-h-screen">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4 sm:mb-6">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Автоцена</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Автоцена</h1>
+            <button onClick={() => setShowHelp(!showHelp)} className="focus:outline-none cursor-pointer">
+              <HelpCircle className="w-5 h-5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
+            </button>
+          </div>
           <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base mt-1 hidden sm:block">Автоматическое управление ценами для конкуренции на Kaspi</p>
         </div>
         <div className="flex items-center gap-2">
@@ -453,6 +466,55 @@ export default function AutoPricingPage() {
           </a>
         </div>
       </div>
+
+      {/* Help Block */}
+      {showHelp && (
+        <div className="mb-4 sm:mb-6 bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">Как работает автоцена?</h3>
+            <button onClick={() => setShowHelp(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg cursor-pointer">
+              <X className="w-4 h-4 text-gray-400" />
+            </button>
+          </div>
+          <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-3">
+            Система каждые 15 минут проверяет цены конкурентов на Kaspi и автоматически корректирует вашу цену в заданных границах.
+          </p>
+          <div className="space-y-2.5">
+            <div className="flex items-start gap-2.5">
+              <div className="w-6 h-6 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <TrendingDown className="w-3.5 h-3.5 text-emerald-600" />
+              </div>
+              <div>
+                <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">Демпинг</span>
+                <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400">Ставит цену ниже самого дешёвого конкурента на указанный шаг. Если конкурент 220 000 ₸ и шаг 1 000 ₸ — ваша цена станет 219 000 ₸.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <div className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Target className="w-3.5 h-3.5 text-blue-600" />
+              </div>
+              <div>
+                <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">Паритет</span>
+                <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400">Ставит точно такую же цену как у самого дешёвого конкурента. Не дешевле, не дороже.</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-2.5">
+              <div className="w-6 h-6 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5">
+                <Zap className="w-3.5 h-3.5 text-purple-600" />
+              </div>
+              <div>
+                <span className="text-xs sm:text-sm font-medium text-gray-900 dark:text-white">Позиция</span>
+                <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400">Корректирует цену для удержания позиции в выдаче Kaspi.</p>
+              </div>
+            </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-1.5">
+            <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400"><strong className="text-gray-700 dark:text-gray-300">Мин. цена</strong> — ниже этой суммы система не опустит цену, даже если конкурент дешевле.</p>
+            <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400"><strong className="text-gray-700 dark:text-gray-300">Макс. цена</strong> — выше этой суммы цена не поднимется.</p>
+            <p className="text-[11px] sm:text-xs text-gray-500 dark:text-gray-400"><strong className="text-gray-700 dark:text-gray-300">Шаг</strong> — на сколько тенге менять цену за раз.</p>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4 mb-4 sm:mb-6">
@@ -837,35 +899,6 @@ export default function AutoPricingPage() {
         )}
       </div>
 
-      {/* Info Block */}
-      <div className="mt-4 sm:mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-xl sm:rounded-2xl p-4 sm:p-6">
-        <div className="flex items-start gap-3 sm:gap-4">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-blue-100 dark:bg-blue-900/30 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
-            <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h3 className="font-semibold text-gray-900 dark:text-white mb-1 text-sm sm:text-base">Как работает автоцена?</h3>
-            <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mb-2 sm:mb-3 hidden sm:block">
-              Включите автоцену для товара, и система будет автоматически корректировать цены в пределах заданного диапазона каждые 15 минут.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-4 text-xs sm:text-sm">
-              <div className="flex items-center gap-1.5">
-                <TrendingDown className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-600 flex-shrink-0" />
-                <span><strong>Демпинг</strong><span className="hidden sm:inline"> — дешевле конкурента</span></span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Target className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-blue-600 flex-shrink-0" />
-                <span><strong>Паритет</strong><span className="hidden sm:inline"> — равная цена</span></span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600 flex-shrink-0" />
-                <span><strong>Позиция</strong><span className="hidden sm:inline"> — удержание</span></span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
       {/* Edit Modal */}
       {editingProduct && (
         <div className="fixed inset-0 bg-black/50 flex items-end sm:items-center justify-center z-50">
@@ -896,20 +929,42 @@ export default function AutoPricingPage() {
                     <button
                       key={s.value}
                       onClick={() => setEditStrategy(s.value)}
-                      className={`p-2 sm:p-3 rounded-lg sm:rounded-xl border-2 transition-colors text-left cursor-pointer ${
+                      className={`p-2 sm:p-3 rounded-lg sm:rounded-xl border-2 transition-colors text-center cursor-pointer ${
                         editStrategy === s.value
                           ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30'
                           : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
                       }`}
                     >
-                      <div className="flex items-center gap-1 sm:gap-2 mb-0.5 sm:mb-1">
+                      <div className="flex items-center justify-center gap-1 sm:gap-2">
                         {s.icon}
                         <span className="font-medium text-xs sm:text-sm text-gray-900 dark:text-white">{s.label}</span>
                       </div>
-                      <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 hidden sm:block">{s.description}</p>
                     </button>
                   ))}
                 </div>
+
+                {/* Collapsible strategy hint */}
+                <button
+                  onClick={() => setShowStrategyHint(prev => !prev)}
+                  className="flex items-center gap-1.5 mt-2 text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition-colors cursor-pointer"
+                >
+                  <HelpCircle className="w-3.5 h-3.5" />
+                  <span>Как это работает?</span>
+                  {showStrategyHint
+                    ? <ChevronUp className="w-3.5 h-3.5" />
+                    : <ChevronDown className="w-3.5 h-3.5" />
+                  }
+                </button>
+                {showStrategyHint && (
+                  <div className="mt-2 p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-100 dark:border-gray-600">
+                    <div className="text-xs font-medium text-gray-700 dark:text-gray-200 mb-1">
+                      {strategies.find(s => s.value === editStrategy)?.label}
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+                      {strategies.find(s => s.value === editStrategy)?.fullDesc}
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Target Position (only for position strategy) */}

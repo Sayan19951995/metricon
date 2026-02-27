@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight, BarChart3, CheckCircle, Building2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
+import { captureUTM, getUTM, clearUTM } from '@/lib/utm';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -22,6 +23,8 @@ export default function RegisterPage() {
     agree: false
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => { captureUTM(); }, []);
 
   const validateStep1 = () => {
     const newErrors: Record<string, string> = {};
@@ -101,12 +104,14 @@ export default function RegisterPage() {
       if (!data.user) throw new Error('Не удалось создать аккаунт');
 
       // 2. Сохраняем профиль в таблице users
+      const utm = getUTM();
       const { error: userError } = await supabase.from('users').insert({
         id: data.user.id,
         email: formData.email,
         name: formData.name,
         phone: formData.phone,
-      });
+        ...utm,
+      } as any);
 
       if (userError) throw userError;
 
@@ -118,6 +123,7 @@ export default function RegisterPage() {
 
       if (storeError) throw storeError;
 
+      clearUTM();
       router.push('/app');
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Ошибка при регистрации';

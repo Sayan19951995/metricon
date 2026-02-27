@@ -1,6 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 
+const PLAN_PRICES: Record<string, number> = {
+  start: 4990,
+  business: 9990,
+  pro: 19990,
+};
+
 export async function GET(request: NextRequest) {
   try {
     const userId = new URL(request.url).searchParams.get('userId');
@@ -20,27 +26,29 @@ export async function GET(request: NextRequest) {
     }
 
     // Parallel queries for stats
+    // Note: use select('*') for subscriptions/stores since created_at may not exist
     const [usersResult, subsResult, storesResult] = await Promise.all([
-      supabase.from('users').select('id, created_at', { count: 'exact' }),
-      supabase.from('subscriptions').select('id, plan, status, start_date', { count: 'exact' }),
-      supabase.from('stores').select('id, kaspi_merchant_id', { count: 'exact' }),
+      supabase.from('users').select('id, name, email, created_at', { count: 'exact' }),
+      supabase.from('subscriptions').select('*', { count: 'exact' }),
+      supabase.from('stores').select('*', { count: 'exact' }),
     ]);
 
     const totalUsers = usersResult.count || 0;
-    const users = usersResult.data || [];
-    const subscriptions = subsResult.data || [];
+    const users = (usersResult.data || []) as any[];
+    const subscriptions = (subsResult.data || []) as any[];
+    const stores = (storesResult.data || []) as any[];
     const totalStores = storesResult.count || 0;
 
     // Active subscriptions
-    const activeSubscriptions = subscriptions.filter(s => (s as any).status === 'active').length;
+    const activeSubscriptions = subscriptions.filter(s => s.status === 'active').length;
 
     // Stores with Kaspi connected
-    const kaspiConnected = (storesResult.data || []).filter(s => (s as any).kaspi_merchant_id).length;
+    const kaspiConnected = stores.filter(s => s.kaspi_merchant_id).length;
 
     // Plan distribution
     const planCounts: Record<string, number> = {};
     for (const sub of subscriptions) {
-      const plan = (sub as any).plan || 'start';
+      const plan = sub.plan || 'start';
       planCounts[plan] = (planCounts[plan] || 0) + 1;
     }
 
@@ -49,10 +57,7 @@ export async function GET(request: NextRequest) {
     const thirtyDaysAgo = new Date(now);
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const recentUsers = users.filter(u => {
-      const created = new Date((u as any).created_at);
-      return created >= thirtyDaysAgo;
-    });
+    const recentUsers = users.filter(u => new Date(u.created_at) >= thirtyDaysAgo);
 
     const registrationsByDay: Record<string, number> = {};
     for (let i = 0; i < 30; i++) {
@@ -61,14 +66,94 @@ export async function GET(request: NextRequest) {
       registrationsByDay[d.toISOString().split('T')[0]] = 0;
     }
     for (const u of recentUsers) {
-      const day = new Date((u as any).created_at).toISOString().split('T')[0];
+      const day = new Date(u.created_at).toISOString().split('T')[0];
       if (registrationsByDay[day] !== undefined) registrationsByDay[day]++;
     }
 
-    // Convert to sorted array
     const registrations = Object.entries(registrationsByDay)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, count]) => ({ date, count }));
+
+    // === NEW: Conversion funnel ===
+    const subscribedUsers = new Set(subscriptions.map(s => s.user_id));
+    const kaspiUsers = new Set(stores.filter(s => s.kaspi_merchant_id).map(s => s.user_id));
+    const conversionFunnel = {
+      registered: totalUsers,
+      subscribed: subscribedUsers.size,
+      kaspiConnected: kaspiUsers.size,
+    };
+
+    // === NEW: MRR (monthly recurring revenue) ===
+    let mrr = 0;
+    for (const sub of subscriptions) {
+      if (sub.status === 'active') {
+        mrr += PLAN_PRICES[sub.plan] || 0;
+      }
+    }
+
+    // === NEW: Activity feed (last 15 events) ===
+    // Only consider last 30 days to avoid processing entire DB
+    type ActivityEvent = { type: string; name: string; email: string; date: string; detail?: string };
+    const events: ActivityEvent[] = [];
+    const cutoff = thirtyDaysAgo.toISOString();
+
+    // Recent registrations (last 30 days only)
+    for (const u of users) {
+      if (u.created_at && u.created_at >= cutoff) {
+        events.push({
+          type: 'registration',
+          name: u.name,
+          email: u.email,
+          date: u.created_at,
+        });
+      }
+    }
+
+    // Recent subscriptions (use start_date — created_at may not exist)
+    for (const sub of subscriptions) {
+      const subDate = sub.start_date;
+      if (subDate && subDate >= cutoff) {
+        const u = users.find(x => x.id === sub.user_id);
+        if (u) {
+          events.push({
+            type: 'subscription',
+            name: u.name,
+            email: u.email,
+            date: subDate,
+            detail: sub.plan,
+          });
+        }
+      }
+    }
+
+    // Recent Kaspi connections (use created_at if available, fallback skip)
+    for (const store of stores) {
+      if (store.kaspi_merchant_id) {
+        const storeDate = store.created_at;
+        if (storeDate && storeDate >= cutoff) {
+          const u = users.find(x => x.id === store.user_id);
+          if (u) {
+            events.push({
+              type: 'kaspi_connected',
+              name: u.name,
+              email: u.email,
+              date: storeDate,
+              detail: store.name,
+            });
+          }
+        }
+      }
+    }
+
+    // Sort by date desc, take last 15
+    events.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const recentActivity = events.slice(0, 15);
+
+    // === NEW: Recent 5 users ===
+    const latestUsers = users
+      .sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5)
+      .map((u: any) => ({ id: u.id, name: u.name, email: u.email, createdAt: u.created_at }));
 
     return NextResponse.json({
       success: true,
@@ -80,6 +165,10 @@ export async function GET(request: NextRequest) {
         newUsersLast30Days: recentUsers.length,
         planDistribution: planCounts,
         registrations,
+        conversionFunnel,
+        mrr,
+        recentActivity,
+        latestUsers,
       },
     });
   } catch (error) {

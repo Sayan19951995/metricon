@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { captureUTM } from '@/lib/utm';
 import {
   BarChart3,
   TrendingUp,
@@ -34,6 +35,8 @@ import {
 
 export default function HomePage() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  useEffect(() => { captureUTM(); }, []);
 
   const features = [
     {

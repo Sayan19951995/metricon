@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 
+async function checkAdmin(userId: string): Promise<boolean> {
+  const { data } = await supabase.from('users').select('*').eq('id', userId).single();
+  return !!(data as any)?.is_admin;
+}
+
 export async function GET(request: NextRequest) {
   try {
     const userId = new URL(request.url).searchParams.get('userId');
@@ -8,9 +13,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'userId обязателен' }, { status: 400 });
     }
 
-    // Check admin
-    const { data: adminUser } = await supabase.from('users').select('*').eq('id', userId).single();
-    if (!(adminUser as any)?.is_admin) {
+    if (!(await checkAdmin(userId))) {
       return NextResponse.json({ success: false, message: 'Нет доступа' }, { status: 403 });
     }
 
@@ -52,6 +55,141 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: true, data: enriched });
   } catch (error) {
     console.error('Admin subscriptions error:', error);
+    return NextResponse.json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Ошибка сервера',
+    }, { status: 500 });
+  }
+}
+
+/**
+ * PATCH /api/admin/subscriptions — extend, cancel, changePlan
+ */
+export async function PATCH(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { adminUserId, subscriptionId, action, value } = body;
+
+    if (!adminUserId || !subscriptionId || !action) {
+      return NextResponse.json({ success: false, message: 'Не все параметры указаны' }, { status: 400 });
+    }
+
+    if (!(await checkAdmin(adminUserId))) {
+      return NextResponse.json({ success: false, message: 'Нет доступа' }, { status: 403 });
+    }
+
+    switch (action) {
+      case 'extend': {
+        // value = number of days to add
+        const days = Number(value) || 30;
+        const { data: sub } = await supabase
+          .from('subscriptions')
+          .select('end_date, status')
+          .eq('id', subscriptionId)
+          .single();
+
+        if (!sub) {
+          return NextResponse.json({ success: false, message: 'Подписка не найдена' }, { status: 404 });
+        }
+
+        // Extend from current end_date or from now if expired
+        const baseDate = sub.end_date && new Date(sub.end_date) > new Date()
+          ? new Date(sub.end_date)
+          : new Date();
+        baseDate.setDate(baseDate.getDate() + days);
+
+        const { error } = await supabase
+          .from('subscriptions')
+          .update({ end_date: baseDate.toISOString(), status: 'active' })
+          .eq('id', subscriptionId);
+        if (error) throw error;
+        break;
+      }
+      case 'cancel': {
+        const { error } = await supabase
+          .from('subscriptions')
+          .update({ status: 'cancelled' })
+          .eq('id', subscriptionId);
+        if (error) throw error;
+        break;
+      }
+      case 'changePlan': {
+        const { error } = await supabase
+          .from('subscriptions')
+          .update({ plan: value })
+          .eq('id', subscriptionId);
+        if (error) throw error;
+        break;
+      }
+      default:
+        return NextResponse.json({ success: false, message: `Неизвестное действие: ${action}` }, { status: 400 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Admin subscriptions PATCH error:', error);
+    return NextResponse.json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Ошибка сервера',
+    }, { status: 500 });
+  }
+}
+
+/**
+ * POST /api/admin/subscriptions — create new subscription
+ */
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const { adminUserId, targetUserId, plan, durationDays } = body;
+
+    if (!adminUserId || !targetUserId || !plan) {
+      return NextResponse.json({ success: false, message: 'Не все параметры указаны' }, { status: 400 });
+    }
+
+    if (!(await checkAdmin(adminUserId))) {
+      return NextResponse.json({ success: false, message: 'Нет доступа' }, { status: 403 });
+    }
+
+    const startDate = new Date();
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + (durationDays || 30));
+
+    // Check if already exists
+    const { data: existing } = await supabase
+      .from('subscriptions')
+      .select('id')
+      .eq('user_id', targetUserId)
+      .single();
+
+    if (existing) {
+      const { error } = await supabase
+        .from('subscriptions')
+        .update({
+          plan,
+          status: 'active',
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+        })
+        .eq('user_id', targetUserId);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase
+        .from('subscriptions')
+        .insert({
+          user_id: targetUserId,
+          plan,
+          status: 'active',
+          start_date: startDate.toISOString(),
+          end_date: endDate.toISOString(),
+          auto_renew: false,
+        });
+      if (error) throw error;
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Admin subscriptions POST error:', error);
     return NextResponse.json({
       success: false,
       message: error instanceof Error ? error.message : 'Ошибка сервера',

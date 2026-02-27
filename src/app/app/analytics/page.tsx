@@ -484,7 +484,7 @@ function AnalyticsPageContent() {
   const [showAdsOnly, setShowAdsOnly] = useState(false);
 
   // Toggle для рентабельности - только реклама или все продажи
-  const [showAdsOnlyROI, setShowAdsOnlyROI] = useState(true);
+  const [showAdsOnlyROI, setShowAdsOnlyROI] = useState(false);
 
   // Сортировка и фильтрация товаров
   const [productSort, setProductSort] = useState<'margin' | 'profit' | 'revenue' | 'quantity'>('revenue');
@@ -1435,7 +1435,8 @@ function AnalyticsPageContent() {
               </button>
             </div>
 
-            <ResponsiveContainer width="100%" height={450} className="!h-[200px] sm:!h-[450px]">
+            <div className="h-[200px] sm:h-[350px] lg:h-[450px]">
+            <ResponsiveContainer width="100%" height="100%">
               <LineChart data={combinedChartData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
                 <XAxis dataKey="date" stroke="#6b7280" tick={{ fontSize: 12 }} />
@@ -1527,6 +1528,7 @@ function AnalyticsPageContent() {
                 )}
               </LineChart>
             </ResponsiveContainer>
+            </div>
           </div>
 
           {/* Детализация данных графика */}
@@ -1535,18 +1537,18 @@ function AnalyticsPageContent() {
               <h3 className="text-sm sm:text-lg font-semibold text-gray-900 dark:text-white">Детализация по дням</h3>
               <span className="bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 px-1.5 py-0.5 rounded text-[10px] sm:text-xs font-medium">{formatShortPeriod()}</span>
             </div>
-            <div className="overflow-x-auto -mx-3 px-3 sm:mx-0 sm:px-0">
-              <table className="w-full text-xs sm:text-sm min-w-[320px]">
+            <div className="sm:mx-0 sm:px-0">
+              <table className="w-full text-[11px] sm:text-sm table-fixed">
                 <thead>
                   <tr className="border-b border-gray-200 dark:border-gray-700">
-                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 dark:text-gray-400 text-left">Дата</th>
-                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 dark:text-gray-400 text-right">Поступ.</th>
-                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 dark:text-gray-400 text-right">Расходы</th>
-                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 dark:text-gray-400 text-right">Прибыль</th>
+                    <th className="py-2 sm:py-3 pr-1 sm:px-2 font-medium text-gray-500 dark:text-gray-400 text-left">Дата</th>
+                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 dark:text-gray-400 text-right whitespace-nowrap">Поступ.</th>
+                    <th className="py-2 sm:py-3 px-1 sm:px-2 font-medium text-gray-500 dark:text-gray-400 text-right whitespace-nowrap">Расходы</th>
+                    <th className="py-2 sm:py-3 pl-1 sm:px-2 font-medium text-gray-500 dark:text-gray-400 text-right whitespace-nowrap">Прибыль</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {data.dailyData.map((day: any, index: number) => {
+                  {[...data.dailyData].reverse().map((day: any, index: number) => {
                     const dayExpenses = day.cost + day.advertising + day.commissions + day.tax + day.delivery;
                     return (
                       <tr
@@ -1557,14 +1559,14 @@ function AnalyticsPageContent() {
                           setShowTableDayPopup(true);
                         }}
                       >
-                        <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 dark:text-white text-left whitespace-nowrap">{day.date}{day.day ? ` (${day.day})` : ''}</td>
+                        <td className="py-2 sm:py-3 pr-1 sm:px-2 text-gray-900 dark:text-white text-left whitespace-nowrap">{day.date}{day.day ? ` (${day.day})` : ''}</td>
                         <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-700 dark:text-gray-300 font-medium text-right whitespace-nowrap">
                           {Math.round(day.revenue).toLocaleString('ru-RU')} ₸
                         </td>
                         <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-700 dark:text-gray-300 font-medium text-right whitespace-nowrap">
                           {Math.round(dayExpenses).toLocaleString('ru-RU')} ₸
                         </td>
-                        <td className="py-2 sm:py-3 px-1 sm:px-2 text-emerald-600 dark:text-emerald-400 font-medium text-right whitespace-nowrap">
+                        <td className="py-2 sm:py-3 pl-1 sm:px-2 text-emerald-600 dark:text-emerald-400 font-medium text-right whitespace-nowrap">
                           {Math.round(day.profit).toLocaleString('ru-RU')} ₸
                         </td>
                       </tr>
@@ -1576,14 +1578,14 @@ function AnalyticsPageContent() {
                     className="bg-gray-50 dark:bg-gray-700 font-semibold hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors"
                     onClick={() => setShowTotalPopup(true)}
                   >
-                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 dark:text-white text-left whitespace-nowrap">Итого</td>
+                    <td className="py-2 sm:py-3 pr-1 sm:px-2 text-gray-900 dark:text-white text-left whitespace-nowrap">Итого</td>
                     <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 dark:text-white text-right whitespace-nowrap">
                       {Math.round(data.totalRevenue).toLocaleString('ru-RU')} ₸
                     </td>
                     <td className="py-2 sm:py-3 px-1 sm:px-2 text-gray-900 dark:text-white text-right whitespace-nowrap">
                       {Math.round(data.totalCost + data.totalAdvertising + data.totalCommissions + data.totalTax + data.totalDelivery).toLocaleString('ru-RU')} ₸
                     </td>
-                    <td className="py-2 sm:py-3 px-1 sm:px-2 text-emerald-600 dark:text-emerald-400 text-right whitespace-nowrap">
+                    <td className="py-2 sm:py-3 pl-1 sm:px-2 text-emerald-600 dark:text-emerald-400 text-right whitespace-nowrap">
                       {Math.round(data.totalProfit).toLocaleString('ru-RU')} ₸
                     </td>
                   </tr>
@@ -3480,15 +3482,15 @@ function AnalyticsPageContent() {
                   {/* Summary Cards */}
                   <div className="grid grid-cols-4 gap-2">
                     <div className="bg-sky-50 rounded-xl p-2 text-center">
-                      <div className="text-sky-600 font-bold text-sm">{selectedTableDay.revenue.toLocaleString('ru-RU')} ₸</div>
+                      <div className="text-sky-600 font-bold text-sm">{Math.round(selectedTableDay.revenue).toLocaleString('ru-RU')} ₸</div>
                       <div className="text-gray-500 text-[10px]">Поступления</div>
                     </div>
                     <div className="bg-rose-50 rounded-xl p-2 text-center">
-                      <div className="text-rose-500 font-bold text-sm">{(selectedTableDay.totalExpenses || 0).toLocaleString('ru-RU')} ₸</div>
+                      <div className="text-rose-500 font-bold text-sm">{Math.round(selectedTableDay.totalExpenses || 0).toLocaleString('ru-RU')} ₸</div>
                       <div className="text-gray-500 text-[10px]">Расходы</div>
                     </div>
                     <div className="bg-teal-50 rounded-xl p-2 text-center">
-                      <div className="text-teal-600 font-bold text-sm">{selectedTableDay.profit.toLocaleString('ru-RU')} ₸</div>
+                      <div className="text-teal-600 font-bold text-sm">{Math.round(selectedTableDay.profit).toLocaleString('ru-RU')} ₸</div>
                       <div className="text-gray-500 text-[10px]">Прибыль</div>
                     </div>
                     <div className="bg-violet-50 rounded-xl p-2 text-center">
@@ -3503,23 +3505,23 @@ function AnalyticsPageContent() {
                     <div className="space-y-2">
                       <div className="flex justify-between items-center py-2 border-b border-gray-100">
                         <span className="text-gray-600">Себестоимость</span>
-                        <span className="font-medium text-gray-900">{selectedTableDay.cost.toLocaleString('ru-RU')} ₸</span>
+                        <span className="font-medium text-gray-900">{Math.round(selectedTableDay.cost).toLocaleString('ru-RU')} ₸</span>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-gray-100">
                         <span className="text-gray-600">Реклама</span>
-                        <span className="font-medium text-gray-900">{selectedTableDay.advertising.toLocaleString('ru-RU')} ₸</span>
+                        <span className="font-medium text-gray-900">{Math.round(selectedTableDay.advertising).toLocaleString('ru-RU')} ₸</span>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-gray-100">
                         <span className="text-gray-600">Комиссия</span>
-                        <span className="font-medium text-gray-900">{selectedTableDay.commissions.toLocaleString('ru-RU')} ₸</span>
+                        <span className="font-medium text-gray-900">{Math.round(selectedTableDay.commissions).toLocaleString('ru-RU')} ₸</span>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-gray-100">
                         <span className="text-gray-600">Налог</span>
-                        <span className="font-medium text-gray-900">{selectedTableDay.tax.toLocaleString('ru-RU')} ₸</span>
+                        <span className="font-medium text-gray-900">{Math.round(selectedTableDay.tax).toLocaleString('ru-RU')} ₸</span>
                       </div>
                       <div className="flex justify-between items-center py-2">
                         <span className="text-gray-600">Доставка</span>
-                        <span className="font-medium text-gray-900">{selectedTableDay.delivery.toLocaleString('ru-RU')} ₸</span>
+                        <span className="font-medium text-gray-900">{Math.round(selectedTableDay.delivery).toLocaleString('ru-RU')} ₸</span>
                       </div>
                     </div>
                   </div>
@@ -3541,7 +3543,7 @@ function AnalyticsPageContent() {
                             <tr key={idx} className="hover:bg-gray-50">
                               <td className="py-1.5 px-3 text-gray-900 truncate max-w-[200px]">{product.name}</td>
                               <td className="py-1.5 px-2 text-center text-gray-600">{product.qty}</td>
-                              <td className="py-1.5 px-3 text-right text-gray-900">{(product.price ?? 0).toLocaleString('ru-RU')} ₸</td>
+                              <td className="py-1.5 px-3 text-right text-gray-900">{Math.round(product.revenue).toLocaleString('ru-RU')} ₸</td>
                             </tr>
                           ))}
                         </tbody>
