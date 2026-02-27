@@ -39,6 +39,11 @@ export default function WarehouseSettingsPage() {
   const [showStockModeHelp, setShowStockModeHelp] = useState(false);
   const [autoPreorderEnabled, setAutoPreorderEnabled] = useState(false);
   const [autoPreorderDays, setAutoPreorderDays] = useState(7);
+  const [autoPreorderMode, setAutoPreorderMode] = useState<'all' | 'selective'>('all');
+  const [autoPreorderSkus, setAutoPreorderSkus] = useState<string[]>([]);
+  const [allProducts, setAllProducts] = useState<Array<{ kaspi_id: string; name: string }>>([]);
+  const [preorderSearch, setPreorderSearch] = useState('');
+  const [showPreorderPicker, setShowPreorderPicker] = useState(false);
   const [settingsLoading, setSettingsLoading] = useState(true);
   const [settingsSaving, setSettingsSaving] = useState(false);
 
@@ -49,14 +54,23 @@ export default function WarehouseSettingsPage() {
       try {
         const { data } = await supabase
           .from('stores')
-          .select('stock_sync_mode, auto_preorder_enabled, auto_preorder_days')
+          .select('stock_sync_mode, auto_preorder_enabled, auto_preorder_days, auto_preorder_mode, auto_preorder_skus')
           .eq('id', store.id)
           .single();
         if (data) {
           setStockSyncMode(((data as any).stock_sync_mode === 'synced' ? 'synced' : 'separate'));
           setAutoPreorderEnabled((data as any).auto_preorder_enabled || false);
           setAutoPreorderDays((data as any).auto_preorder_days || 7);
+          setAutoPreorderMode((data as any).auto_preorder_mode === 'selective' ? 'selective' : 'all');
+          setAutoPreorderSkus((data as any).auto_preorder_skus || []);
         }
+        // Load products for selective picker
+        const { data: prods } = await supabase
+          .from('products')
+          .select('kaspi_id, name')
+          .eq('store_id', store.id)
+          .order('name', { ascending: true });
+        if (prods) setAllProducts(prods);
       } catch (err) {
         console.error('Failed to load store settings:', err);
       } finally {
@@ -334,28 +348,148 @@ export default function WarehouseSettingsPage() {
         </div>
 
         {autoPreorderEnabled && (
-          <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-              Срок предзаказа (дней)
-            </label>
-            <div className="flex items-center gap-3">
-              <input
-                type="number"
-                value={autoPreorderDays}
-                onChange={e => {
-                  const v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1));
-                  setAutoPreorderDays(v);
-                }}
-                onBlur={() => saveSetting('auto_preorder_days', autoPreorderDays)}
-                className="w-24 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                min="1"
-                max="30"
-              />
-              <span className="text-xs text-gray-500 dark:text-gray-400">от 1 до 30 дней</span>
+          <div className="space-y-4">
+            {/* Срок предзаказа */}
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+                Срок предзаказа (дней)
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="number"
+                  value={autoPreorderDays}
+                  onChange={e => {
+                    const v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1));
+                    setAutoPreorderDays(v);
+                  }}
+                  onBlur={() => saveSetting('auto_preorder_days', autoPreorderDays)}
+                  className="w-24 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                  min="1"
+                  max="30"
+                />
+                <span className="text-xs text-gray-500 dark:text-gray-400">от 1 до 30 дней</span>
+              </div>
             </div>
-            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
-              При списании заказа, если остаток товара достигает 0 — на Kaspi автоматически включается предзаказ на указанный срок. При восстановлении остатка — предзаказ снимается.
-            </p>
+
+            {/* Режим: все или выборочно */}
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4">
+              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block">
+                Применить к товарам
+              </label>
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <button
+                  onClick={() => {
+                    setAutoPreorderMode('all');
+                    saveSetting('auto_preorder_mode', 'all');
+                  }}
+                  className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                    autoPreorderMode === 'all'
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700'
+                  }`}
+                >
+                  Все товары
+                </button>
+                <button
+                  onClick={() => {
+                    setAutoPreorderMode('selective');
+                    saveSetting('auto_preorder_mode', 'selective');
+                  }}
+                  className={`px-3 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer ${
+                    autoPreorderMode === 'selective'
+                      ? 'bg-amber-500 text-white shadow-sm'
+                      : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700'
+                  }`}
+                >
+                  Выборочно
+                </button>
+              </div>
+
+              {autoPreorderMode === 'all' && (
+                <p className="text-xs text-gray-400 dark:text-gray-500">
+                  При нулевом остатке любого товара — автоматически включится предзаказ на {autoPreorderDays} дн.
+                </p>
+              )}
+
+              {autoPreorderMode === 'selective' && (
+                <div className="space-y-3">
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    Предзаказ включится только для выбранных товаров при нулевом остатке.
+                  </p>
+
+                  {/* Выбранные товары */}
+                  {autoPreorderSkus.length > 0 && (
+                    <div className="flex flex-wrap gap-2">
+                      {autoPreorderSkus.map(sku => {
+                        const prod = allProducts.find(p => p.kaspi_id === sku);
+                        return (
+                          <span key={sku} className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 rounded-lg text-xs">
+                            <span className="max-w-[150px] truncate">{prod?.name || sku}</span>
+                            <button
+                              onClick={() => {
+                                const next = autoPreorderSkus.filter(s => s !== sku);
+                                setAutoPreorderSkus(next);
+                                saveSetting('auto_preorder_skus', next);
+                              }}
+                              className="hover:text-red-500 cursor-pointer ml-0.5"
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Кнопка добавить */}
+                  <button
+                    onClick={() => setShowPreorderPicker(!showPreorderPicker)}
+                    className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-amber-600 dark:text-amber-400 bg-white dark:bg-gray-800 border border-amber-300 dark:border-amber-700 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors cursor-pointer"
+                  >
+                    <Package className="w-3.5 h-3.5" />
+                    Добавить товары
+                  </button>
+
+                  {/* Попап выбора товаров */}
+                  {showPreorderPicker && (
+                    <div className="border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 overflow-hidden">
+                      <div className="p-3 border-b border-gray-100 dark:border-gray-700">
+                        <input
+                          type="text"
+                          value={preorderSearch}
+                          onChange={e => setPreorderSearch(e.target.value)}
+                          placeholder="Поиск товара..."
+                          className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white dark:bg-gray-900 text-gray-900 dark:text-white"
+                          autoFocus
+                        />
+                      </div>
+                      <div className="max-h-48 overflow-y-auto">
+                        {allProducts
+                          .filter(p => !autoPreorderSkus.includes(p.kaspi_id))
+                          .filter(p => !preorderSearch || p.name.toLowerCase().includes(preorderSearch.toLowerCase()))
+                          .slice(0, 50)
+                          .map(p => (
+                            <button
+                              key={p.kaspi_id}
+                              onClick={() => {
+                                const next = [...autoPreorderSkus, p.kaspi_id];
+                                setAutoPreorderSkus(next);
+                                saveSetting('auto_preorder_skus', next);
+                              }}
+                              className="w-full text-left px-3 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors cursor-pointer border-b border-gray-50 dark:border-gray-700/50 last:border-b-0"
+                            >
+                              {p.name}
+                            </button>
+                          ))}
+                        {allProducts.filter(p => !autoPreorderSkus.includes(p.kaspi_id)).filter(p => !preorderSearch || p.name.toLowerCase().includes(preorderSearch.toLowerCase())).length === 0 && (
+                          <p className="text-center text-xs text-gray-400 py-4">Нет товаров</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
       </div>

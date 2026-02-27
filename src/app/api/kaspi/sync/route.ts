@@ -610,8 +610,17 @@ export async function POST(request: NextRequest) {
       // Auto-preorder: enable for products that hit zero stock
       if ((store as any).auto_preorder_enabled && zeroStockSkus.length > 0) {
         try {
-          await updatePreorderOverrides(supabase, store.id, zeroStockSkus, (store as any).auto_preorder_days || 7);
-          console.log(`SYNC: auto-preorder enabled for ${zeroStockSkus.length} SKUs`);
+          const preorderMode = (store as any).auto_preorder_mode || 'all';
+          const preorderAllowedSkus = (preorderMode === 'selective' && Array.isArray((store as any).auto_preorder_skus))
+            ? (store as any).auto_preorder_skus as string[]
+            : null;
+          const filteredSkus = preorderAllowedSkus
+            ? zeroStockSkus.filter(sku => preorderAllowedSkus.includes(sku))
+            : zeroStockSkus;
+          if (filteredSkus.length > 0) {
+            await updatePreorderOverrides(supabase, store.id, filteredSkus, (store as any).auto_preorder_days || 7);
+            console.log(`SYNC: auto-preorder enabled for ${filteredSkus.length} SKUs`);
+          }
         } catch (err) {
           console.error('SYNC: auto-preorder enable error:', err);
         }
