@@ -13,6 +13,8 @@ import {
   Settings,
   ArrowRightLeft,
   Clock,
+  HelpCircle,
+  X,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { supabase } from '@/lib/supabase/client';
@@ -34,6 +36,7 @@ export default function WarehouseSettingsPage() {
 
   // Stock settings
   const [stockSyncMode, setStockSyncMode] = useState<'separate' | 'synced'>('separate');
+  const [showStockModeHelp, setShowStockModeHelp] = useState(false);
   const [autoPreorderEnabled, setAutoPreorderEnabled] = useState(false);
   const [autoPreorderDays, setAutoPreorderDays] = useState(7);
   const [settingsLoading, setSettingsLoading] = useState(true);
@@ -212,11 +215,42 @@ export default function WarehouseSettingsPage() {
           <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
             <ArrowRightLeft className="w-5 h-5 text-blue-600" />
           </div>
-          <div>
+          <div className="flex-1">
             <h2 className="font-semibold text-gray-900 dark:text-white">Режим склада</h2>
             <p className="text-xs text-gray-500 dark:text-gray-400">Как синхронизировать остатки с Kaspi</p>
           </div>
+          <button
+            onClick={() => setShowStockModeHelp(!showStockModeHelp)}
+            className="w-8 h-8 rounded-full flex items-center justify-center text-gray-400 hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors cursor-pointer"
+          >
+            <HelpCircle className="w-5 h-5" />
+          </button>
         </div>
+
+        {showStockModeHelp && (
+          <div className="mb-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl relative">
+            <button
+              onClick={() => setShowStockModeHelp(false)}
+              className="absolute top-2 right-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+            <h4 className="font-semibold text-sm text-blue-800 dark:text-blue-300 mb-2">Для чего нужен режим склада?</h4>
+            <div className="space-y-2 text-xs text-blue-700 dark:text-blue-300/80 leading-relaxed">
+              <p>
+                <span className="font-semibold">Раздельный режим</span> — у вас два независимых остатка:
+                фактический склад (сколько товара реально есть) и остаток Kaspi (что видят покупатели).
+                Это полезно когда вы хотите контролировать наличие на Kaspi отдельно,
+                например показывать товар в наличии даже если на складе мало остатков, чтобы не потерять позиции в выдаче.
+              </p>
+              <p>
+                <span className="font-semibold">Синхронизированный режим</span> — один остаток на всё.
+                Что на складе = что на Kaspi. При продаже или приёмке остаток обновляется везде автоматически.
+                Подходит если вы не хотите управлять остатками вручную.
+              </p>
+            </div>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {/* Separate mode */}
