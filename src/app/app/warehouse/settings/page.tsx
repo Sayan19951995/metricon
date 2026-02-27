@@ -80,7 +80,7 @@ export default function WarehouseSettingsPage() {
           .select('kaspi_id, name')
           .eq('store_id', store.id)
           .order('name', { ascending: true });
-        if (prods) setAllProducts(prods);
+        if (prods) setAllProducts(prods.map(p => ({ kaspi_id: p.kaspi_id || '', name: p.name })));
       } catch (err) {
         console.error('Failed to load store settings:', err);
       } finally {
