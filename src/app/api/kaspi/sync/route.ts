@@ -454,7 +454,8 @@ export async function POST(request: NextRequest) {
           : order.status === 'completed';
       }).filter(o => Array.isArray(o.items) && o.items.length > 0);
 
-      const zeroStockSkus: string[] = [];
+      const zeroStockSkus: string[] = []; // contains SKU values (for XML preorder overrides)
+      const zeroStockKaspiIds: string[] = []; // contains kaspi_id values (for settings match)
 
       if (validDeductions.length > 0) {
         // Собираем суммарное кол-во к списанию по каждому product_code
@@ -480,15 +481,17 @@ export async function POST(request: NextRequest) {
         // Обновляем остатки: в synced mode зеркалим quantity = kaspi_stock
 
         if (products) {
-          // Also load SKUs for auto-preorder
+          // Maps for auto-preorder: id → sku (for XML overrides), id → kaspi_id (for settings match)
           const productIds = (products as any[]).map((p: any) => p.id);
           const { data: productSkus } = await supabase
             .from('products')
-            .select('id, sku')
+            .select('id, sku, kaspi_id')
             .in('id', productIds);
-          const skuMap = new Map<string, string>();
+          const skuMap = new Map<string, string>(); // id → sku (for preorder overrides in XML)
+          const kaspiIdMap = new Map<string, string>(); // id → kaspi_id (for settings match)
           for (const ps of (productSkus || []) as any[]) {
             if (ps.sku) skuMap.set(ps.id, ps.sku);
+            if (ps.kaspi_id) kaspiIdMap.set(ps.id, ps.kaspi_id);
           }
 
           await parallelMap(products as any[], async (product) => {
@@ -499,16 +502,18 @@ export async function POST(request: NextRequest) {
                 const newKaspi = Math.max((product.kaspi_stock ?? 0) - deduct, 0);
                 update.kaspi_stock = newKaspi;
                 update.quantity = newKaspi;
-                if (newKaspi === 0 && skuMap.has(product.id)) {
-                  zeroStockSkus.push(skuMap.get(product.id)!);
+                if (newKaspi === 0) {
+                  if (skuMap.has(product.id)) zeroStockSkus.push(skuMap.get(product.id)!);
+                  if (kaspiIdMap.has(product.id)) zeroStockKaspiIds.push(kaspiIdMap.get(product.id)!);
                 }
               } else {
                 update.quantity = Math.max((product.quantity || 0) - deduct, 0);
                 if (product.kaspi_stock != null) {
                   update.kaspi_stock = Math.max(product.kaspi_stock - deduct, 0);
                 }
-                if (update.quantity === 0 && skuMap.has(product.id)) {
-                  zeroStockSkus.push(skuMap.get(product.id)!);
+                if (update.quantity === 0) {
+                  if (skuMap.has(product.id)) zeroStockSkus.push(skuMap.get(product.id)!);
+                  if (kaspiIdMap.has(product.id)) zeroStockKaspiIds.push(kaspiIdMap.get(product.id)!);
                 }
               }
               await supabase.from('products').update(update).eq('id', product.id);
@@ -608,33 +613,37 @@ export async function POST(request: NextRequest) {
       }
 
       // Auto-preorder: enable for products that hit zero stock
+      // Settings use kaspi_id as keys, XML overrides use sku
       if ((store as any).auto_preorder_enabled && zeroStockSkus.length > 0) {
         try {
           const preorderMode = (store as any).auto_preorder_mode || 'all';
           const globalDays = (store as any).auto_preorder_days || 7;
           const rawSkuConfig = (store as any).auto_preorder_skus;
 
+          // Build kaspi_id → sku mapping for the zero-stock products
+          const kaspiIdToSku = new Map<string, string>();
+          for (let i = 0; i < zeroStockKaspiIds.length; i++) {
+            if (zeroStockSkus[i]) kaspiIdToSku.set(zeroStockKaspiIds[i], zeroStockSkus[i]);
+          }
+
           if (preorderMode === 'selective' && rawSkuConfig && typeof rawSkuConfig === 'object' && !Array.isArray(rawSkuConfig)) {
-            // Per-SKU days: { sku: days }
-            const skuDaysMap = rawSkuConfig as Record<string, number>;
-            for (const sku of zeroStockSkus) {
-              if (sku in skuDaysMap) {
-                await updatePreorderOverrides(supabase, store.id, [sku], Math.min(30, Math.max(1, skuDaysMap[sku] || 7)));
+            // Settings keys are kaspi_id, values are days
+            const configMap = rawSkuConfig as Record<string, number>;
+            const skusToEnable: Array<{ sku: string; days: number }> = [];
+            for (const [kaspiId, days] of Object.entries(configMap)) {
+              const sku = kaspiIdToSku.get(kaspiId);
+              if (sku) {
+                skusToEnable.push({ sku, days: Math.min(30, Math.max(1, days || 7)) });
               }
             }
-            const matched = zeroStockSkus.filter(s => s in skuDaysMap);
-            if (matched.length > 0) console.log(`SYNC: auto-preorder enabled for ${matched.length} SKUs (selective, per-SKU days)`);
-          } else if (preorderMode === 'selective' && Array.isArray(rawSkuConfig)) {
-            // Legacy array format
-            const filteredSkus = zeroStockSkus.filter(sku => rawSkuConfig.includes(sku));
-            if (filteredSkus.length > 0) {
-              await updatePreorderOverrides(supabase, store.id, filteredSkus, globalDays);
-              console.log(`SYNC: auto-preorder enabled for ${filteredSkus.length} SKUs (selective)`);
+            for (const { sku, days } of skusToEnable) {
+              await updatePreorderOverrides(supabase, store.id, [sku], days);
             }
+            if (skusToEnable.length > 0) console.log(`SYNC: auto-preorder enabled for ${skusToEnable.length} SKUs (selective, per-product days)`);
           } else {
-            // All products
+            // All products mode
             await updatePreorderOverrides(supabase, store.id, zeroStockSkus, globalDays);
-            console.log(`SYNC: auto-preorder enabled for ${zeroStockSkus.length} SKUs (all)`);
+            console.log(`SYNC: auto-preorder enabled for ${zeroStockSkus.length} SKUs (all, ${globalDays} days)`);
           }
         } catch (err) {
           console.error('SYNC: auto-preorder enable error:', err);
