@@ -548,6 +548,9 @@ export interface Database {
           tax_rate: number | null
           last_synced_at: string | null
           mailing_settings: Json | null
+          stock_sync_mode: string | null
+          auto_preorder_enabled: boolean | null
+          auto_preorder_days: number | null
         }
         Insert: {
           id?: string
@@ -565,6 +568,9 @@ export interface Database {
           tax_rate?: number | null
           last_synced_at?: string | null
           mailing_settings?: Json | null
+          stock_sync_mode?: string | null
+          auto_preorder_enabled?: boolean | null
+          auto_preorder_days?: number | null
         }
         Update: {
           id?: string
@@ -582,6 +588,9 @@ export interface Database {
           tax_rate?: number | null
           last_synced_at?: string | null
           mailing_settings?: Json | null
+          stock_sync_mode?: string | null
+          auto_preorder_enabled?: boolean | null
+          auto_preorder_days?: number | null
         }
         Relationships: []
       }

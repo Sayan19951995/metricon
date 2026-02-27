@@ -10,6 +10,9 @@ import {
   Loader2,
   Store,
   AlertCircle,
+  Settings,
+  ArrowRightLeft,
+  Clock,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { supabase } from '@/lib/supabase/client';
@@ -29,6 +32,49 @@ const CACHE_KEY_PREFIX = 'warehouse_pos_';
 export default function WarehouseSettingsPage() {
   const { user, store, loading: userLoading } = useUser();
 
+  // Stock settings
+  const [stockSyncMode, setStockSyncMode] = useState<'separate' | 'synced'>('separate');
+  const [autoPreorderEnabled, setAutoPreorderEnabled] = useState(false);
+  const [autoPreorderDays, setAutoPreorderDays] = useState(7);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+
+  // Load store settings
+  useEffect(() => {
+    if (!store?.id) return;
+    (async () => {
+      try {
+        const { data } = await supabase
+          .from('stores')
+          .select('stock_sync_mode, auto_preorder_enabled, auto_preorder_days')
+          .eq('id', store.id)
+          .single();
+        if (data) {
+          setStockSyncMode(((data as any).stock_sync_mode === 'synced' ? 'synced' : 'separate'));
+          setAutoPreorderEnabled((data as any).auto_preorder_enabled || false);
+          setAutoPreorderDays((data as any).auto_preorder_days || 7);
+        }
+      } catch (err) {
+        console.error('Failed to load store settings:', err);
+      } finally {
+        setSettingsLoading(false);
+      }
+    })();
+  }, [store?.id]);
+
+  const saveSetting = async (field: string, value: unknown) => {
+    if (!store?.id) return;
+    setSettingsSaving(true);
+    try {
+      await supabase.from('stores').update({ [field]: value } as any).eq('id', store.id);
+    } catch (err) {
+      console.error('Failed to save setting:', err);
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
+  // POS data
   const cacheKey = store?.id ? `${CACHE_KEY_PREFIX}${store.id}` : '';
   const stale = cacheKey ? getStale<POSInfo[]>(cacheKey) : null;
 
@@ -45,7 +91,6 @@ export default function WarehouseSettingsPage() {
     setError(null);
 
     try {
-      // Parallel: DB products (known SKUs + prices) + Cabinet API (live stock per POS)
       const [dbResult, cabinetRes] = await Promise.all([
         supabase
           .from('products')
@@ -65,7 +110,6 @@ export default function WarehouseSettingsPage() {
         return;
       }
 
-      // Build set of known SKUs + price map from DB
       const dbSkus = new Set<string>();
       const dbPriceMap = new Map<string, number>();
       for (const p of dbResult.data || []) {
@@ -75,7 +119,6 @@ export default function WarehouseSettingsPage() {
         }
       }
 
-      // Extract unique POS from product availabilities (only products in DB)
       const posMap = new Map<string, POSInfo>();
 
       for (const product of cabinetRes.products || []) {
@@ -124,7 +167,7 @@ export default function WarehouseSettingsPage() {
   const totalValue = posList.reduce((s, p) => s + (p.totalValue || 0), 0);
 
   // Loading skeleton
-  if (userLoading || (loading && posList.length === 0)) {
+  if (userLoading || settingsLoading) {
     return (
       <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
         <div className="mb-6">
@@ -132,23 +175,11 @@ export default function WarehouseSettingsPage() {
           <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse mb-2" />
           <div className="h-4 w-64 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+        <div className="space-y-4">
           {[...Array(3)].map((_, i) => (
-            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
-              <div className="h-3 w-20 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-2" />
-              <div className="h-6 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
-            </div>
-          ))}
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="flex items-center gap-4 py-4 border-b border-gray-50 dark:border-gray-700/50 last:border-0">
-              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded-xl animate-pulse" />
-              <div className="flex-1 space-y-1.5">
-                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" style={{ width: `${30 + Math.random() * 30}%` }} />
-                <div className="h-3 w-20 bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
-              </div>
-              <div className="h-4 w-16 bg-gray-200 dark:bg-gray-700 rounded animate-pulse" />
+            <div key={i} className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm">
+              <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-3" />
+              <div className="h-10 w-full bg-gray-100 dark:bg-gray-800 rounded animate-pulse" />
             </div>
           ))}
         </div>
@@ -169,105 +200,206 @@ export default function WarehouseSettingsPage() {
         </Link>
         <div className="flex items-start justify-between">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold mb-1 text-gray-900 dark:text-white">Точки продаж</h1>
-            <p className="text-gray-500 dark:text-gray-400 text-sm">Ваши точки выдачи Kaspi и остатки по ним</p>
+            <h1 className="text-2xl sm:text-3xl font-bold mb-1 text-gray-900 dark:text-white">Настройки склада</h1>
+            <p className="text-gray-500 dark:text-gray-400 text-sm">Режим синхронизации, предзаказ и точки продаж</p>
+          </div>
+        </div>
+      </div>
+
+      {/* Stock Sync Mode */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 sm:p-6 mb-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/30 rounded-xl flex items-center justify-center">
+            <ArrowRightLeft className="w-5 h-5 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="font-semibold text-gray-900 dark:text-white">Режим склада</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Как синхронизировать остатки с Kaspi</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Separate mode */}
+          <button
+            onClick={() => {
+              setStockSyncMode('separate');
+              saveSetting('stock_sync_mode', 'separate');
+            }}
+            className={`relative p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
+              stockSyncMode === 'separate'
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+            }`}
+          >
+            {stockSyncMode === 'separate' && (
+              <div className="absolute top-3 right-3 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            )}
+            <h3 className="font-semibold text-sm text-gray-900 dark:text-white mb-1">Раздельный</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              Два независимых остатка: факт. склад и остаток Kaspi. Можно редактировать отдельно.
+            </p>
+          </button>
+
+          {/* Synced mode */}
+          <button
+            onClick={() => {
+              setStockSyncMode('synced');
+              saveSetting('stock_sync_mode', 'synced');
+            }}
+            className={`relative p-4 rounded-xl border-2 text-left transition-all cursor-pointer ${
+              stockSyncMode === 'synced'
+                ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+            }`}
+          >
+            {stockSyncMode === 'synced' && (
+              <div className="absolute top-3 right-3 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            )}
+            <h3 className="font-semibold text-sm text-gray-900 dark:text-white mb-1">Синхронизированный</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 leading-relaxed">
+              Один остаток = Kaspi. Ваш склад напрямую синхронизирован с Kaspi.
+            </p>
+          </button>
+        </div>
+      </div>
+
+      {/* Auto-preorder */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 sm:p-6 mb-4">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-10 h-10 bg-amber-50 dark:bg-amber-900/30 rounded-xl flex items-center justify-center">
+            <Clock className="w-5 h-5 text-amber-600" />
+          </div>
+          <div className="flex-1">
+            <h2 className="font-semibold text-gray-900 dark:text-white">Авто-предзаказ</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400">Когда остаток = 0, автоматически включить предзаказ</p>
+          </div>
+          <button
+            onClick={() => {
+              const next = !autoPreorderEnabled;
+              setAutoPreorderEnabled(next);
+              saveSetting('auto_preorder_enabled', next);
+            }}
+            className={`relative w-12 h-7 rounded-full transition-colors cursor-pointer ${
+              autoPreorderEnabled ? 'bg-amber-500' : 'bg-gray-300 dark:bg-gray-600'
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform ${
+                autoPreorderEnabled ? 'translate-x-5' : 'translate-x-0'
+              }`}
+            />
+          </button>
+        </div>
+
+        {autoPreorderEnabled && (
+          <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
+              Срок предзаказа (дней)
+            </label>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                value={autoPreorderDays}
+                onChange={e => {
+                  const v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1));
+                  setAutoPreorderDays(v);
+                }}
+                onBlur={() => saveSetting('auto_preorder_days', autoPreorderDays)}
+                className="w-24 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                min="1"
+                max="30"
+              />
+              <span className="text-xs text-gray-500 dark:text-gray-400">от 1 до 30 дней</span>
+            </div>
+            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+              При списании заказа, если остаток товара достигает 0 — на Kaspi автоматически включается предзаказ на указанный срок. При восстановлении остатка — предзаказ снимается.
+            </p>
+          </div>
+        )}
+      </div>
+
+      {/* POS Section */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 sm:p-6 mb-4">
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-red-50 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
+              <Store className="w-5 h-5 text-red-600" />
+            </div>
+            <div>
+              <h2 className="font-semibold text-gray-900 dark:text-white">Точки продаж</h2>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Ваши точки выдачи Kaspi и остатки по ним</p>
+            </div>
           </div>
           <button
             onClick={() => loadPOSData(true)}
             disabled={refreshing}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-gray-800 hover:bg-gray-50 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
+            className="flex items-center gap-2 px-4 py-2.5 bg-gray-50 dark:bg-gray-900 hover:bg-gray-100 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-xl transition-colors text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin' : ''}`} />
             <span className="hidden sm:inline">Обновить</span>
           </button>
         </div>
-      </div>
 
-      {/* Error */}
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-6 flex items-start gap-3">
-          <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-sm font-medium text-red-800 dark:text-red-300">{error}</p>
-            {error.includes('не подключен') && (
-              <Link
-                href="/app/settings"
-                className="text-sm text-red-600 dark:text-red-400 underline mt-1 inline-block"
-              >
-                Перейти в настройки
-              </Link>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Stats */}
-      {posList.length > 0 && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm">
-            <div className="flex items-center gap-2 lg:gap-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-blue-50 dark:bg-blue-900/30 rounded-lg flex items-center justify-center shrink-0">
-                <Store className="w-4 h-4 lg:w-5 lg:h-5 text-blue-600" />
-              </div>
-              <div>
-                <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Точек</p>
-                <p className="text-sm lg:text-base font-bold text-gray-900 dark:text-white">{posList.length}</p>
-              </div>
+        {/* Error */}
+        {error && (
+          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl p-4 mb-4 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-red-500 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-red-800 dark:text-red-300">{error}</p>
+              {error.includes('не подключен') && (
+                <Link
+                  href="/app/settings"
+                  className="text-sm text-red-600 dark:text-red-400 underline mt-1 inline-block"
+                >
+                  Перейти в настройки
+                </Link>
+              )}
             </div>
           </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm">
-            <div className="flex items-center gap-2 lg:gap-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-emerald-50 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center shrink-0">
-                <Package className="w-4 h-4 lg:w-5 lg:h-5 text-emerald-600" />
-              </div>
-              <div>
-                <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Позиций</p>
-                <p className="text-sm lg:text-base font-bold text-emerald-600">{totalProducts}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm">
-            <div className="flex items-center gap-2 lg:gap-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-amber-50 dark:bg-amber-900/30 rounded-lg flex items-center justify-center shrink-0">
-                <Package className="w-4 h-4 lg:w-5 lg:h-5 text-amber-600" />
-              </div>
-              <div>
-                <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Всего шт</p>
-                <p className="text-sm lg:text-base font-bold text-amber-600">{totalStock.toLocaleString('ru-RU')}</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-3 lg:p-4 shadow-sm">
-            <div className="flex items-center gap-2 lg:gap-3">
-              <div className="w-8 h-8 lg:w-10 lg:h-10 bg-purple-50 dark:bg-purple-900/30 rounded-lg flex items-center justify-center shrink-0">
-                <Package className="w-4 h-4 lg:w-5 lg:h-5 text-purple-600" />
-              </div>
-              <div>
-                <p className="text-[10px] lg:text-xs text-gray-500 dark:text-gray-400">Стоимость</p>
-                <p className="text-sm lg:text-base font-bold text-purple-600">{totalValue >= 1_000_000 ? `${(totalValue / 1_000_000).toFixed(1)}M` : totalValue.toLocaleString('ru-RU')} ₸</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+        )}
 
-      {/* POS List */}
-      {posList.length > 0 ? (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm overflow-hidden">
-          <div className="p-4 sm:p-6 border-b border-gray-100 dark:border-gray-700">
-            <h2 className="font-semibold text-gray-900 dark:text-white">Точки выдачи Kaspi</h2>
+        {/* Stats */}
+        {posList.length > 0 && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3">
+              <p className="text-[10px] text-gray-500 dark:text-gray-400">Точек</p>
+              <p className="text-sm font-bold text-gray-900 dark:text-white">{posList.length}</p>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3">
+              <p className="text-[10px] text-gray-500 dark:text-gray-400">Позиций</p>
+              <p className="text-sm font-bold text-emerald-600">{totalProducts}</p>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3">
+              <p className="text-[10px] text-gray-500 dark:text-gray-400">Всего шт</p>
+              <p className="text-sm font-bold text-amber-600">{totalStock.toLocaleString('ru-RU')}</p>
+            </div>
+            <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-3">
+              <p className="text-[10px] text-gray-500 dark:text-gray-400">Стоимость</p>
+              <p className="text-sm font-bold text-purple-600">{totalValue >= 1_000_000 ? `${(totalValue / 1_000_000).toFixed(1)}M` : totalValue.toLocaleString('ru-RU')} ₸</p>
+            </div>
           </div>
+        )}
 
+        {/* POS List */}
+        {posList.length > 0 ? (
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {posList.map((pos) => (
               <div
                 key={pos.storeId}
-                className="p-4 sm:p-5 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                className="py-3 sm:py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors rounded-lg px-2 -mx-2"
               >
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 flex-1 min-w-0">
-                    <div className="w-10 h-10 bg-red-50 dark:bg-red-900/20 rounded-xl flex items-center justify-center shrink-0">
-                      <span className="text-red-600 dark:text-red-400 font-bold text-sm">K</span>
+                    <div className="w-9 h-9 bg-red-50 dark:bg-red-900/20 rounded-lg flex items-center justify-center shrink-0">
+                      <span className="text-red-600 dark:text-red-400 font-bold text-xs">K</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <h3 className="font-medium text-sm text-gray-900 dark:text-white truncate">
@@ -301,33 +433,27 @@ export default function WarehouseSettingsPage() {
               </div>
             ))}
           </div>
-
-          {/* Footer totals */}
-          <div className="p-4 sm:p-5 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
-            <div className="flex items-center justify-between text-sm">
-              <span className="font-semibold text-gray-700 dark:text-gray-300">
-                Итого: {posList.length} {posList.length === 1 ? 'точка' : posList.length < 5 ? 'точки' : 'точек'}
-              </span>
-              <div className="flex items-center gap-5">
-                <span className="font-bold text-gray-900 dark:text-white">
-                  {totalStock.toLocaleString('ru-RU')} шт
-                </span>
-                <span className="font-bold text-emerald-600 min-w-[80px] text-right">
-                  {totalValue >= 1_000_000 ? `${(totalValue / 1_000_000).toFixed(1)}M` : totalValue.toLocaleString('ru-RU')} ₸
-                </span>
-              </div>
-            </div>
+        ) : loading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
           </div>
+        ) : !error ? (
+          <div className="text-center py-8">
+            <Store className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Точки выдачи появятся после подключения кабинета Kaspi
+            </p>
+          </div>
+        ) : null}
+      </div>
+
+      {/* Saving indicator */}
+      {settingsSaving && (
+        <div className="fixed bottom-6 right-6 bg-white dark:bg-gray-800 shadow-lg rounded-xl px-4 py-3 flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300 z-40">
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Сохранение...
         </div>
-      ) : !error && !loading ? (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl p-12 shadow-sm text-center">
-          <Store className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-          <h3 className="text-lg font-semibold mb-1 text-gray-900 dark:text-white">Нет точек выдачи</h3>
-          <p className="text-gray-500 dark:text-gray-400 text-sm">
-            Точки выдачи появятся после подключения кабинета Kaspi
-          </p>
-        </div>
-      ) : null}
+      )}
 
       {/* Refreshing indicator */}
       {refreshing && (

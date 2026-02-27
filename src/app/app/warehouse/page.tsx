@@ -50,6 +50,12 @@ interface Product {
 export default function WarehousePage() {
   const { user, store, role, loading: userLoading } = useUser();
 
+  // Stock sync mode from store settings
+  const stockSyncMode = (store as any)?.stock_sync_mode === 'synced' ? 'synced' : 'separate';
+  const isSynced = stockSyncMode === 'synced';
+  const autoPreorderEnabled = !!(store as any)?.auto_preorder_enabled;
+  const autoPreorderDays = (store as any)?.auto_preorder_days || 7;
+
   // Products from Supabase
   const cacheKey = store?.id ? `warehouse_products_${store.id}` : '';
   const stale = cacheKey ? getStale<Product[]>(cacheKey) : null;
@@ -240,12 +246,27 @@ export default function WarehousePage() {
       for (const ri of receiveItems) {
         const product = products.find(p => p.id === ri.product_id);
         if (product) {
-          const newQty = (product.quantity ?? 0) + ri.quantity;
-          await supabase.from('products').update({
-            quantity: newQty,
+          const stockUpdate: Record<string, unknown> = {
             stock_updated_by: user.id,
             stock_updated_at: new Date().toISOString(),
-          } as any).eq('id', ri.product_id);
+          };
+          if (isSynced) {
+            const newKaspi = (product.kaspi_stock ?? 0) + ri.quantity;
+            stockUpdate.kaspi_stock = newKaspi;
+            stockUpdate.quantity = newKaspi;
+          } else {
+            stockUpdate.quantity = (product.quantity ?? 0) + ri.quantity;
+          }
+          await supabase.from('products').update(stockUpdate as any).eq('id', ri.product_id);
+
+          // Remove preorder if stock restored > 0
+          if (autoPreorderEnabled && product.sku) {
+            fetch('/api/warehouse/preorder', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ storeId: store.id, skus: [product.sku], action: 'disable' }),
+            }).catch(err => console.error('Auto-preorder disable error:', err));
+          }
         }
       }
 
@@ -507,9 +528,16 @@ export default function WarehousePage() {
     }
 
     try {
-      const update: Record<string, unknown> = editingCell.field === 'cost_price'
-        ? { cost_price: value }
-        : { quantity: value !== null ? Math.round(value) : 0 };
+      let update: Record<string, unknown>;
+      if (editingCell.field === 'cost_price') {
+        update = { cost_price: value };
+      } else if (isSynced) {
+        // Synced mode: update both kaspi_stock and quantity together
+        const qty = value !== null ? Math.round(value) : 0;
+        update = { kaspi_stock: qty, quantity: qty };
+      } else {
+        update = { quantity: value !== null ? Math.round(value) : 0 };
+      }
 
       if (role === 'warehouse' && user?.id) {
         update.stock_updated_by = user.id;
@@ -531,6 +559,28 @@ export default function WarehousePage() {
       setProducts(updatedProducts);
       if (cacheKey) setCache(cacheKey, updatedProducts);
 
+      // Auto-preorder trigger on manual edit
+      if (editingCell.field === 'quantity' && autoPreorderEnabled && store?.id) {
+        const editedProduct = products.find(p => p.id === editingCell.id);
+        const newQty = value !== null ? Math.round(value) : 0;
+        if (editedProduct?.sku) {
+          if (newQty === 0) {
+            fetch('/api/warehouse/preorder', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ storeId: store.id, skus: [editedProduct.sku], action: 'enable', days: autoPreorderDays }),
+            }).catch(err => console.error('Auto-preorder enable error:', err));
+          } else {
+            // Restore: remove preorder if stock is back
+            fetch('/api/warehouse/preorder', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ storeId: store.id, skus: [editedProduct.sku], action: 'disable' }),
+            }).catch(err => console.error('Auto-preorder disable error:', err));
+          }
+        }
+      }
+
       const label = editingCell.field === 'cost_price' ? 'Себестоимость' : 'Количество';
       setToast({ message: `${label} обновлено`, type: 'success' });
       setTimeout(() => setToast(null), 3000);
@@ -543,7 +593,7 @@ export default function WarehousePage() {
       setEditingCell(null);
       setEditValue('');
     }
-  }, [editingCell, editValue, store?.id, products, cacheKey, role, user?.id]);
+  }, [editingCell, editValue, store?.id, products, cacheKey, role, user?.id, isSynced, autoPreorderEnabled, autoPreorderDays]);
 
   const handleEditKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') saveEdit();
@@ -555,7 +605,8 @@ export default function WarehousePage() {
     const matchesSearch = !searchTerm ||
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.sku && p.sku.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesLowStock = !showLowStockOnly || (p.quantity ?? 0) < 5;
+    const stockVal = isSynced ? (p.kaspi_stock ?? p.quantity ?? 0) : (p.quantity ?? 0);
+    const matchesLowStock = !showLowStockOnly || stockVal < 5;
     const matchesNotSpecified = !showNotSpecifiedOnly || p.kaspi_not_specified;
     const matchesGroup = groupFilter === null ? true
       : groupFilter === 'none' ? !p.product_group
@@ -568,10 +619,18 @@ export default function WarehousePage() {
     const dir = sortDir === 'asc' ? 1 : -1;
     switch (sortField) {
       case 'name': return dir * (a.name || '').localeCompare(b.name || '');
-      case 'quantity': return dir * ((a.quantity ?? 0) - (b.quantity ?? 0));
+      case 'quantity': {
+        const aQty = isSynced ? (a.kaspi_stock ?? a.quantity ?? 0) : (a.quantity ?? 0);
+        const bQty = isSynced ? (b.kaspi_stock ?? b.quantity ?? 0) : (b.quantity ?? 0);
+        return dir * (aQty - bQty);
+      }
       case 'cost_price': return dir * ((a.cost_price ?? 0) - (b.cost_price ?? 0));
       case 'price': return dir * ((a.price ?? 0) - (b.price ?? 0));
-      case 'value': return dir * (((a.price ?? 0) * (a.quantity ?? 0)) - ((b.price ?? 0) * (b.quantity ?? 0)));
+      case 'value': {
+        const aVal = (a.price ?? 0) * (isSynced ? (a.kaspi_stock ?? a.quantity ?? 0) : (a.quantity ?? 0));
+        const bVal = (b.price ?? 0) * (isSynced ? (b.kaspi_stock ?? b.quantity ?? 0) : (b.quantity ?? 0));
+        return dir * (aVal - bVal);
+      }
       default: return 0;
     }
   });
@@ -583,10 +642,11 @@ export default function WarehousePage() {
 
   // Stats
   const totalProducts = products.length;
-  const totalValue = products.reduce((sum, p) => sum + ((p.price ?? 0) * (p.quantity ?? 0)), 0);
+  const getStock = (p: Product) => isSynced ? (p.kaspi_stock ?? p.quantity ?? 0) : (p.quantity ?? 0);
+  const totalValue = products.reduce((sum, p) => sum + ((p.price ?? 0) * getStock(p)), 0);
   const costPriceSet = products.filter(p => p.cost_price !== null).length;
-  const totalCostValue = products.reduce((sum, p) => sum + ((p.cost_price ?? 0) * (p.quantity ?? 0)), 0);
-  const lowStockCount = products.filter(p => (p.quantity ?? 0) < 5).length;
+  const totalCostValue = products.reduce((sum, p) => sum + ((p.cost_price ?? 0) * getStock(p)), 0);
+  const lowStockCount = products.filter(p => (isSynced ? (p.kaspi_stock ?? p.quantity ?? 0) : (p.quantity ?? 0)) < 5).length;
   const notSpecifiedCount = products.filter(p => p.kaspi_not_specified).length;
 
   // Profit: revenue - cost - expenses (only for products with cost_price)
@@ -594,9 +654,9 @@ export default function WarehousePage() {
   const expectedProfit = totalValue - totalCostValue - totalExpenses;
 
   // Filtered totals
-  const filteredQty = filtered.reduce((sum, p) => sum + (p.quantity ?? 0), 0);
-  const filteredCost = filtered.reduce((sum, p) => sum + ((p.cost_price ?? 0) * (p.quantity ?? 0)), 0);
-  const filteredValue = filtered.reduce((sum, p) => sum + ((p.price ?? 0) * (p.quantity ?? 0)), 0);
+  const filteredQty = filtered.reduce((sum, p) => sum + getStock(p), 0);
+  const filteredCost = filtered.reduce((sum, p) => sum + ((p.cost_price ?? 0) * getStock(p)), 0);
+  const filteredValue = filtered.reduce((sum, p) => sum + ((p.price ?? 0) * getStock(p)), 0);
   const filteredExpenses = Math.round(filteredValue * totalExpenseRate / 100);
   const filteredProfit = filteredValue - filteredCost - filteredExpenses;
 
@@ -1144,7 +1204,7 @@ export default function WarehousePage() {
           <div className="lg:hidden flex gap-2 overflow-x-auto pb-2 mb-2 -mx-1 px-1">
             {([
               ['name', 'Название'],
-              ['quantity', 'Кол-во'],
+              ['quantity', isSynced ? 'Остаток' : 'Кол-во'],
               ['cost_price', 'Себест.'],
               ['price', 'Цена'],
               ['value', 'Стоимость'],
@@ -1220,7 +1280,7 @@ export default function WarehousePage() {
                   </div>
                   </div>
                   <div className="flex items-center gap-1 ml-2">
-                    {(product.quantity ?? 0) < 5 && (
+                    {getStock(product) < 5 && (
                       <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 text-[10px] font-medium rounded">
                         Мало
                       </span>
@@ -1230,13 +1290,13 @@ export default function WarehousePage() {
                 <div className="flex items-center justify-between text-sm">
                   <div className="flex items-center gap-3">
                     <button
-                      onClick={() => startEdit(product.id, 'quantity', product.quantity)}
+                      onClick={() => startEdit(product.id, 'quantity', isSynced ? (product.kaspi_stock ?? product.quantity) : product.quantity)}
                       className="flex items-center gap-1 font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400"
                     >
-                      {product.quantity ?? 0}
-                      {product.kaspi_not_specified ? (
+                      {isSynced ? (product.kaspi_stock ?? product.quantity ?? 0) : (product.quantity ?? 0)}
+                      {!isSynced && product.kaspi_not_specified ? (
                         <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[10px] font-medium rounded">Не указан</span>
-                      ) : product.kaspi_stock != null ? (
+                      ) : !isSynced && product.kaspi_stock != null ? (
                         <span className="text-[10px] text-gray-400 font-normal">({product.kaspi_stock})</span>
                       ) : null}
                       <Edit3 className="w-3 h-3 text-gray-400" />
@@ -1323,7 +1383,7 @@ export default function WarehousePage() {
                   {([
                     ['name', 'Товар', 'px-6'],
                     ['product_group' as SortField, 'Группа', 'px-4'],
-                    ['quantity', 'Кол-во', 'px-4'],
+                    ['quantity', isSynced ? 'Остаток' : 'Кол-во', 'px-4'],
                     ['cost_price', 'Себестоимость', 'px-4'],
                     ['price', 'Цена продажи', 'px-4'],
                     ['value', 'Стоимость', 'px-4'],
@@ -1428,19 +1488,19 @@ export default function WarehousePage() {
                       ) : (
                         <div>
                           <button
-                            onClick={() => startEdit(product.id, 'quantity', product.quantity)}
+                            onClick={() => startEdit(product.id, 'quantity', isSynced ? (product.kaspi_stock ?? product.quantity) : product.quantity)}
                             className="group flex items-center gap-1 cursor-pointer"
                           >
                             <span className={`text-sm font-semibold ${
-                              (product.quantity ?? 0) < 5 ? 'text-red-500' : 'text-gray-900 dark:text-white'
+                              ((isSynced ? (product.kaspi_stock ?? product.quantity ?? 0) : (product.quantity ?? 0))) < 5 ? 'text-red-500' : 'text-gray-900 dark:text-white'
                             }`}>
-                              {product.quantity ?? 0}
+                              {isSynced ? (product.kaspi_stock ?? product.quantity ?? 0) : (product.quantity ?? 0)}
                             </span>
-                            {product.kaspi_not_specified ? (
+                            {!isSynced && product.kaspi_not_specified ? (
                               <span className="px-1.5 py-0.5 bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-[10px] font-medium rounded">
                                 Не указан
                               </span>
-                            ) : product.kaspi_stock != null ? (
+                            ) : !isSynced && product.kaspi_stock != null ? (
                               <span className="text-[10px] text-gray-400 dark:text-gray-500">
                                 ({product.kaspi_stock})
                               </span>
@@ -1512,7 +1572,7 @@ export default function WarehousePage() {
                     {/* Total Value */}
                     <td className="py-3 px-4">
                       <span className="text-sm font-semibold text-emerald-600">
-                        {((product.price ?? 0) * (product.quantity ?? 0)).toLocaleString('ru-RU')} ₸
+                        {((product.price ?? 0) * getStock(product)).toLocaleString('ru-RU')} ₸
                       </span>
                     </td>
                   </tr>

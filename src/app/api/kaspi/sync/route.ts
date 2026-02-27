@@ -4,6 +4,7 @@ import { createKaspiClient } from '@/lib/kaspi-api';
 import { KaspiAPIClient } from '@/lib/kaspi/api-client';
 import { KaspiOrder } from '@/types/kaspi';
 import { triggerWhatsAppMessages } from '@/lib/whatsapp/trigger';
+import { updatePreorderOverrides, removePreorderOverrides } from '@/lib/preorder-utils';
 
 interface KaspiSession {
   cookies: string;
@@ -435,6 +436,7 @@ export async function POST(request: NextRequest) {
     // Возврат/отмена: вернуть на склад
     let stockDeductions = 0;
     let stockRestored = 0;
+    const isSynced = (store as any).stock_sync_mode === 'synced';
 
     try {
       // 5a. Списание: найти заказы где stock_deducted=false и статус требует списания
@@ -451,6 +453,8 @@ export async function POST(request: NextRequest) {
           ? order.status === 'kaspi_delivery_transmitted'
           : order.status === 'completed';
       }).filter(o => Array.isArray(o.items) && o.items.length > 0);
+
+      const zeroStockSkus: string[] = [];
 
       if (validDeductions.length > 0) {
         // Собираем суммарное кол-во к списанию по каждому product_code
@@ -473,16 +477,39 @@ export async function POST(request: NextRequest) {
           .eq('store_id', store.id)
           .in('kaspi_id', productCodes);
 
-        // Обновляем оба остатка: quantity и kaspi_stock
+        // Обновляем остатки: в synced mode зеркалим quantity = kaspi_stock
+
         if (products) {
+          // Also load SKUs for auto-preorder
+          const productIds = (products as any[]).map((p: any) => p.id);
+          const { data: productSkus } = await supabase
+            .from('products')
+            .select('id, sku')
+            .in('id', productIds);
+          const skuMap = new Map<string, string>();
+          for (const ps of (productSkus || []) as any[]) {
+            if (ps.sku) skuMap.set(ps.id, ps.sku);
+          }
+
           await parallelMap(products as any[], async (product) => {
             const deduct = deductionMap.get(product.kaspi_id!) || 0;
             if (deduct > 0) {
-              const update: Record<string, any> = {
-                quantity: Math.max((product.quantity || 0) - deduct, 0),
-              };
-              if (product.kaspi_stock != null) {
-                update.kaspi_stock = Math.max(product.kaspi_stock - deduct, 0);
+              const update: Record<string, any> = {};
+              if (isSynced) {
+                const newKaspi = Math.max((product.kaspi_stock ?? 0) - deduct, 0);
+                update.kaspi_stock = newKaspi;
+                update.quantity = newKaspi;
+                if (newKaspi === 0 && skuMap.has(product.id)) {
+                  zeroStockSkus.push(skuMap.get(product.id)!);
+                }
+              } else {
+                update.quantity = Math.max((product.quantity || 0) - deduct, 0);
+                if (product.kaspi_stock != null) {
+                  update.kaspi_stock = Math.max(product.kaspi_stock - deduct, 0);
+                }
+                if (update.quantity === 0 && skuMap.has(product.id)) {
+                  zeroStockSkus.push(skuMap.get(product.id)!);
+                }
               }
               await supabase.from('products').update(update).eq('id', product.id);
             }
@@ -525,17 +552,39 @@ export async function POST(request: NextRequest) {
           .eq('store_id', store.id)
           .in('kaspi_id', productCodes);
 
+        const restoredSkus: string[] = [];
+
         if (products) {
+          // Load SKUs for auto-preorder
+          const rProductIds = (products as any[]).map((p: any) => p.id);
+          const { data: rProductSkus } = await supabase
+            .from('products')
+            .select('id, sku')
+            .in('id', rProductIds);
+          const rSkuMap = new Map<string, string>();
+          for (const ps of (rProductSkus || []) as any[]) {
+            if (ps.sku) rSkuMap.set(ps.id, ps.sku);
+          }
+
           await parallelMap(products as any[], async (product) => {
             const restore = restoreMap.get(product.kaspi_id!) || 0;
             if (restore > 0) {
-              const update: Record<string, any> = {
-                quantity: (product.quantity || 0) + restore,
-              };
-              if (product.kaspi_stock != null) {
-                update.kaspi_stock = product.kaspi_stock + restore;
+              const update: Record<string, any> = {};
+              if (isSynced) {
+                const newKaspi = (product.kaspi_stock ?? 0) + restore;
+                update.kaspi_stock = newKaspi;
+                update.quantity = newKaspi;
+              } else {
+                update.quantity = (product.quantity || 0) + restore;
+                if (product.kaspi_stock != null) {
+                  update.kaspi_stock = product.kaspi_stock + restore;
+                }
               }
               await supabase.from('products').update(update).eq('id', product.id);
+              // Track restored SKUs for preorder removal
+              if (rSkuMap.has(product.id)) {
+                restoredSkus.push(rSkuMap.get(product.id)!);
+              }
             }
           }, 10);
         }
@@ -547,6 +596,25 @@ export async function POST(request: NextRequest) {
           .in('id', returnedOrders.map(o => o.id));
 
         stockRestored = returnedOrders.length;
+
+        // Remove preorder overrides for restored products
+        if ((store as any).auto_preorder_enabled && restoredSkus.length > 0) {
+          try {
+            await removePreorderOverrides(supabase, store.id, restoredSkus);
+          } catch (err) {
+            console.error('SYNC: auto-preorder remove error:', err);
+          }
+        }
+      }
+
+      // Auto-preorder: enable for products that hit zero stock
+      if ((store as any).auto_preorder_enabled && zeroStockSkus.length > 0) {
+        try {
+          await updatePreorderOverrides(supabase, store.id, zeroStockSkus, (store as any).auto_preorder_days || 7);
+          console.log(`SYNC: auto-preorder enabled for ${zeroStockSkus.length} SKUs`);
+        } catch (err) {
+          console.error('SYNC: auto-preorder enable error:', err);
+        }
       }
     } catch (err) {
       console.error('SYNC: stock deduction error:', err);
