@@ -64,27 +64,34 @@ export async function GET(request: NextRequest) {
         s === 'kaspi_delivery';
     });
 
-    // === daily_stats за 14 дней (для графиков) ===
-    const fourteenDaysAgo = new Date();
-    fourteenDaysAgo.setDate(fourteenDaysAgo.getDate() - 14);
+    // === Все даты в UTC+5 (Алматы) ===
+    const now = new Date();
+    const KZ_OFFSET = 5 * 3600000;
+    const kzNow = new Date(now.getTime() + KZ_OFFSET);
+    const kzTodayStr = kzNow.toISOString().split('T')[0];
 
+    function kzDaysAgo(days: number): string {
+      const d = new Date(kzNow.getTime() - days * 86400000);
+      return d.toISOString().split('T')[0];
+    }
+
+    // === daily_stats за 14 дней (для графиков) ===
     const dailyStatsResult = await supabase
       .from('daily_stats')
       .select('*')
       .eq('store_id', store.id)
-      .gte('date', fourteenDaysAgo.toISOString().split('T')[0])
+      .gte('date', kzDaysAgo(14))
       .order('date', { ascending: true });
     const dailyStats = dailyStatsResult.data || [];
 
     // === Заказы за 7 дней (для топ товаров) ===
-    const sevenDaysAgo = new Date();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const sevenDaysAgoStart = new Date(kzDaysAgo(7) + 'T00:00:00+05:00');
 
     const recentOrdersResult = await supabase
       .from('orders')
       .select('*')
       .eq('store_id', store.id)
-      .gte('created_at', sevenDaysAgo.toISOString())
+      .gte('created_at', sevenDaysAgoStart.toISOString())
       .order('created_at', { ascending: false });
     const recentOrders = recentOrdersResult.data || [];
 
@@ -100,53 +107,42 @@ export async function GET(request: NextRequest) {
       .eq('store_id', store.id);
 
     // === Статистика за 30 дней ===
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
     const monthStatsResult = await supabase
       .from('daily_stats')
       .select('*')
       .eq('store_id', store.id)
-      .gte('date', thirtyDaysAgo.toISOString().split('T')[0]);
+      .gte('date', kzDaysAgo(30));
     const monthStats = monthStatsResult.data || [];
 
     const monthRevenue = monthStats.reduce((sum: number, d: any) => sum + (d.revenue || 0), 0);
     const monthOrdersCount = monthStats.reduce((sum: number, d: any) => sum + (d.orders_count || 0), 0);
 
-    // === Данные по неделям для графиков ===
-    const now = new Date();
+    // === Данные по неделям для графиков (KZ timezone) ===
     const currentWeekData: number[] = [];
     const currentWeekOrders: number[] = [];
     const prevWeekData: number[] = [];
 
     for (let i = 6; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = kzDaysAgo(i);
 
       const stat = (dailyStats || []).find(s => s.date === dateStr);
       currentWeekData.push(stat?.revenue || 0);
       currentWeekOrders.push(stat?.orders_count || 0);
 
-      const prevDate = new Date(now);
-      prevDate.setDate(prevDate.getDate() - i - 7);
-      const prevDateStr = prevDate.toISOString().split('T')[0];
+      const prevDateStr = kzDaysAgo(i + 7);
 
       const prevStat = (dailyStats || []).find(s => s.date === prevDateStr);
       prevWeekData.push(prevStat?.revenue || 0);
     }
 
     // === Поступления за неделю — по дате выдачи (completed_at) ===
-    const sevenDaysAgoDate = new Date(now);
-    sevenDaysAgoDate.setDate(sevenDaysAgoDate.getDate() - 7);
-
     const completedOrdersResult = await supabase
       .from('orders')
       .select('total_amount, completed_at, status')
       .eq('store_id', store.id)
       .not('completed_at', 'is', null)
       .eq('status', 'completed')
-      .gte('completed_at', sevenDaysAgoDate.toISOString());
+      .gte('completed_at', new Date(kzDaysAgo(7) + 'T00:00:00+05:00').toISOString());
     const completedOrders = completedOrdersResult.data || [];
 
     // Группируем по дате completed_at в UTC+5
@@ -167,17 +163,14 @@ export async function GET(request: NextRequest) {
     const weeklyPayments: number[] = [];
     const weeklyCompletedCount: number[] = [];
     for (let i = 6; i >= 0; i--) {
-      const date = new Date(now);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = kzDaysAgo(i);
       const dayStat = paymentsByDate.get(dateStr);
       weeklyPayments.push(dayStat?.revenue || 0);
       weeklyCompletedCount.push(dayStat?.count || 0);
     }
 
-    // === Продажи сегодня (товары) ===
-    const todayStr = now.toISOString().split('T')[0];
-    const todayStart = new Date(todayStr + 'T00:00:00+05:00'); // UTC+5 Алматы
+    // === Продажи сегодня (товары) — используем KZ дату ===
+    const todayStart = new Date(kzTodayStr + 'T00:00:00+05:00'); // UTC+5 Алматы
 
     const todayOrdersResult = await supabase
       .from('orders')
