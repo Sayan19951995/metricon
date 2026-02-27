@@ -611,15 +611,30 @@ export async function POST(request: NextRequest) {
       if ((store as any).auto_preorder_enabled && zeroStockSkus.length > 0) {
         try {
           const preorderMode = (store as any).auto_preorder_mode || 'all';
-          const preorderAllowedSkus = (preorderMode === 'selective' && Array.isArray((store as any).auto_preorder_skus))
-            ? (store as any).auto_preorder_skus as string[]
-            : null;
-          const filteredSkus = preorderAllowedSkus
-            ? zeroStockSkus.filter(sku => preorderAllowedSkus.includes(sku))
-            : zeroStockSkus;
-          if (filteredSkus.length > 0) {
-            await updatePreorderOverrides(supabase, store.id, filteredSkus, (store as any).auto_preorder_days || 7);
-            console.log(`SYNC: auto-preorder enabled for ${filteredSkus.length} SKUs`);
+          const globalDays = (store as any).auto_preorder_days || 7;
+          const rawSkuConfig = (store as any).auto_preorder_skus;
+
+          if (preorderMode === 'selective' && rawSkuConfig && typeof rawSkuConfig === 'object' && !Array.isArray(rawSkuConfig)) {
+            // Per-SKU days: { sku: days }
+            const skuDaysMap = rawSkuConfig as Record<string, number>;
+            for (const sku of zeroStockSkus) {
+              if (sku in skuDaysMap) {
+                await updatePreorderOverrides(supabase, store.id, [sku], Math.min(30, Math.max(1, skuDaysMap[sku] || 7)));
+              }
+            }
+            const matched = zeroStockSkus.filter(s => s in skuDaysMap);
+            if (matched.length > 0) console.log(`SYNC: auto-preorder enabled for ${matched.length} SKUs (selective, per-SKU days)`);
+          } else if (preorderMode === 'selective' && Array.isArray(rawSkuConfig)) {
+            // Legacy array format
+            const filteredSkus = zeroStockSkus.filter(sku => rawSkuConfig.includes(sku));
+            if (filteredSkus.length > 0) {
+              await updatePreorderOverrides(supabase, store.id, filteredSkus, globalDays);
+              console.log(`SYNC: auto-preorder enabled for ${filteredSkus.length} SKUs (selective)`);
+            }
+          } else {
+            // All products
+            await updatePreorderOverrides(supabase, store.id, zeroStockSkus, globalDays);
+            console.log(`SYNC: auto-preorder enabled for ${zeroStockSkus.length} SKUs (all)`);
           }
         } catch (err) {
           console.error('SYNC: auto-preorder enable error:', err);

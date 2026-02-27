@@ -40,7 +40,7 @@ export default function WarehouseSettingsPage() {
   const [autoPreorderEnabled, setAutoPreorderEnabled] = useState(false);
   const [autoPreorderDays, setAutoPreorderDays] = useState(7);
   const [autoPreorderMode, setAutoPreorderMode] = useState<'all' | 'selective'>('all');
-  const [autoPreorderSkus, setAutoPreorderSkus] = useState<string[]>([]);
+  const [autoPreorderSkus, setAutoPreorderSkus] = useState<Record<string, number>>({});
   const [allProducts, setAllProducts] = useState<Array<{ kaspi_id: string; name: string }>>([]);
   const [preorderSearch, setPreorderSearch] = useState('');
   const [showPreorderPicker, setShowPreorderPicker] = useState(false);
@@ -62,7 +62,17 @@ export default function WarehouseSettingsPage() {
           setAutoPreorderEnabled((data as any).auto_preorder_enabled || false);
           setAutoPreorderDays((data as any).auto_preorder_days || 7);
           setAutoPreorderMode((data as any).auto_preorder_mode === 'selective' ? 'selective' : 'all');
-          setAutoPreorderSkus((data as any).auto_preorder_skus || []);
+          const rawSkus = (data as any).auto_preorder_skus;
+          // Support both old array format and new {sku: days} object
+          if (rawSkus && typeof rawSkus === 'object' && !Array.isArray(rawSkus)) {
+            setAutoPreorderSkus(rawSkus);
+          } else if (Array.isArray(rawSkus)) {
+            const obj: Record<string, number> = {};
+            for (const s of rawSkus) obj[s] = (data as any).auto_preorder_days || 7;
+            setAutoPreorderSkus(obj);
+          } else {
+            setAutoPreorderSkus({});
+          }
         }
         // Load products for selective picker
         const { data: prods } = await supabase
@@ -350,28 +360,6 @@ export default function WarehouseSettingsPage() {
 
         {autoPreorderEnabled && (
           <div className="space-y-4">
-            {/* Срок предзаказа */}
-            <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4">
-              <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 block">
-                Срок предзаказа (дней)
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="number"
-                  value={autoPreorderDays}
-                  onChange={e => {
-                    const v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1));
-                    setAutoPreorderDays(v);
-                  }}
-                  onBlur={() => saveSetting('auto_preorder_days', autoPreorderDays)}
-                  className="w-24 px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
-                  min="1"
-                  max="30"
-                />
-                <span className="text-xs text-gray-500 dark:text-gray-400">от 1 до 30 дней</span>
-              </div>
-            </div>
-
             {/* Режим: все или выборочно */}
             <div className="bg-gray-50 dark:bg-gray-900 rounded-xl p-4">
               <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3 block">
@@ -406,37 +394,72 @@ export default function WarehouseSettingsPage() {
                 </button>
               </div>
 
+              {/* Режим "Все товары" — один общий срок */}
               {autoPreorderMode === 'all' && (
-                <p className="text-xs text-gray-400 dark:text-gray-500">
-                  При нулевом остатке любого товара — автоматически включится предзаказ на {autoPreorderDays} дн.
-                </p>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs text-gray-500 dark:text-gray-400 shrink-0">Срок:</label>
+                    <input
+                      type="number"
+                      value={autoPreorderDays}
+                      onChange={e => {
+                        const v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1));
+                        setAutoPreorderDays(v);
+                      }}
+                      onBlur={() => saveSetting('auto_preorder_days', autoPreorderDays)}
+                      className="w-20 px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+                      min="1"
+                      max="30"
+                    />
+                    <span className="text-xs text-gray-400">дней (1–30)</span>
+                  </div>
+                  <p className="text-xs text-gray-400 dark:text-gray-500">
+                    При нулевом остатке любого товара — автоматически включится предзаказ на {autoPreorderDays} дн.
+                  </p>
+                </div>
               )}
 
+              {/* Режим "Выборочно" — каждый товар со своим сроком */}
               {autoPreorderMode === 'selective' && (
                 <div className="space-y-3">
                   <p className="text-xs text-gray-400 dark:text-gray-500">
-                    Предзаказ включится только для выбранных товаров при нулевом остатке.
+                    Укажите товары и срок предзаказа для каждого. При нулевом остатке — включится предзаказ на указанный срок.
                   </p>
 
-                  {/* Выбранные товары */}
-                  {autoPreorderSkus.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {autoPreorderSkus.map(sku => {
+                  {/* Список выбранных товаров */}
+                  {Object.keys(autoPreorderSkus).length > 0 && (
+                    <div className="space-y-2">
+                      {Object.entries(autoPreorderSkus).map(([sku, days]) => {
                         const prod = allProducts.find(p => p.kaspi_id === sku);
                         return (
-                          <span key={sku} className="inline-flex items-center gap-1 px-2.5 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-800 dark:text-amber-300 rounded-lg text-xs">
-                            <span className="max-w-[150px] truncate">{prod?.name || sku}</span>
+                          <div key={sku} className="flex items-center gap-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2">
+                            <span className="flex-1 text-sm text-gray-700 dark:text-gray-300 truncate">{prod?.name || sku}</span>
+                            <input
+                              type="number"
+                              value={days}
+                              onChange={e => {
+                                const v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1));
+                                const next = { ...autoPreorderSkus, [sku]: v };
+                                setAutoPreorderSkus(next);
+                              }}
+                              onBlur={() => saveSetting('auto_preorder_skus', autoPreorderSkus)}
+                              className="w-16 px-2 py-1 text-sm text-center border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-white"
+                              min="1"
+                              max="30"
+                            />
+                            <span className="text-xs text-gray-400 shrink-0">дн.</span>
                             <button
                               onClick={() => {
-                                const next = autoPreorderSkus.filter(s => s !== sku);
+                                const next = { ...autoPreorderSkus };
+                                delete next[sku];
                                 setAutoPreorderSkus(next);
                                 saveSetting('auto_preorder_skus', next);
                               }}
-                              className="hover:text-red-500 cursor-pointer ml-0.5"
+                              className="text-gray-400 hover:text-red-500 cursor-pointer p-0.5"
                             >
-                              <X className="w-3 h-3" />
+                              <X className="w-4 h-4" />
                             </button>
-                          </span>
+                          </div>
                         );
                       })}
                     </div>
@@ -444,7 +467,7 @@ export default function WarehouseSettingsPage() {
 
                   {/* Кнопка добавить */}
                   <button
-                    onClick={() => setShowPreorderPicker(!showPreorderPicker)}
+                    onClick={() => { setShowPreorderPicker(!showPreorderPicker); setPreorderSearch(''); }}
                     className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-amber-600 dark:text-amber-400 bg-white dark:bg-gray-800 border border-amber-300 dark:border-amber-700 rounded-lg hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors cursor-pointer"
                   >
                     <Package className="w-3.5 h-3.5" />
@@ -466,14 +489,14 @@ export default function WarehouseSettingsPage() {
                       </div>
                       <div className="max-h-48 overflow-y-auto">
                         {allProducts
-                          .filter(p => !autoPreorderSkus.includes(p.kaspi_id))
+                          .filter(p => !(p.kaspi_id in autoPreorderSkus))
                           .filter(p => !preorderSearch || p.name.toLowerCase().includes(preorderSearch.toLowerCase()))
                           .slice(0, 50)
                           .map(p => (
                             <button
                               key={p.kaspi_id}
                               onClick={() => {
-                                const next = [...autoPreorderSkus, p.kaspi_id];
+                                const next = { ...autoPreorderSkus, [p.kaspi_id]: 7 };
                                 setAutoPreorderSkus(next);
                                 saveSetting('auto_preorder_skus', next);
                               }}
@@ -482,7 +505,7 @@ export default function WarehouseSettingsPage() {
                               {p.name}
                             </button>
                           ))}
-                        {allProducts.filter(p => !autoPreorderSkus.includes(p.kaspi_id)).filter(p => !preorderSearch || p.name.toLowerCase().includes(preorderSearch.toLowerCase())).length === 0 && (
+                        {allProducts.filter(p => !(p.kaspi_id in autoPreorderSkus)).filter(p => !preorderSearch || p.name.toLowerCase().includes(preorderSearch.toLowerCase())).length === 0 && (
                           <p className="text-center text-xs text-gray-400 py-4">Нет товаров</p>
                         )}
                       </div>
