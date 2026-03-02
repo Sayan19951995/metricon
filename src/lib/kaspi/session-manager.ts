@@ -125,7 +125,7 @@ export async function refreshCabinetSession(
 
     await supabase
       .from('stores')
-      .update({ kaspi_session: newSession })
+      .update({ kaspi_session: newSession as any })
       .eq('id', storeId);
 
     console.log(`[SessionManager] Session refreshed for store ${storeId}`);
