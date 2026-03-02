@@ -67,9 +67,9 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ success: true });
-  } catch (err) {
+  } catch (err: any) {
     console.error('Registration error:', err);
-    const message = err instanceof Error ? err.message : 'Ошибка при регистрации';
+    const message = err?.message || err?.msg || (typeof err === 'string' ? err : JSON.stringify(err)) || 'Неизвестная ошибка';
     return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
