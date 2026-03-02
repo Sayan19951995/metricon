@@ -1,16 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 
 // POST — add custom keyword
 export async function POST(request: NextRequest) {
   try {
-    const { userId, productId, keyword } = await request.json();
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId || !productId || !keyword?.trim()) {
-      return NextResponse.json({ success: false, message: 'Все поля обязательны' }, { status: 400 });
+    const { productId, keyword } = await request.json();
+
+    if (!productId || !keyword?.trim()) {
+      return NextResponse.json({ success: false, message: 'productId и keyword обязательны' }, { status: 400 });
     }
 
-    const { data: store } = await supabase
+    const { data: store } = await supabaseAdmin
       .from('stores')
       .select('id')
       .eq('user_id', userId)
@@ -20,7 +24,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Магазин не найден' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('search_keywords')
       .insert({
         store_id: store.id,
@@ -50,15 +54,18 @@ export async function POST(request: NextRequest) {
 // DELETE — remove custom keyword
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const keywordId = searchParams.get('keywordId');
 
-    if (!userId || !keywordId) {
-      return NextResponse.json({ success: false, message: 'userId и keywordId обязательны' }, { status: 400 });
+    if (!keywordId) {
+      return NextResponse.json({ success: false, message: 'keywordId обязателен' }, { status: 400 });
     }
 
-    const { data: store } = await supabase
+    const { data: store } = await supabaseAdmin
       .from('stores')
       .select('id')
       .eq('user_id', userId)
@@ -68,7 +75,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Магазин не найден' }, { status: 400 });
     }
 
-    await supabase
+    await supabaseAdmin
       .from('search_keywords')
       .delete()
       .eq('id', keywordId)

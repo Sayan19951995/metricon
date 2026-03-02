@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@/hooks/useUser';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import BrandLoader from '@/components/ui/BrandLoader';
 import Link from 'next/link';
 import {
@@ -53,7 +54,7 @@ export default function AdvertisingPage() {
         const dd = String(d.getDate()).padStart(2, '0');
         return `${yyyy}-${mm}-${dd}`;
       };
-      const res = await fetch(`/api/kaspi/marketing?userId=${user.id}&startDate=${fmt(start)}&endDate=${fmt(end)}`);
+      const res = await fetchWithAuth(`/api/kaspi/marketing?startDate=${fmt(start)}&endDate=${fmt(end)}`);
       const json = await res.json();
       if (json.success && json.data?.summary) {
         setSummary(json.data.summary);

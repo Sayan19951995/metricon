@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { kaspiCabinetLogin } from '@/lib/kaspi/api-client';
 
 /**
@@ -9,15 +9,12 @@ import { kaspiCabinetLogin } from '@/lib/kaspi/api-client';
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, username, password } = body;
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId) {
-      return NextResponse.json({
-        success: false,
-        error: 'userId обязателен',
-      }, { status: 400 });
-    }
+    const body = await request.json();
+    const { username, password } = body;
 
     if (!username || !password) {
       return NextResponse.json({
@@ -27,7 +24,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Получаем магазин пользователя
-    const storeResult = await supabase
+    const storeResult = await supabaseAdmin
       .from('stores')
       .select('id, kaspi_merchant_id')
       .eq('user_id', userId)
@@ -55,7 +52,7 @@ export async function POST(request: NextRequest) {
     const merchantId = result.merchantId || store.kaspi_merchant_id || '';
 
     // Сохраняем сессию в Supabase
-    const { error: updateError } = await supabase.from('stores')
+    const { error: updateError } = await supabaseAdmin.from('stores')
       .update({
         kaspi_session: {
           cookies: result.cookies,

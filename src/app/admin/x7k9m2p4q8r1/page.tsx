@@ -15,6 +15,7 @@ import {
   DollarSign,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface StoreInfo {
   id: string;
@@ -68,7 +69,7 @@ export default function SecretStoresPage() {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/store-analytics?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/admin/store-analytics');
       const json = await res.json();
       if (json.success && json.stores) {
         setStores(json.stores);

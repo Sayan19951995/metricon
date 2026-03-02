@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { createKaspiClient } from '@/lib/kaspi-api';
 import { KaspiAPIClient } from '@/lib/kaspi/api-client';
 import { refreshCabinetSession } from '@/lib/kaspi/session-manager';
@@ -29,18 +29,15 @@ async function parallelMap<T, R>(items: T[], fn: (item: T) => Promise<R>, concur
 export async function POST(request: NextRequest) {
   const startTime = Date.now();
   try {
-    const body = await request.json();
-    const { userId, daysBack = 14 } = body;
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId) {
-      return NextResponse.json({
-        success: false,
-        message: 'Необходимо указать userId'
-      }, { status: 400 });
-    }
+    const body = await request.json();
+    const { daysBack = 14 } = body;
 
     // Получаем магазин пользователя
-    const storeResult = await supabase
+    const storeResult = await supabaseAdmin
       .from('stores')
       .select('*')
       .eq('user_id', userId)
@@ -121,7 +118,7 @@ export async function POST(request: NextRequest) {
     // === 2. Загружаем entries ТОЛЬКО для новых заказов (не в БД) ===
     // Batch-проверка: какие kaspi_order_id уже есть в БД
     const activeOrderIds = activeOrders.map(o => o.orderId);
-    const { data: existingDbOrders } = await supabase
+    const { data: existingDbOrders } = await supabaseAdmin
       .from('orders')
       .select('kaspi_order_id')
       .eq('store_id', store.id)
@@ -210,7 +207,7 @@ export async function POST(request: NextRequest) {
     // Используем upsert для новых заказов чтобы избежать дубликатов при параллельных sync
     await parallelMap(orderOps, async (op) => {
       if (op.isNew) {
-        await supabase.from('orders').upsert({
+        await supabaseAdmin.from('orders').upsert({
           ...op.data,
           items: op.data.items || [],
           created_at: op.createdAt,
@@ -219,7 +216,7 @@ export async function POST(request: NextRequest) {
       } else {
         const updateData = { ...op.data };
         if (!updateData.items) delete updateData.items;
-        await supabase.from('orders').update(updateData)
+        await supabaseAdmin.from('orders').update(updateData)
           .eq('kaspi_order_id', op.data.kaspi_order_id)
           .eq('store_id', store.id);
         ordersUpdated++;
@@ -228,7 +225,7 @@ export async function POST(request: NextRequest) {
 
     // Сохраняем продукты (batch check)
     const productIds = Array.from(productsMap.keys());
-    const { data: existingProducts } = await supabase
+    const { data: existingProducts } = await supabaseAdmin
       .from('products')
       .select('kaspi_id')
       .eq('store_id', store.id)
@@ -237,7 +234,7 @@ export async function POST(request: NextRequest) {
 
     const newProducts = Array.from(productsMap.values()).filter(p => !existingProductIds.has(p.kaspi_id));
     if (newProducts.length > 0) {
-      await supabase.from('products').insert(newProducts);
+      await supabaseAdmin.from('products').insert(newProducts);
       productsCreated = newProducts.length;
     }
 
@@ -284,7 +281,7 @@ export async function POST(request: NextRequest) {
     if (completedOrders.length > 0) {
       // Batch query: все наши DB заказы по kaspi_order_id
       const archiveOrderIds = completedOrders.map(o => o.orderId);
-      const { data: dbArchiveOrders } = await supabase
+      const { data: dbArchiveOrders } = await supabaseAdmin
         .from('orders')
         .select('id, kaspi_order_id, status, completed_at, delivery_mode, delivery_cost')
         .eq('store_id', store.id)
@@ -363,7 +360,7 @@ export async function POST(request: NextRequest) {
       // Фаза 3: Выполняем DB updates параллельно
       console.log(`SYNC: ${archiveUpdates.length} archive orders need DB update out of ${completedOrders.length}`);
       await parallelMap(archiveUpdates, async ({ id, update }) => {
-        await supabase.from('orders').update(update).eq('id', id);
+        await supabaseAdmin.from('orders').update(update).eq('id', id);
       }, 10);
 
       // === 4.5 АВТОРАССЫЛКА: WhatsApp при выдаче заказа ===
@@ -398,7 +395,7 @@ export async function POST(request: NextRequest) {
 
           // === FEEDBACK: добавляем в очередь опросов ===
           try {
-            const { data: fbSettings } = await supabase
+            const { data: fbSettings } = await supabaseAdmin
               .from('feedback_settings')
               .select('enabled, delay_minutes')
               .eq('store_id', store.id)
@@ -420,7 +417,7 @@ export async function POST(request: NextRequest) {
                     price: e.totalPrice || e.basePrice || 0,
                   }));
 
-                  await supabase.from('feedback_queue').upsert({
+                  await supabaseAdmin.from('feedback_queue').upsert({
                     store_id: store.id,
                     order_id: order.orderId,
                     customer_phone: order.customer.cellPhone,
@@ -454,7 +451,7 @@ export async function POST(request: NextRequest) {
 
     try {
       // 5a. Списание: найти заказы где stock_deducted=false и статус требует списания
-      const { data: ordersToDeduct } = await supabase
+      const { data: ordersToDeduct } = await supabaseAdmin
         .from('orders')
         .select('id, status, delivery_mode, items')
         .eq('store_id', store.id)
@@ -486,7 +483,7 @@ export async function POST(request: NextRequest) {
 
         // Batch-читаем текущие остатки (quantity + kaspi_stock)
         const productCodes = Array.from(deductionMap.keys());
-        const { data: products } = await supabase
+        const { data: products } = await supabaseAdmin
           .from('products')
           .select('id, kaspi_id, quantity, kaspi_stock' as any)
           .eq('store_id', store.id)
@@ -497,7 +494,7 @@ export async function POST(request: NextRequest) {
         if (products) {
           // Maps for auto-preorder: id → sku (for XML overrides), id → kaspi_id (for settings match)
           const productIds = (products as any[]).map((p: any) => p.id);
-          const { data: productSkus } = await supabase
+          const { data: productSkus } = await supabaseAdmin
             .from('products')
             .select('id, sku, kaspi_id')
             .in('id', productIds);
@@ -530,13 +527,13 @@ export async function POST(request: NextRequest) {
                   if (kaspiIdMap.has(product.id)) zeroStockKaspiIds.push(kaspiIdMap.get(product.id)!);
                 }
               }
-              await supabase.from('products').update(update).eq('id', product.id);
+              await supabaseAdmin.from('products').update(update).eq('id', product.id);
             }
           }, 10);
         }
 
         // Отмечаем заказы как списанные
-        await supabase
+        await supabaseAdmin
           .from('orders')
           .update({ stock_deducted: true } as any)
           .in('id', validDeductions.map(o => o.id));
@@ -545,7 +542,7 @@ export async function POST(request: NextRequest) {
       }
 
       // 5b. Возврат остатков: заказы были списаны, но потом вернулись/отменились
-      const { data: returnedOrders } = await supabase
+      const { data: returnedOrders } = await supabaseAdmin
         .from('orders')
         .select('id, items')
         .eq('store_id', store.id)
@@ -565,7 +562,7 @@ export async function POST(request: NextRequest) {
         }
 
         const productCodes = Array.from(restoreMap.keys());
-        const { data: products } = await supabase
+        const { data: products } = await supabaseAdmin
           .from('products')
           .select('id, kaspi_id, quantity, kaspi_stock' as any)
           .eq('store_id', store.id)
@@ -576,7 +573,7 @@ export async function POST(request: NextRequest) {
         if (products) {
           // Load SKUs for auto-preorder
           const rProductIds = (products as any[]).map((p: any) => p.id);
-          const { data: rProductSkus } = await supabase
+          const { data: rProductSkus } = await supabaseAdmin
             .from('products')
             .select('id, sku')
             .in('id', rProductIds);
@@ -599,7 +596,7 @@ export async function POST(request: NextRequest) {
                   update.kaspi_stock = product.kaspi_stock + restore;
                 }
               }
-              await supabase.from('products').update(update).eq('id', product.id);
+              await supabaseAdmin.from('products').update(update).eq('id', product.id);
               // Track restored SKUs for preorder removal
               if (rSkuMap.has(product.id)) {
                 restoredSkus.push(rSkuMap.get(product.id)!);
@@ -609,7 +606,7 @@ export async function POST(request: NextRequest) {
         }
 
         // Сбрасываем флаг (stock_deducted=false) — заказ возвращён
-        await supabase
+        await supabaseAdmin
           .from('orders')
           .update({ stock_deducted: false } as any)
           .in('id', returnedOrders.map(o => o.id));
@@ -619,7 +616,7 @@ export async function POST(request: NextRequest) {
         // Remove preorder overrides for restored products
         if ((store as any).auto_preorder_enabled && restoredSkus.length > 0) {
           try {
-            await removePreorderOverrides(supabase, store.id, restoredSkus);
+            await removePreorderOverrides(supabaseAdmin, store.id, restoredSkus);
           } catch (err) {
             console.error('SYNC: auto-preorder remove error:', err);
           }
@@ -651,12 +648,12 @@ export async function POST(request: NextRequest) {
               }
             }
             for (const { sku, days } of skusToEnable) {
-              await updatePreorderOverrides(supabase, store.id, [sku], days);
+              await updatePreorderOverrides(supabaseAdmin, store.id, [sku], days);
             }
             if (skusToEnable.length > 0) console.log(`SYNC: auto-preorder enabled for ${skusToEnable.length} SKUs (selective, per-product days)`);
           } else {
             // All products mode
-            await updatePreorderOverrides(supabase, store.id, zeroStockSkus, globalDays);
+            await updatePreorderOverrides(supabaseAdmin, store.id, zeroStockSkus, globalDays);
             console.log(`SYNC: auto-preorder enabled for ${zeroStockSkus.length} SKUs (all, ${globalDays} days)`);
           }
         } catch (err) {
@@ -698,13 +695,13 @@ export async function POST(request: NextRequest) {
     }));
 
     if (statsToUpsert.length > 0) {
-      await supabase
+      await supabaseAdmin
         .from('daily_stats')
         .upsert(statsToUpsert, { onConflict: 'store_id,date' });
     }
 
     // Обновляем last_synced_at
-    await supabase.from('stores').update({ last_synced_at: new Date().toISOString() }).eq('id', store.id);
+    await supabaseAdmin.from('stores').update({ last_synced_at: new Date().toISOString() }).eq('id', store.id);
 
     const totalTime = Date.now() - startTime;
     console.log(`SYNC: done in ${totalTime}ms (${(totalTime / 1000).toFixed(1)}s)`);
@@ -740,17 +737,11 @@ export async function POST(request: NextRequest) {
 // GET - получить статистику из БД
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId) {
-      return NextResponse.json({
-        success: false,
-        message: 'Необходимо указать userId'
-      }, { status: 400 });
-    }
-
-    const storeResult2 = await supabase
+    const storeResult2 = await supabaseAdmin
       .from('stores')
       .select('*')
       .eq('user_id', userId)
@@ -768,7 +759,7 @@ export async function GET(request: NextRequest) {
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const dailyStatsResult = await supabase
+    const dailyStatsResult = await supabaseAdmin
       .from('daily_stats')
       .select('*')
       .eq('store_id', store.id)
@@ -776,12 +767,12 @@ export async function GET(request: NextRequest) {
       .order('date', { ascending: true });
     const dailyStats = dailyStatsResult.data || [];
 
-    const { count: ordersCount } = await supabase
+    const { count: ordersCount } = await supabaseAdmin
       .from('orders')
       .select('*', { count: 'exact', head: true })
       .eq('store_id', store.id);
 
-    const { count: productsCount } = await supabase
+    const { count: productsCount } = await supabaseAdmin
       .from('products')
       .select('*', { count: 'exact', head: true })
       .eq('store_id', store.id);

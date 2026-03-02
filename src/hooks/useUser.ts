@@ -190,11 +190,13 @@ export function useUser(): UserData & { impersonating: boolean; stopImpersonatin
           supabase.from('subscriptions').select('*').eq('user_id', user.id).single()
         ]);
 
-        if (storeResult.error && storeResult.error.code !== 'PGRST116') {
-          console.error('Store error:', storeResult.error);
+        // Ошибки RLS (42501), no-rows (PGRST116) — не критичные, данные идут через API
+        const ignoreErrors = ['PGRST116', '42501', 'PGRST301'];
+        if (storeResult.error?.code && !ignoreErrors.includes(storeResult.error.code)) {
+          console.warn('Store query:', storeResult.error.code);
         }
-        if (subResult.error && subResult.error.code !== 'PGRST116') {
-          console.error('Subscription error:', subResult.error);
+        if (subResult.error?.code && !ignoreErrors.includes(subResult.error.code)) {
+          console.warn('Sub query:', subResult.error.code);
         }
 
         let store = storeResult.data || null;

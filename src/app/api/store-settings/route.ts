@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'userId обязателен' }, { status: 400 });
-    }
-
-    const { data: store } = await supabase
+    const { data: store } = await supabaseAdmin
       .from('stores')
       .select('commission_rate, tax_rate')
       .eq('user_id', userId)
@@ -37,18 +34,18 @@ export async function GET(request: NextRequest) {
 
 export async function PUT(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, commissionRate, taxRate } = body;
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'userId обязателен' }, { status: 400 });
-    }
+    const body = await request.json();
+    const { commissionRate, taxRate } = body;
 
     const update: Record<string, number> = {};
     if (commissionRate !== undefined) update.commission_rate = commissionRate;
     if (taxRate !== undefined) update.tax_rate = taxRate;
 
-    const { error } = await supabase.from('stores')
+    const { error } = await supabaseAdmin.from('stores')
       .update(update)
       .eq('user_id', userId);
 

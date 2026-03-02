@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 
 const PLAN_PRICES: Record<string, number> = {
   start: 4990,
@@ -9,13 +9,12 @@ const PLAN_PRICES: Record<string, number> = {
 
 export async function GET(request: NextRequest) {
   try {
-    const userId = new URL(request.url).searchParams.get('userId');
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'userId обязателен' }, { status: 400 });
-    }
+    const authResult = await requireAuth(request);
+    if ('error' in authResult) return authResult.error;
+    const userId = authResult.user.id;
 
     // Check admin
-    const { data: adminUser } = await supabase
+    const { data: adminUser } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', userId)
@@ -28,9 +27,9 @@ export async function GET(request: NextRequest) {
     // Parallel queries for stats
     // Note: use select('*') for subscriptions/stores since created_at may not exist
     const [usersResult, subsResult, storesResult] = await Promise.all([
-      supabase.from('users').select('id, name, email, created_at', { count: 'exact' }),
-      supabase.from('subscriptions').select('*', { count: 'exact' }),
-      supabase.from('stores').select('*', { count: 'exact' }),
+      supabaseAdmin.from('users').select('id, name, email, created_at', { count: 'exact' }),
+      supabaseAdmin.from('subscriptions').select('*', { count: 'exact' }),
+      supabaseAdmin.from('stores').select('*', { count: 'exact' }),
     ]);
 
     const totalUsers = usersResult.count || 0;

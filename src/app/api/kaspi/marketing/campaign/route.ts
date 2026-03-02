@@ -1,26 +1,29 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { KaspiMarketingClient, MarketingSession } from '@/lib/kaspi/marketing-client';
 
 /**
- * GET /api/kaspi/marketing/campaign?userId=...&campaignId=...&startDate=...&endDate=...
+ * GET /api/kaspi/marketing/campaign?campaignId=...&startDate=...&endDate=...
  */
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const campaignId = searchParams.get('campaignId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    if (!userId || !campaignId) {
+    if (!campaignId) {
       return NextResponse.json({
         success: false,
-        message: 'userId и campaignId обязательны'
+        message: 'campaignId обязателен'
       }, { status: 400 });
     }
 
-    const storeResult = await supabase
+    const storeResult = await supabaseAdmin
       .from('stores')
       .select('id, marketing_session')
       .eq('user_id', userId)

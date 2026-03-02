@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { checkCabinetSession } from '@/lib/kaspi/api-client';
 import { refreshCabinetSession } from '@/lib/kaspi/session-manager';
 
@@ -9,17 +9,11 @@ import { refreshCabinetSession } from '@/lib/kaspi/session-manager';
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId) {
-      return NextResponse.json({
-        success: false,
-        error: 'userId обязателен',
-      }, { status: 400 });
-    }
-
-    const storeResult = await supabase
+    const storeResult = await supabaseAdmin
       .from('stores')
       .select('id, kaspi_session, kaspi_merchant_id')
       .eq('user_id', userId)
@@ -67,7 +61,7 @@ export async function GET(request: NextRequest) {
       const refreshed = await refreshCabinetSession(
         store.id,
         session as any,
-        store.kaspi_merchant_id
+        store.kaspi_merchant_id || undefined
       );
       if (refreshed) {
         valid = true;
@@ -97,17 +91,11 @@ export async function GET(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId) {
-      return NextResponse.json({
-        success: false,
-        error: 'userId обязателен',
-      }, { status: 400 });
-    }
-
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('stores')
       .update({
         kaspi_session: null,

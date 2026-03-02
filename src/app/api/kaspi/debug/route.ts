@@ -1,19 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { createKaspiClient } from '@/lib/kaspi-api';
 
 // GET - диагностика: выгрузить сырые ответы Kaspi API
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
-      return NextResponse.json({ error: 'userId required' }, { status: 400 });
-    }
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
     // Получаем магазин
-    const storeResult = await supabase
+    const storeResult = await supabaseAdmin
       .from('stores')
       .select('*')
       .eq('user_id', userId)

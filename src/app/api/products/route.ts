@@ -1,21 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const storeId = searchParams.get('storeId');
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId && !storeId) {
-      return NextResponse.json({ success: false, message: 'userId или storeId обязателен' }, { status: 400 });
-    }
+    const { searchParams } = new URL(request.url);
+    const storeId = searchParams.get('storeId');
 
     let resolvedStoreId = storeId;
 
-    if (!resolvedStoreId && userId) {
+    if (!resolvedStoreId) {
       // Try owner's store first
-      const storeResult = await supabase
+      const storeResult = await supabaseAdmin
         .from('stores')
         .select('id')
         .eq('user_id', userId)
@@ -25,7 +24,7 @@ export async function GET(request: NextRequest) {
         resolvedStoreId = storeResult.data.id;
       } else {
         // Fallback: team member — find store via team_members
-        const { data: membership } = await (supabase as any)
+        const { data: membership } = await (supabaseAdmin as any)
           .from('team_members')
           .select('store_id')
           .eq('user_id', userId)
@@ -41,7 +40,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Магазин не найден' }, { status: 400 });
     }
 
-    const productsResult = await supabase
+    const productsResult = await supabaseAdmin
       .from('products')
       .select('kaspi_id, name, price, cost_price, image_url')
       .eq('store_id', resolvedStoreId)
@@ -59,19 +58,23 @@ export async function GET(request: NextRequest) {
 
 export async function PATCH(request: NextRequest) {
   try {
-    const { userId, kaspiId, productGroup, costPrice } = await request.json();
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId || !kaspiId) {
-      return NextResponse.json({ success: false, message: 'userId и kaspiId обязательны' }, { status: 400 });
+    const { kaspiId, productGroup, costPrice } = await request.json();
+
+    if (!kaspiId) {
+      return NextResponse.json({ success: false, message: 'kaspiId обязателен' }, { status: 400 });
     }
 
     // Resolve store — support both owner and team member
     let storeId: string | null = null;
-    const storeResult = await supabase.from('stores').select('id').eq('user_id', userId).single();
+    const storeResult = await supabaseAdmin.from('stores').select('id').eq('user_id', userId).single();
     if (storeResult.data) {
       storeId = storeResult.data.id;
     } else {
-      const { data: membership } = await (supabase as any)
+      const { data: membership } = await (supabaseAdmin as any)
         .from('team_members')
         .select('store_id')
         .eq('user_id', userId)
@@ -92,7 +95,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Нет полей для обновления' }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('products')
       .update(updates)
       .eq('store_id', storeId)

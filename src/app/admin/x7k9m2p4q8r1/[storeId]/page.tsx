@@ -21,6 +21,7 @@ import {
   ArrowLeft,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 type Period = '7d' | '30d' | '90d' | '365d' | 'custom';
 
@@ -129,7 +130,7 @@ export default function StoreAnalyticsPage() {
     setLoading(true);
     try {
       const p = new URLSearchParams({ userId: user.id, storeId, dateFrom, dateTo });
-      const res = await fetch(`/api/admin/store-analytics?${p}`);
+      const res = await fetchWithAuth(`/api/admin/store-analytics?${p}`);
       const json = await res.json();
       if (json.success) {
         setStoreDetails(json.store);

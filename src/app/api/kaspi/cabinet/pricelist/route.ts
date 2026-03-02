@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { KaspiAPIClient } from '@/lib/kaspi/api-client';
 import { refreshCabinetSession } from '@/lib/kaspi/session-manager';
 
@@ -14,7 +14,7 @@ interface KaspiSession {
  * Хелпер: получить store + client (с авто-перелогином)
  */
 async function getStoreAndClient(userId: string) {
-  const storeResult = await supabase
+  const storeResult = await supabaseAdmin
     .from('stores')
     .select('id, kaspi_session, kaspi_merchant_id, name')
     .eq('user_id', userId)
@@ -57,13 +57,12 @@ async function getStoreAndClient(userId: string) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-    const action = searchParams.get('action') || 'generate';
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'userId обязателен' }, { status: 400 });
-    }
+    const { searchParams } = new URL(request.url);
+    const action = searchParams.get('action') || 'generate';
 
     const result = await getStoreAndClient(userId);
     if ('error' in result) {
@@ -106,12 +105,12 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, overrides, action = 'generate' } = body;
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'userId обязателен' }, { status: 400 });
-    }
+    const body = await request.json();
+    const { overrides, action = 'generate' } = body;
 
     const result = await getStoreAndClient(userId);
     if ('error' in result) {
@@ -137,7 +136,7 @@ export async function POST(request: NextRequest) {
 
     // Сохраняем overrides и кэш в pricelist_feeds (если фид существует)
     if (overrides && Object.keys(overrides).length > 0) {
-      await supabase
+      await supabaseAdmin
         .from('pricelist_feeds')
         .update({
           preorder_overrides: overrides,

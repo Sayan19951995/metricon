@@ -1,21 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 
 /**
- * GET /api/dashboard/day-sales?userId=...&date=YYYY-MM-DD
+ * GET /api/dashboard/day-sales?date=YYYY-MM-DD
  * Возвращает проданные товары за конкретный день
  */
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const date = searchParams.get('date'); // YYYY-MM-DD
 
-    if (!userId || !date) {
-      return NextResponse.json({ success: false, message: 'userId и date обязательны' }, { status: 400 });
+    if (!date) {
+      return NextResponse.json({ success: false, message: 'date обязателен' }, { status: 400 });
     }
 
-    const storeResult = await supabase
+    const storeResult = await supabaseAdmin
       .from('stores')
       .select('id')
       .eq('user_id', userId)
@@ -31,7 +34,7 @@ export async function GET(request: NextRequest) {
     const dayStart = new Date(date + 'T00:00:00+05:00');
     const dayEnd = new Date(date + 'T23:59:59.999+05:00');
 
-    const { data: orders } = await supabase
+    const { data: orders } = await supabaseAdmin
       .from('orders')
       .select('items, total_amount')
       .eq('store_id', storeId)

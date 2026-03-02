@@ -1,15 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, storeId: bodyStoreId, source, date, comment, items, totalAmount } = body;
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId || !items || items.length === 0) {
+    const body = await request.json();
+    const { storeId: bodyStoreId, source, date, comment, items, totalAmount } = body;
+
+    if (!items || items.length === 0) {
       return NextResponse.json({
         success: false,
-        message: 'userId и items обязательны',
+        message: 'items обязательны',
       }, { status: 400 });
     }
 
@@ -17,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     if (!storeId) {
       // Try owner's store
-      const storeResult = await supabase
+      const storeResult = await supabaseAdmin
         .from('stores')
         .select('id')
         .eq('user_id', userId)
@@ -27,7 +31,7 @@ export async function POST(request: NextRequest) {
         storeId = storeResult.data.id;
       } else {
         // Fallback: team member
-        const { data: membership } = await (supabase as any)
+        const { data: membership } = await (supabaseAdmin as any)
           .from('team_members')
           .select('store_id')
           .eq('user_id', userId)
@@ -42,7 +46,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user name for confirmed_by
-    const userResult = await supabase
+    const userResult = await supabaseAdmin
       .from('users')
       .select('name')
       .eq('id', userId)
@@ -52,7 +56,7 @@ export async function POST(request: NextRequest) {
     // Generate a unique order ID for manual orders
     const manualId = `M-${Date.now()}`;
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('orders')
       .insert({
         store_id: storeId,
@@ -75,7 +79,7 @@ export async function POST(request: NextRequest) {
     // This allows analytics to find cost prices via costPriceMap
     const customItems = (items as any[]).filter((it: any) => it.product_code?.startsWith('custom_'));
     if (customItems.length > 0) {
-      await supabase.from('products').insert(
+      await supabaseAdmin.from('products').insert(
         customItems.map((it: any) => ({
           store_id: storeId,
           kaspi_id: it.product_code,
@@ -98,27 +102,30 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * DELETE /api/orders/manual?orderId=xxx&userId=yyy — удалить офлайн заказ (только owner)
+ * DELETE /api/orders/manual?orderId=xxx — удалить офлайн заказ (только owner)
  */
 export async function DELETE(request: NextRequest) {
   try {
+    const authDel = await requireAuth(request);
+    if ('error' in authDel) return authDel.error;
+    const userId = authDel.user.id;
+
     const params = new URL(request.url).searchParams;
     const orderId = params.get('orderId');
-    const userId = params.get('userId');
 
-    if (!orderId || !userId) {
-      return NextResponse.json({ success: false, message: 'orderId и userId обязательны' }, { status: 400 });
+    if (!orderId) {
+      return NextResponse.json({ success: false, message: 'orderId обязателен' }, { status: 400 });
     }
 
     // Verify user is the store owner
-    const storeResult = await supabase.from('stores').select('id').eq('user_id', userId).single();
+    const storeResult = await supabaseAdmin.from('stores').select('id').eq('user_id', userId).single();
     if (!storeResult.data) {
       return NextResponse.json({ success: false, message: 'Нет прав для удаления' }, { status: 403 });
     }
     const storeId = storeResult.data.id;
 
     // Fetch the order — ensure it belongs to this store and is a manual order
-    const { data: order, error: fetchError } = await supabase
+    const { data: order, error: fetchError } = await supabaseAdmin
       .from('orders')
       .select('id, kaspi_order_id')
       .eq('id', orderId)
@@ -133,7 +140,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Можно удалять только офлайн заказы' }, { status: 400 });
     }
 
-    const { error } = await supabase.from('orders').delete().eq('id', orderId);
+    const { error } = await supabaseAdmin.from('orders').delete().eq('id', orderId);
     if (error) throw error;
 
     return NextResponse.json({ success: true });

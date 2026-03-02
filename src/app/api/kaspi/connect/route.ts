@@ -1,17 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { createKaspiClient } from '@/lib/kaspi-api';
 
 // POST - подключить Kaspi магазин
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, apiKey, merchantId, storeName } = body;
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId || !apiKey || !merchantId) {
+    const body = await request.json();
+    const { apiKey, merchantId, storeName } = body;
+
+    if (!apiKey || !merchantId) {
       return NextResponse.json({
         success: false,
-        message: 'Необходимо указать userId, apiKey и merchantId'
+        message: 'Необходимо указать apiKey и merchantId'
       }, { status: 400 });
     }
 
@@ -27,7 +31,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Проверяем есть ли уже магазин у пользователя
-    const existingStoreResult = await supabase
+    const existingStoreResult = await supabaseAdmin
       .from('stores')
       .select('*')
       .eq('user_id', userId)
@@ -36,7 +40,7 @@ export async function POST(request: NextRequest) {
 
     if (existingStore) {
       // Обновляем существующий магазин
-      const { error } = await supabase.from('stores')
+      const { error } = await supabaseAdmin.from('stores')
         .update({
           kaspi_api_key: apiKey,
           kaspi_merchant_id: merchantId,
@@ -58,7 +62,7 @@ export async function POST(request: NextRequest) {
       });
     } else {
       // Создаём новый магазин
-      const newStoreResult = await supabase
+      const newStoreResult = await supabaseAdmin
         .from('stores')
         .insert({
           user_id: userId,
@@ -97,18 +101,12 @@ export async function POST(request: NextRequest) {
 // GET - проверить статус подключения
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
-      return NextResponse.json({
-        success: false,
-        message: 'Необходимо указать userId'
-      }, { status: 400 });
-    }
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
     // Получаем магазин пользователя
-    const storeResult = await supabase
+    const storeResult = await supabaseAdmin
       .from('stores')
       .select('*')
       .eq('user_id', userId)
@@ -159,28 +157,13 @@ export async function GET(request: NextRequest) {
 // DELETE - отключить Kaspi
 export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    let userId = searchParams.get('userId');
-
-    if (!userId) {
-      try {
-        const body = await request.json();
-        userId = body.userId;
-      } catch {
-        // body parsing failed
-      }
-    }
-
-    if (!userId) {
-      return NextResponse.json({
-        success: false,
-        message: 'Необходимо указать userId'
-      }, { status: 400 });
-    }
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
     console.log('DELETE kaspi connect, userId:', userId);
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('stores')
       .update({
         kaspi_api_key: '',

@@ -1,22 +1,53 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(req: NextRequest) {
-  // Supabase хранит сессию в localStorage (не cookies), поэтому проверяем
-  // нашу индикаторную куку metricon-session (ставится при входе)
-  const hasSession =
-    req.cookies.has('metricon-session') ||
-    req.cookies.getAll().some(
-      (c) => c.name.startsWith('sb-') && c.name.includes('-auth-token')
-    );
+// API роуты со своей авторизацией (не требуют JWT)
+const PUBLIC_API_PREFIXES = [
+  '/api/kaspi/feed',       // Публичный XML-фид (авторизация по feed_token)
+  '/api/cron/',            // Крон-джобы (авторизация по CRON_SECRET)
+  '/api/whatsapp/webhook', // WhatsApp вебхук (авторизация по x-api-key)
+];
 
-  if (!hasSession) {
-    return NextResponse.redirect(new URL('/login', req.url));
+export function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  // === Защита страниц /app/* (существующая логика) ===
+  if (pathname.startsWith('/app/')) {
+    const hasSession =
+      req.cookies.has('metricon-session') ||
+      req.cookies.getAll().some(
+        (c) => c.name.startsWith('sb-') && c.name.includes('-auth-token')
+      );
+
+    if (!hasSession) {
+      return NextResponse.redirect(new URL('/login', req.url));
+    }
+    return NextResponse.next();
+  }
+
+  // === Защита API /api/* ===
+  if (pathname.startsWith('/api/')) {
+    // Пропускаем публичные роуты
+    if (PUBLIC_API_PREFIXES.some(prefix => pathname.startsWith(prefix))) {
+      return NextResponse.next();
+    }
+
+    // Проверяем наличие Authorization header (быстрый отказ)
+    // Полная верификация JWT происходит в requireAuth() внутри роута
+    const authHeader = req.headers.get('authorization');
+    if (!authHeader?.startsWith('Bearer ')) {
+      return NextResponse.json(
+        { success: false, message: 'Authorization required' },
+        { status: 401 }
+      );
+    }
+
+    return NextResponse.next();
   }
 
   return NextResponse.next();
 }
 
 export const config = {
-  matcher: ['/app/:path*'],
+  matcher: ['/app/:path*', '/api/:path*'],
 };

@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId) {
-      return NextResponse.json({
-        success: false,
-        message: 'userId обязателен'
-      }, { status: 400 });
-    }
-
-    const storeResult = await supabase
+    const storeResult = await supabaseAdmin
       .from('stores')
       .select('*')
       .eq('user_id', userId)
@@ -42,7 +36,7 @@ export async function GET(request: NextRequest) {
     // === ВСЕ активные заказы из БД (без лимита по дате) ===
     const completedStatuses = ['completed', 'delivered', 'cancelled', 'returned', 'archive'];
 
-    const allActiveOrdersResult = await supabase
+    const allActiveOrdersResult = await supabaseAdmin
       .from('orders')
       .select('*')
       .eq('store_id', store.id)
@@ -76,7 +70,7 @@ export async function GET(request: NextRequest) {
     }
 
     // === daily_stats за 14 дней (для графиков) ===
-    const dailyStatsResult = await supabase
+    const dailyStatsResult = await supabaseAdmin
       .from('daily_stats')
       .select('*')
       .eq('store_id', store.id)
@@ -87,7 +81,7 @@ export async function GET(request: NextRequest) {
     // === Заказы за 7 дней (для топ товаров) ===
     const sevenDaysAgoStart = new Date(kzDaysAgo(7) + 'T00:00:00+05:00');
 
-    const recentOrdersResult = await supabase
+    const recentOrdersResult = await supabaseAdmin
       .from('orders')
       .select('*')
       .eq('store_id', store.id)
@@ -96,18 +90,18 @@ export async function GET(request: NextRequest) {
     const recentOrders = recentOrdersResult.data || [];
 
     // === Общие счётчики ===
-    const { count: totalOrders } = await supabase
+    const { count: totalOrders } = await supabaseAdmin
       .from('orders')
       .select('*', { count: 'exact', head: true })
       .eq('store_id', store.id);
 
-    const { count: totalProducts } = await supabase
+    const { count: totalProducts } = await supabaseAdmin
       .from('products')
       .select('*', { count: 'exact', head: true })
       .eq('store_id', store.id);
 
     // === Статистика за 30 дней ===
-    const monthStatsResult = await supabase
+    const monthStatsResult = await supabaseAdmin
       .from('daily_stats')
       .select('*')
       .eq('store_id', store.id)
@@ -136,7 +130,7 @@ export async function GET(request: NextRequest) {
     }
 
     // === Поступления за неделю — по дате выдачи (completed_at) ===
-    const completedOrdersResult = await supabase
+    const completedOrdersResult = await supabaseAdmin
       .from('orders')
       .select('total_amount, completed_at, status')
       .eq('store_id', store.id)
@@ -172,7 +166,7 @@ export async function GET(request: NextRequest) {
     // === Продажи сегодня (товары) — используем KZ дату ===
     const todayStart = new Date(kzTodayStr + 'T00:00:00+05:00'); // UTC+5 Алматы
 
-    const todayOrdersResult = await supabase
+    const todayOrdersResult = await supabaseAdmin
       .from('orders')
       .select('items, total_amount, status, created_at')
       .eq('store_id', store.id)
@@ -244,7 +238,7 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b[1].revenue - a[1].revenue)
       .slice(0, 5);
 
-    const { data: productImages } = await supabase
+    const { data: productImages } = await supabaseAdmin
       .from('products')
       .select('kaspi_id, name, image_url')
       .eq('store_id', store.id)

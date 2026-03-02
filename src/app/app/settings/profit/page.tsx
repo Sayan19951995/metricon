@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useUser } from '@/hooks/useUser';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import {
   ArrowLeft,
   Calculator,
@@ -86,7 +87,7 @@ export default function ProfitSettingsPage() {
   const fetchSettings = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/store-settings?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/store-settings');
       const json = await res.json();
       if (json.success && json.data) {
         setCommissionRate(json.data.commissionRate ?? 12.5);
@@ -116,11 +117,10 @@ export default function ProfitSettingsPage() {
     if (!user?.id) return;
     setSaving(true);
     try {
-      const res = await fetch('/api/store-settings', {
+      const res = await fetchWithAuth('/api/store-settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
           commissionRate,
           taxRate: tax,
         }),

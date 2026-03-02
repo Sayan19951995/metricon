@@ -1,22 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { kaspiCabinetLogin } from '@/lib/kaspi/api-client';
 
 /**
- * GET /api/kaspi/reviews?userId=xxx
+ * GET /api/kaspi/reviews
  * Рейтинг и метрики магазина: публичная страница + GraphQL BFF
  * Автоматически перелогинивается если сессия истекла
  */
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
 
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'userId обязателен' }, { status: 400 });
-    }
-
-    const { data: store } = await supabase
+    const { data: store } = await supabaseAdmin
       .from('stores')
       .select('id, kaspi_merchant_id, kaspi_session')
       .eq('user_id', userId)
@@ -59,7 +58,7 @@ export async function GET(request: NextRequest) {
         const loginResult = await kaspiCabinetLogin(session.username, session.password);
         if (loginResult.success && loginResult.cookies) {
           // Сохраняем новую сессию
-          await supabase.from('stores').update({
+          await supabaseAdmin.from('stores').update({
             kaspi_session: {
               cookies: loginResult.cookies,
               merchant_id: loginResult.merchantId || merchantId,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { KaspiAPIClient, kaspiCabinetLogin } from '@/lib/kaspi/api-client';
 
 interface KaspiSession {
@@ -54,7 +54,7 @@ async function reloginAndRetry(
   const merchantId = result.merchantId || session.merchant_id || store.kaspi_merchant_id || '';
 
   // Обновляем cookies в Supabase, сохраняя credentials
-  await supabase
+  await supabaseAdmin
     .from('stores')
     .update({
       kaspi_session: {
@@ -77,20 +77,16 @@ async function reloginAndRetry(
  */
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const page = parseInt(searchParams.get('page') || '0');
     const limit = parseInt(searchParams.get('limit') || '50');
     const activeParam = searchParams.get('active');
 
-    if (!userId) {
-      return NextResponse.json({
-        success: false,
-        error: 'userId обязателен',
-      }, { status: 400 });
-    }
-
-    const storeResult = await supabase
+    const storeResult = await supabaseAdmin
       .from('stores')
       .select('id, kaspi_session, kaspi_merchant_id')
       .eq('user_id', userId)
@@ -170,17 +166,13 @@ export async function GET(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
+
     const body = await request.json();
-    const { userId } = body;
 
-    if (!userId) {
-      return NextResponse.json({
-        success: false,
-        error: 'userId обязателен',
-      }, { status: 400 });
-    }
-
-    const storeResult2 = await supabase
+    const storeResult2 = await supabaseAdmin
       .from('stores')
       .select('id, kaspi_session, kaspi_merchant_id')
       .eq('user_id', userId)

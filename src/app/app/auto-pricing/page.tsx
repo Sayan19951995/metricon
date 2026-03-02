@@ -26,6 +26,7 @@ import {
   ChevronUp
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 // Типы
 type Strategy = 'undercut' | 'match' | 'position';
@@ -135,8 +136,8 @@ export default function AutoPricingPage() {
     try {
       // Загрузка товаров из BFF и правил из БД параллельно
       const [productsRes, rulesRes] = await Promise.all([
-        fetch(`/api/kaspi/cabinet/products?userId=${user.id}`),
-        fetch(`/api/auto-pricing?userId=${user.id}`),
+        fetchWithAuth('/api/kaspi/cabinet/products'),
+        fetchWithAuth('/api/auto-pricing'),
       ]);
 
       const productsData = await productsRes.json();
@@ -222,7 +223,7 @@ export default function AutoPricingPage() {
     try {
       if (product.autoPricing) {
         // Удалить правило
-        await fetch(`/api/auto-pricing?userId=${user.id}&id=${product.autoPricing.id}`, {
+        await fetchWithAuth(`/api/auto-pricing?id=${product.autoPricing.id}`, {
           method: 'DELETE',
         });
         setProducts(prev => prev.map(p =>
@@ -230,11 +231,10 @@ export default function AutoPricingPage() {
         ));
       } else {
         // Создать правило с дефолтными настройками
-        const res = await fetch('/api/auto-pricing', {
+        const res = await fetchWithAuth('/api/auto-pricing', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: user.id,
             sku,
             productName: product.name,
             strategy: 'undercut',
@@ -280,11 +280,10 @@ export default function AutoPricingPage() {
     const newStatus = product.autoPricing.status === 'active' ? 'paused' : 'active';
     setSaving(true);
     try {
-      const res = await fetch('/api/auto-pricing', {
+      const res = await fetchWithAuth('/api/auto-pricing', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
           id: product.autoPricing.id,
           status: newStatus,
         }),
@@ -330,11 +329,10 @@ export default function AutoPricingPage() {
 
     setSaving(true);
     try {
-      const res = await fetch('/api/auto-pricing', {
+      const res = await fetchWithAuth('/api/auto-pricing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
           sku: editingProduct.sku,
           productName: editingProduct.name,
           strategy: editStrategy,

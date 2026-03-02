@@ -1,16 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
-import { requireRole } from '@/lib/api-auth';
+import { supabaseAdmin, requireAuth, requireRole } from '@/lib/api-auth';
 
 // GET — получить настройки обратной связи + статистику
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'userId обязателен' }, { status: 400 });
-    }
+    const authResult = await requireAuth(request);
+    if ('error' in authResult) return authResult.error;
+    const userId = authResult.user.id;
 
     const auth = await requireRole(userId, ['owner', 'admin']);
     if ('error' in auth) {
@@ -18,38 +14,38 @@ export async function GET(request: NextRequest) {
     }
 
     // Настройки
-    const { data: settings } = await supabase
+    const { data: settings } = await supabaseAdmin
       .from('feedback_settings')
       .select('*')
       .eq('store_id', auth.store.id)
       .single();
 
     // Статистика
-    const { count: totalSent } = await supabase
+    const { count: totalSent } = await supabaseAdmin
       .from('feedback_queue')
       .select('*', { count: 'exact', head: true })
       .eq('store_id', auth.store.id)
       .in('status', ['poll_sent', 'positive', 'negative', 'expired']);
 
-    const { count: positive } = await supabase
+    const { count: positive } = await supabaseAdmin
       .from('feedback_queue')
       .select('*', { count: 'exact', head: true })
       .eq('store_id', auth.store.id)
       .eq('status', 'positive');
 
-    const { count: negative } = await supabase
+    const { count: negative } = await supabaseAdmin
       .from('feedback_queue')
       .select('*', { count: 'exact', head: true })
       .eq('store_id', auth.store.id)
       .eq('status', 'negative');
 
-    const { count: pending } = await supabase
+    const { count: pending } = await supabaseAdmin
       .from('feedback_queue')
       .select('*', { count: 'exact', head: true })
       .eq('store_id', auth.store.id)
       .eq('status', 'pending');
 
-    const { count: reviewsSent } = await supabase
+    const { count: reviewsSent } = await supabaseAdmin
       .from('feedback_queue')
       .select('*', { count: 'exact', head: true })
       .eq('store_id', auth.store.id)
@@ -89,19 +85,19 @@ export async function GET(request: NextRequest) {
 // PUT — обновить настройки
 export async function PUT(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, ...settings } = body;
+    const authResult = await requireAuth(request);
+    if ('error' in authResult) return authResult.error;
+    const userId = authResult.user.id;
 
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'userId обязателен' }, { status: 400 });
-    }
+    const body = await request.json();
+    const { userId: _ignoredUserId, ...settings } = body;
 
     const auth = await requireRole(userId, ['owner', 'admin']);
     if ('error' in auth) {
       return NextResponse.json({ success: false, message: auth.error }, { status: 403 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('feedback_settings')
       .upsert({
         store_id: auth.store.id,

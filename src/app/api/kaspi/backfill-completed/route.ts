@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { KaspiAPIClient } from '@/lib/kaspi/api-client';
 
 interface KaspiSession {
@@ -10,12 +10,11 @@ interface KaspiSession {
 // POST — backfill corrupted completed_at dates from BFF
 export async function POST(request: NextRequest) {
   try {
-    const { userId } = await request.json();
-    if (!userId) {
-      return NextResponse.json({ error: 'userId required' }, { status: 400 });
-    }
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    const { data: store } = await supabase
+    const { data: store } = await supabaseAdmin
       .from('stores')
       .select('id, kaspi_session, kaspi_merchant_id')
       .eq('user_id', userId)
@@ -35,7 +34,7 @@ export async function POST(request: NextRequest) {
     const client = new KaspiAPIClient(session.cookies, session.merchant_id || store.kaspi_merchant_id || '');
 
     // Находим заказы с corrupted completed_at (все на 2026-02-07) или NULL
-    const { data: corruptedOrders } = await supabase
+    const { data: corruptedOrders } = await supabaseAdmin
       .from('orders')
       .select('id, kaspi_order_id, completed_at')
       .eq('store_id', store.id)
@@ -68,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Тестовый заказ прошёл — сохраняем его и продолжаем с остальными
-    await supabase.from('orders').update({ completed_at: testDate }).eq('id', testOrder.id);
+    await supabaseAdmin.from('orders').update({ completed_at: testDate }).eq('id', testOrder.id);
     console.log(`BACKFILL: fixed ${testOrder.kaspi_order_id} → ${testDate}`);
     let fixed = 1;
     let failed = 0;
@@ -83,7 +82,7 @@ export async function POST(request: NextRequest) {
           try {
             const exactDate = await client.getOrderCompletionDate(order.kaspi_order_id);
             if (exactDate) {
-              await supabase.from('orders').update({ completed_at: exactDate }).eq('id', order.id);
+              await supabaseAdmin.from('orders').update({ completed_at: exactDate }).eq('id', order.id);
               return { success: true, orderId: order.kaspi_order_id, date: exactDate };
             }
             return { success: false, orderId: order.kaspi_order_id, reason: 'no date from BFF' };

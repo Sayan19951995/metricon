@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { updatePreorderOverrides, removePreorderOverrides } from '@/lib/preorder-utils';
 
 export async function POST(req: NextRequest) {
   try {
+    const auth = await requireAuth(req);
+    if ('error' in auth) return auth.error;
+
     const body = await req.json();
     const { storeId, skus, action, days } = body as {
       storeId: string;
@@ -18,9 +21,9 @@ export async function POST(req: NextRequest) {
 
     if (action === 'enable') {
       const preorderDays = Math.max(1, Math.min(30, days || 7));
-      await updatePreorderOverrides(supabase, storeId, skus, preorderDays);
+      await updatePreorderOverrides(supabaseAdmin, storeId, skus, preorderDays);
     } else {
-      await removePreorderOverrides(supabase, storeId, skus);
+      await removePreorderOverrides(supabaseAdmin, storeId, skus);
     }
 
     return NextResponse.json({ success: true });

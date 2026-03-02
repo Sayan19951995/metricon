@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 
 function toSlug(name: string): string {
   return name.toLowerCase().trim().replace(/\s+/g, '-').replace(/[^a-zа-яё0-9-]/gi, '');
@@ -7,14 +7,11 @@ function toSlug(name: string): string {
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'userId обязателен' }, { status: 400 });
-    }
-
-    const storeResult = await supabase
+    const storeResult = await supabaseAdmin
       .from('stores')
       .select('id')
       .eq('user_id', userId)
@@ -24,7 +21,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Магазин не найден' }, { status: 400 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('product_groups')
       .select('id, name, slug, color')
       .eq('store_id', storeResult.data.id)
@@ -43,13 +40,17 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, name, color } = await request.json();
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId || !name) {
-      return NextResponse.json({ success: false, message: 'userId и name обязательны' }, { status: 400 });
+    const { name, color } = await request.json();
+
+    if (!name) {
+      return NextResponse.json({ success: false, message: 'name обязателен' }, { status: 400 });
     }
 
-    const storeResult = await supabase
+    const storeResult = await supabaseAdmin
       .from('stores')
       .select('id')
       .eq('user_id', userId)
@@ -61,7 +62,7 @@ export async function POST(request: NextRequest) {
 
     const slug = toSlug(name);
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('product_groups')
       .insert({
         store_id: storeResult.data.id,
@@ -90,15 +91,18 @@ export async function POST(request: NextRequest) {
 
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const slug = searchParams.get('slug');
 
-    if (!userId || !slug) {
-      return NextResponse.json({ success: false, message: 'userId и slug обязательны' }, { status: 400 });
+    if (!slug) {
+      return NextResponse.json({ success: false, message: 'slug обязателен' }, { status: 400 });
     }
 
-    const storeResult = await supabase
+    const storeResult = await supabaseAdmin
       .from('stores')
       .select('id')
       .eq('user_id', userId)
@@ -111,7 +115,7 @@ export async function DELETE(request: NextRequest) {
     const storeId = storeResult.data.id;
 
     // Удалить группу
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('product_groups')
       .delete()
       .eq('store_id', storeId)
@@ -120,13 +124,13 @@ export async function DELETE(request: NextRequest) {
     if (error) throw error;
 
     // Обнулить product_group у товаров и расходов
-    await supabase
+    await supabaseAdmin
       .from('products')
       .update({ product_group: null })
       .eq('store_id', storeId)
       .eq('product_group', slug);
 
-    await supabase
+    await supabaseAdmin
       .from('operational_expenses')
       .update({ product_group: null })
       .eq('store_id', storeId)

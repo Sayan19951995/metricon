@@ -8,6 +8,7 @@ import {
   Ban, LogIn, CreditCard, ArrowUpDown,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface AdminUser {
   id: string;
@@ -60,7 +61,7 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/users?userId=${user!.id}`);
+      const res = await fetchWithAuth('/api/admin/users');
       const data = await res.json();
       if (data.success) setUsers(data.data);
     } catch (err) {
@@ -74,10 +75,10 @@ export default function UsersPage() {
     setUsers(prev => prev.map(u => u.id === targetId ? { ...u, isAdmin: !currentAdmin } : u));
     setOpenMenu(null);
     try {
-      await fetch('/api/admin/users', {
+      await fetchWithAuth('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminUserId: user!.id, targetUserId: targetId, action: 'toggleAdmin', value: !currentAdmin }),
+        body: JSON.stringify({ targetUserId: targetId, action: 'toggleAdmin', value: !currentAdmin }),
       });
     } catch { await fetchUsers(); }
   };
@@ -86,10 +87,10 @@ export default function UsersPage() {
     setUsers(prev => prev.map(u => u.id === targetId ? { ...u, isBlocked: !currentBlocked } : u));
     setOpenMenu(null);
     try {
-      await fetch('/api/admin/users', {
+      await fetchWithAuth('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminUserId: user!.id, targetUserId: targetId, action: 'blockUser', value: !currentBlocked }),
+        body: JSON.stringify({ targetUserId: targetId, action: 'blockUser', value: !currentBlocked }),
       });
     } catch { await fetchUsers(); }
   };
@@ -98,10 +99,10 @@ export default function UsersPage() {
     setUsers(prev => prev.map(u => u.id === targetId ? { ...u, plan: newPlan } : u));
     setPlanModal(null);
     try {
-      await fetch('/api/admin/users', {
+      await fetchWithAuth('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adminUserId: user!.id, targetUserId: targetId, action: 'changePlan', value: newPlan }),
+        body: JSON.stringify({ targetUserId: targetId, action: 'changePlan', value: newPlan }),
       });
     } catch { await fetchUsers(); }
   };
@@ -110,11 +111,10 @@ export default function UsersPage() {
     if (!subModal) return;
     setActionLoading(true);
     try {
-      await fetch('/api/admin/users', {
+      await fetchWithAuth('/api/admin/users', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminUserId: user!.id,
           targetUserId: subModal,
           action: 'createSubscription',
           value: { plan: subPlan, durationDays: subDays },

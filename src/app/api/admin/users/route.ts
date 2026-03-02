@@ -1,22 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const params = new URL(request.url).searchParams;
-    const userId = params.get('userId');
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'userId обязателен' }, { status: 400 });
-    }
+    const authResult = await requireAuth(request);
+    if ('error' in authResult) return authResult.error;
+    const userId = authResult.user.id;
 
     // Check admin
-    const { data: adminUser } = await supabase.from('users').select('*').eq('id', userId).single();
+    const { data: adminUser } = await supabaseAdmin.from('users').select('*').eq('id', userId).single();
     if (!(adminUser as any)?.is_admin) {
       return NextResponse.json({ success: false, message: 'Нет доступа' }, { status: 403 });
     }
 
     // Get all users with their stores and subscriptions
-    const { data: usersRaw, error } = await supabase
+    const { data: usersRaw, error } = await supabaseAdmin
       .from('users')
       .select('*')
       .order('created_at', { ascending: false });
@@ -26,8 +24,8 @@ export async function GET(request: NextRequest) {
 
     // Get stores and subscriptions in parallel
     const [storesResult, subsResult] = await Promise.all([
-      supabase.from('stores').select('id, user_id, name, kaspi_merchant_id'),
-      supabase.from('subscriptions').select('id, user_id, plan, status, start_date, end_date, auto_renew'),
+      supabaseAdmin.from('stores').select('id, user_id, name, kaspi_merchant_id'),
+      supabaseAdmin.from('subscriptions').select('id, user_id, plan, status, start_date, end_date, auto_renew'),
     ]);
 
     const storesByUser = new Map<string, any>();
@@ -77,22 +75,26 @@ export async function GET(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { adminUserId, targetUserId, action, value } = body;
+    const authResult = await requireAuth(request);
+    if ('error' in authResult) return authResult.error;
+    const adminUserId = authResult.user.id;
 
-    if (!adminUserId || !targetUserId || !action) {
+    const body = await request.json();
+    const { targetUserId, action, value } = body;
+
+    if (!targetUserId || !action) {
       return NextResponse.json({ success: false, message: 'Не все параметры указаны' }, { status: 400 });
     }
 
     // Check admin
-    const { data: adminUser } = await supabase.from('users').select('*').eq('id', adminUserId).single();
+    const { data: adminUser } = await supabaseAdmin.from('users').select('*').eq('id', adminUserId).single();
     if (!(adminUser as any)?.is_admin) {
       return NextResponse.json({ success: false, message: 'Нет доступа' }, { status: 403 });
     }
 
     switch (action) {
       case 'toggleAdmin': {
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
           .from('users')
           .update({ is_admin: value } as any)
           .eq('id', targetUserId);
@@ -100,7 +102,7 @@ export async function PATCH(request: NextRequest) {
         break;
       }
       case 'changePlan': {
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
           .from('subscriptions')
           .update({ plan: value })
           .eq('user_id', targetUserId);
@@ -108,7 +110,7 @@ export async function PATCH(request: NextRequest) {
         break;
       }
       case 'blockUser': {
-        const { error } = await supabase
+        const { error } = await supabaseAdmin
           .from('users')
           .update({ is_blocked: value } as any)
           .eq('id', targetUserId);
@@ -123,7 +125,7 @@ export async function PATCH(request: NextRequest) {
         endDate.setDate(endDate.getDate() + (durationDays || 30));
 
         // Check if subscription already exists
-        const { data: existingSub } = await supabase
+        const { data: existingSub } = await supabaseAdmin
           .from('subscriptions')
           .select('id')
           .eq('user_id', targetUserId)
@@ -131,7 +133,7 @@ export async function PATCH(request: NextRequest) {
 
         if (existingSub) {
           // Update existing
-          const { error } = await supabase
+          const { error } = await supabaseAdmin
             .from('subscriptions')
             .update({
               plan,
@@ -143,7 +145,7 @@ export async function PATCH(request: NextRequest) {
           if (error) throw error;
         } else {
           // Create new
-          const { error } = await supabase
+          const { error } = await supabaseAdmin
             .from('subscriptions')
             .insert({
               user_id: targetUserId,

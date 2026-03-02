@@ -1,16 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { kaspiScraper } from '@/lib/parser/kaspi-scraper';
 
 // GET — get positions for all products
 export async function GET(request: NextRequest) {
   try {
-    const userId = new URL(request.url).searchParams.get('userId');
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'userId обязателен' }, { status: 400 });
-    }
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    const { data: store } = await supabase
+    const { data: store } = await supabaseAdmin
       .from('stores')
       .select('id, name')
       .eq('user_id', userId)
@@ -21,20 +20,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all products
-    const { data: products } = await supabase
+    const { data: products } = await supabaseAdmin
       .from('products')
       .select('id, name, kaspi_id')
       .eq('store_id', store.id)
       .order('name');
 
     // Get custom keywords
-    const { data: keywords } = await supabase
+    const { data: keywords } = await supabaseAdmin
       .from('search_keywords')
       .select('*')
       .eq('store_id', store.id);
 
     // Get latest position for each product+keyword combo
-    const { data: positions } = await supabase
+    const { data: positions } = await supabaseAdmin
       .from('search_positions')
       .select('*')
       .eq('store_id', store.id)
@@ -93,14 +92,14 @@ export async function GET(request: NextRequest) {
 // POST — check positions
 export async function POST(request: NextRequest) {
   try {
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
+
     const body = await request.json();
-    const { userId, productId, checkAll } = body;
+    const { productId, checkAll } = body;
 
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'userId обязателен' }, { status: 400 });
-    }
-
-    const { data: store } = await supabase
+    const { data: store } = await supabaseAdmin
       .from('stores')
       .select('id, name')
       .eq('user_id', userId)
@@ -111,7 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get products to check
-    let productsQuery = supabase
+    let productsQuery = supabaseAdmin
       .from('products')
       .select('id, name, kaspi_id')
       .eq('store_id', store.id);
@@ -127,7 +126,7 @@ export async function POST(request: NextRequest) {
 
     // Get custom keywords
     const productIds = products.map(p => p.id);
-    const { data: keywords } = await supabase
+    const { data: keywords } = await supabaseAdmin
       .from('search_keywords')
       .select('*')
       .in('product_id', productIds);
@@ -150,7 +149,7 @@ export async function POST(request: NextRequest) {
           allLogs.push(...position.logs);
         }
 
-        await supabase.from('search_positions').insert({
+        await supabaseAdmin.from('search_positions').insert({
           store_id: store.id,
           product_id: product.id,
           keyword: query,

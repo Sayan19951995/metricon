@@ -7,6 +7,7 @@ import {
   DollarSign, ArrowRight, UserCheck, Wifi, ChevronRight,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface ActivityEvent {
   type: string;
@@ -91,7 +92,7 @@ export default function AdminDashboard() {
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/stats?userId=${user!.id}`);
+      const res = await fetchWithAuth('/api/admin/stats');
       const data = await res.json();
       if (data.success) setStats(data.data);
     } catch (err) {

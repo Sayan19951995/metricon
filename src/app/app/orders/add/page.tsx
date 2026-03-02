@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, Calendar, MessageSquare, ShoppingBag, X, Search, Minus, Loader2, Package } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface StoreProduct {
   kaspi_id: string;
@@ -48,9 +49,9 @@ export default function AddOrderPage() {
   // Load store products
   useEffect(() => {
     if (!user) return;
-    const params = store ? `storeId=${store.id}` : `userId=${user.id}`;
+    const params = store ? `storeId=${store.id}` : '';
     setProductsLoading(true);
-    fetch(`/api/products?${params}`)
+    fetchWithAuth(`/api/products${params ? `?${params}` : ''}`)
       .then(r => r.json())
       .then(d => { if (d.success) setStoreProducts(d.data || []); })
       .catch(() => {})
@@ -111,11 +112,10 @@ export default function AddOrderPage() {
 
     setSaving(true);
     try {
-      const res = await fetch('/api/orders/manual', {
+      const res = await fetchWithAuth('/api/orders/manual', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
           storeId: store?.id,
           source,
           date: date || new Date().toISOString(),

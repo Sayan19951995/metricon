@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useUser } from '@/hooks/useUser';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import {
   ArrowLeft,
   Users,
@@ -138,7 +139,7 @@ export default function TeamSettingsPage() {
   const loadMembers = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/team?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/team');
       const json = await res.json();
       if (json.success) {
         // Владелец как первый элемент
@@ -181,11 +182,10 @@ export default function TeamSettingsPage() {
     setSaving(true);
     setCreateError(null);
     try {
-      const res = await fetch('/api/team/create', {
+      const res = await fetchWithAuth('/api/team/create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          ownerUserId: user.id,
           name: createName,
           email: createEmail,
           password: createPassword,
@@ -221,10 +221,10 @@ export default function TeamSettingsPage() {
     setSelectedMember(null);
 
     try {
-      await fetch('/api/team', {
+      await fetchWithAuth('/api/team', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, memberId, role: newRole }),
+        body: JSON.stringify({ memberId, role: newRole }),
       });
     } catch (err) {
       console.error('Change role error:', err);
@@ -238,7 +238,7 @@ export default function TeamSettingsPage() {
     setTeamMembers(prev => prev.filter(m => m.id !== memberId));
 
     try {
-      await fetch(`/api/team?userId=${user.id}&memberId=${memberId}`, { method: 'DELETE' });
+      await fetchWithAuth(`/api/team?memberId=${memberId}`, { method: 'DELETE' });
     } catch (err) {
       console.error('Remove error:', err);
       await loadMembers();

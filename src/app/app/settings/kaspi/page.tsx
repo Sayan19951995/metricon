@@ -26,6 +26,7 @@ import {
 import Link from 'next/link';
 import { useUser } from '@/hooks/useUser';
 import BrandLoader from '@/components/ui/BrandLoader';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
@@ -111,7 +112,7 @@ export default function KaspiSettingsPage() {
     if (!user?.id) return;
 
     try {
-      const response = await fetch(`/api/kaspi/connect?userId=${user.id}`);
+      const response = await fetchWithAuth('/api/kaspi/connect');
       const data = await response.json();
 
       if (data.connected) {
@@ -130,7 +131,7 @@ export default function KaspiSettingsPage() {
     if (!user?.id) return;
 
     try {
-      const response = await fetch(`/api/kaspi/sync?userId=${user.id}`);
+      const response = await fetchWithAuth('/api/kaspi/sync');
       const data = await response.json();
 
       if (data.success) {
@@ -156,11 +157,10 @@ export default function KaspiSettingsPage() {
     setError(null);
 
     try {
-      const response = await fetch('/api/kaspi/connect', {
+      const response = await fetchWithAuth('/api/kaspi/connect', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
           apiKey: credentials.apiKey,
           merchantId: credentials.merchantId,
           storeName: credentials.storeName || 'Мой магазин'
@@ -200,11 +200,10 @@ export default function KaspiSettingsPage() {
     setIsSyncing(true);
 
     try {
-      const response = await fetch('/api/kaspi/sync', {
+      const response = await fetchWithAuth('/api/kaspi/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
           daysBack: 14
         })
       });
@@ -242,10 +241,9 @@ export default function KaspiSettingsPage() {
     if (!user?.id) return;
 
     try {
-      const response = await fetch('/api/kaspi/connect', {
+      const response = await fetchWithAuth('/api/kaspi/connect', {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id })
       });
 
       const data = await response.json();
@@ -267,7 +265,7 @@ export default function KaspiSettingsPage() {
     setDebugData(null);
 
     try {
-      const response = await fetch(`/api/kaspi/debug?userId=${user.id}`);
+      const response = await fetchWithAuth('/api/kaspi/debug');
       const data = await response.json();
       setDebugData(data);
     } catch (err) {
@@ -287,7 +285,7 @@ export default function KaspiSettingsPage() {
     if (!user?.id) return;
     setCabinetLoading(true);
     try {
-      const res = await fetch(`/api/kaspi/cabinet/session?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/kaspi/cabinet/session');
       const data = await res.json();
       setCabinetConnected(data.connected || false);
       setCabinetUsername(data.username || '');
@@ -302,7 +300,7 @@ export default function KaspiSettingsPage() {
   const disconnectCabinet = async () => {
     if (!user?.id) return;
     try {
-      await fetch(`/api/kaspi/cabinet/session?userId=${user.id}`, { method: 'DELETE' });
+      await fetchWithAuth('/api/kaspi/cabinet/session', { method: 'DELETE' });
       setCabinetConnected(false);
       setCabinetUsername('');
       setCabinetConnectedAt('');
@@ -323,11 +321,10 @@ export default function KaspiSettingsPage() {
         return;
       }
 
-      const res = await fetch('/api/kaspi/cabinet/login', {
+      const res = await fetchWithAuth('/api/kaspi/cabinet/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
           username: cabinetCreds.username,
           password: cabinetCreds.password,
         }),
@@ -355,7 +352,7 @@ export default function KaspiSettingsPage() {
     if (!user?.id) return;
     setMarketingLoading(true);
     try {
-      await fetch(`/api/kaspi/marketing?userId=${user.id}`, { method: 'DELETE' });
+      await fetchWithAuth('/api/kaspi/marketing', { method: 'DELETE' });
       setMarketingConnected(false);
       setMarketingMerchantName('');
     } catch (err) {

@@ -7,6 +7,7 @@ import {
   MoreVertical, Plus, CalendarPlus, CreditCard, Ban,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface AdminSubscription {
   id: string;
@@ -56,7 +57,7 @@ export default function SubscriptionsPage() {
   const fetchSubscriptions = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/admin/subscriptions?userId=${user!.id}`);
+      const res = await fetchWithAuth('/api/admin/subscriptions');
       const data = await res.json();
       if (data.success) setSubscriptions(data.data);
     } catch (err) {
@@ -68,7 +69,7 @@ export default function SubscriptionsPage() {
 
   const fetchAllUsers = async () => {
     try {
-      const res = await fetch(`/api/admin/users?userId=${user!.id}`);
+      const res = await fetchWithAuth('/api/admin/users');
       const data = await res.json();
       if (data.success) {
         setAllUsers(data.data.map((u: any) => ({ id: u.id, name: u.name, email: u.email })));
@@ -82,11 +83,10 @@ export default function SubscriptionsPage() {
     if (!extendModal) return;
     setActionLoading(true);
     try {
-      await fetch('/api/admin/subscriptions', {
+      await fetchWithAuth('/api/admin/subscriptions', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminUserId: user!.id,
           subscriptionId: extendModal,
           action: 'extend',
           value: extendDays,
@@ -106,11 +106,10 @@ export default function SubscriptionsPage() {
     if (!cancelModal) return;
     setActionLoading(true);
     try {
-      await fetch('/api/admin/subscriptions', {
+      await fetchWithAuth('/api/admin/subscriptions', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminUserId: user!.id,
           subscriptionId: cancelModal,
           action: 'cancel',
         }),
@@ -128,11 +127,10 @@ export default function SubscriptionsPage() {
     if (!planModal) return;
     setActionLoading(true);
     try {
-      await fetch('/api/admin/subscriptions', {
+      await fetchWithAuth('/api/admin/subscriptions', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminUserId: user!.id,
           subscriptionId: planModal.subId,
           action: 'changePlan',
           value: newPlan,
@@ -151,11 +149,10 @@ export default function SubscriptionsPage() {
     if (!createUserId) return;
     setActionLoading(true);
     try {
-      await fetch('/api/admin/subscriptions', {
+      await fetchWithAuth('/api/admin/subscriptions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          adminUserId: user!.id,
           targetUserId: createUserId,
           plan: createPlan,
           durationDays: createDays,

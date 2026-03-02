@@ -1,28 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { createKaspiClient } from '@/lib/kaspi-api';
 import { OrderState } from '@/types/kaspi';
 
 // GET - получить заказы из Kaspi
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const page = parseInt(searchParams.get('page') || '0');
     const size = parseInt(searchParams.get('size') || '20');
     const state = searchParams.get('state') as OrderState | null;
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
 
-    if (!userId) {
-      return NextResponse.json({
-        success: false,
-        message: 'Необходимо указать userId'
-      }, { status: 400 });
-    }
-
     // Получаем магазин пользователя
-    const storeResult = await supabase
+    const storeResult = await supabaseAdmin
       .from('stores')
       .select('*')
       .eq('user_id', userId)
@@ -67,18 +63,22 @@ export async function GET(request: NextRequest) {
 // PATCH - обновить статус заказа
 export async function PATCH(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, orderId, newState, reason } = body;
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId || !orderId || !newState) {
+    const body = await request.json();
+    const { orderId, newState, reason } = body;
+
+    if (!orderId || !newState) {
       return NextResponse.json({
         success: false,
-        message: 'Необходимо указать userId, orderId и newState'
+        message: 'Необходимо указать orderId и newState'
       }, { status: 400 });
     }
 
     // Получаем магазин пользователя
-    const storeResult2 = await supabase
+    const storeResult2 = await supabaseAdmin
       .from('stores')
       .select('*')
       .eq('user_id', userId)

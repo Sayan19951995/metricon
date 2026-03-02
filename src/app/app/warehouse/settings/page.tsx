@@ -19,6 +19,7 @@ import {
 import { useUser } from '@/hooks/useUser';
 import { supabase } from '@/lib/supabase/client';
 import { getStale, setCache } from '@/lib/cache';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface POSInfo {
   storeId: string;
@@ -124,7 +125,7 @@ export default function WarehouseSettingsPage() {
           .select('sku, price')
           .eq('store_id', store.id)
           .not('sku', 'is', null),
-        fetch(`/api/kaspi/cabinet/products?userId=${user.id}`).then(r => r.json()).catch(() => ({ success: false })),
+        fetchWithAuth('/api/kaspi/cabinet/products').then(r => r.json()).catch(() => ({ success: false })),
       ]);
 
       if (!cabinetRes.success) {

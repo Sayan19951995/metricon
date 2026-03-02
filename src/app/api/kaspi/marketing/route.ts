@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { KaspiMarketingClient, MarketingSession } from '@/lib/kaspi/marketing-client';
 
 /**
@@ -7,13 +7,17 @@ import { KaspiMarketingClient, MarketingSession } from '@/lib/kaspi/marketing-cl
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, username, password } = body;
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId || !username || !password) {
+    const body = await request.json();
+    const { username, password } = body;
+
+    if (!username || !password) {
       return NextResponse.json({
         success: false,
-        message: 'userId, username и password обязательны'
+        message: 'username и password обязательны'
       }, { status: 400 });
     }
 
@@ -21,7 +25,7 @@ export async function POST(request: NextRequest) {
     const { session, loginData } = await KaspiMarketingClient.login(username, password);
 
     // Сохраняем сессию в stores
-    const { error: updateError } = await supabase
+    const { error: updateError } = await supabaseAdmin
       .from('stores')
       .update({
         marketing_session: JSON.parse(JSON.stringify(session)),
@@ -60,20 +64,16 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    if (!userId) {
-      return NextResponse.json({
-        success: false,
-        message: 'userId обязателен'
-      }, { status: 400 });
-    }
-
     // Получаем store и marketing_session
-    const storeResult = await supabase
+    const storeResult = await supabaseAdmin
       .from('stores')
       .select('id, marketing_session')
       .eq('user_id', userId)
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
       const newSession = await KaspiMarketingClient.tryReconnect(session);
       if (newSession) {
         // Сохраняем обновлённую сессию
-        await supabase.from('stores')
+        await supabaseAdmin.from('stores')
           .update({ marketing_session: JSON.parse(JSON.stringify(newSession)) })
           .eq('user_id', userId);
         client = new KaspiMarketingClient(newSession);
@@ -184,17 +184,11 @@ export async function GET(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId) {
-      return NextResponse.json({
-        success: false,
-        message: 'userId обязателен'
-      }, { status: 400 });
-    }
-
-    await supabase
+    await supabaseAdmin
       .from('stores')
       .update({ marketing_session: null })
       .eq('user_id', userId);

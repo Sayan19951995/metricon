@@ -1,23 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
-import { requireRole } from '@/lib/api-auth';
+import { supabaseAdmin, requireAuth, requireRole } from '@/lib/api-auth';
 
 // GET — получить все шаблоны рассылок + настройки магазина
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'userId обязателен' }, { status: 400 });
-    }
+    const authResult = await requireAuth(request);
+    if ('error' in authResult) return authResult.error;
+    const userId = authResult.user.id;
 
     const auth = await requireRole(userId, ['owner', 'admin']);
     if ('error' in auth) {
       return NextResponse.json({ success: false, message: auth.error }, { status: 403 });
     }
 
-    const { data: templates, error } = await supabase
+    const { data: templates, error } = await supabaseAdmin
       .from('message_templates')
       .select('*')
       .eq('store_id', auth.store.id)
@@ -28,7 +24,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Получаем настройки рассылки из stores
-    const { data: store } = await supabase
+    const { data: store } = await supabaseAdmin
       .from('stores')
       .select('mailing_settings')
       .eq('id', auth.store.id)
@@ -52,11 +48,15 @@ export async function GET(request: NextRequest) {
 // POST — создать новый шаблон рассылки
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, name, triggerType, subject, template, status } = body;
+    const authResult = await requireAuth(request);
+    if ('error' in authResult) return authResult.error;
+    const userId = authResult.user.id;
 
-    if (!userId || !name || !triggerType) {
-      return NextResponse.json({ success: false, message: 'userId, name, triggerType обязательны' }, { status: 400 });
+    const body = await request.json();
+    const { name, triggerType, subject, template, status } = body;
+
+    if (!name || !triggerType) {
+      return NextResponse.json({ success: false, message: 'name, triggerType обязательны' }, { status: 400 });
     }
 
     const auth = await requireRole(userId, ['owner', 'admin']);
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, message: auth.error }, { status: 403 });
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('message_templates')
       .insert({
         store_id: auth.store.id,
@@ -94,12 +94,12 @@ export async function POST(request: NextRequest) {
 // PUT — обновить шаблон или настройки
 export async function PUT(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, id, name, triggerType, subject, template, status, settings } = body;
+    const authResult = await requireAuth(request);
+    if ('error' in authResult) return authResult.error;
+    const userId = authResult.user.id;
 
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'userId обязателен' }, { status: 400 });
-    }
+    const body = await request.json();
+    const { id, name, triggerType, subject, template, status, settings } = body;
 
     const auth = await requireRole(userId, ['owner', 'admin']);
     if ('error' in auth) {
@@ -108,7 +108,7 @@ export async function PUT(request: NextRequest) {
 
     // Если передали settings — обновляем настройки магазина
     if (settings) {
-      const { error } = await supabase
+      const { error } = await supabaseAdmin
         .from('stores')
         .update({ mailing_settings: settings } as any)
         .eq('id', auth.store.id);
@@ -135,7 +135,7 @@ export async function PUT(request: NextRequest) {
       update.active = status === 'active';
     }
 
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
       .from('message_templates')
       .update(update)
       .eq('id', id)
@@ -159,12 +159,15 @@ export async function PUT(request: NextRequest) {
 // DELETE — удалить шаблон
 export async function DELETE(request: NextRequest) {
   try {
+    const authResult = await requireAuth(request);
+    if ('error' in authResult) return authResult.error;
+    const userId = authResult.user.id;
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const id = searchParams.get('id');
 
-    if (!userId || !id) {
-      return NextResponse.json({ success: false, message: 'userId и id обязательны' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ success: false, message: 'id обязателен' }, { status: 400 });
     }
 
     const auth = await requireRole(userId, ['owner', 'admin']);
@@ -172,7 +175,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, message: auth.error }, { status: 403 });
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('message_templates')
       .delete()
       .eq('id', id)

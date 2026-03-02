@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, ChevronUp, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Plus, X, Trash2, HelpCircle, BarChart3, RotateCcw, UserCheck } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { supabase } from '@/lib/supabase/client';
 import { getSmoothPath } from '@/lib/smoothPath';
 
@@ -271,7 +272,7 @@ function AnalyticsPageContent() {
     if (!user?.id) return;
     try {
       setDataLoading(true);
-      const res = await fetch(`/api/analytics?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/analytics');
       const json = await res.json();
       if (json.success && json.data) {
         // Преобразуем fullDate строки в Date объекты
@@ -321,7 +322,7 @@ function AnalyticsPageContent() {
 
     (async () => {
       try {
-        const res = await fetch(`/api/kaspi/cabinet/products?userId=${user.id}`);
+        const res = await fetchWithAuth('/api/kaspi/cabinet/products');
         const json = await res.json();
         if (!json.success || !json.products) return;
 
@@ -393,9 +394,9 @@ function AnalyticsPageContent() {
     else setReviewsLoadingMore(true);
 
     try {
-      const params = new URLSearchParams({ userId: user.id, page: String(pg), size: '10' });
+      const params = new URLSearchParams({ page: String(pg), size: '10' });
       if (filter !== null) params.set('rating', String(filter));
-      const res = await fetch(`/api/kaspi/reviews?${params}`);
+      const res = await fetchWithAuth(`/api/kaspi/reviews?${params}`);
       const data = await res.json();
       if (data.success) {
         if (isInitial) {
@@ -467,7 +468,7 @@ function AnalyticsPageContent() {
     const pad = (n: number) => String(n).padStart(2, '0');
     const sd = `${startDate.getFullYear()}-${pad(startDate.getMonth() + 1)}-${pad(startDate.getDate())}`;
     const ed = `${endDate.getFullYear()}-${pad(endDate.getMonth() + 1)}-${pad(endDate.getDate())}`;
-    fetch(`/api/kaspi/marketing?userId=${user.id}&startDate=${sd}&endDate=${ed}`)
+    fetchWithAuth(`/api/kaspi/marketing?startDate=${sd}&endDate=${ed}`)
       .then(r => r.json())
       .then(d => {
         if (d.success && d.data?.summary) {
@@ -558,7 +559,7 @@ function AnalyticsPageContent() {
   const fetchProductsList = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/products?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/products');
       const json = await res.json();
       if (json.success && json.data) {
         setProductsList(json.data);
@@ -574,7 +575,7 @@ function AnalyticsPageContent() {
   const fetchOperationalExpenses = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/operational-expenses?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/operational-expenses');
       const json = await res.json();
       if (json.success && json.data) {
         setOperationalExpenses(json.data.map((e: any) => ({
@@ -598,11 +599,10 @@ function AnalyticsPageContent() {
   const handleAddExpense = async () => {
     if (newExpenseName && newExpenseAmount && newExpenseStartDate && newExpenseEndDate && user?.id) {
       try {
-        const res = await fetch('/api/operational-expenses', {
+        const res = await fetchWithAuth('/api/operational-expenses', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: user.id,
             name: newExpenseName,
             amount: parseFloat(newExpenseAmount),
             startDate: newExpenseStartDate.toISOString().split('T')[0],
@@ -632,7 +632,7 @@ function AnalyticsPageContent() {
   const handleDeleteExpense = async (id: string) => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/operational-expenses?userId=${user.id}&id=${id}`, { method: 'DELETE' });
+      const res = await fetchWithAuth(`/api/operational-expenses?id=${id}`, { method: 'DELETE' });
       const json = await res.json();
       if (json.success) {
         setOperationalExpenses(operationalExpenses.filter(exp => exp.id !== id));
@@ -1124,10 +1124,10 @@ function AnalyticsPageContent() {
                   setCostSaving(true);
                   try {
                     await Promise.all(entries.map(([code, val]) =>
-                      fetch('/api/products', {
+                      fetchWithAuth('/api/products', {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ userId: user?.id, kaspiId: code, costPrice: Number(val) }),
+                        body: JSON.stringify({ kaspiId: code, costPrice: Number(val) }),
                       })
                     ));
                     setCostEditMap({});

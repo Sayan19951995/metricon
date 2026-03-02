@@ -1,19 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 
 /**
  * POST /api/orders/confirm — подтвердить заказ
- * Body: { orderId, userId, userName }
+ * Body: { orderId, userName }
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { orderId, userId, userName, saleSource, saleComment } = body;
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!orderId || !userId) {
+    const body = await request.json();
+    const { orderId, userName, saleSource, saleComment } = body;
+
+    if (!orderId) {
       return NextResponse.json({
         success: false,
-        message: 'orderId и userId обязательны',
+        message: 'orderId обязателен',
       }, { status: 400 });
     }
 
@@ -24,7 +28,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('orders')
       .update({
         confirmed_at: new Date().toISOString(),
@@ -47,22 +51,24 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * DELETE /api/orders/confirm?orderId=xxx&userId=yyy — отменить подтверждение
+ * DELETE /api/orders/confirm?orderId=xxx — отменить подтверждение
  */
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+
     const params = new URL(request.url).searchParams;
     const orderId = params.get('orderId');
-    const userId = params.get('userId');
 
-    if (!orderId || !userId) {
+    if (!orderId) {
       return NextResponse.json({
         success: false,
-        message: 'orderId и userId обязательны',
+        message: 'orderId обязателен',
       }, { status: 400 });
     }
 
-    const { error } = await supabase
+    const { error } = await supabaseAdmin
       .from('orders')
       .update({
         confirmed_at: null,

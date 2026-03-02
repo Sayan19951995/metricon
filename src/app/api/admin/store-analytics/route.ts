@@ -1,20 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 
 export async function GET(request: NextRequest) {
   try {
+    const authResult = await requireAuth(request);
+    if ('error' in authResult) return authResult.error;
+    const userId = authResult.user.id;
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const storeId = searchParams.get('storeId');
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
 
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'userId обязателен' }, { status: 400 });
-    }
-
     // Check admin
-    const { data: adminUser } = await supabase
+    const { data: adminUser } = await supabaseAdmin
       .from('users')
       .select('*')
       .eq('id', userId)
@@ -26,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     // If no storeId — return list of stores
     if (!storeId) {
-      const { data: stores } = await supabase
+      const { data: stores } = await supabaseAdmin
         .from('stores')
         .select('id, name, kaspi_merchant_id, created_at, user_id')
         .order('created_at', { ascending: false });
@@ -34,7 +33,7 @@ export async function GET(request: NextRequest) {
       // Get user emails for each store
       const userIds = (stores || []).map(s => s.user_id).filter((id): id is string => !!id);
       const uniqueUserIds = [...new Set(userIds)];
-      const { data: users } = await supabase
+      const { data: users } = await supabaseAdmin
         .from('users')
         .select('id, email, name')
         .in('id', uniqueUserIds);
@@ -43,7 +42,7 @@ export async function GET(request: NextRequest) {
 
       // Get revenue + order count for each store (completed orders)
       const storeIds = (stores || []).map(s => s.id);
-      const { data: allOrders } = await supabase
+      const { data: allOrders } = await supabaseAdmin
         .from('orders')
         .select('store_id, total_amount, status')
         .in('store_id', storeIds)
@@ -84,7 +83,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Fetch store details
-    const { data: store } = await supabase
+    const { data: store } = await supabaseAdmin
       .from('stores')
       .select('*')
       .eq('id', storeId)
@@ -98,7 +97,7 @@ export async function GET(request: NextRequest) {
     const taxRate = (store.tax_rate ?? 4.0) as number;
 
     // Load products for cost price
-    const { data: productsDb } = await supabase
+    const { data: productsDb } = await supabaseAdmin
       .from('products')
       .select('kaspi_id, name, cost_price, price, product_group, quantity, kaspi_stock')
       .eq('store_id', storeId);
@@ -111,7 +110,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Load completed orders
-    let ordersQuery = supabase
+    let ordersQuery = supabaseAdmin
       .from('orders')
       .select('total_amount, completed_at, created_at, status, delivery_cost, items')
       .eq('store_id', storeId)
@@ -252,7 +251,7 @@ export async function GET(request: NextRequest) {
 
     // Store info
     const { data: ownerUser } = store.user_id
-      ? await supabase
+      ? await supabaseAdmin
           .from('users')
           .select('email, name')
           .eq('id', store.user_id)

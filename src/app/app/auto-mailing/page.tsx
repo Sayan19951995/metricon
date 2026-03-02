@@ -37,6 +37,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import Image from 'next/image';
 
 type MailingStatus = 'active' | 'paused' | 'draft';
@@ -200,7 +201,7 @@ export default function AutoMailingPage() {
   const fetchMailings = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/auto-mailing?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/auto-mailing');
       const json = await res.json();
       if (json.success) {
         setMailings(json.data.templates || []);
@@ -220,7 +221,7 @@ export default function AutoMailingPage() {
   const fetchFeedback = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/feedback/settings?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/feedback/settings');
       const data = await res.json();
       if (data.success) {
         setFbSettings({ ...defaultFeedbackSettings, ...data.data.settings });
@@ -242,7 +243,7 @@ export default function AutoMailingPage() {
   const checkWaStatus = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/whatsapp?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/whatsapp');
       const json = await res.json();
       if (json.success) {
         setWaStatus(json.status || 'disconnected');
@@ -260,10 +261,10 @@ export default function AutoMailingPage() {
     setWaQr(null);
     try {
       console.log('[WA] calling POST /api/whatsapp...');
-      const res = await fetch('/api/whatsapp', {
+      const res = await fetchWithAuth('/api/whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id }),
+        body: JSON.stringify({}),
       });
       console.log('[WA] response status:', res.status);
       const json = await res.json();
@@ -283,7 +284,7 @@ export default function AutoMailingPage() {
     if (!user?.id) return;
     setWaLoading(true);
     try {
-      await fetch(`/api/whatsapp?userId=${user.id}`, { method: 'DELETE' });
+      await fetchWithAuth('/api/whatsapp', { method: 'DELETE' });
       setWaStatus('disconnected');
       setWaQr(null);
     } catch (err) {
@@ -297,11 +298,10 @@ export default function AutoMailingPage() {
     if (!user?.id || !waTestPhone.trim()) return;
     setWaTestSending(true);
     try {
-      const res = await fetch('/api/whatsapp', {
+      const res = await fetchWithAuth('/api/whatsapp', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
           testPhone: waTestPhone,
           testMessage: `Тестовое сообщение от ${store?.name || 'Metricon'}. Авторассылка работает!`,
         }),
@@ -368,10 +368,10 @@ export default function AutoMailingPage() {
   const toggleStatus = async (mailing: Mailing) => {
     const newStatus = mailing.status === 'active' ? 'paused' : 'active';
     try {
-      const res = await fetch('/api/auto-mailing', {
+      const res = await fetchWithAuth('/api/auto-mailing', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user?.id, id: mailing.id, status: newStatus }),
+        body: JSON.stringify({ id: mailing.id, status: newStatus }),
       });
       const json = await res.json();
       if (json.success) {
@@ -416,11 +416,10 @@ export default function AutoMailingPage() {
     try {
       if (selectedMailing) {
         // Редактирование
-        const res = await fetch('/api/auto-mailing', {
+        const res = await fetchWithAuth('/api/auto-mailing', {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: user.id,
             id: selectedMailing.id,
             name: formData.name,
             triggerType: formData.triggerType,
@@ -435,11 +434,10 @@ export default function AutoMailingPage() {
         }
       } else {
         // Создание
-        const res = await fetch('/api/auto-mailing', {
+        const res = await fetchWithAuth('/api/auto-mailing', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            userId: user.id,
             name: formData.name,
             triggerType: formData.triggerType,
             subject: formData.subject,
@@ -464,7 +462,7 @@ export default function AutoMailingPage() {
     if (!deleteTarget || !user?.id) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/auto-mailing?userId=${user.id}&id=${deleteTarget.id}`, {
+      const res = await fetchWithAuth(`/api/auto-mailing?id=${deleteTarget.id}`, {
         method: 'DELETE',
       });
       const json = await res.json();
@@ -484,10 +482,10 @@ export default function AutoMailingPage() {
     if (!user?.id) return;
     setSaving(true);
     try {
-      const res = await fetch('/api/auto-mailing', {
+      const res = await fetchWithAuth('/api/auto-mailing', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, settings }),
+        body: JSON.stringify({ settings }),
       });
       const json = await res.json();
       if (json.success) {
@@ -506,10 +504,10 @@ export default function AutoMailingPage() {
     setFbSettings(newSettings);
     if (!user?.id) return;
     try {
-      await fetch('/api/feedback/settings', {
+      await fetchWithAuth('/api/feedback/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, ...newSettings }),
+        body: JSON.stringify({ ...newSettings }),
       });
     } catch (err) {
       console.error('Toggle feedback error:', err);
@@ -520,10 +518,10 @@ export default function AutoMailingPage() {
     if (!user?.id) return;
     setFbSaving(true);
     try {
-      const res = await fetch('/api/feedback/settings', {
+      const res = await fetchWithAuth('/api/feedback/settings', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, ...fbSettings }),
+        body: JSON.stringify({ ...fbSettings }),
       });
       const data = await res.json();
       if (data.success) setFbHasChanges(false);

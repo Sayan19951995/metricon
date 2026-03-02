@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { KaspiAPIClient } from '@/lib/kaspi/api-client';
 
 interface KaspiSession {
@@ -13,13 +13,17 @@ interface KaspiSession {
  */
 export async function POST(request: NextRequest) {
   try {
-    const { userId, feedUrl, authLogin, authPassword } = await request.json();
-    if (!userId || !feedUrl) {
-      return NextResponse.json({ success: false, error: 'userId and feedUrl required' }, { status: 400 });
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
+
+    const { feedUrl, authLogin, authPassword } = await request.json();
+    if (!feedUrl) {
+      return NextResponse.json({ success: false, error: 'feedUrl required' }, { status: 400 });
     }
 
     // Получаем store и сессию
-    const storeResult = await supabase
+    const storeResult = await supabaseAdmin
       .from('stores')
       .select('kaspi_session, kaspi_merchant_id')
       .eq('user_id', userId)

@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { getStale, setCache } from '@/lib/cache';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import type { KaspiProduct } from '@/lib/kaspi/api-client';
 import ProductsSkeleton from './components/ProductsSkeleton';
 import LoginForm from './components/LoginForm';
@@ -84,7 +85,7 @@ export default function ProductsPage() {
     if (!user?.id) return;
     setSessionLoading(true);
     try {
-      const res = await fetch(`/api/kaspi/cabinet/session?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/kaspi/cabinet/session');
       const data = await res.json();
       setSession({ connected: data.connected || false, merchantId: data.merchantId, username: data.username });
     } catch {
@@ -100,7 +101,7 @@ export default function ProductsPage() {
     if (!hasCached) setLoading(true);
     setLoadError('');
     try {
-      const res = await fetch(`/api/kaspi/cabinet/products?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/kaspi/cabinet/products');
       const data = await res.json();
       if (data.success) {
         const products = data.products || [];
@@ -153,10 +154,10 @@ export default function ProductsPage() {
         cityPrices = cityPrices.map(cp => ({ ...cp, value: Math.round(value) }));
       }
 
-      const res = await fetch('/api/kaspi/cabinet/products', {
+      const res = await fetchWithAuth('/api/kaspi/cabinet/products', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, sku: product.sku || product.masterSku, model: product.name, availabilities, cityPrices }),
+        body: JSON.stringify({ sku: product.sku || product.masterSku, model: product.name, availabilities, cityPrices }),
       });
       const data = await res.json();
 
@@ -224,10 +225,10 @@ export default function ProductsPage() {
 
       if (products.length === 0) { alert('Не найдены товары для обновления'); return; }
 
-      const res = await fetch('/api/kaspi/cabinet/products', {
+      const res = await fetchWithAuth('/api/kaspi/cabinet/products', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, products }),
+        body: JSON.stringify({ products }),
       });
       const data = await res.json();
 

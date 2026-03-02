@@ -11,6 +11,7 @@ import {
   Clock,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface PositionQuery {
   keyword: string;
@@ -51,7 +52,7 @@ export default function PositionsPage() {
   const loadPositions = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/positions?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/positions');
       const json = await res.json();
       if (json.success) {
         setProducts(json.products || []);
@@ -75,10 +76,10 @@ export default function PositionsPage() {
     setDebugLogs([]);
     setShowLogs(true);
     try {
-      const res = await fetch('/api/positions', {
+      const res = await fetchWithAuth('/api/positions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, checkAll: true }),
+        body: JSON.stringify({ checkAll: true }),
       });
       const json = await res.json();
       if (json.logs) setDebugLogs(json.logs);
@@ -98,10 +99,10 @@ export default function PositionsPage() {
     setDebugLogs([]);
     setShowLogs(true);
     try {
-      const res = await fetch('/api/positions', {
+      const res = await fetchWithAuth('/api/positions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, productId }),
+        body: JSON.stringify({ productId }),
       });
       const json = await res.json();
       if (json.logs) setDebugLogs(json.logs);
@@ -119,10 +120,10 @@ export default function PositionsPage() {
     if (!user?.id || !newKeyword.trim() || addingKeyword) return;
     setAddingKeyword(true);
     try {
-      const res = await fetch('/api/positions/keywords', {
+      const res = await fetchWithAuth('/api/positions/keywords', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, productId, keyword: newKeyword.trim() }),
+        body: JSON.stringify({ productId, keyword: newKeyword.trim() }),
       });
       const json = await res.json();
       if (json.success) {
@@ -143,7 +144,7 @@ export default function PositionsPage() {
   const handleDeleteKeyword = async (keywordId: string) => {
     if (!user?.id) return;
     try {
-      await fetch(`/api/positions/keywords?userId=${user.id}&keywordId=${keywordId}`, {
+      await fetchWithAuth(`/api/positions/keywords?keywordId=${keywordId}`, {
         method: 'DELETE',
       });
       await loadPositions();

@@ -13,6 +13,7 @@ import {
   Package
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { supabase } from '@/lib/supabase/client';
 
 // Типы
@@ -66,11 +67,11 @@ export default function AutoPricingHistoryPage() {
     async function loadHistory() {
       setLoading(true);
       try {
-        const params = new URLSearchParams({ userId: user!.id });
+        const params = new URLSearchParams();
         if (typeFilter !== 'all') params.set('type', typeFilter);
         if (dateFilter !== 'all') params.set('period', dateFilter);
 
-        const res = await fetch(`/api/auto-pricing/history?${params}`);
+        const res = await fetchWithAuth(`/api/auto-pricing/history?${params}`);
         const data = await res.json();
         if (data.success) {
           setHistory(data.history || []);

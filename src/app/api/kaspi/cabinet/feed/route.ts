@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { KaspiAPIClient } from '@/lib/kaspi/api-client';
 
 interface KaspiSession {
@@ -9,7 +9,7 @@ interface KaspiSession {
 
 /** Получить store_id по userId */
 async function getStoreId(userId: string): Promise<string | null> {
-  const result = await supabase
+  const result = await supabaseAdmin
     .from('stores')
     .select('id')
     .eq('user_id', userId)
@@ -24,17 +24,16 @@ async function getStoreId(userId: string): Promise<string | null> {
  */
 export async function GET(request: NextRequest) {
   try {
-    const userId = new URL(request.url).searchParams.get('userId');
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'userId required' }, { status: 400 });
-    }
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
     const storeId = await getStoreId(userId);
     if (!storeId) {
       return NextResponse.json({ success: false, error: 'Store not found' }, { status: 404 });
     }
 
-    const feedResult = await supabase
+    const feedResult = await supabaseAdmin
       .from('pricelist_feeds')
       .select('feed_token, auth_login, auth_password, preorder_overrides, enabled, cached_at')
       .eq('store_id', storeId)
@@ -58,12 +57,12 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, authLogin, authPassword, enabled, feedUrl } = body;
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'userId required' }, { status: 400 });
-    }
+    const body = await request.json();
+    const { authLogin, authPassword, enabled, feedUrl } = body;
 
     const storeId = await getStoreId(userId);
     if (!storeId) {
@@ -71,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Проверяем существует ли фид
-    const existingResult = await supabase
+    const existingResult = await supabaseAdmin
       .from('pricelist_feeds')
       .select('id, feed_token')
       .eq('store_id', storeId)
@@ -87,14 +86,14 @@ export async function POST(request: NextRequest) {
       if (authPassword !== undefined) updates.auth_password = authPassword || null;
       if (enabled !== undefined) updates.enabled = enabled;
 
-      await supabase.from('pricelist_feeds')
+      await supabaseAdmin.from('pricelist_feeds')
         .update(updates)
         .eq('id', existing.id);
 
       feedToken = existing.feed_token;
     } else {
       // Создаём новый фид
-      const newFeedResult = await supabase.from('pricelist_feeds')
+      const newFeedResult = await supabaseAdmin.from('pricelist_feeds')
         .insert({
           store_id: storeId,
           auth_login: authLogin || null,
@@ -124,7 +123,7 @@ export async function POST(request: NextRequest) {
       if (resolvedFeedUrl) {
         try {
           // Получаем сессию Kaspi для этого магазина
-          const storeForRegResult = await supabase
+          const storeForRegResult = await supabaseAdmin
             .from('stores')
             .select('kaspi_session, kaspi_merchant_id')
             .eq('id', storeId)
@@ -169,12 +168,12 @@ export async function POST(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, preorderOverrides, regenerate } = body;
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'userId required' }, { status: 400 });
-    }
+    const body = await request.json();
+    const { preorderOverrides, regenerate } = body;
 
     const storeId = await getStoreId(userId);
     if (!storeId) {
@@ -189,7 +188,7 @@ export async function PATCH(request: NextRequest) {
       updates.preorder_overrides = preorderOverrides || {};
     }
 
-    const { error } = await supabase.from('pricelist_feeds')
+    const { error } = await supabaseAdmin.from('pricelist_feeds')
       .update(updates)
       .eq('store_id', storeId);
 
@@ -201,7 +200,7 @@ export async function PATCH(request: NextRequest) {
     // Перегенерация кэша если нужно
     if (regenerate) {
       try {
-        const storeForCacheResult = await supabase
+        const storeForCacheResult = await supabaseAdmin
           .from('stores')
           .select('kaspi_session, kaspi_merchant_id')
           .eq('id', storeId)
@@ -224,7 +223,7 @@ export async function PATCH(request: NextRequest) {
 
           const xml = client.generatePriceListXML(products, overrideMap);
 
-          await supabase.from('pricelist_feeds')
+          await supabaseAdmin.from('pricelist_feeds')
             .update({
               cached_xml: xml,
               cached_at: new Date().toISOString(),

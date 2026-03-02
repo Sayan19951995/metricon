@@ -22,6 +22,7 @@ import Link from 'next/link';
 import { useUser } from '@/hooks/useUser';
 import { supabase } from '@/lib/supabase/client';
 import { getStale, setCache } from '@/lib/cache';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface Availability {
   storeName: string;
@@ -85,7 +86,7 @@ export default function WarehousePage() {
   const loadGroups = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/product-groups?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/product-groups');
       const json = await res.json();
       if (json.success) setGroups(json.data);
     } catch (e) { console.error('Failed to load groups:', e); }
@@ -95,10 +96,10 @@ export default function WarehousePage() {
     if (!user?.id || !newGroupName.trim()) return;
     setCreatingGroup(true);
     try {
-      const res = await fetch('/api/product-groups', {
+      const res = await fetchWithAuth('/api/product-groups', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, name: newGroupName.trim(), color: newGroupColor }),
+        body: JSON.stringify({ name: newGroupName.trim(), color: newGroupColor }),
       });
       const json = await res.json();
       if (json.success) {
@@ -115,7 +116,7 @@ export default function WarehousePage() {
   const deleteGroup = async (slug: string) => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/product-groups?userId=${user.id}&slug=${slug}`, { method: 'DELETE' });
+      const res = await fetchWithAuth(`/api/product-groups?slug=${slug}`, { method: 'DELETE' });
       const json = await res.json();
       if (json.success) {
         setGroups(prev => prev.filter(g => g.slug !== slug));
@@ -130,10 +131,10 @@ export default function WarehousePage() {
     setProducts(prev => prev.map(p => p.id === productId ? { ...p, product_group: group } : p));
     setGroupMenuId(null);
     try {
-      await fetch('/api/products', {
+      await fetchWithAuth('/api/products', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, kaspiId, productGroup: group }),
+        body: JSON.stringify({ kaspiId, productGroup: group }),
       });
     } catch (e) { console.error('Failed to update group:', e); }
   };
@@ -261,7 +262,7 @@ export default function WarehousePage() {
 
           // Remove preorder if stock restored > 0
           if (autoPreorderEnabled && product.sku) {
-            fetch('/api/warehouse/preorder', {
+            fetchWithAuth('/api/warehouse/preorder', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ storeId: store.id, skus: [product.sku], action: 'disable' }),
@@ -306,7 +307,7 @@ export default function WarehousePage() {
           .eq('store_id', store.id)
           .order('name', { ascending: true })
           .limit(500),
-        fetch(`/api/kaspi/cabinet/products?userId=${user.id}`)
+        fetchWithAuth('/api/kaspi/cabinet/products')
           .then(r => r.json())
           .catch(() => ({ success: false })),
       ]);
@@ -565,14 +566,14 @@ export default function WarehousePage() {
         const newQty = value !== null ? Math.round(value) : 0;
         if (editedProduct?.sku) {
           if (newQty === 0) {
-            fetch('/api/warehouse/preorder', {
+            fetchWithAuth('/api/warehouse/preorder', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ storeId: store.id, skus: [editedProduct.sku], action: 'enable', days: autoPreorderDays }),
             }).catch(err => console.error('Auto-preorder enable error:', err));
           } else {
             // Restore: remove preorder if stock is back
-            fetch('/api/warehouse/preorder', {
+            fetchWithAuth('/api/warehouse/preorder', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ storeId: store.id, skus: [editedProduct.sku], action: 'disable' }),

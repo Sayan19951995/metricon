@@ -1,21 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { KaspiMarketingClient, MarketingSession, MarketingCampaign } from '@/lib/kaspi/marketing-client';
 import { KaspiAPIClient } from '@/lib/kaspi/api-client';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId) {
-      return NextResponse.json({
-        success: false,
-        message: 'userId обязателен'
-      }, { status: 400 });
-    }
-
-    const storeResult = await supabase
+    const storeResult = await supabaseAdmin
       .from('stores')
       .select('*')
       .eq('user_id', userId)
@@ -34,7 +28,7 @@ export async function GET(request: NextRequest) {
     const taxRate = (store.tax_rate ?? 4.0) as number;
 
     // === 0. Загрузить себестоимость товаров ===
-    const productsResult = await supabase
+    const productsResult = await supabaseAdmin
       .from('products')
       .select('id, kaspi_id, sku, name, cost_price, product_group, image_url')
       .eq('store_id', store.id);
@@ -81,7 +75,7 @@ export async function GET(request: NextRequest) {
               if (p.kaspi_id) imageMap.set(p.kaspi_id, img);
               if (p.sku) imageMap.set(p.sku, img);
               if (p.name) imageMap.set(p.name, img);
-              supabase.from('products').update({ image_url: img } as any).eq('id', p.id).then(() => {});
+              supabaseAdmin.from('products').update({ image_url: img } as any).eq('id', p.id).then(() => {});
             }
           }
         }
@@ -91,7 +85,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Загрузить метаданные групп
-    const groupsResult = await supabase
+    const groupsResult = await supabaseAdmin
       .from('product_groups')
       .select('slug, name, color')
       .eq('store_id', store.id)
@@ -99,7 +93,7 @@ export async function GET(request: NextRequest) {
     const productGroupsMeta = groupsResult.data || [];
 
     // === 1. Поступления по дате выдачи (completed_at) ===
-    const completedOrdersResult = await supabase
+    const completedOrdersResult = await supabaseAdmin
       .from('orders')
       .select('total_amount, completed_at, status, delivery_cost, delivery_mode, delivery_address, items, confirmed_by, sale_source' as string)
       .eq('store_id', store.id)
@@ -187,7 +181,7 @@ export async function GET(request: NextRequest) {
     }
 
     // === 1b. Операционные расходы — разбить по дням ===
-    const opExpensesResult = await supabase
+    const opExpensesResult = await supabaseAdmin
       .from('operational_expenses')
       .select('*')
       .eq('store_id', store.id);
@@ -270,7 +264,7 @@ export async function GET(request: NextRequest) {
     }
 
     // === 2b. Выручка по дате создания заказа (для "Структура выручки") ===
-    const allOrdersResult = await supabase
+    const allOrdersResult = await supabaseAdmin
       .from('orders')
       .select('items, total_amount, status, created_at, delivery_cost')
       .eq('store_id', store.id)
@@ -332,7 +326,7 @@ export async function GET(request: NextRequest) {
 
 
     // Возвраты по дате создания (для карточки "Возвраты" с фильтром по периоду)
-    const returnedOrdersByCreationResult = await supabase
+    const returnedOrdersByCreationResult = await supabaseAdmin
       .from('orders')
       .select('created_at')
       .eq('store_id', store.id)
@@ -384,7 +378,7 @@ export async function GET(request: NextRequest) {
       });
 
     // === 3. Статусы заказов ===
-    const ordersByStatusResult = await supabase
+    const ordersByStatusResult = await supabaseAdmin
       .from('orders')
       .select('status')
       .eq('store_id', store.id);
@@ -411,7 +405,7 @@ export async function GET(request: NextRequest) {
 
     // === 4. Активные заказы ===
     const completedStatuses = ['completed', 'delivered', 'cancelled', 'returned', 'archive'];
-    const activeOrdersResult = await supabase
+    const activeOrdersResult = await supabaseAdmin
       .from('orders')
       .select('kaspi_order_id, customer_name, delivery_address, total_amount, created_at, items, status')
       .eq('store_id', store.id)
@@ -433,7 +427,7 @@ export async function GET(request: NextRequest) {
     });
 
     // === 5. Возвратные заказы ===
-    const returnedOrdersResult = await supabase
+    const returnedOrdersResult = await supabaseAdmin
       .from('orders')
       .select('kaspi_order_id, customer_name, total_amount, created_at, items')
       .eq('store_id', store.id)
@@ -483,7 +477,7 @@ export async function GET(request: NextRequest) {
           console.log('[Analytics] Marketing session expired, reconnecting...');
           const newSession = await KaspiMarketingClient.tryReconnect(session);
           if (newSession) {
-            await supabase.from('stores')
+            await supabaseAdmin.from('stores')
               .update({ marketing_session: JSON.parse(JSON.stringify(newSession)) })
               .eq('id', store.id);
             client = new KaspiMarketingClient(newSession);
@@ -686,7 +680,7 @@ export async function GET(request: NextRequest) {
     const organicOrders = totalOrders - adOrdersCount;
 
     // === 9. Продажи по менеджерам (все подтверждённые заказы, не только completed) ===
-    const confirmedOrdersResult = await supabase
+    const confirmedOrdersResult = await supabaseAdmin
       .from('orders')
       .select('kaspi_order_id, total_amount, confirmed_by, confirmed_at, sale_comment, sale_source, status, customer_name, items, created_at' as string)
       .eq('store_id', store.id)
@@ -785,7 +779,7 @@ export async function GET(request: NextRequest) {
         // Limit to avoid URI-too-long errors; custom_ products are checked separately anyway
         const codes = [...allOrderProducts.keys()].slice(0, 500);
         // 1. Products in DB with cost_price IS NULL
-        const missingCostResult = await supabase
+        const missingCostResult = await supabaseAdmin
           .from('products')
           .select('kaspi_id, name')
           .eq('store_id', store.id)

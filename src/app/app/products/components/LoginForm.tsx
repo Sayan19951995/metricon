@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LogIn, AlertCircle, Loader2 } from 'lucide-react';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface LoginFormProps {
   userId: string;
@@ -23,10 +24,10 @@ export default function LoginForm({ userId, onSuccess }: LoginFormProps) {
     }
 
     try {
-      const res = await fetch('/api/kaspi/cabinet/login', {
+      const res = await fetchWithAuth('/api/kaspi/cabinet/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, username: username.trim(), password: password.trim() }),
+        body: JSON.stringify({ username: username.trim(), password: password.trim() }),
       });
       const data = await res.json();
 

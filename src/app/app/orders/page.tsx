@@ -24,6 +24,7 @@ import {
 import { useUser } from '@/hooks/useUser';
 import { supabase } from '@/lib/supabase/client';
 import { getStale, setCache } from '@/lib/cache';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 type OrderStatus = 'new' | 'sign_required' | 'pickup' | 'delivery' | 'kaspi_delivery' | 'archive' | 'completed' | 'cancelled' | 'returned';
 type FilterStatus = 'all' | OrderStatus | 'awaiting' | 'transfer' | 'transmitted';
@@ -279,7 +280,7 @@ export default function OrdersPage() {
       // Если фото мало — подтянуть из Kaspi Cabinet и сохранить в БД
       if (map.size === 0 && user?.id) {
         try {
-          const cabRes = await fetch(`/api/kaspi/cabinet/products?userId=${user.id}`);
+          const cabRes = await fetchWithAuth('/api/kaspi/cabinet/products');
           const cabJson = await cabRes.json();
           if (cabJson.success && cabJson.products) {
             // sku → image и name → image из кабинета
@@ -331,10 +332,10 @@ export default function OrdersPage() {
     if (!user?.id || syncing) return;
     setSyncing(true);
     try {
-      const response = await fetch('/api/kaspi/sync', {
+      const response = await fetchWithAuth('/api/kaspi/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, daysBack: 14 })
+        body: JSON.stringify({ daysBack: 14 })
       });
       const data = await response.json();
       if (data.success) {
@@ -359,12 +360,11 @@ export default function OrdersPage() {
       setSelectedOrder(prev => prev ? { ...prev, confirmed_at: new Date().toISOString(), confirmed_by: userName, sale_source: saleSource, sale_comment: comment } : null);
     }
     try {
-      await fetch('/api/orders/confirm', {
+      await fetchWithAuth('/api/orders/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           orderId: order.id,
-          userId: user.id,
           userName,
           saleSource,
           saleComment: comment,
@@ -384,7 +384,7 @@ export default function OrdersPage() {
       o.id === order.id ? { ...o, confirmed_at: null, confirmed_by: null, sale_source: null, sale_comment: null } : o
     ));
     try {
-      await fetch(`/api/orders/confirm?orderId=${order.id}&userId=${user.id}`, {
+      await fetchWithAuth(`/api/orders/confirm?orderId=${order.id}`, {
         method: 'DELETE',
       });
     } catch (err) {
@@ -399,7 +399,7 @@ export default function OrdersPage() {
     setOrders(prev => prev.filter(o => o.id !== order.id));
     setSelectedOrder(null);
     try {
-      await fetch(`/api/orders/manual?orderId=${order.id}&userId=${user.id}`, {
+      await fetchWithAuth(`/api/orders/manual?orderId=${order.id}`, {
         method: 'DELETE',
       });
     } catch (err) {

@@ -24,6 +24,7 @@ import {
 import { useUser } from '@/hooks/useUser';
 import { getStale, setCache } from '@/lib/cache';
 import { getSmoothPath, getSmoothAreaPath } from '@/lib/smoothPath';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface DashboardData {
   sales: {
@@ -111,14 +112,14 @@ export default function DashboardPage() {
     if (!user?.id || syncing) return;
     setSyncing(true);
     try {
-      const syncRes = await fetch('/api/kaspi/sync', {
+      const syncRes = await fetchWithAuth('/api/kaspi/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, daysBack: 14 })
+        body: JSON.stringify({ daysBack: 14 })
       });
       const syncJson = await syncRes.json();
       if (syncJson.success) {
-        const res = await fetch(`/api/dashboard?userId=${user.id}`);
+        const res = await fetchWithAuth('/api/dashboard');
         const json = await res.json();
         if (json.success && json.data) {
           setDashboardData(json.data);
@@ -159,7 +160,7 @@ export default function DashboardPage() {
         }
         setDataError(null);
 
-        const res = await fetch(`/api/dashboard?userId=${user!.id}`);
+        const res = await fetchWithAuth('/api/dashboard');
         const json = await res.json();
 
         if (!json.success) {
@@ -658,7 +659,7 @@ export default function DashboardPage() {
                         setShowTodaySold(true);
                         try {
                           const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
-                          const res = await fetch(`/api/dashboard/day-sales?userId=${user?.id}&date=${dateStr}`);
+                          const res = await fetchWithAuth(`/api/dashboard/day-sales?date=${dateStr}`);
                           const json = await res.json();
                           setDaySoldProducts(json.success ? json.data : []);
                         } catch { setDaySoldProducts([]); }

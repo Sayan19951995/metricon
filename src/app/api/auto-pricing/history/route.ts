@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
-import { requireRole } from '@/lib/api-auth';
+import { supabaseAdmin, requireAuth, requireRole } from '@/lib/api-auth';
 
 /**
  * GET /api/auto-pricing/history?userId=xxx&sku=&type=&period=
@@ -8,23 +7,22 @@ import { requireRole } from '@/lib/api-auth';
  */
 export async function GET(request: NextRequest) {
   try {
+    const authResult = await requireAuth(request);
+    if ('error' in authResult) return authResult.error;
+    const userId = authResult.user.id;
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const sku = searchParams.get('sku');
     const type = searchParams.get('type'); // decrease, increase, match
     const period = searchParams.get('period'); // today, week, month, all
     const limit = parseInt(searchParams.get('limit') || '100');
-
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'userId обязателен' }, { status: 400 });
-    }
 
     const auth = await requireRole(userId, ['owner', 'admin']);
     if ('error' in auth) {
       return NextResponse.json({ success: false, error: auth.error }, { status: 403 });
     }
 
-    let query = (supabase as any)
+    let query = (supabaseAdmin as any)
       .from('price_change_history')
       .select('*')
       .eq('store_id', auth.store.id)

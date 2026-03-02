@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Серверный клиент с service role — обходит RLS
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-);
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 
 /**
- * GET /api/team?userId=xxx — получить участников команды
+ * GET /api/team — получить участников команды
  */
 export async function GET(request: NextRequest) {
   try {
-    const userId = new URL(request.url).searchParams.get('userId');
-    if (!userId) {
-      return NextResponse.json({ success: false, message: 'userId обязателен' }, { status: 400 });
-    }
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
     // Находим store владельца
     const { data: store } = await supabaseAdmin
@@ -52,13 +44,17 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, email, name, role } = body;
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId || !email || !role) {
+    const body = await request.json();
+    const { email, name, role } = body;
+
+    if (!email || !role) {
       return NextResponse.json({
         success: false,
-        message: 'userId, email и role обязательны',
+        message: 'email и role обязательны',
       }, { status: 400 });
     }
 
@@ -118,13 +114,17 @@ export async function POST(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, memberId, role } = body;
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
 
-    if (!userId || !memberId || !role) {
+    const body = await request.json();
+    const { memberId, role } = body;
+
+    if (!memberId || !role) {
       return NextResponse.json({
         success: false,
-        message: 'userId, memberId и role обязательны',
+        message: 'memberId и role обязательны',
       }, { status: 400 });
     }
 
@@ -158,18 +158,21 @@ export async function PATCH(request: NextRequest) {
 }
 
 /**
- * DELETE /api/team?userId=xxx&memberId=yyy — удалить участника
+ * DELETE /api/team?memberId=yyy — удалить участника
  */
 export async function DELETE(request: NextRequest) {
   try {
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const userId = auth.user.id;
+
     const params = new URL(request.url).searchParams;
-    const userId = params.get('userId');
     const memberId = params.get('memberId');
 
-    if (!userId || !memberId) {
+    if (!memberId) {
       return NextResponse.json({
         success: false,
-        message: 'userId и memberId обязательны',
+        message: 'memberId обязателен',
       }, { status: 400 });
     }
 

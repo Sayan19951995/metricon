@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase/client';
-import { requireRole } from '@/lib/api-auth';
+import { supabaseAdmin, requireAuth, requireRole } from '@/lib/api-auth';
 
 /**
  * GET /api/auto-pricing?userId=xxx
@@ -8,12 +7,9 @@ import { requireRole } from '@/lib/api-auth';
  */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
-
-    if (!userId) {
-      return NextResponse.json({ success: false, error: 'userId обязателен' }, { status: 400 });
-    }
+    const authResult = await requireAuth(request);
+    if ('error' in authResult) return authResult.error;
+    const userId = authResult.user.id;
 
     const auth = await requireRole(userId, ['owner', 'admin']);
     if ('error' in auth) {
@@ -21,7 +17,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Load rules
-    const { data: rules, error } = await (supabase as any)
+    const { data: rules, error } = await (supabaseAdmin as any)
       .from('auto_pricing_rules')
       .select('*')
       .eq('store_id', auth.store.id)
@@ -34,7 +30,7 @@ export async function GET(request: NextRequest) {
 
     // Count price changes in last 24h per rule
     const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-    const { data: recentChanges } = await (supabase as any)
+    const { data: recentChanges } = await (supabaseAdmin as any)
       .from('price_change_history')
       .select('sku')
       .eq('store_id', auth.store.id)
@@ -66,11 +62,15 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, sku, productName, strategy, minPrice, maxPrice, step, targetPosition } = body;
+    const authResult = await requireAuth(request);
+    if ('error' in authResult) return authResult.error;
+    const userId = authResult.user.id;
 
-    if (!userId || !sku) {
-      return NextResponse.json({ success: false, error: 'userId и sku обязательны' }, { status: 400 });
+    const body = await request.json();
+    const { sku, productName, strategy, minPrice, maxPrice, step, targetPosition } = body;
+
+    if (!sku) {
+      return NextResponse.json({ success: false, error: 'sku обязателен' }, { status: 400 });
     }
 
     const auth = await requireRole(userId, ['owner', 'admin']);
@@ -96,7 +96,7 @@ export async function POST(request: NextRequest) {
     };
 
     // Upsert: if rule exists for this store+sku, update it
-    const { data: existing } = await (supabase as any)
+    const { data: existing } = await (supabaseAdmin as any)
       .from('auto_pricing_rules')
       .select('id')
       .eq('store_id', auth.store.id)
@@ -105,14 +105,14 @@ export async function POST(request: NextRequest) {
 
     let result;
     if (existing) {
-      result = await (supabase as any)
+      result = await (supabaseAdmin as any)
         .from('auto_pricing_rules')
         .update(ruleData)
         .eq('id', existing.id)
         .select()
         .single();
     } else {
-      result = await (supabase as any)
+      result = await (supabaseAdmin as any)
         .from('auto_pricing_rules')
         .insert(ruleData)
         .select()
@@ -137,11 +137,15 @@ export async function POST(request: NextRequest) {
  */
 export async function PATCH(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { userId, id, status } = body;
+    const authResult = await requireAuth(request);
+    if ('error' in authResult) return authResult.error;
+    const userId = authResult.user.id;
 
-    if (!userId || !id) {
-      return NextResponse.json({ success: false, error: 'userId и id обязательны' }, { status: 400 });
+    const body = await request.json();
+    const { id, status } = body;
+
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'id обязателен' }, { status: 400 });
     }
 
     const auth = await requireRole(userId, ['owner', 'admin']);
@@ -154,7 +158,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Неверный статус' }, { status: 400 });
     }
 
-    const { data, error } = await (supabase as any)
+    const { data, error } = await (supabaseAdmin as any)
       .from('auto_pricing_rules')
       .update({ status, error_message: null } as any)
       .eq('id', id)
@@ -180,12 +184,15 @@ export async function PATCH(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
+    const authResult = await requireAuth(request);
+    if ('error' in authResult) return authResult.error;
+    const userId = authResult.user.id;
+
     const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId');
     const id = searchParams.get('id');
 
-    if (!userId || !id) {
-      return NextResponse.json({ success: false, error: 'userId и id обязательны' }, { status: 400 });
+    if (!id) {
+      return NextResponse.json({ success: false, error: 'id обязателен' }, { status: 400 });
     }
 
     const auth = await requireRole(userId, ['owner', 'admin']);
@@ -193,7 +200,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ success: false, error: auth.error }, { status: 403 });
     }
 
-    const { error } = await (supabase as any)
+    const { error } = await (supabaseAdmin as any)
       .from('auto_pricing_rules')
       .delete()
       .eq('id', id)

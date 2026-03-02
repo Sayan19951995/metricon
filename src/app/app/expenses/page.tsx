@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@/hooks/useUser';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { Plus, Trash2, Calendar, Search, Package, ChevronDown, HelpCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { ru } from 'date-fns/locale';
@@ -47,7 +48,7 @@ export default function ExpensesPage() {
   const fetchExpenses = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/operational-expenses?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/operational-expenses');
       const json = await res.json();
       if (json.success && json.data) {
         setExpenses(json.data.map((e: any) => ({
@@ -70,7 +71,7 @@ export default function ExpensesPage() {
   const fetchProducts = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/products?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/products');
       const json = await res.json();
       if (json.success && json.data) {
         setProducts(json.data);
@@ -83,7 +84,7 @@ export default function ExpensesPage() {
   const fetchGroups = useCallback(async () => {
     if (!user?.id) return;
     try {
-      const res = await fetch(`/api/product-groups?userId=${user.id}`);
+      const res = await fetchWithAuth('/api/product-groups');
       const json = await res.json();
       if (json.success) setGroups(json.data);
     } catch (err) { console.error('Failed to fetch groups:', err); }
@@ -101,11 +102,10 @@ export default function ExpensesPage() {
     if (!name || !amount || !user?.id) return;
     setSaving(true);
     try {
-      const res = await fetch('/api/operational-expenses', {
+      const res = await fetchWithAuth('/api/operational-expenses', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user.id,
           name,
           amount: parseFloat(amount),
           startDate: format(startDate, 'yyyy-MM-dd'),
@@ -133,7 +133,7 @@ export default function ExpensesPage() {
   const handleDelete = async (id: string) => {
     if (!user?.id) return;
     try {
-      await fetch(`/api/operational-expenses?userId=${user.id}&id=${id}`, { method: 'DELETE' });
+      await fetchWithAuth(`/api/operational-expenses?id=${id}`, { method: 'DELETE' });
       await fetchExpenses();
     } catch (err) {
       console.error('Failed to delete expense:', err);

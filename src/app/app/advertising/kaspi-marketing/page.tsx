@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/useUser';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import BrandLoader from '@/components/ui/BrandLoader';
 import DateRangeCalendar from '@/components/DateRangeCalendar';
 import { format } from 'date-fns';
@@ -170,7 +171,7 @@ export default function KaspiMarketingPage() {
     try {
       const startDate = toLocalDate(filterStart);
       const endDate = toLocalDate(filterEnd);
-      const res = await fetch(`/api/kaspi/marketing?userId=${user.id}&startDate=${startDate}&endDate=${endDate}`);
+      const res = await fetchWithAuth(`/api/kaspi/marketing?startDate=${startDate}&endDate=${endDate}`);
       const json = await res.json();
       if (json.success) {
         setCampaigns(json.data.campaigns || []);
@@ -198,11 +199,10 @@ export default function KaspiMarketingPage() {
     setConnecting(true);
 
     try {
-      const res = await fetch('/api/kaspi/marketing', {
+      const res = await fetchWithAuth('/api/kaspi/marketing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: user?.id,
           username,
           password,
         }),
@@ -229,7 +229,7 @@ export default function KaspiMarketingPage() {
     if (!user?.id) return;
     setDisconnecting(true);
     try {
-      await fetch(`/api/kaspi/marketing?userId=${user.id}`, { method: 'DELETE' });
+      await fetchWithAuth('/api/kaspi/marketing', { method: 'DELETE' });
       setConnected(false);
       setCampaigns([]);
       setSummary(null);
@@ -254,7 +254,7 @@ export default function KaspiMarketingPage() {
     try {
       const sd = toLocalDate(filterStart);
       const ed = toLocalDate(filterEnd);
-      const res = await fetch(`/api/kaspi/marketing/campaign?userId=${user?.id}&campaignId=${campaign.id}&startDate=${sd}&endDate=${ed}`);
+      const res = await fetchWithAuth(`/api/kaspi/marketing/campaign?campaignId=${campaign.id}&startDate=${sd}&endDate=${ed}`);
       const json = await res.json();
       if (json.success) {
         setCampaignProducts(json.data.products || []);
