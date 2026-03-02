@@ -3,6 +3,7 @@ import type { NextRequest } from 'next/server';
 
 // API роуты со своей авторизацией (не требуют JWT)
 const PUBLIC_API_PREFIXES = [
+  '/api/auth/',            // Регистрация / авторизация (публичные)
   '/api/kaspi/feed',       // Публичный XML-фид (авторизация по feed_token)
   '/api/cron/',            // Крон-джобы (авторизация по CRON_SECRET)
   '/api/whatsapp/webhook', // WhatsApp вебхук (авторизация по x-api-key)
