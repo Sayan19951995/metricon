@@ -86,7 +86,7 @@ export default function RegisterPage() {
           email: formData.email,
           password: formData.password,
           name: formData.name,
-          phone: formData.phone || undefined,
+          phone: formData.phone ? `+7${formData.phone}` : undefined,
           utm,
         }),
       });
@@ -310,12 +310,17 @@ export default function RegisterPage() {
                   <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
                     <Phone className="w-4 h-4 text-gray-400" />
                   </div>
+                  <span className="text-gray-900 font-medium select-none whitespace-nowrap pl-1">+7</span>
                   <input
                     type="tel"
+                    inputMode="numeric"
                     value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="flex-1 py-3 pr-4 bg-transparent focus:outline-none text-gray-900"
-                    placeholder="+7 (___) ___-__-__"
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                      setFormData({ ...formData, phone: digits });
+                    }}
+                    className="flex-1 py-3 pr-4 pl-1 bg-transparent focus:outline-none text-gray-900"
+                    placeholder="7001234567"
                   />
                 </div>
               </div>
