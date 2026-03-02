@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import { createKaspiClient } from '@/lib/kaspi-api';
 import { KaspiAPIClient } from '@/lib/kaspi/api-client';
+import { refreshCabinetSession } from '@/lib/kaspi/session-manager';
 import { KaspiOrder } from '@/types/kaspi';
 import { triggerWhatsAppMessages } from '@/lib/whatsapp/trigger';
 import { updatePreorderOverrides, removePreorderOverrides } from '@/lib/preorder-utils';
@@ -9,6 +10,8 @@ import { updatePreorderOverrides, removePreorderOverrides } from '@/lib/preorder
 interface KaspiSession {
   cookies: string;
   merchant_id: string;
+  username?: string;
+  password?: string;
 }
 
 // Параллельное выполнение с лимитом concurrency
@@ -55,10 +58,12 @@ export async function POST(request: NextRequest) {
     const kaspiClient = createKaspiClient(store.kaspi_api_key, store.kaspi_merchant_id);
 
     // Cabinet client для получения точных дат выдачи (BFF)
+    // Если сессия истекла — автоматически перелогинимся
     const session = store.kaspi_session as KaspiSession | null;
-    const cabinetClient = session?.cookies
-      ? new KaspiAPIClient(session.cookies, session.merchant_id || store.kaspi_merchant_id)
-      : null;
+    let cabinetClient: KaspiAPIClient | null = null;
+    if (session?.cookies) {
+      cabinetClient = new KaspiAPIClient(session.cookies, session.merchant_id || store.kaspi_merchant_id);
+    }
 
     const dateTo = Date.now();
     const dateFrom = dateTo - daysBack * 24 * 60 * 60 * 1000;
@@ -297,14 +302,23 @@ export async function POST(request: NextRequest) {
         if (kaspiStatus === 'completed' && !dbOrder.completed_at) {
           ordersNeedingDate.push(order.orderId);
           if (bffSessionActive && cabinetClient) {
-            const exactDate = await cabinetClient.getOrderCompletionDate(order.orderId);
+            let exactDate = await cabinetClient.getOrderCompletionDate(order.orderId);
+            // Если BFF вернул null — попробуем перелогиниться один раз
+            if (!exactDate && session?.username && session?.password) {
+              console.log(`[SYNC] BFF returned null for ${order.orderId}, trying auto-relogin...`);
+              const refreshed = await refreshCabinetSession(store.id, session, store.kaspi_merchant_id);
+              if (refreshed) {
+                cabinetClient = refreshed.client;
+                exactDate = await cabinetClient.getOrderCompletionDate(order.orderId);
+              }
+            }
             if (exactDate) {
               bffDates.set(order.orderId, exactDate);
               completionsDetected++;
               console.log(`SYNC: order ${order.orderId} completed_at from BFF: ${exactDate}`);
             } else {
               bffSessionActive = false;
-              console.warn(`SYNC: BFF returned null for order ${order.orderId}, disabling BFF`);
+              console.warn(`SYNC: BFF session expired, auto-relogin failed, disabling BFF`);
             }
           }
         }

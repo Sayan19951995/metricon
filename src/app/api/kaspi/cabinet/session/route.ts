@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import { checkCabinetSession } from '@/lib/kaspi/api-client';
+import { refreshCabinetSession } from '@/lib/kaspi/session-manager';
 
 /**
  * GET /api/kaspi/cabinet/session?userId=xxx
@@ -58,7 +59,20 @@ export async function GET(request: NextRequest) {
     }
 
     // Проверяем валидность cookies
-    const valid = await checkCabinetSession(session.cookies, merchantId);
+    let valid = await checkCabinetSession(session.cookies, merchantId);
+
+    // Если сессия истекла — пробуем авто-перелогин
+    if (!valid && session.username && (session as any).password) {
+      console.log(`[Session] Session expired, attempting auto-relogin for store ${store.id}...`);
+      const refreshed = await refreshCabinetSession(
+        store.id,
+        session as any,
+        store.kaspi_merchant_id
+      );
+      if (refreshed) {
+        valid = true;
+      }
+    }
 
     return NextResponse.json({
       success: true,

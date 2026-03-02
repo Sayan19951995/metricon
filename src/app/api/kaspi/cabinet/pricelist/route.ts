@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase/client';
 import { KaspiAPIClient } from '@/lib/kaspi/api-client';
+import { refreshCabinetSession } from '@/lib/kaspi/session-manager';
 
 interface KaspiSession {
   cookies: string;
   merchant_id: string;
+  username?: string;
+  password?: string;
 }
 
 /**
- * Хелпер: получить store + client
+ * Хелпер: получить store + client (с авто-перелогином)
  */
 async function getStoreAndClient(userId: string) {
   const storeResult = await supabase
@@ -24,7 +27,23 @@ async function getStoreAndClient(userId: string) {
   if (!session?.cookies) return { error: 'Кабинет не подключен', status: 401 };
 
   const merchantId = session.merchant_id || store.kaspi_merchant_id || '';
-  const client = new KaspiAPIClient(session.cookies, merchantId);
+  let client = new KaspiAPIClient(session.cookies, merchantId);
+
+  // Проверяем сессию — если 401, перелогиниваемся
+  try {
+    await client.getAllProducts();
+  } catch (err: any) {
+    if (err.message?.includes('401') && session.username && session.password) {
+      const refreshed = await refreshCabinetSession(store.id, session, store.kaspi_merchant_id || '');
+      if (refreshed) {
+        client = refreshed.client;
+      } else {
+        return { error: 'Сессия истекла. Войдите заново.', status: 401 };
+      }
+    } else {
+      throw err;
+    }
+  }
 
   return { store, client, merchantId };
 }

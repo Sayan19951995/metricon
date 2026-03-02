@@ -977,8 +977,8 @@ export default function DashboardPage() {
                     ))}
                   </div>
 
-                  <div className="flex-1 relative">
-                    <svg className="w-full h-full" viewBox="0 0 100 80" preserveAspectRatio="none">
+                  <div className="flex-1 relative overflow-visible">
+                    <svg className="w-full h-full" viewBox="0 0 100 86" preserveAspectRatio="none">
                       {[0, 0.25, 0.5, 0.75, 1].map((ratio, i) => {
                         const y = pad + ratio * (chartH - pad * 2);
                         return (
@@ -1022,7 +1022,7 @@ export default function DashboardPage() {
                           <div
                             className="absolute cursor-pointer z-10"
                             style={{
-                              left: `${xPercent}%`, top: `${(y / 80) * 100}%`,
+                              left: `${xPercent}%`, top: `${(y / 86) * 100}%`,
                               transform: 'translate(-50%, -50%)', width: 24, height: 24,
                             }}
                             onClick={() => setSelectedPaymentDayIdx(isSelected ? null : i)}
@@ -1030,7 +1030,7 @@ export default function DashboardPage() {
                           <div
                             className="absolute transition-all pointer-events-none"
                             style={{
-                              left: `${xPercent}%`, top: `${(y / 80) * 100}%`,
+                              left: `${xPercent}%`, top: `${(y / 86) * 100}%`,
                               transform: 'translate(-50%, -50%)',
                               width: isSelected ? 10 : isToday ? 8 : 6,
                               height: isSelected ? 10 : isToday ? 8 : 6,
@@ -1042,7 +1042,7 @@ export default function DashboardPage() {
                             <div
                               className="absolute pointer-events-none text-[10px] font-semibold text-indigo-700 bg-indigo-50 px-1 rounded"
                               style={{
-                                left: `${xPercent}%`, top: `${(y / 80) * 100 - 12}%`,
+                                left: `${xPercent}%`, top: `${(y / 86) * 100 - 12}%`,
                                 transform: 'translate(-50%, -50%)',
                               }}
                             >
