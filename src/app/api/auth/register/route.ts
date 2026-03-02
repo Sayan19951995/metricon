@@ -51,14 +51,14 @@ export async function POST(req: NextRequest) {
 
     const userId = authData.user.id;
 
-    // 2. Insert into users table
-    const { error: userError } = await supabaseAdmin.from('users').insert({
+    // 2. Upsert into users table (триггер может создать запись автоматически)
+    const { error: userError } = await supabaseAdmin.from('users').upsert({
       id: userId,
       email,
       name,
       ...(phone ? { phone } : {}),
       ...(utm || {}),
-    } as any);
+    } as any, { onConflict: 'id' });
 
     if (userError) {
       // Cleanup: delete auth user if profile insert fails
