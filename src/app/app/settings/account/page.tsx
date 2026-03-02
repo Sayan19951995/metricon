@@ -1,12 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   User,
   Mail,
   Phone,
-  Camera,
   Key,
   Shield,
   Eye,
@@ -22,6 +21,7 @@ import {
   ChevronLeft
 } from 'lucide-react';
 import Link from 'next/link';
+import { useUser } from '@/hooks/useUser';
 
 type TabType = 'profile' | 'security' | 'sessions';
 
@@ -73,6 +73,7 @@ const itemVariants = {
 };
 
 export default function AccountSettingsPage() {
+  const { user, store, loading } = useUser();
   const [activeTab, setActiveTab] = useState<TabType>('profile');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -84,12 +85,28 @@ export default function AccountSettingsPage() {
 
   // Form states
   const [profileForm, setProfileForm] = useState({
-    storeName: 'Robo Market',
-    email: 'robo@example.com',
-    phone: '+7 (777) 123-45-67',
-    firstName: 'Роберт',
-    lastName: 'Иванов'
+    email: '',
+    phone: '',
+    name: ''
   });
+
+  // Заполняем форму реальными данными при загрузке
+  useEffect(() => {
+    if (user) {
+      setProfileForm({
+        email: user.email || '',
+        phone: user.phone || '',
+        name: user.name || ''
+      });
+    }
+  }, [user]);
+
+  const initials = (user?.name || 'U')
+    .split(' ')
+    .map((w: string) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 
   const [passwordForm, setPasswordForm] = useState({
     current: '',
@@ -174,54 +191,17 @@ export default function AccountSettingsPage() {
             animate="visible"
             className="space-y-6"
           >
-            {/* Avatar Section */}
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Фото профиля</h3>
-              <div className="flex items-center gap-6">
-                <div className="relative">
-                  <div className="w-24 h-24 bg-gradient-to-br from-emerald-400 to-emerald-600 rounded-2xl flex items-center justify-center text-white text-3xl font-bold">
-                    RM
-                  </div>
-                  <button className="absolute -bottom-2 -right-2 w-8 h-8 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl flex items-center justify-center shadow-sm hover:bg-gray-50 dark:hover:bg-gray-600 transition-colors cursor-pointer">
-                    <Camera className="w-4 h-4 text-gray-600 dark:text-gray-300" />
-                  </button>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">JPG, PNG или GIF. Максимум 2MB.</p>
-                  <div className="flex gap-2">
-                    <button className="px-4 py-2 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600 transition-colors cursor-pointer">
-                      Загрузить
-                    </button>
-                    <button className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer">
-                      Удалить
-                    </button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-
             {/* Personal Info */}
             <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Личная информация</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Имя</label>
-                  <input
-                    type="text"
-                    value={profileForm.firstName}
-                    onChange={(e) => setProfileForm({...profileForm, firstName: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Фамилия</label>
-                  <input
-                    type="text"
-                    value={profileForm.lastName}
-                    onChange={(e) => setProfileForm({...profileForm, lastName: e.target.value})}
-                    className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                  />
-                </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Имя</label>
+                <input
+                  type="text"
+                  value={profileForm.name}
+                  onChange={(e) => setProfileForm({...profileForm, name: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                />
               </div>
             </motion.div>
 
@@ -236,11 +216,11 @@ export default function AccountSettingsPage() {
                     <input
                       type="email"
                       value={profileForm.email}
-                      onChange={(e) => setProfileForm({...profileForm, email: e.target.value})}
-                      className="w-full pl-12 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                      readOnly
+                      className="w-full pl-12 pr-4 py-2.5 bg-gray-100 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-500 dark:text-gray-400 cursor-not-allowed"
                     />
                   </div>
-                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Используется для входа и уведомлений</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Используется для входа и восстановления пароля</p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Телефон</label>
@@ -251,22 +231,11 @@ export default function AccountSettingsPage() {
                       value={profileForm.phone}
                       onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})}
                       className="w-full pl-12 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
+                      placeholder="+7XXXXXXXXXX"
                     />
                   </div>
                 </div>
               </div>
-            </motion.div>
-
-            {/* Store Info */}
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">Название магазина</h3>
-              <input
-                type="text"
-                value={profileForm.storeName}
-                onChange={(e) => setProfileForm({...profileForm, storeName: e.target.value})}
-                className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
-              />
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Отображается в системе и отчётах</p>
             </motion.div>
 
             {/* Save Button */}

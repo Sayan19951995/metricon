@@ -2,18 +2,11 @@
 
 import {
   User,
-  Key,
-  Bell,
-  Shield,
   CreditCard,
   Store,
   HelpCircle,
   ChevronRight,
-  Mail,
-  Building,
   Palette,
-  Database,
-  FileText,
   LogOut,
   Users
 } from 'lucide-react';
@@ -54,24 +47,10 @@ export default function SettingsPage() {
       items: [
         {
           icon: User,
-          title: 'Личные данные',
-          description: 'Имя, email, телефон, аватар',
+          title: 'Аккаунт',
+          description: 'Личные данные, безопасность, сессии',
           href: '/app/settings/account',
           color: 'bg-blue-100 text-blue-600'
-        },
-        {
-          icon: Key,
-          title: 'Безопасность',
-          description: 'Пароль, двухфакторная аутентификация',
-          href: '/app/settings/account#security',
-          color: 'bg-amber-100 text-amber-600'
-        },
-        {
-          icon: Shield,
-          title: 'Сессии и устройства',
-          description: 'Активные сессии, выход со всех устройств',
-          href: '/app/settings/account#sessions',
-          color: 'bg-red-100 text-red-600'
         }
       ]
     },
@@ -95,13 +74,6 @@ export default function SettingsPage() {
           color: 'bg-indigo-100 text-indigo-600'
         },
         {
-          icon: Building,
-          title: 'Данные компании',
-          description: 'Реквизиты, юридические данные',
-          href: '/app/settings/company',
-          color: 'bg-purple-100 text-purple-600'
-        },
-        {
           icon: CreditCard,
           title: 'Подписка и оплата',
           description: 'Тарифный план, история платежей',
@@ -113,47 +85,14 @@ export default function SettingsPage() {
       ]
     },
     {
-      title: 'Уведомления',
-      items: [
-        {
-          icon: Bell,
-          title: 'Настройки уведомлений',
-          description: 'Email, Push, Telegram',
-          href: '/app/settings/notifications',
-          color: 'bg-pink-100 text-pink-600'
-        },
-        {
-          icon: Mail,
-          title: 'Email рассылки',
-          description: 'Отчёты, новости, обновления',
-          href: '/app/settings/notifications#email',
-          color: 'bg-indigo-100 text-indigo-600'
-        }
-      ]
-    },
-    {
       title: 'Система',
       items: [
         {
           icon: Palette,
           title: 'Внешний вид',
-          description: 'Тема, язык интерфейса',
+          description: 'Тема оформления',
           href: '/app/settings/appearance',
           color: 'bg-cyan-100 text-cyan-600'
-        },
-        {
-          icon: Database,
-          title: 'Данные и экспорт',
-          description: 'Экспорт данных, резервное копирование',
-          href: '/app/settings/data',
-          color: 'bg-gray-100 text-gray-600'
-        },
-        {
-          icon: FileText,
-          title: 'Журнал действий',
-          description: 'История изменений в аккаунте',
-          href: '/app/settings/activity',
-          color: 'bg-orange-100 text-orange-600'
         }
       ]
     }
@@ -230,21 +169,13 @@ export default function SettingsPage() {
                   <p className="text-xs text-gray-500 dark:text-gray-400 truncate">{displayEmail}</p>
                 </div>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium rounded-full">
-                    {currentPlan} план
-                  </span>
-                  {planEndDate && (
-                    <span className="text-xs text-gray-400">до {planEndDate}</span>
-                  )}
-                </div>
-                <Link
-                  href="/app/settings/account"
-                  className="text-sm text-emerald-600 dark:text-emerald-400 font-medium"
-                >
-                  Редактировать
-                </Link>
+              <div className="flex items-center gap-2">
+                <span className="inline-flex items-center px-2 py-0.5 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 text-xs font-medium rounded-full">
+                  {currentPlan} план
+                </span>
+                {planEndDate && (
+                  <span className="text-xs text-gray-400">до {planEndDate}</span>
+                )}
               </div>
             </div>
 
@@ -265,12 +196,6 @@ export default function SettingsPage() {
                   )}
                 </div>
               </div>
-              <Link
-                href="/app/settings/account"
-                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium transition-colors cursor-pointer flex-shrink-0"
-              >
-                Редактировать
-              </Link>
             </div>
           </div>
 
