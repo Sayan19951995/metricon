@@ -4,15 +4,15 @@ import { supabaseAdmin } from '@/lib/api-auth';
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { email, password, name, storeName, utm } = body as {
+    const { email, password, name, phone, utm } = body as {
       email: string;
       password: string;
       name: string;
-      storeName: string;
+      phone?: string;
       utm?: { utm_source?: string; utm_medium?: string; utm_campaign?: string };
     };
 
-    if (!email || !password || !name || !storeName) {
+    if (!email || !password || !name) {
       return NextResponse.json(
         { success: false, error: 'Заполните все обязательные поля' },
         { status: 400 }
@@ -56,6 +56,7 @@ export async function POST(req: NextRequest) {
       id: userId,
       email,
       name,
+      ...(phone ? { phone } : {}),
       ...(utm || {}),
     } as any);
 
@@ -63,19 +64,6 @@ export async function POST(req: NextRequest) {
       // Cleanup: delete auth user if profile insert fails
       await supabaseAdmin.auth.admin.deleteUser(userId);
       throw userError;
-    }
-
-    // 3. Create store
-    const { error: storeError } = await supabaseAdmin.from('stores').insert({
-      user_id: userId,
-      name: storeName,
-    });
-
-    if (storeError) {
-      // Cleanup: delete user + auth
-      await supabaseAdmin.from('users').delete().eq('id', userId);
-      await supabaseAdmin.auth.admin.deleteUser(userId);
-      throw storeError;
     }
 
     return NextResponse.json({ success: true });
