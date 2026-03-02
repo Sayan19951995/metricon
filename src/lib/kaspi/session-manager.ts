@@ -80,7 +80,7 @@ export async function getOrRefreshCabinetClient(
     // Сохраняем новую сессию в БД
     await supabase
       .from('stores')
-      .update({ kaspi_session: newSession })
+      .update({ kaspi_session: newSession as any })
       .eq('id', storeId);
 
     console.log(`[SessionManager] Auto-relogin successful for store ${storeId}`);
