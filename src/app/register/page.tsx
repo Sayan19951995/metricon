@@ -3,30 +3,26 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Eye, EyeOff, Mail, Lock, User, Phone, ArrowRight, BarChart3, CheckCircle, Building2 } from 'lucide-react';
+import { Eye, EyeOff, Mail, Lock, User, BarChart3, CheckCircle, Building2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 import { captureUTM, getUTM, clearUTM } from '@/lib/utm';
 
 export default function RegisterPage() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
-    phone: '',
     storeName: '',
     password: '',
-    confirmPassword: '',
     agree: false
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => { captureUTM(); }, []);
 
-  const validateStep1 = () => {
+  const validate = () => {
     const newErrors: Record<string, string> = {};
 
     if (!formData.name.trim()) {
@@ -39,19 +35,6 @@ export default function RegisterPage() {
       newErrors.email = 'Введите корректный email';
     }
 
-    if (!formData.phone) {
-      newErrors.phone = 'Введите номер телефона';
-    } else if (!/^\+?[0-9]{10,12}$/.test(formData.phone.replace(/\s/g, ''))) {
-      newErrors.phone = 'Введите корректный номер';
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
-
-  const validateStep2 = () => {
-    const newErrors: Record<string, string> = {};
-
     if (!formData.storeName.trim()) {
       newErrors.storeName = 'Введите название магазина';
     }
@@ -62,12 +45,6 @@ export default function RegisterPage() {
       newErrors.password = 'Пароль должен быть не менее 6 символов';
     }
 
-    if (!formData.confirmPassword) {
-      newErrors.confirmPassword = 'Подтвердите пароль';
-    } else if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Пароли не совпадают';
-    }
-
     if (!formData.agree) {
       newErrors.agree = 'Необходимо принять условия';
     }
@@ -76,52 +53,43 @@ export default function RegisterPage() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleNextStep = () => {
-    if (validateStep1()) {
-      setStep(2);
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!validateStep2()) return;
+    if (!validate()) return;
 
     setIsLoading(true);
     setErrors({});
 
     try {
-      // 1. Создаём пользователя в Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
+      const utm = getUTM();
+
+      // Register via server-side API (bypasses RLS)
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          name: formData.name,
+          storeName: formData.storeName,
+          utm,
+        }),
+      });
+
+      const result = await res.json();
+
+      if (!res.ok || !result.success) {
+        throw new Error(result.error || 'Ошибка при регистрации');
+      }
+
+      // Sign in after successful registration
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email: formData.email,
         password: formData.password,
-        options: {
-          data: { name: formData.name },
-        },
       });
 
-      if (error) throw error;
-      if (!data.user) throw new Error('Не удалось создать аккаунт');
-
-      // 2. Сохраняем профиль в таблице users
-      const utm = getUTM();
-      const { error: userError } = await supabase.from('users').insert({
-        id: data.user.id,
-        email: formData.email,
-        name: formData.name,
-        phone: formData.phone,
-        ...utm,
-      } as any);
-
-      if (userError) throw userError;
-
-      // 3. Создаём магазин
-      const { error: storeError } = await supabase.from('stores').insert({
-        user_id: data.user.id,
-        name: formData.storeName,
-      });
-
-      if (storeError) throw storeError;
+      if (signInError) throw signInError;
 
       clearUTM();
       router.push('/app');
@@ -179,7 +147,7 @@ export default function RegisterPage() {
           {/* Testimonial */}
           <div className="bg-white/10 backdrop-blur rounded-2xl p-6 mt-8">
             <p className="text-white/90 italic mb-4">
-              "За 3 месяца использования Metricon наши продажи выросли на 45%. Автоматизация цен экономит по 2 часа в день."
+              &quot;За 3 месяца использования Metricon наши продажи выросли на 45%. Автоматизация цен экономит по 2 часа в день.&quot;
             </p>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center text-white font-semibold">
@@ -214,7 +182,7 @@ export default function RegisterPage() {
           <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold text-gray-900 mb-2">Создать аккаунт</h2>
-              <p className="text-gray-500">Шаг {step} из 2</p>
+              <p className="text-gray-500">Заполните данные для регистрации</p>
             </div>
 
             {errors.general && (
@@ -223,237 +191,147 @@ export default function RegisterPage() {
               </div>
             )}
 
-            {/* Progress Bar */}
-            <div className="flex gap-2 mb-8">
-              <div className={`flex-1 h-1 rounded-full ${step >= 1 ? 'bg-emerald-500' : 'bg-gray-200'}`}></div>
-              <div className={`flex-1 h-1 rounded-full ${step >= 2 ? 'bg-emerald-500' : 'bg-gray-200'}`}></div>
-            </div>
-
             <form onSubmit={handleSubmit} className="space-y-5">
-              {step === 1 && (
-                <>
-                  {/* Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Ваше имя
-                    </label>
-                    <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
-                      errors.name ? 'border-red-300 bg-red-50' : 'border-gray-200'
-                    }`}>
-                      <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
-                        <User className="w-4 h-4 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        value={formData.name}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                        className="flex-1 py-3 pr-4 bg-transparent focus:outline-none"
-                        placeholder="Иван Петров"
-                      />
-                    </div>
-                    {errors.name && (
-                      <p className="mt-1.5 text-sm text-red-500">{errors.name}</p>
-                    )}
+              {/* Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Ваше имя
+                </label>
+                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
+                  errors.name ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                }`}>
+                  <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
+                    <User className="w-4 h-4 text-gray-400" />
                   </div>
+                  <input
+                    type="text"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    className="flex-1 py-3 pr-4 bg-transparent focus:outline-none text-gray-900"
+                    placeholder="Иван Петров"
+                  />
+                </div>
+                {errors.name && (
+                  <p className="mt-1.5 text-sm text-red-500">{errors.name}</p>
+                )}
+              </div>
 
-                  {/* Email */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Email
-                    </label>
-                    <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
-                      errors.email ? 'border-red-300 bg-red-50' : 'border-gray-200'
-                    }`}>
-                      <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
-                        <Mail className="w-4 h-4 text-gray-400" />
-                      </div>
-                      <input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                        className="flex-1 py-3 pr-4 bg-transparent focus:outline-none"
-                        placeholder="example@mail.com"
-                      />
-                    </div>
-                    {errors.email && (
-                      <p className="mt-1.5 text-sm text-red-500">{errors.email}</p>
-                    )}
+              {/* Email */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Email
+                </label>
+                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
+                  errors.email ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                }`}>
+                  <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
+                    <Mail className="w-4 h-4 text-gray-400" />
                   </div>
+                  <input
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    className="flex-1 py-3 pr-4 bg-transparent focus:outline-none text-gray-900"
+                    placeholder="example@mail.com"
+                  />
+                </div>
+                {errors.email && (
+                  <p className="mt-1.5 text-sm text-red-500">{errors.email}</p>
+                )}
+              </div>
 
-                  {/* Phone */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Телефон
-                    </label>
-                    <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
-                      errors.phone ? 'border-red-300 bg-red-50' : 'border-gray-200'
-                    }`}>
-                      <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
-                        <Phone className="w-4 h-4 text-gray-400" />
-                      </div>
-                      <input
-                        type="tel"
-                        value={formData.phone}
-                        onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                        className="flex-1 py-3 pr-4 bg-transparent focus:outline-none"
-                        placeholder="+7 777 123 45 67"
-                      />
-                    </div>
-                    {errors.phone && (
-                      <p className="mt-1.5 text-sm text-red-500">{errors.phone}</p>
-                    )}
+              {/* Store Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Название магазина
+                </label>
+                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
+                  errors.storeName ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                }`}>
+                  <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
+                    <Building2 className="w-4 h-4 text-gray-400" />
                   </div>
+                  <input
+                    type="text"
+                    value={formData.storeName}
+                    onChange={(e) => setFormData({ ...formData, storeName: e.target.value })}
+                    className="flex-1 py-3 pr-4 bg-transparent focus:outline-none text-gray-900"
+                    placeholder="Мой магазин на Kaspi"
+                  />
+                </div>
+                {errors.storeName && (
+                  <p className="mt-1.5 text-sm text-red-500">{errors.storeName}</p>
+                )}
+              </div>
 
-                  {/* Next Button */}
+              {/* Password */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Пароль
+                </label>
+                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
+                  errors.password ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                }`}>
+                  <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
+                    <Lock className="w-4 h-4 text-gray-400" />
+                  </div>
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    value={formData.password}
+                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    className="flex-1 py-3 bg-transparent focus:outline-none text-gray-900"
+                    placeholder="Минимум 6 символов"
+                  />
                   <button
                     type="button"
-                    onClick={handleNextStep}
-                    className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="flex items-center justify-center w-12 h-12 flex-shrink-0 text-gray-400 hover:text-gray-600 cursor-pointer"
                   >
-                    Продолжить
-                    <ArrowRight className="w-5 h-5" />
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
-                </>
-              )}
+                </div>
+                {errors.password && (
+                  <p className="mt-1.5 text-sm text-red-500">{errors.password}</p>
+                )}
+              </div>
 
-              {step === 2 && (
-                <>
-                  {/* Store Name */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Название магазина
-                    </label>
-                    <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
-                      errors.storeName ? 'border-red-300 bg-red-50' : 'border-gray-200'
-                    }`}>
-                      <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
-                        <Building2 className="w-4 h-4 text-gray-400" />
-                      </div>
-                      <input
-                        type="text"
-                        value={formData.storeName}
-                        onChange={(e) => setFormData({ ...formData, storeName: e.target.value })}
-                        className="flex-1 py-3 pr-4 bg-transparent focus:outline-none"
-                        placeholder="Мой магазин на Kaspi"
-                      />
-                    </div>
-                    {errors.storeName && (
-                      <p className="mt-1.5 text-sm text-red-500">{errors.storeName}</p>
-                    )}
-                  </div>
+              {/* Agree Checkbox */}
+              <div>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={formData.agree}
+                    onChange={(e) => setFormData({ ...formData, agree: e.target.checked })}
+                    className="w-4 h-4 mt-0.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                  />
+                  <span className="text-sm text-gray-600">
+                    Я согласен с{' '}
+                    <Link href="/terms" className="text-emerald-600 hover:underline">
+                      условиями использования
+                    </Link>{' '}
+                    и{' '}
+                    <Link href="/privacy" className="text-emerald-600 hover:underline">
+                      политикой конфиденциальности
+                    </Link>
+                  </span>
+                </label>
+                {errors.agree && (
+                  <p className="mt-1.5 text-sm text-red-500">{errors.agree}</p>
+                )}
+              </div>
 
-                  {/* Password */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Пароль
-                    </label>
-                    <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
-                      errors.password ? 'border-red-300 bg-red-50' : 'border-gray-200'
-                    }`}>
-                      <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
-                        <Lock className="w-4 h-4 text-gray-400" />
-                      </div>
-                      <input
-                        type={showPassword ? 'text' : 'password'}
-                        value={formData.password}
-                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                        className="flex-1 py-3 bg-transparent focus:outline-none"
-                        placeholder="Минимум 6 символов"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="flex items-center justify-center w-12 h-12 flex-shrink-0 text-gray-400 hover:text-gray-600 cursor-pointer"
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    {errors.password && (
-                      <p className="mt-1.5 text-sm text-red-500">{errors.password}</p>
-                    )}
-                  </div>
-
-                  {/* Confirm Password */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Подтвердите пароль
-                    </label>
-                    <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
-                      errors.confirmPassword ? 'border-red-300 bg-red-50' : 'border-gray-200'
-                    }`}>
-                      <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
-                        <Lock className="w-4 h-4 text-gray-400" />
-                      </div>
-                      <input
-                        type={showConfirmPassword ? 'text' : 'password'}
-                        value={formData.confirmPassword}
-                        onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                        className="flex-1 py-3 bg-transparent focus:outline-none"
-                        placeholder="Повторите пароль"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="flex items-center justify-center w-12 h-12 flex-shrink-0 text-gray-400 hover:text-gray-600 cursor-pointer"
-                      >
-                        {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                    {errors.confirmPassword && (
-                      <p className="mt-1.5 text-sm text-red-500">{errors.confirmPassword}</p>
-                    )}
-                  </div>
-
-                  {/* Agree Checkbox */}
-                  <div>
-                    <label className="flex items-start gap-3 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={formData.agree}
-                        onChange={(e) => setFormData({ ...formData, agree: e.target.checked })}
-                        className="w-4 h-4 mt-0.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
-                      />
-                      <span className="text-sm text-gray-600">
-                        Я согласен с{' '}
-                        <Link href="/terms" className="text-emerald-600 hover:underline">
-                          условиями использования
-                        </Link>{' '}
-                        и{' '}
-                        <Link href="/privacy" className="text-emerald-600 hover:underline">
-                          политикой конфиденциальности
-                        </Link>
-                      </span>
-                    </label>
-                    {errors.agree && (
-                      <p className="mt-1.5 text-sm text-red-500">{errors.agree}</p>
-                    )}
-                  </div>
-
-                  {/* Buttons */}
-                  <div className="flex gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setStep(1)}
-                      className="flex-1 py-3.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium transition-all cursor-pointer"
-                    >
-                      Назад
-                    </button>
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className="flex-1 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
-                    >
-                      {isLoading ? (
-                        <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                      ) : (
-                        <>
-                          Создать аккаунт
-                        </>
-                      )}
-                    </button>
-                  </div>
-                </>
-              )}
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+              >
+                {isLoading ? (
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                ) : (
+                  'Создать аккаунт'
+                )}
+              </button>
             </form>
 
             {/* Divider */}
