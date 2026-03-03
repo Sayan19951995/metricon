@@ -72,7 +72,31 @@ export default function LoginPage() {
       setSessionCookie();
       router.push('/app');
     } catch (err: any) {
-      setErrors({ general: err.message || 'Неверный email или пароль' });
+      const msg = (err.message || '').toLowerCase();
+      if (msg.includes('email not confirmed') || msg.includes('email_not_confirmed')) {
+        setErrors({ general: 'Email не подтверждён. Проверьте почту и перейдите по ссылке из письма.' });
+      } else if (msg.includes('invalid login credentials') || msg.includes('invalid_credentials')) {
+        // Check if this email uses Google-only auth
+        try {
+          const res = await fetch('/api/auth/check-provider', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: formData.email }),
+          });
+          const { provider } = await res.json();
+          if (provider === 'google') {
+            setErrors({ general: 'Этот аккаунт использует вход через Google. Войдите через Google или установите пароль через «Забыли пароль?»' });
+          } else {
+            setErrors({ general: 'Неверный email или пароль' });
+          }
+        } catch {
+          setErrors({ general: 'Неверный email или пароль' });
+        }
+      } else if (msg.includes('too many requests') || msg.includes('rate limit')) {
+        setErrors({ general: 'Слишком много попыток. Подождите немного и попробуйте снова.' });
+      } else {
+        setErrors({ general: 'Неверный email или пароль' });
+      }
       setIsLoading(false);
     }
   };

@@ -30,6 +30,14 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
+    // Проверяем, использовал ли этот merchant пробный период
+    const { data: trialRecord } = await supabaseAdmin
+      .from('merchant_trials' as any)
+      .select('*')
+      .eq('kaspi_merchant_id', merchantId)
+      .single();
+    const trialBlocked = !!trialRecord;
+
     // Проверяем есть ли уже магазин у пользователя
     const existingStoreResult = await supabaseAdmin
       .from('stores')
@@ -58,7 +66,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'Kaspi магазин успешно подключен',
-        store: { ...existingStore, kaspi_merchant_id: merchantId }
+        store: { ...existingStore, kaspi_merchant_id: merchantId },
+        trialBlocked,
       });
     } else {
       // Создаём новый магазин
@@ -86,7 +95,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         message: 'Kaspi магазин успешно подключен',
-        store: newStore
+        store: newStore,
+        trialBlocked,
       });
     }
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/api-auth';
+import { emailService } from '@/lib/email/mailer';
 
 export async function POST(req: NextRequest) {
   try {
@@ -30,19 +31,37 @@ export async function POST(req: NextRequest) {
     const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true,
+      email_confirm: false,
       user_metadata: { name },
     });
 
     if (authError) {
-      // Duplicate email
-      if (authError.message?.includes('already been registered') || authError.message?.includes('already exists')) {
+      const msg = authError.message || '';
+      if (msg.includes('already been registered') || msg.includes('already exists')) {
         return NextResponse.json(
           { success: false, error: 'Этот email уже зарегистрирован' },
           { status: 409 }
         );
       }
-      throw authError;
+      if (msg.includes('Database error')) {
+        // Orphaned record in users table — clean up and retry
+        await supabaseAdmin.from('users').delete().eq('email', email);
+        // Retry createUser
+        const retry = await supabaseAdmin.auth.admin.createUser({
+          email, password, email_confirm: false, user_metadata: { name },
+        });
+        if (retry.error) {
+          console.error('Retry createUser failed:', retry.error);
+          return NextResponse.json(
+            { success: false, error: 'Ошибка создания аккаунта. Попробуйте ещё раз.' },
+            { status: 500 }
+          );
+        }
+        // Use retry data
+        (authData as any).user = retry.data.user;
+      } else {
+        throw authError;
+      }
     }
 
     if (!authData.user) {
@@ -66,10 +85,37 @@ export async function POST(req: NextRequest) {
       throw userError;
     }
 
+    // 3. Send confirmation email via our SMTP
+    const host = req.headers.get('host') || '';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const origin = req.headers.get('origin') || `${protocol}://${host}`;
+
+    const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'signup',
+      email,
+      options: {
+        redirectTo: `${origin}/auth/verify-email`,
+      },
+    });
+
+    if (linkError) {
+      console.error('generateLink error:', linkError);
+    } else if (linkData?.properties?.hashed_token) {
+      const confirmLink = `${origin}/auth/verify-email?token_hash=${linkData.properties.hashed_token}&type=signup`;
+      const sent = await emailService.sendEmailConfirmation(email, confirmLink);
+      if (!sent) {
+        console.error('Failed to send confirmation email to:', email, '| SMTP_USER:', process.env.SMTP_USER || 'NOT SET');
+      }
+    } else {
+      console.error('generateLink returned no hashed_token:', linkData);
+    }
+
     return NextResponse.json({ success: true });
   } catch (err: any) {
     console.error('Registration error:', err);
-    const message = err?.message || err?.msg || (typeof err === 'string' ? err : JSON.stringify(err)) || 'Неизвестная ошибка';
-    return NextResponse.json({ success: false, error: message }, { status: 500 });
+    return NextResponse.json(
+      { success: false, error: 'Ошибка при регистрации. Попробуйте ещё раз.' },
+      { status: 500 }
+    );
   }
 }

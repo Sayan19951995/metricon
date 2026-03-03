@@ -86,6 +86,11 @@ export default function KaspiSettingsPage() {
   const [showCabinetForm, setShowCabinetForm] = useState(false);
   const [showCabinetPassword, setShowCabinetPassword] = useState(false);
 
+  // Trial
+  const [trialBlocked, setTrialBlocked] = useState<boolean | null>(null);
+  const [trialActivating, setTrialActivating] = useState(false);
+  const [trialActivated, setTrialActivated] = useState(false);
+
   // Kaspi Marketing
   const [marketingConnected, setMarketingConnected] = useState(false);
   const [marketingMerchantName, setMarketingMerchantName] = useState('');
@@ -171,6 +176,7 @@ export default function KaspiSettingsPage() {
 
       if (data.success) {
         setStatus('connected');
+        setTrialBlocked(data.trialBlocked ?? null);
         setSyncHistory(prev => [{
           date: new Date().toLocaleString('ru-RU'),
           status: 'success',
@@ -256,6 +262,29 @@ export default function KaspiSettingsPage() {
       }
     } catch (err) {
       console.error('Failed to disconnect:', err);
+    }
+  };
+
+  const handleActivateTrial = async () => {
+    if (!user?.id) return;
+    setTrialActivating(true);
+
+    try {
+      const response = await fetchWithAuth('/api/kaspi/activate-trial', {
+        method: 'POST',
+      });
+      const data = await response.json();
+
+      if (data.success) {
+        setTrialActivated(true);
+        setTrialBlocked(true);
+      } else {
+        setError(data.message);
+      }
+    } catch {
+      setError('Ошибка активации пробного периода');
+    } finally {
+      setTrialActivating(false);
     }
   };
 
@@ -466,6 +495,64 @@ export default function KaspiSettingsPage() {
               </div>
             )}
           </div>
+
+          {/* Trial Banner */}
+          {status === 'connected' && trialBlocked === false && !trialActivated && (
+            <div className="bg-gradient-to-r from-purple-500 to-indigo-600 rounded-2xl p-6 shadow-sm text-white">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h3 className="text-lg font-bold mb-1">Активируйте бесплатный Pro доступ</h3>
+                  <p className="text-white/80 text-sm">14 дней полного доступа ко всем функциям — бесплатно для вашего магазина</p>
+                </div>
+                <button
+                  onClick={handleActivateTrial}
+                  disabled={trialActivating}
+                  className="px-6 py-3 bg-white text-purple-600 rounded-xl font-semibold hover:bg-white/90 transition-colors cursor-pointer disabled:opacity-50 flex-shrink-0 flex items-center gap-2"
+                >
+                  {trialActivating ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Активация...
+                    </>
+                  ) : (
+                    'Активировать Pro'
+                  )}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {status === 'connected' && trialActivated && (
+            <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-2xl p-6 shadow-sm text-white">
+              <div className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 flex-shrink-0" />
+                <div>
+                  <h3 className="font-bold">Pro доступ активирован!</h3>
+                  <p className="text-white/80 text-sm">Вам доступны все функции на 14 дней. Обновите страницу для применения.</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {status === 'connected' && trialBlocked === true && !trialActivated && (
+            <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-2xl p-6 shadow-sm">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <h3 className="font-semibold text-amber-800 dark:text-amber-300">Пробный период уже использован</h3>
+                    <p className="text-sm text-amber-700 dark:text-amber-400 mt-1">Этот магазин уже использовал бесплатный пробный период. Оформите подписку для доступа к Pro функциям.</p>
+                  </div>
+                </div>
+                <Link
+                  href="/app/subscription"
+                  className="px-5 py-2.5 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors cursor-pointer flex-shrink-0 text-center"
+                >
+                  Выбрать тариф
+                </Link>
+              </div>
+            </div>
+          )}
 
           {/* API Key Form (for disconnected/error state) */}
           {(status === 'disconnected' || status === 'error') && (

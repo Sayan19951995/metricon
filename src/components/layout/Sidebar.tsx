@@ -149,6 +149,10 @@ export default function Sidebar() {
   const planEndDate = subscription?.end_date
     ? new Date(subscription.end_date).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' })
     : null;
+  const isTrial = subscription?.status === 'trial';
+  const trialDaysLeft = isTrial && subscription?.end_date
+    ? Math.max(0, Math.ceil((new Date(subscription.end_date).getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 0;
 
   // Закрыть меню при изменении маршрута
   useEffect(() => {
@@ -238,7 +242,10 @@ export default function Sidebar() {
           <Link
             href="/app/subscription"
             title={isExpanded ? undefined : 'Мой план'}
-            className="flex items-center gap-3 w-full px-3 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-medium transition-colors"
+            className={cn(
+              'flex items-center gap-3 w-full px-3 py-2.5 text-white rounded-xl text-sm font-medium transition-colors',
+              isTrial ? 'bg-purple-500 hover:bg-purple-600' : 'bg-emerald-500 hover:bg-emerald-600'
+            )}
           >
             <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
@@ -246,15 +253,25 @@ export default function Sidebar() {
             <div className={cn('flex-1 whitespace-nowrap transition-opacity duration-200', isExpanded ? 'opacity-100' : 'lg:opacity-0')}>
               <div className="flex items-center justify-between">
                 <span>{currentPlan}</span>
-                <svg className="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+                {isTrial ? (
+                  <span className="px-1.5 py-0.5 text-[10px] font-medium bg-white/20 rounded">
+                    {trialDaysLeft} дн.
+                  </span>
+                ) : (
+                  <svg className="w-4 h-4 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                )}
               </div>
-              {planEndDate && (
+              {isTrial ? (
+                <div className="text-xs text-white/70 mt-1">
+                  Пробный период{planEndDate ? ` до ${planEndDate}` : ''}
+                </div>
+              ) : planEndDate ? (
                 <div className="text-xs text-white/70 mt-1">
                   Активен до {planEndDate}
                 </div>
-              )}
+              ) : null}
             </div>
           </Link>
         </div>}

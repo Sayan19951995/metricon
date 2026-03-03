@@ -97,17 +97,9 @@ export default function RegisterPage() {
         throw new Error(result.error || 'Ошибка при регистрации');
       }
 
-      // Sign in after successful registration
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email: formData.email,
-        password: formData.password,
-      });
-
-      if (signInError) throw signInError;
-
+      // Redirect to check-email page (user must confirm email first)
       clearUTM();
-      setSessionCookie();
-      router.push('/app');
+      router.push(`/auth/check-email?email=${encodeURIComponent(formData.email)}`);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Ошибка при регистрации';
       setErrors({ general: message });

@@ -124,6 +124,39 @@ class EmailService {
     });
   }
 
+  async sendEmailConfirmation(email: string, confirmLink: string): Promise<boolean> {
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <h1 style="color: #10b981; margin: 0;">Metricon</h1>
+        </div>
+        <h2 style="color: #1f2937; margin-bottom: 16px;">Подтвердите email</h2>
+        <p style="color: #4b5563; line-height: 1.6;">
+          Нажмите на кнопку ниже, чтобы подтвердить ваш email и начать работу с Metricon:
+        </p>
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${confirmLink}" style="display: inline-block; padding: 14px 32px; background-color: #10b981; color: white; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px;">
+            Подтвердить email
+          </a>
+        </div>
+        <p style="color: #9ca3af; font-size: 14px; line-height: 1.6;">
+          Если вы не регистрировались в Metricon, просто проигнорируйте это письмо.
+        </p>
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 32px 0;">
+        <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+          &copy; ${new Date().getFullYear()} Metricon. Все права защищены.
+        </p>
+      </div>
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: 'Подтвердите email — Metricon',
+      html,
+      text: `Подтвердите email в Metricon. Перейдите по ссылке: ${confirmLink}`,
+    });
+  }
+
   async sendPasswordReset(email: string, resetLink: string): Promise<boolean> {
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
