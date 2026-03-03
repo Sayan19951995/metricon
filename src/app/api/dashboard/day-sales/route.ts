@@ -70,8 +70,10 @@ export async function GET(request: NextRequest) {
     }
 
     const products = Array.from(soldMap.values()).sort((a, b) => b.revenue - a.revenue);
+    const ordersCount = (orders || []).length;
+    const totalRevenue = (orders || []).reduce((sum, o) => sum + (o.total_amount || 0), 0);
 
-    return NextResponse.json({ success: true, data: products });
+    return NextResponse.json({ success: true, data: products, ordersCount, totalRevenue });
   } catch (error) {
     console.error('Day sales error:', error);
     return NextResponse.json({

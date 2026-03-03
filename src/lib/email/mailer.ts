@@ -123,6 +123,42 @@ class EmailService {
       text: `Здравствуйте, ${customerName}! Ваш заказ ${orderCode} успешно доставлен. Будем рады видеть вас снова!`,
     });
   }
+
+  async sendPasswordReset(email: string, resetLink: string): Promise<boolean> {
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+        <div style="text-align: center; margin-bottom: 32px;">
+          <h1 style="color: #10b981; margin: 0;">Metricon</h1>
+        </div>
+        <h2 style="color: #1f2937; margin-bottom: 16px;">Сброс пароля</h2>
+        <p style="color: #4b5563; line-height: 1.6;">
+          Вы запросили сброс пароля для вашего аккаунта. Нажмите на кнопку ниже, чтобы установить новый пароль:
+        </p>
+        <div style="text-align: center; margin: 32px 0;">
+          <a href="${resetLink}" style="display: inline-block; padding: 14px 32px; background-color: #10b981; color: white; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px;">
+            Сбросить пароль
+          </a>
+        </div>
+        <p style="color: #9ca3af; font-size: 14px; line-height: 1.6;">
+          Если вы не запрашивали сброс пароля, просто проигнорируйте это письмо.
+        </p>
+        <p style="color: #9ca3af; font-size: 14px;">
+          Ссылка действительна в течение 1 часа.
+        </p>
+        <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 32px 0;">
+        <p style="color: #9ca3af; font-size: 12px; text-align: center;">
+          &copy; ${new Date().getFullYear()} Metricon. Все права защищены.
+        </p>
+      </div>
+    `;
+
+    return this.sendEmail({
+      to: email,
+      subject: 'Сброс пароля — Metricon',
+      html,
+      text: `Сброс пароля Metricon. Перейдите по ссылке: ${resetLink}`,
+    });
+  }
 }
 
 export const emailService = new EmailService();

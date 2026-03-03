@@ -69,6 +69,8 @@ interface DashboardData {
     quantity: number;
     revenue: number;
   }>;
+  todayOrdersCount?: number;
+  todayOrdersTotalRevenue?: number;
   totals: {
     orders: number;
     products: number;
@@ -474,7 +476,7 @@ export default function DashboardPage() {
     );
   }
 
-  const { sales, awaitingPayment, topProducts, todaySoldProducts } = dashboardData;
+  const { sales, awaitingPayment, topProducts, todaySoldProducts, todayOrdersCount, todayOrdersTotalRevenue } = dashboardData;
 
   // Проверяем есть ли вообще данные для отображения
   const hasData = sales.weekData.some(v => v > 0);
@@ -599,7 +601,23 @@ export default function DashboardPage() {
               <>
               <div
                 className="flex items-center justify-between mb-1 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700 -m-2 p-2 rounded-lg transition-colors"
-                onClick={() => router.push('/app/analytics')}
+                onClick={async () => {
+                  if (showTodaySold) { setShowTodaySold(false); return; }
+                  if (isToday) {
+                    setDaySoldProducts(todaySoldProducts);
+                    setShowTodaySold(true);
+                  } else {
+                    setDaySoldLoading(true);
+                    setShowTodaySold(true);
+                    try {
+                      const dateStr = `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`;
+                      const res = await fetchWithAuth(`/api/dashboard/day-sales?date=${dateStr}`);
+                      const json = await res.json();
+                      setDaySoldProducts(json.success ? json.data : []);
+                    } catch { setDaySoldProducts([]); }
+                    finally { setDaySoldLoading(false); }
+                  }
+                }}
               >
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">

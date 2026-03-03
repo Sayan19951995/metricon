@@ -120,24 +120,33 @@ export async function POST(request: NextRequest) {
     const activeOrderIds = activeOrders.map(o => o.orderId);
     const { data: existingDbOrders } = await supabaseAdmin
       .from('orders')
-      .select('kaspi_order_id')
+      .select('kaspi_order_id, items')
       .eq('store_id', store.id)
       .in('kaspi_order_id', activeOrderIds.length > 0 ? activeOrderIds : ['__none__']);
 
     const existingOrderIdSet = new Set((existingDbOrders || []).map(o => o.kaspi_order_id));
+    // Известные заказы с пустыми items — нужно перезагрузить entries
+    const missingItemsSet = new Set(
+      (existingDbOrders || [])
+        .filter(o => !o.items || (Array.isArray(o.items) && o.items.length === 0))
+        .map(o => o.kaspi_order_id)
+    );
     const newOrders = activeOrders.filter(o => !existingOrderIdSet.has(o.orderId));
     const knownOrders = activeOrders.filter(o => existingOrderIdSet.has(o.orderId));
+    const knownOrdersMissingItems = knownOrders.filter(o => missingItemsSet.has(o.orderId));
 
-    console.log(`SYNC: ${newOrders.length} new orders need entries, ${knownOrders.length} known orders skip entries`);
+    console.log(`SYNC: ${newOrders.length} new orders need entries, ${knownOrders.length} known orders, ${knownOrdersMissingItems.length} need items re-fetch`);
 
-    // Загружаем entries параллельно для новых заказов (concurrency = 5)
-    await parallelMap(newOrders, async (order) => {
+    // Загружаем entries параллельно для новых заказов + известных с пустыми items (concurrency = 5)
+    await parallelMap([...newOrders, ...knownOrdersMissingItems], async (order) => {
       order.entries = await kaspiClient.getOrderEntries(order.code);
     }, 5);
 
-    // Для известных заказов — entries не нужны для обновления статуса
+    // Для известных заказов с заполненными items — entries не нужны
     for (const order of knownOrders) {
-      order.entries = [];
+      if (!missingItemsSet.has(order.orderId)) {
+        order.entries = [];
+      }
     }
 
     // === 3. Сохраняем активные заказы в БД (параллельно) ===
@@ -283,11 +292,65 @@ export async function POST(request: NextRequest) {
       const archiveOrderIds = completedOrders.map(o => o.orderId);
       const { data: dbArchiveOrders } = await supabaseAdmin
         .from('orders')
-        .select('id, kaspi_order_id, status, completed_at, delivery_mode, delivery_cost')
+        .select('id, kaspi_order_id, status, completed_at, delivery_mode, delivery_cost, items')
         .eq('store_id', store.id)
         .in('kaspi_order_id', archiveOrderIds);
 
       const dbOrderMap = new Map((dbArchiveOrders || []).map(o => [o.kaspi_order_id, o]));
+
+      // Создаём архивные заказы которых нет в БД (были созданы и завершены между синками)
+      const archiveOrdersNotInDb = completedOrders.filter(o => !dbOrderMap.has(o.orderId));
+      if (archiveOrdersNotInDb.length > 0) {
+        console.log(`SYNC: ${archiveOrdersNotInDb.length} archive orders not in DB, creating...`);
+        // Fetch entries для новых архивных заказов
+        await parallelMap(archiveOrdersNotInDb, async (order) => {
+          order.entries = await kaspiClient.getOrderEntries(order.code);
+        }, 5);
+
+        await parallelMap(archiveOrdersNotInDb, async (order) => {
+          const kaspiStatus = (order.status || order.state || '').toLowerCase();
+          let deliveryDate: string | null = null;
+          if (order.plannedDeliveryDate) {
+            deliveryDate = new Date(parseInt(order.plannedDeliveryDate)).toISOString().split('T')[0];
+          }
+          const items = order.entries.length > 0 ? order.entries.map((e: any) => ({
+            product_code: e.product.code,
+            product_name: e.product.name,
+            quantity: e.quantity,
+            price: e.basePrice,
+            total: e.totalPrice,
+          })) : [];
+
+          await supabaseAdmin.from('orders').upsert({
+            store_id: store.id,
+            kaspi_order_id: order.orderId,
+            customer_name: `${order.customer.firstName} ${order.customer.lastName}`.trim(),
+            customer_phone: order.customer.cellPhone,
+            delivery_address: order.deliveryAddress?.formattedAddress || order.deliveryAddress?.address,
+            delivery_date: deliveryDate,
+            status: kaspiStatus === 'completed' ? 'completed' : kaspiStatus === 'returned' ? 'returned' : 'cancelled',
+            total_amount: order.totalPrice,
+            delivery_mode: order.deliveryMode || null,
+            delivery_cost: order.deliveryCostForSeller || 0,
+            items,
+            created_at: order.creationDate ? new Date(parseInt(order.creationDate)).toISOString() : new Date().toISOString(),
+          }, { onConflict: 'store_id,kaspi_order_id' });
+
+          ordersCreated++;
+        }, 10);
+      }
+
+      // Fetch entries for archive orders with missing items
+      const archiveOrdersMissingItems = completedOrders.filter(o => {
+        const dbOrder = dbOrderMap.get(o.orderId);
+        return dbOrder && (!dbOrder.items || (Array.isArray(dbOrder.items) && dbOrder.items.length === 0));
+      });
+      if (archiveOrdersMissingItems.length > 0) {
+        console.log(`SYNC: ${archiveOrdersMissingItems.length} archive orders need items re-fetch`);
+        await parallelMap(archiveOrdersMissingItems, async (order) => {
+          order.entries = await kaspiClient.getOrderEntries(order.code);
+        }, 5);
+      }
 
       // Фаза 1: BFF запросы для новых completions (sequential из-за session guard)
       const bffDates = new Map<string, string>();
@@ -331,6 +394,10 @@ export async function POST(request: NextRequest) {
 
         const kaspiStatus = (order.status || order.state || '').toLowerCase();
 
+        // Populate items if entries were re-fetched for this archive order
+        const hasNewItems = order.entries && order.entries.length > 0 &&
+          (!dbOrder.items || (Array.isArray(dbOrder.items) && dbOrder.items.length === 0));
+
         if (kaspiStatus === 'completed') {
           const update: Record<string, any> = {};
           if (dbOrder.status !== 'completed') update.status = 'completed';
@@ -338,6 +405,15 @@ export async function POST(request: NextRequest) {
           if (bffDate && !dbOrder.completed_at) update.completed_at = bffDate;
           if (order.deliveryMode && dbOrder.delivery_mode !== order.deliveryMode) update.delivery_mode = order.deliveryMode;
           if (order.deliveryCostForSeller && dbOrder.delivery_cost !== order.deliveryCostForSeller) update.delivery_cost = order.deliveryCostForSeller;
+          if (hasNewItems) {
+            update.items = order.entries.map((e: any) => ({
+              product_code: e.product.code,
+              product_name: e.product.name,
+              quantity: e.quantity,
+              price: e.basePrice,
+              total: e.totalPrice,
+            }));
+          }
           if (Object.keys(update).length > 0) {
             archiveUpdates.push({ id: dbOrder.id, update });
           }
@@ -348,6 +424,15 @@ export async function POST(request: NextRequest) {
           if (!dbOrder.completed_at) update.completed_at = new Date().toISOString();
           if (order.deliveryMode) update.delivery_mode = order.deliveryMode;
           if (order.deliveryCostForSeller) update.delivery_cost = order.deliveryCostForSeller;
+          if (hasNewItems) {
+            update.items = order.entries.map((e: any) => ({
+              product_code: e.product.code,
+              product_name: e.product.name,
+              quantity: e.quantity,
+              price: e.basePrice,
+              total: e.totalPrice,
+            }));
+          }
           archiveUpdates.push({ id: dbOrder.id, update });
           returnsDetected++;
         }

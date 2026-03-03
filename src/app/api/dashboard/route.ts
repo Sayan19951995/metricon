@@ -202,6 +202,8 @@ export async function GET(request: NextRequest) {
     }
     const todaySoldProducts = Array.from(todaySoldMap.values())
       .sort((a, b) => b.revenue - a.revenue);
+    const todayOrdersCount = todayOrdersList.length;
+    const todayOrdersTotalRevenue = todayOrdersList.reduce((sum, o) => sum + (o.total_amount || 0), 0);
 
     // === Топ товаров ===
     const productSales = new Map<string, { name: string; sold: number; revenue: number }>();
@@ -304,6 +306,8 @@ export async function GET(request: NextRequest) {
         },
         topProducts,
         todaySoldProducts,
+        todayOrdersCount,
+        todayOrdersTotalRevenue,
         totals: {
           orders: totalOrders || 0,
           products: totalProducts || 0
