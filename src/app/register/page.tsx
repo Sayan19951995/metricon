@@ -115,21 +115,9 @@ export default function RegisterPage() {
     }
   };
 
-  const handleGoogleLogin = async () => {
+  const handleGoogleLogin = () => {
     setIsGoogleLoading(true);
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/app`,
-        },
-      });
-      if (error) throw error;
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Ошибка входа через Google';
-      setErrors({ general: message });
-      setIsGoogleLoading(false);
-    }
+    window.location.href = '/api/auth/google';
   };
 
   const features = [
