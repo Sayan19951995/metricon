@@ -33,12 +33,13 @@ export async function POST(request: NextRequest) {
 
     // Отправляем письмо через наш SMTP
     const resetLink = data.properties.action_link;
+    console.log('SMTP config:', { host: process.env.SMTP_HOST, port: process.env.SMTP_PORT, user: process.env.SMTP_USER, passLen: process.env.SMTP_PASSWORD?.length });
     const sent = await emailService.sendPasswordReset(email, resetLink);
 
     if (!sent) {
       console.error('Failed to send reset email to:', email);
       return NextResponse.json(
-        { success: false, message: 'Не удалось отправить письмо' },
+        { success: false, message: 'Не удалось отправить письмо. SMTP: ' + (process.env.SMTP_USER || 'NOT SET') },
         { status: 500 }
       );
     }
