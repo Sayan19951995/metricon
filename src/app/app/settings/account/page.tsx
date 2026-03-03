@@ -78,8 +78,6 @@ export default function AccountSettingsPage() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
-  const [showTwoFactorModal, setShowTwoFactorModal] = useState(false);
   const [showPasswordModal, setShowPasswordModal] = useState(false);
   const [passwordChanged, setPasswordChanged] = useState(false);
 
@@ -277,43 +275,6 @@ export default function AccountSettingsPage() {
                     Используйте уникальный пароль длиной не менее 12 символов с цифрами и специальными символами.
                   </p>
                 </div>
-              </div>
-            </motion.div>
-
-            {/* Two-Factor Authentication */}
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${
-                    twoFactorEnabled ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-gray-100 dark:bg-gray-700'
-                  }`}>
-                    <Shield className={`w-6 h-6 ${twoFactorEnabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-400'}`} />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Двухфакторная аутентификация</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      {twoFactorEnabled
-                        ? 'Включена через приложение аутентификации'
-                        : 'Дополнительный уровень защиты вашего аккаунта'}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => {
-                    if (twoFactorEnabled) {
-                      setTwoFactorEnabled(false);
-                    } else {
-                      setShowTwoFactorModal(true);
-                    }
-                  }}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors cursor-pointer ${
-                    twoFactorEnabled
-                      ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50'
-                      : 'bg-emerald-500 text-white hover:bg-emerald-600'
-                  }`}
-                >
-                  {twoFactorEnabled ? 'Отключить' : 'Включить'}
-                </button>
               </div>
             </motion.div>
 
@@ -538,78 +499,6 @@ export default function AccountSettingsPage() {
           )}
         </AnimatePresence>
 
-        {/* Two-Factor Modal */}
-        <AnimatePresence>
-          {showTwoFactorModal && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-              onClick={() => setShowTwoFactorModal(false)}
-            >
-              <motion.div
-                initial={{ scale: 0.95, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.95, opacity: 0 }}
-                onClick={(e) => e.stopPropagation()}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full overflow-hidden"
-              >
-                <div className="p-6">
-                  <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white">Настройка 2FA</h3>
-                    <button
-                      onClick={() => setShowTwoFactorModal(false)}
-                      className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 cursor-pointer"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-
-                  <div className="text-center mb-6">
-                    <div className="w-48 h-48 bg-gray-100 dark:bg-gray-700 rounded-xl mx-auto mb-4 flex items-center justify-center">
-                      <div className="text-gray-400 text-sm">QR код</div>
-                    </div>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
-                      Отсканируйте QR-код в приложении аутентификации (Google Authenticator, Authy)
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Или введите код вручную: XXXX-XXXX-XXXX-XXXX
-                    </p>
-                  </div>
-
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Код подтверждения</label>
-                    <input
-                      type="text"
-                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white text-center tracking-widest focus:outline-none focus:border-emerald-500 transition-colors"
-                      placeholder="000000"
-                      maxLength={6}
-                    />
-                  </div>
-
-                  <div className="flex gap-3">
-                    <button
-                      onClick={() => setShowTwoFactorModal(false)}
-                      className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer"
-                    >
-                      Отмена
-                    </button>
-                    <button
-                      onClick={() => {
-                        setTwoFactorEnabled(true);
-                        setShowTwoFactorModal(false);
-                      }}
-                      className="flex-1 px-4 py-2.5 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors cursor-pointer"
-                    >
-                      Подтвердить
-                    </button>
-                  </div>
-                </div>
-              </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </div>
   );
