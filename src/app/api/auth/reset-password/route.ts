@@ -13,8 +13,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Определяем base URL (production или localhost)
-    const origin = request.headers.get('origin') || request.nextUrl.origin;
+    // Определяем base URL: host header надёжнее чем origin
+    const host = request.headers.get('host') || '';
+    const protocol = host.includes('localhost') ? 'http' : 'https';
+    const origin = request.headers.get('origin') || `${protocol}://${host}`;
 
     // Генерируем ссылку сброса через Supabase Admin API
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
@@ -33,13 +35,12 @@ export async function POST(request: NextRequest) {
 
     // Отправляем письмо через наш SMTP
     const resetLink = data.properties.action_link;
-    console.log('SMTP config:', { host: process.env.SMTP_HOST, port: process.env.SMTP_PORT, user: process.env.SMTP_USER, passLen: process.env.SMTP_PASSWORD?.length });
     const sent = await emailService.sendPasswordReset(email, resetLink);
 
     if (!sent) {
-      console.error('Failed to send reset email to:', email);
+      console.error('Failed to send reset email to:', email, '| SMTP_USER:', process.env.SMTP_USER || 'NOT SET');
       return NextResponse.json(
-        { success: false, message: 'Не удалось отправить письмо. SMTP: ' + (process.env.SMTP_USER || 'NOT SET') },
+        { success: false, message: 'Не удалось отправить письмо' },
         { status: 500 }
       );
     }
