@@ -33,8 +33,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
-    // Отправляем письмо через наш SMTP
-    const resetLink = data.properties.action_link;
+    // Строим свою ссылку вместо supabase.co
+    const hashedToken = data.properties.hashed_token;
+    const resetLink = `${origin}/reset-password?token_hash=${hashedToken}&type=recovery`;
     const sent = await emailService.sendPasswordReset(email, resetLink);
 
     if (!sent) {

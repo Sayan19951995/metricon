@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Lock, ArrowLeft, BarChart3, CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -17,15 +18,31 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState('');
   const [sessionReady, setSessionReady] = useState(false);
 
-  // Supabase отправляет токен в хэше URL — слушаем восстановление сессии
+  // Верифицируем токен из URL или слушаем PASSWORD_RECOVERY событие (обратная совместимость)
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        setSessionReady(true);
-      }
-    });
-    return () => subscription.unsubscribe();
-  }, []);
+    const tokenHash = searchParams.get('token_hash');
+    const type = searchParams.get('type');
+
+    if (tokenHash && type === 'recovery') {
+      // Новый флоу: верифицируем токен напрямую
+      supabase.auth.verifyOtp({ token_hash: tokenHash, type: 'recovery' })
+        .then(({ error: verifyError }) => {
+          if (verifyError) {
+            setError('Ссылка недействительна или истекла. Запросите новую.');
+          } else {
+            setSessionReady(true);
+          }
+        });
+    } else {
+      // Старый флоу: Supabase отправляет токен в хэше URL
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+        if (event === 'PASSWORD_RECOVERY') {
+          setSessionReady(true);
+        }
+      });
+      return () => subscription.unsubscribe();
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
