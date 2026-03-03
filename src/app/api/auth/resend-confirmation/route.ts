@@ -20,10 +20,11 @@ export async function POST(req: NextRequest) {
     const { data: linkData, error: linkError } = await supabaseAdmin.auth.admin.generateLink({
       type: 'signup',
       email,
+      password: 'resend-placeholder',
       options: {
         redirectTo: `${origin}/auth/verify-email`,
       },
-    });
+    } as any);
 
     if (linkError) {
       console.error('resend generateLink error:', linkError);
