@@ -954,7 +954,11 @@ export default function OrdersPage() {
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Телефон</p>
-                  <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedOrder.phone || 'Не указан'}</p>
+                  {selectedOrder.phone && !selectedOrder.phone.includes('(000)') ? (
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{selectedOrder.phone}</p>
+                  ) : (
+                    <p className="text-sm text-gray-400 dark:text-gray-500">Связь через приложение Kaspi</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-xs text-gray-500 dark:text-gray-400">Адрес доставки</p>

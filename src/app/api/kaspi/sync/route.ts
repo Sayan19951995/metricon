@@ -248,9 +248,10 @@ export async function POST(request: NextRequest) {
     }
 
     // === 3.5 АВТОРАССЫЛКА: WhatsApp при новых заказах ===
+    // TODO: временно отключено — Kaspi закрыл доступ к номерам телефонов (+0(000)-000-00-00)
     let waSent = 0;
     let waFailed = 0;
-    if (ordersCreated > 0) {
+    if (false && ordersCreated > 0) {
       try {
         const newOrderInfos = orderOps
           .filter(op => op.isNew)
@@ -449,7 +450,8 @@ export async function POST(request: NextRequest) {
       }, 10);
 
       // === 4.5 АВТОРАССЫЛКА: WhatsApp при выдаче заказа ===
-      if (completionsDetected > 0) {
+      // TODO: временно отключено — Kaspi закрыл доступ к номерам телефонов
+      if (false && completionsDetected > 0) {
         try {
           const deliveredOrderInfos: Array<{
             kaspi_order_id: string;
