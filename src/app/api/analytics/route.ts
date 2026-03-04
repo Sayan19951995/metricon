@@ -27,18 +27,37 @@ export async function GET(request: NextRequest) {
     const commissionRate = (store.commission_rate ?? 12.5) as number;
     const taxRate = (store.tax_rate ?? 4.0) as number;
 
-    // === 0. Загрузить себестоимость товаров ===
-    const productsResult = await supabaseAdmin
-      .from('products')
-      .select('id, kaspi_id, sku, name, cost_price, product_group, image_url')
-      .eq('store_id', store.id);
+    // === 0. Параллельная загрузка: товары, группы, заказы, опер. расходы ===
+    const [productsResult, groupsResult, completedOrdersResult, opExpensesResult] = await Promise.all([
+      supabaseAdmin
+        .from('products')
+        .select('id, kaspi_id, sku, name, cost_price, product_group, image_url')
+        .eq('store_id', store.id),
+      supabaseAdmin
+        .from('product_groups')
+        .select('slug, name, color')
+        .eq('store_id', store.id)
+        .order('created_at', { ascending: true }),
+      supabaseAdmin
+        .from('orders')
+        .select('total_amount, completed_at, status, delivery_cost, delivery_mode, delivery_address, items, confirmed_by, sale_source' as string)
+        .eq('store_id', store.id)
+        .not('completed_at', 'is', null)
+        .eq('status', 'completed')
+        .order('completed_at', { ascending: true }),
+      supabaseAdmin
+        .from('operational_expenses')
+        .select('*')
+        .eq('store_id', store.id),
+    ]);
+
     const productsDb = productsResult.data || [];
+    const productGroupsMeta = groupsResult.data || [];
 
     const costPriceMap = new Map<string, number>();
     const groupMap = new Map<string, string>();
     const imageMap = new Map<string, string>();
 
-    // Первый проход: заполнить из БД
     for (const p of productsDb) {
       if (p.kaspi_id && p.cost_price) {
         costPriceMap.set(p.kaspi_id, Number(p.cost_price));
@@ -51,14 +70,14 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Если фото нет ни у одного товара — подтянуть из Kaspi Cabinet
+    // Если фото нет ни у одного товара — подтянуть из Kaspi Cabinet (не блокируем ответ)
     if (imageMap.size === 0 && productsDb.length > 0) {
-      try {
-        const session = (store as any).kaspi_session as { cookies?: string; merchant_id?: string } | null;
-        if (session?.cookies && (session.merchant_id || store.kaspi_merchant_id)) {
-          const merchantId = session.merchant_id || store.kaspi_merchant_id || '';
-          const client = new KaspiAPIClient(session.cookies, merchantId);
-          const cabinetProducts = await client.getAllProducts();
+      const session = (store as any).kaspi_session as { cookies?: string; merchant_id?: string } | null;
+      if (session?.cookies && (session.merchant_id || store.kaspi_merchant_id)) {
+        const merchantId = session.merchant_id || store.kaspi_merchant_id || '';
+        const client = new KaspiAPIClient(session.cookies, merchantId);
+        // Fire and forget — не ждём, фото подтянутся при следующей загрузке
+        client.getAllProducts().then(cabinetProducts => {
           const cabBySku = new Map<string, string>();
           const cabByName = new Map<string, string>();
           for (const kp of cabinetProducts) {
@@ -72,34 +91,15 @@ export async function GET(request: NextRequest) {
               || (p.name && cabByName.get(p.name.toLowerCase().trim()))
               || null;
             if (img) {
-              if (p.kaspi_id) imageMap.set(p.kaspi_id, img);
-              if (p.sku) imageMap.set(p.sku, img);
-              if (p.name) imageMap.set(p.name, img);
               supabaseAdmin.from('products').update({ image_url: img } as any).eq('id', p.id).then(() => {});
             }
           }
-        }
-      } catch (cabinetErr) {
-        console.error('Analytics: Cabinet image fetch error:', cabinetErr);
+        }).catch(() => {});
       }
     }
 
-    // Загрузить метаданные групп
-    const groupsResult = await supabaseAdmin
-      .from('product_groups')
-      .select('slug, name, color')
-      .eq('store_id', store.id)
-      .order('created_at', { ascending: true });
-    const productGroupsMeta = groupsResult.data || [];
-
     // === 1. Поступления по дате выдачи (completed_at) ===
-    const completedOrdersResult = await supabaseAdmin
-      .from('orders')
-      .select('total_amount, completed_at, status, delivery_cost, delivery_mode, delivery_address, items, confirmed_by, sale_source' as string)
-      .eq('store_id', store.id)
-      .not('completed_at', 'is', null)
-      .eq('status', 'completed')
-      .order('completed_at', { ascending: true });
+    // completedOrdersResult уже загружен в Promise.all выше
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const completedOrders = (completedOrdersResult.data || []) as any[];
 
@@ -181,10 +181,6 @@ export async function GET(request: NextRequest) {
     }
 
     // === 1b. Операционные расходы — разбить по дням ===
-    const opExpensesResult = await supabaseAdmin
-      .from('operational_expenses')
-      .select('*')
-      .eq('store_id', store.id);
     const opExpenses = opExpensesResult.data || [];
 
     // Для каждого дня подсчитаем долю опер. расходов
@@ -263,12 +259,37 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // === 2b. Выручка по дате создания заказа (для "Структура выручки") ===
-    const allOrdersResult = await supabaseAdmin
-      .from('orders')
-      .select('items, total_amount, status, created_at, delivery_cost')
-      .eq('store_id', store.id)
-      .not('status', 'in', '(cancelled,returned)');
+    // === 2b. Параллельная загрузка: доп. запросы заказов + опер. расходы ===
+    const [allOrdersResult, returnedOrdersByCreationResult, ordersByStatusResult, activeOrdersResult, returnedOrdersResult] = await Promise.all([
+      supabaseAdmin
+        .from('orders')
+        .select('items, total_amount, status, created_at, delivery_cost')
+        .eq('store_id', store.id)
+        .not('status', 'in', '(cancelled,returned)'),
+      supabaseAdmin
+        .from('orders')
+        .select('created_at')
+        .eq('store_id', store.id)
+        .eq('status', 'returned'),
+      supabaseAdmin
+        .from('orders')
+        .select('status')
+        .eq('store_id', store.id),
+      supabaseAdmin
+        .from('orders')
+        .select('kaspi_order_id, customer_name, delivery_address, total_amount, created_at, items, status')
+        .eq('store_id', store.id)
+        .not('status', 'in', `(completed,delivered,cancelled,returned,archive)`)
+        .order('created_at', { ascending: false }),
+      supabaseAdmin
+        .from('orders')
+        .select('kaspi_order_id, customer_name, total_amount, created_at, items')
+        .eq('store_id', store.id)
+        .eq('status', 'returned')
+        .order('created_at', { ascending: false })
+        .limit(50),
+    ]);
+
     const allOrders = allOrdersResult.data || [];
 
     const ordersByCreationDate = new Map<string, { revenue: number; count: number; commission: number; tax: number; delivery: number; costPrice: number }>();
@@ -326,11 +347,7 @@ export async function GET(request: NextRequest) {
 
 
     // Возвраты по дате создания (для карточки "Возвраты" с фильтром по периоду)
-    const returnedOrdersByCreationResult = await supabaseAdmin
-      .from('orders')
-      .select('created_at')
-      .eq('store_id', store.id)
-      .eq('status', 'returned');
+    // returnedOrdersByCreationResult уже загружен в Promise.all выше
     const returnedOrdersByCreation = returnedOrdersByCreationResult.data || [];
 
     const returnedByCreationDate = new Map<string, number>();
@@ -378,10 +395,7 @@ export async function GET(request: NextRequest) {
       });
 
     // === 3. Статусы заказов ===
-    const ordersByStatusResult = await supabaseAdmin
-      .from('orders')
-      .select('status')
-      .eq('store_id', store.id);
+    // ordersByStatusResult уже загружен в Promise.all выше
     const ordersByStatusRaw = ordersByStatusResult.data || [];
 
     const statusCounts: Record<string, number> = {};
@@ -404,13 +418,7 @@ export async function GET(request: NextRequest) {
     const returned = (statusCounts['returned'] || 0);
 
     // === 4. Активные заказы ===
-    const completedStatuses = ['completed', 'delivered', 'cancelled', 'returned', 'archive'];
-    const activeOrdersResult = await supabaseAdmin
-      .from('orders')
-      .select('kaspi_order_id, customer_name, delivery_address, total_amount, created_at, items, status')
-      .eq('store_id', store.id)
-      .not('status', 'in', `(${completedStatuses.join(',')})`)
-      .order('created_at', { ascending: false });
+    // activeOrdersResult уже загружен в Promise.all выше
     const activeOrdersRaw = activeOrdersResult.data || [];
 
     const activeOrders = activeOrdersRaw || [];
@@ -427,13 +435,7 @@ export async function GET(request: NextRequest) {
     });
 
     // === 5. Возвратные заказы ===
-    const returnedOrdersResult = await supabaseAdmin
-      .from('orders')
-      .select('kaspi_order_id, customer_name, total_amount, created_at, items')
-      .eq('store_id', store.id)
-      .eq('status', 'returned')
-      .order('created_at', { ascending: false })
-      .limit(50);
+    // returnedOrdersResult уже загружен в Promise.all выше
     const returnedOrdersRaw = returnedOrdersResult.data || [];
 
     const returnedOrders = (returnedOrdersRaw || []).map(o => {
