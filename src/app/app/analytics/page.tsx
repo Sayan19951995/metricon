@@ -1198,8 +1198,8 @@ function AnalyticsPageContent() {
               </div>
             </div>
 
-            {/* Date Range Selector */}
-            <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl shadow-sm relative w-full lg:w-auto" ref={calendarRef}>
+            {/* Date Range Selector — не нужен для отзывов */}
+            {activeTab !== 'reviews' && <div className="bg-white dark:bg-gray-800 p-3 sm:p-4 rounded-xl shadow-sm relative w-full lg:w-auto" ref={calendarRef}>
               <div className="mb-2 sm:mb-3">
                 <button
                   onClick={() => setShowCalendar(!showCalendar)}
@@ -1251,7 +1251,7 @@ function AnalyticsPageContent() {
                   />
                 )}
               </AnimatePresence>
-            </div>
+            </div>}
           </div>
         </div>
 
