@@ -409,9 +409,15 @@ function AnalyticsPageContent() {
         }
         setReviewPage(pg);
         setReviewsHasMore((data.reviews || []).length >= 10);
+      } else if (isInitial) {
+        // Prevent infinite retry loop — mark as loaded with empty data
+        setReviewData({ success: false, error: data.error, reviews: [], totalRatings: 0 });
       }
     } catch (err) {
       console.error('Reviews fetch error:', err);
+      if (isInitial) {
+        setReviewData({ success: false, error: 'Ошибка загрузки', reviews: [], totalRatings: 0 });
+      }
     } finally {
       if (isInitial) setReviewLoading(false);
       else setReviewsLoadingMore(false);
