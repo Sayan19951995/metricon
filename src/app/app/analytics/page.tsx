@@ -4,7 +4,7 @@ import React, { useState, useRef, useEffect, Suspense, useCallback } from 'react
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, ChevronUp, Package, CheckCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Plus, X, Trash2, HelpCircle, BarChart3, RotateCcw, UserCheck } from 'lucide-react';
+import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, ChevronUp, Package, CheckCircle, AlertCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Plus, X, Trash2, HelpCircle, BarChart3, RotateCcw, UserCheck } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { supabase } from '@/lib/supabase/client';
@@ -2873,6 +2873,20 @@ function AnalyticsPageContent() {
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-8 text-center">
                 <div className="animate-spin w-8 h-8 border-2 border-emerald-500 border-t-transparent rounded-full mx-auto mb-4" />
                 <p className="text-gray-500 dark:text-gray-400">Загружаем данные с Kaspi...</p>
+              </div>
+            ) : reviewData && !reviewData.success ? (
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-8 text-center">
+                <div className="w-16 h-16 bg-red-100 dark:bg-red-900/30 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                  <AlertCircle className="w-8 h-8 text-red-500" />
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Не удалось загрузить отзывы</h3>
+                <p className="text-gray-500 dark:text-gray-400 mb-4">{reviewData.error || 'Kaspi не отвечает. Попробуйте позже.'}</p>
+                <button
+                  onClick={() => { setReviewData(null); fetchReviews(null); }}
+                  className="px-4 py-2 bg-emerald-500 text-white rounded-xl hover:bg-emerald-600 transition-colors text-sm font-medium cursor-pointer"
+                >
+                  Попробовать снова
+                </button>
               </div>
             ) : reviewData ? (
               <>

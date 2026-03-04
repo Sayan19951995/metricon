@@ -42,12 +42,17 @@ export async function GET(request: NextRequest) {
     const ratingFilter = searchParams.get('rating') ? parseInt(searchParams.get('rating')!) : null;
 
     // Параллельно: публичная страница (метрики) + GraphQL (звёзды) + список отзывов
+    // Каждый запрос с таймаутом 15 сек чтобы не зависать
     const [publicData, gqlData, reviewsList] = await Promise.all([
-      fetchPublicMetrics(merchantId),
-      session?.cookies ? fetchStarDistribution(merchantId, session.cookies) : null,
-      ratingFilter
-        ? fetchFilteredReviews(merchantId, ratingFilter, page, size)
-        : fetchReviewsList(merchantId, page, size),
+      withTimeout(fetchPublicMetrics(merchantId), 15000, null),
+      session?.cookies ? withTimeout(fetchStarDistribution(merchantId, session.cookies), 10000, null) : null,
+      withTimeout(
+        ratingFilter
+          ? fetchFilteredReviews(merchantId, ratingFilter, page, size)
+          : fetchReviewsList(merchantId, page, size),
+        15000,
+        []
+      ),
     ]);
 
     // Если GraphQL не сработал и есть логин/пароль — перелогиниваемся
@@ -55,9 +60,8 @@ export async function GET(request: NextRequest) {
     if (!gqlData && session?.username && session?.password) {
       console.log('[Reviews] Session expired, re-logging in...');
       try {
-        const loginResult = await kaspiCabinetLogin(session.username, session.password);
+        const loginResult = await withTimeout(kaspiCabinetLogin(session.username, session.password), 10000, { success: false });
         if (loginResult.success && loginResult.cookies) {
-          // Сохраняем новую сессию
           await supabaseAdmin.from('stores').update({
             kaspi_session: {
               cookies: loginResult.cookies,
@@ -68,8 +72,7 @@ export async function GET(request: NextRequest) {
             },
           }).eq('id', store.id);
 
-          // Повторяем GraphQL с новыми куками
-          finalGqlData = await fetchStarDistribution(merchantId, loginResult.cookies);
+          finalGqlData = await withTimeout(fetchStarDistribution(merchantId, loginResult.cookies), 10000, null);
           if (finalGqlData) {
             console.log('[Reviews] Re-login successful, got star data');
           }
@@ -79,16 +82,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    if (!publicData) {
-      return NextResponse.json({ success: false, error: 'Не удалось получить данные с Kaspi' });
-    }
+    // Даже если publicData не загрузился — возвращаем что есть
+    const rating = publicData?.rating || 0;
+    const numberOfReviews = publicData?.numberOfReviews || 0;
 
     // Точный рейтинг и количество нужных отзывов из GraphQL
     const hasGqlData = finalGqlData !== null && finalGqlData !== undefined;
     const stars = finalGqlData?.stars || { five: 0, four: 0, three: 0, two: 0, one: 0 };
     const totalFromStars = stars.five + stars.four + stars.three + stars.two + stars.one;
     const sumFromStars = 5 * stars.five + 4 * stars.four + 3 * stars.three + 2 * stars.two + 1 * stars.one;
-    const exactRating = totalFromStars > 0 ? sumFromStars / totalFromStars : publicData.rating;
+    const exactRating = totalFromStars > 0 ? sumFromStars / totalFromStars : rating;
 
     // Расчёт: (sum + 5*X) / (total + X) >= 4.95
     let reviewsNeededFor5 = 0;
@@ -107,22 +110,22 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       approximate: !hasGqlData,
-      rating: publicData.rating,
+      rating,
       exactRating: Math.round(exactRating * 10000) / 10000,
-      numberOfReviews: publicData.numberOfReviews,
-      totalRatings: totalFromStars || publicData.totalRatings,
+      numberOfReviews,
+      totalRatings: totalFromStars || publicData?.totalRatings || 0,
       stars,
       nonFiveCount,
       windowDays: finalGqlData?.windowDays || 90,
       windowEnd,
       nonFiveDropOffBy,
-      cancelled: publicData.cancelled,
-      returned: publicData.returned,
-      lateDelivery: publicData.lateDelivery,
-      status: publicData.status,
-      salesCount: publicData.salesCount,
-      name: publicData.name,
-      logo: publicData.logo,
+      cancelled: publicData?.cancelled ?? 0,
+      returned: publicData?.returned ?? 0,
+      lateDelivery: publicData?.lateDelivery ?? 0,
+      status: publicData?.status || 'UNKNOWN',
+      salesCount: publicData?.salesCount || 0,
+      name: publicData?.name || '',
+      logo: publicData?.logo || '',
       reviewsNeededFor5,
       reviews: reviewsList || [],
       page,
@@ -136,47 +139,69 @@ export async function GET(request: NextRequest) {
   }
 }
 
+// --- Таймаут обёртка ---
+
+function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((resolve) => setTimeout(() => resolve(fallback), ms)),
+  ]);
+}
+
 // --- Публичная страница Kaspi: общие метрики ---
 
 async function fetchPublicMetrics(merchantId: string) {
-  const url = `https://kaspi.kz/shop/info/merchant/${merchantId}/reviews`;
-  const resp = await fetch(url, {
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-      'Accept': 'text/html',
-    },
-  });
+  try {
+    const url = `https://kaspi.kz/shop/info/merchant/${merchantId}/reviews`;
+    const resp = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
+        'Referer': 'https://kaspi.kz/',
+      },
+    });
 
-  if (!resp.ok) return null;
+    if (!resp.ok) {
+      console.error('[Reviews] Public page failed:', resp.status);
+      return null;
+    }
 
-  const html = await resp.text();
-  const marker = 'BACKEND.components.merchant = {';
-  const startIdx = html.indexOf(marker);
-  if (startIdx < 0) return null;
+    const html = await resp.text();
+    const marker = 'BACKEND.components.merchant = {';
+    const startIdx = html.indexOf(marker);
+    if (startIdx < 0) {
+      console.error('[Reviews] Marker not found in HTML, length:', html.length);
+      return null;
+    }
 
-  const jsonStart = startIdx + marker.length - 1;
-  let depth = 0, jsonEnd = jsonStart;
-  for (let i = jsonStart; i < html.length && i < jsonStart + 50000; i++) {
-    if (html[i] === '{') depth++;
-    else if (html[i] === '}') { depth--; if (depth === 0) { jsonEnd = i + 1; break; } }
+    const jsonStart = startIdx + marker.length - 1;
+    let depth = 0, jsonEnd = jsonStart;
+    for (let i = jsonStart; i < html.length && i < jsonStart + 50000; i++) {
+      if (html[i] === '{') depth++;
+      else if (html[i] === '}') { depth--; if (depth === 0) { jsonEnd = i + 1; break; } }
+    }
+
+    let merchant: any;
+    try { merchant = JSON.parse(html.substring(jsonStart, jsonEnd)); } catch { return null; }
+
+    const m = merchant.merchantMetrics || {};
+    return {
+      rating: merchant.rating || 0,
+      numberOfReviews: merchant.numberOfReviews || 0,
+      totalRatings: m.rating?.formulaElements?.numerator || 0,
+      cancelled: m.cancelled?.percentage ?? 0,
+      returned: m.returned?.percentage ?? 0,
+      lateDelivery: m.lateKaspiDelivery?.percentage ?? 0,
+      status: m.state?.value || 'UNKNOWN',
+      salesCount: merchant.salesCount || 0,
+      name: merchant.name || '',
+      logo: merchant.logo || '',
+    };
+  } catch (e) {
+    console.error('[Reviews] fetchPublicMetrics error:', e);
+    return null;
   }
-
-  let merchant: any;
-  try { merchant = JSON.parse(html.substring(jsonStart, jsonEnd)); } catch { return null; }
-
-  const m = merchant.merchantMetrics || {};
-  return {
-    rating: merchant.rating || 0,
-    numberOfReviews: merchant.numberOfReviews || 0,
-    totalRatings: m.rating?.formulaElements?.numerator || 0,
-    cancelled: m.cancelled?.percentage ?? 0,
-    returned: m.returned?.percentage ?? 0,
-    lateDelivery: m.lateKaspiDelivery?.percentage ?? 0,
-    status: m.state?.value || 'UNKNOWN',
-    salesCount: merchant.salesCount || 0,
-    name: merchant.name || '',
-    logo: merchant.logo || '',
-  };
 }
 
 // --- Публичный API: список отзывов ---
@@ -195,7 +220,10 @@ async function fetchReviewsList(merchantId: string, page: number, size: number) 
       }
     );
 
-    if (!resp.ok) return [];
+    if (!resp.ok) {
+      console.error('[Reviews] List API failed:', resp.status);
+      return [];
+    }
     const json = await resp.json();
     return (json.data || []).map((r: any) => ({
       id: r.id,
@@ -222,7 +250,6 @@ async function fetchFilteredReviews(merchantId: string, rating: number, page: nu
   const need = skip + size;
   const filtered: any[] = [];
 
-  // Загружаем страницы пока не наберём нужное кол-во или не закончатся
   for (let p = 0; p < 60; p++) {
     const batch = await fetchReviewsList(merchantId, p, 10);
     if (batch.length === 0) break;
