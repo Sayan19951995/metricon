@@ -1745,10 +1745,9 @@ function AnalyticsPageContent() {
 
                 {(() => {
                   // Подготовка данных для stacked bar chart (по дате создания заказа)
-                  // adsRatio: используем creationTotals (по дате создания), а не data.totalOrders (completed)
-                  const totalOrdersForRatio = creationTotals.totalOrders || data.totalOrders;
-                  const adsRatio = totalOrdersForRatio > 0 ? Math.min(data.ordersBySource.ads / totalOrdersForRatio, 1) : 0;
-                  console.log('[AdsToggle]', { ads: data.ordersBySource.ads, totalOrdersForRatio, adsRatio, showAdsOnly });
+                  // adsRatio: доля рекламных заказов от всех (all-time пропорция)
+                  const allTimeTotal = (data.ordersBySource.ads || 0) + (data.ordersBySource.organic || 0);
+                  const adsRatio = allTimeTotal > 0 ? data.ordersBySource.ads / allTimeTotal : 0;
 
                   // Распределяем periodMarketingCost по дням пропорционально выручке
                   const creationDays = data.dailyDataByCreation || data.dailyData;
