@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
       .select('*')
       .eq('user_id', userId)
       .single();
-    const store = storeResult.data;
+    const store = storeResult.data as NonNullable<typeof storeResult.data>;
     const storeError = storeResult.error;
 
     if (storeError || !store || !store.kaspi_api_key || !store.kaspi_merchant_id) {
@@ -344,7 +344,7 @@ export async function POST(request: NextRequest) {
       // Fetch entries for archive orders with missing items
       const archiveOrdersMissingItems = completedOrders.filter(o => {
         const dbOrder = dbOrderMap.get(o.orderId);
-        return dbOrder && (!dbOrder.items || (Array.isArray(dbOrder.items) && dbOrder.items.length === 0));
+        return dbOrder && (!(dbOrder as any).items || (Array.isArray((dbOrder as any).items) && (dbOrder as any).items.length === 0));
       });
       if (archiveOrdersMissingItems.length > 0) {
         console.log(`SYNC: ${archiveOrdersMissingItems.length} archive orders need items re-fetch`);
@@ -360,7 +360,7 @@ export async function POST(request: NextRequest) {
         const dbOrder = dbOrderMap.get(order.orderId);
         if (!dbOrder) continue;
         const kaspiStatus = (order.status || order.state || '').toLowerCase();
-        if (kaspiStatus === 'completed' && !dbOrder.completed_at) {
+        if (kaspiStatus === 'completed' && !(dbOrder as any).completed_at) {
           ordersNeedingDate.push(order.orderId);
           if (bffSessionActive && cabinetClient) {
             let exactDate = await cabinetClient.getOrderCompletionDate(order.orderId);
@@ -390,7 +390,7 @@ export async function POST(request: NextRequest) {
       const archiveUpdates: Array<{ id: string; update: Record<string, any> }> = [];
 
       for (const order of completedOrders) {
-        const dbOrder = dbOrderMap.get(order.orderId);
+        const dbOrder = dbOrderMap.get(order.orderId) as any;
         if (!dbOrder) continue;
 
         const kaspiStatus = (order.status || order.state || '').toLowerCase();
@@ -464,7 +464,7 @@ export async function POST(request: NextRequest) {
             const kaspiStatus = (order.status || order.state || '').toLowerCase();
             if (kaspiStatus !== 'completed') continue;
             const dbOrder = dbOrderMap.get(order.orderId);
-            if (dbOrder && dbOrder.status !== 'completed') {
+            if (dbOrder && (dbOrder as any).status !== 'completed') {
               deliveredOrderInfos.push({
                 kaspi_order_id: order.orderId,
                 customer_name: `${order.customer?.firstName || ''} ${order.customer?.lastName || ''}`.trim(),
@@ -485,18 +485,18 @@ export async function POST(request: NextRequest) {
             const { data: fbSettings } = await supabaseAdmin
               .from('feedback_settings')
               .select('enabled, delay_minutes')
-              .eq('store_id', store.id)
+              .eq('store_id', store!.id)
               .single();
 
             if (fbSettings?.enabled) {
-              const delayMinutes = fbSettings.delay_minutes || 10;
+              const delayMinutes = fbSettings!.delay_minutes || 10;
               const scheduledAt = new Date(Date.now() + delayMinutes * 60 * 1000).toISOString();
 
               for (const order of completedOrders) {
                 const kaspiStatus = (order.status || order.state || '').toLowerCase();
                 if (kaspiStatus !== 'completed') continue;
                 const dbOrder = dbOrderMap.get(order.orderId);
-                if (dbOrder && dbOrder.status !== 'completed' && order.customer?.cellPhone) {
+                if (dbOrder && (dbOrder as any).status !== 'completed' && order.customer?.cellPhone) {
                   const items = (order.entries || []).map((e: any) => ({
                     product_name: e.product?.name || e.productName || '',
                     kaspi_id: e.product?.code || e.productCode || '',
@@ -833,7 +833,7 @@ export async function GET(request: NextRequest) {
       .select('*')
       .eq('user_id', userId)
       .single();
-    const store = storeResult2.data;
+    const store = storeResult2.data as NonNullable<typeof storeResult2.data>;
     const storeError = storeResult2.error;
 
     if (storeError || !store) {
