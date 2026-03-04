@@ -1748,6 +1748,7 @@ function AnalyticsPageContent() {
                   // adsRatio: используем creationTotals (по дате создания), а не data.totalOrders (completed)
                   const totalOrdersForRatio = creationTotals.totalOrders || data.totalOrders;
                   const adsRatio = totalOrdersForRatio > 0 ? Math.min(data.ordersBySource.ads / totalOrdersForRatio, 1) : 0;
+                  console.log('[AdsToggle]', { ads: data.ordersBySource.ads, totalOrdersForRatio, adsRatio, showAdsOnly });
 
                   // Распределяем periodMarketingCost по дням пропорционально выручке
                   const creationDays = data.dailyDataByCreation || data.dailyData;
