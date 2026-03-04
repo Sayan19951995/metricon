@@ -1714,6 +1714,7 @@ function AnalyticsPageContent() {
                       className="flex flex-col items-center gap-0.5"
                       onClick={(e) => e.stopPropagation()}
                     >
+                      {data.ordersBySource.ads > 0 && (<>
                       <span className="text-[9px] lg:text-xs text-gray-400">{showAdsOnly ? 'реклама' : 'все'}</span>
                       <button
                         onClick={() => setShowAdsOnly(!showAdsOnly)}
@@ -1725,6 +1726,7 @@ function AnalyticsPageContent() {
                           showAdsOnly ? 'translate-x-4 lg:translate-x-5' : 'translate-x-0'
                         }`} />
                       </button>
+                      </>)}
                     </div>
                     <ChevronUp className={`w-5 h-5 text-gray-400 transition-transform ${collapsedSections.revenue ? 'rotate-180' : ''}`} />
                   </div>
