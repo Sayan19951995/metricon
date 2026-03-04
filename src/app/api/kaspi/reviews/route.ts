@@ -82,16 +82,16 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Даже если publicData не загрузился — возвращаем что есть
-    const rating = publicData?.rating || 0;
-    const numberOfReviews = publicData?.numberOfReviews || 0;
-
-    // Точный рейтинг и количество нужных отзывов из GraphQL
+    // Точный рейтинг из GraphQL (приоритет) или публичной страницы
     const hasGqlData = finalGqlData !== null && finalGqlData !== undefined;
     const stars = finalGqlData?.stars || { five: 0, four: 0, three: 0, two: 0, one: 0 };
     const totalFromStars = stars.five + stars.four + stars.three + stars.two + stars.one;
     const sumFromStars = 5 * stars.five + 4 * stars.four + 3 * stars.three + 2 * stars.two + 1 * stars.one;
-    const exactRating = totalFromStars > 0 ? sumFromStars / totalFromStars : rating;
+
+    // Если publicData недоступен — считаем рейтинг из GraphQL
+    const exactRating = totalFromStars > 0 ? sumFromStars / totalFromStars : (publicData?.rating || 0);
+    const rating = publicData?.rating || (totalFromStars > 0 ? Math.round(exactRating * 10) / 10 : 0);
+    const numberOfReviews = publicData?.numberOfReviews || totalFromStars;
 
     // Расчёт: (sum + 5*X) / (total + X) >= 4.95
     let reviewsNeededFor5 = 0;
