@@ -268,7 +268,7 @@ export async function POST(request: NextRequest) {
             })),
           }));
 
-        const waResult = await triggerWhatsAppMessages(store.id, store.name, 'order_created', newOrderInfos);
+        const waResult = await triggerWhatsAppMessages(store!.id, store!.name, 'order_created', newOrderInfos);
         waSent += waResult.sent;
         waFailed += waResult.failed;
       } catch (err) {
@@ -475,7 +475,7 @@ export async function POST(request: NextRequest) {
           }
 
           if (deliveredOrderInfos.length > 0) {
-            const waDelivered = await triggerWhatsAppMessages(store.id, store.name, 'order_delivered', deliveredOrderInfos);
+            const waDelivered = await triggerWhatsAppMessages(store!.id, store!.name, 'order_delivered', deliveredOrderInfos);
             waSent += waDelivered.sent;
             waFailed += waDelivered.failed;
           }
