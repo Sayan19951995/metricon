@@ -57,10 +57,14 @@ export async function GET(request: NextRequest) {
     const costPriceMap = new Map<string, number>();
     const groupMap = new Map<string, string>();
     const imageMap = new Map<string, string>();
+    const skuToKaspiId = new Map<string, string>();
 
     for (const p of productsDb) {
       if (p.kaspi_id && p.cost_price) {
         costPriceMap.set(p.kaspi_id, Number(p.cost_price));
+      }
+      if (p.sku && p.kaspi_id) {
+        skuToKaspiId.set(p.sku, p.kaspi_id);
       }
       if (p.kaspi_id && p.image_url) imageMap.set(p.kaspi_id, p.image_url);
       if (p.sku && p.image_url) imageMap.set(p.sku, p.image_url);
@@ -524,7 +528,14 @@ export async function GET(request: NextRequest) {
             console.error(`[Analytics] Failed to get products for campaign ${campaign.id}:`, e);
           }
         }
-        console.log(`[Analytics] adCostBySku size: ${adCostBySku.size}, adTransactions: ${adTransactions}, totalOrders will be calculated next`);
+        // Конвертируем SKU → kaspi_id (заказы используют kaspi_id, реклама — SKU)
+        for (const [sku, cost] of [...adCostBySku.entries()]) {
+          const kaspiId = skuToKaspiId.get(sku);
+          if (kaspiId && kaspiId !== sku) {
+            adCostBySku.set(kaspiId, (adCostBySku.get(kaspiId) || 0) + cost);
+          }
+        }
+        console.log(`[Analytics] adCostBySku size: ${adCostBySku.size}, adTransactions: ${adTransactions}, skuToKaspiId size: ${skuToKaspiId.size}`);
       } catch (err) {
         console.error('Failed to fetch marketing data:', err);
       }
