@@ -1877,7 +1877,16 @@ function AnalyticsPageContent() {
                       </ResponsiveContainer>
 
                       {/* Итоги под графиком — из chartData (согласованы с графиком) */}
-                      <div className="mt-3 lg:mt-4 grid grid-cols-5 gap-1 lg:gap-3">
+                      <div className="mt-3 lg:mt-4 grid grid-cols-6 gap-1 lg:gap-3">
+                        <div className="bg-white dark:bg-gray-800 rounded-lg px-1.5 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
+                          <div className="text-[9px] lg:text-sm text-gray-400">выручка</div>
+                          <div className="text-xs lg:text-base font-semibold text-blue-600 dark:text-blue-400">
+                            {fmt(chartTotalRevenue)} ₸
+                          </div>
+                          <div className="text-[8px] lg:text-xs text-blue-400">
+                            100%
+                          </div>
+                        </div>
                         <div className="bg-white dark:bg-gray-800 rounded-lg px-1.5 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
                           <div className="text-[9px] lg:text-sm text-gray-400">себест.</div>
                           <div className="text-xs lg:text-base font-semibold text-rose-500 dark:text-rose-400">
