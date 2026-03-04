@@ -126,6 +126,61 @@ app.post('/poll/send', async (req, res) => {
   }
 });
 
+// === Прокси для Kaspi (Vercel IP заблокирован, Railway — нет) ===
+
+app.get('/kaspi-proxy/merchant/:merchantId/reviews', async (req, res) => {
+  try {
+    const { merchantId } = req.params;
+    const url = `https://kaspi.kz/shop/info/merchant/${merchantId}/reviews`;
+    const resp = await fetch(url, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
+        'Referer': 'https://kaspi.kz/',
+      },
+    });
+    if (!resp.ok) {
+      res.status(resp.status).json({ error: `Kaspi returned ${resp.status}` });
+      return;
+    }
+    const html = await resp.text();
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(html);
+  } catch (err) {
+    console.error('kaspi-proxy merchant error:', err);
+    res.status(500).json({ error: 'Proxy error' });
+  }
+});
+
+app.get('/kaspi-proxy/reviews-list/:merchantId', async (req, res) => {
+  try {
+    const { merchantId } = req.params;
+    const page = req.query.page || '0';
+    const size = req.query.size || '10';
+    const resp = await fetch(
+      `https://kaspi.kz/yml/review-view/api/v1/reviews/merchant/${merchantId}?page=${page}&size=${size}`,
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
+          'Accept': 'application/json, text/plain, */*',
+          'Referer': `https://kaspi.kz/shop/info/merchant/${merchantId}/reviews`,
+          'X-Requested-With': 'XMLHttpRequest',
+        },
+      }
+    );
+    if (!resp.ok) {
+      res.status(resp.status).json({ error: `Kaspi returned ${resp.status}` });
+      return;
+    }
+    const json = await resp.json();
+    res.json(json);
+  } catch (err) {
+    console.error('kaspi-proxy reviews-list error:', err);
+    res.status(500).json({ error: 'Proxy error' });
+  }
+});
+
 const PORT = parseInt(process.env.PORT || '3001');
 
 app.listen(PORT, () => {

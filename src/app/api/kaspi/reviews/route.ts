@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 import { kaspiCabinetLogin } from '@/lib/kaspi/api-client';
 
+const WA_SERVER_URL = process.env.WA_SERVER_URL || 'https://metricon-production.up.railway.app';
+const WA_SERVER_SECRET = process.env.WA_SERVER_SECRET || '';
+
 /**
  * GET /api/kaspi/reviews
  * Рейтинг и метрики магазина: публичная страница + GraphQL BFF
@@ -152,13 +155,11 @@ function withTimeout<T>(promise: Promise<T>, ms: number, fallback: T): Promise<T
 
 async function fetchPublicMetrics(merchantId: string) {
   try {
-    const url = `https://kaspi.kz/shop/info/merchant/${merchantId}/reviews`;
+    // Проксируем через WA сервер (Railway IP не заблокирован Kaspi)
+    const url = `${WA_SERVER_URL}/kaspi-proxy/merchant/${merchantId}/reviews`;
     const resp = await fetch(url, {
       headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
-        'Referer': 'https://kaspi.kz/',
+        'x-api-key': WA_SERVER_SECRET,
       },
     });
 
@@ -208,14 +209,12 @@ async function fetchPublicMetrics(merchantId: string) {
 
 async function fetchReviewsList(merchantId: string, page: number, size: number) {
   try {
+    // Проксируем через WA сервер (Railway IP не заблокирован Kaspi)
     const resp = await fetch(
-      `https://kaspi.kz/yml/review-view/api/v1/reviews/merchant/${merchantId}?page=${page}&size=${size}`,
+      `${WA_SERVER_URL}/kaspi-proxy/reviews-list/${merchantId}?page=${page}&size=${size}`,
       {
         headers: {
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36',
-          'Accept': 'application/json, text/plain, */*',
-          'Referer': `https://kaspi.kz/shop/info/merchant/${merchantId}/reviews`,
-          'X-Requested-With': 'XMLHttpRequest',
+          'x-api-key': WA_SERVER_SECRET,
         },
       }
     );
