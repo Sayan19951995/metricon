@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { Menu, X, LayoutDashboard, Users, CreditCard, ArrowLeft } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Users, CreditCard, MessageCircle, ArrowLeft } from 'lucide-react';
 
 interface NavItem {
   name: string;
@@ -27,6 +27,11 @@ const navigation: NavItem[] = [
     name: 'Подписки',
     href: '/admin/subscriptions',
     icon: <CreditCard className="w-5 h-5" />
+  },
+  {
+    name: 'WhatsApp',
+    href: '/admin/whatsapp',
+    icon: <MessageCircle className="w-5 h-5" />
   },
 ];
 
