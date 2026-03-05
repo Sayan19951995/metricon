@@ -18,7 +18,7 @@ function formatMoney(n: number): string {
 /**
  * GET /api/cron/daily-summary
  * Ежедневная сводка по WhatsApp: продажи, выручка, реклама.
- * Запускается в 9:00 по Казахстану (4:00 UTC).
+ * Запускается в 7:00 по Казахстану (2:00 UTC).
  */
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('authorization');
