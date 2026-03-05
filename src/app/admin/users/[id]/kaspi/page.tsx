@@ -81,39 +81,39 @@ export default function KaspiCabinetPage() {
 
   const getOrderStatusInfo = (status: string) => {
     switch (status) {
-      case 'new': return { text: 'Новый', color: 'bg-blue-100 text-blue-700', icon: <Clock className="w-4 h-4" /> };
-      case 'processing': return { text: 'В обработке', color: 'bg-amber-100 text-amber-700', icon: <RefreshCw className="w-4 h-4" /> };
-      case 'shipped': return { text: 'Отправлен', color: 'bg-purple-100 text-purple-700', icon: <Truck className="w-4 h-4" /> };
-      case 'delivered': return { text: 'Доставлен', color: 'bg-emerald-100 text-emerald-700', icon: <CheckCircle className="w-4 h-4" /> };
-      case 'returned': return { text: 'Возврат', color: 'bg-red-100 text-red-700', icon: <Ban className="w-4 h-4" /> };
-      default: return { text: status, color: 'bg-gray-100 text-gray-700', icon: null };
+      case 'new': return { text: 'Новый', color: 'bg-blue-500/20 text-blue-400', icon: <Clock className="w-4 h-4" /> };
+      case 'processing': return { text: 'В обработке', color: 'bg-amber-500/20 text-amber-400', icon: <RefreshCw className="w-4 h-4" /> };
+      case 'shipped': return { text: 'Отправлен', color: 'bg-purple-500/20 text-purple-400', icon: <Truck className="w-4 h-4" /> };
+      case 'delivered': return { text: 'Доставлен', color: 'bg-emerald-500/20 text-emerald-400', icon: <CheckCircle className="w-4 h-4" /> };
+      case 'returned': return { text: 'Возврат', color: 'bg-red-500/20 text-red-400', icon: <Ban className="w-4 h-4" /> };
+      default: return { text: status, color: 'bg-gray-700 text-gray-300', icon: null };
     }
   };
 
   const data = kaspiCabinetData;
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen">
       {/* Header */}
-      <div className="bg-amber-500 text-white">
+      <div className="bg-gray-800 text-white border-b border-gray-700">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => router.back()}
-                className="p-2 hover:bg-amber-600 rounded-lg transition-colors"
+                className="p-2 hover:bg-gray-700 rounded-lg transition-colors"
               >
                 <ArrowLeft className="w-5 h-5" />
               </button>
               <div>
                 <div className="flex items-center gap-2">
                   <h1 className="text-xl font-bold">{data.merchant.name}</h1>
-                  <span className="px-2 py-0.5 bg-amber-600 rounded text-xs">Только просмотр</span>
+                  <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded text-xs">Только просмотр</span>
                 </div>
-                <p className="text-amber-100 text-sm">ID: {data.merchant.merchantId} • Рейтинг: {data.merchant.rating} ({data.merchant.reviewsCount} отзывов)</p>
+                <p className="text-gray-400 text-sm">ID: {data.merchant.merchantId} • Рейтинг: {data.merchant.rating} ({data.merchant.reviewsCount} отзывов)</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 text-amber-100 text-sm">
+            <div className="flex items-center gap-2 text-gray-400 text-sm">
               <Eye className="w-4 h-4" />
               Режим просмотра
             </div>
@@ -135,8 +135,8 @@ export default function KaspiCabinetPage() {
                 onClick={() => setActiveTab(tab.id as typeof activeTab)}
                 className={`flex items-center gap-2 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap ${
                   activeTab === tab.id
-                    ? 'bg-white text-amber-600 rounded-t-lg'
-                    : 'text-amber-100 hover:text-white'
+                    ? 'bg-gray-900 text-green-400 rounded-t-lg'
+                    : 'text-gray-400 hover:text-white'
                 }`}
               >
                 {tab.icon}
@@ -153,76 +153,76 @@ export default function KaspiCabinetPage() {
           <div className="space-y-6">
             {/* Stats Grid */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white rounded-xl p-4 shadow-sm">
+              <div className="bg-gray-800/80 rounded-xl p-4 shadow-sm">
                 <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
                   <ShoppingCart className="w-4 h-4" />
                   Заказов сегодня
                 </div>
-                <div className="text-2xl font-bold text-gray-900">{data.stats.ordersToday}</div>
+                <div className="text-2xl font-bold text-white">{data.stats.ordersToday}</div>
                 <div className="text-xs text-emerald-600">+15% к вчера</div>
               </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm">
+              <div className="bg-gray-800/80 rounded-xl p-4 shadow-sm">
                 <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
                   <Wallet className="w-4 h-4" />
                   Выручка сегодня
                 </div>
-                <div className="text-2xl font-bold text-gray-900">{(data.stats.revenueToday / 1000000).toFixed(1)}M ₸</div>
+                <div className="text-2xl font-bold text-white">{(data.stats.revenueToday / 1000000).toFixed(1)}M ₸</div>
                 <div className="text-xs text-emerald-600">+8% к вчера</div>
               </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm">
+              <div className="bg-gray-800/80 rounded-xl p-4 shadow-sm">
                 <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
                   <Package className="w-4 h-4" />
                   Активных товаров
                 </div>
-                <div className="text-2xl font-bold text-gray-900">{data.stats.productsActive}</div>
+                <div className="text-2xl font-bold text-white">{data.stats.productsActive}</div>
                 <div className="text-xs text-red-600">{data.stats.productsOutOfStock} нет в наличии</div>
               </div>
-              <div className="bg-white rounded-xl p-4 shadow-sm">
+              <div className="bg-gray-800/80 rounded-xl p-4 shadow-sm">
                 <div className="flex items-center gap-2 text-gray-500 text-sm mb-2">
                   <TrendingUp className="w-4 h-4" />
                   Средний чек
                 </div>
-                <div className="text-2xl font-bold text-gray-900">{(data.stats.avgOrderValue / 1000).toFixed(0)}k ₸</div>
+                <div className="text-2xl font-bold text-white">{(data.stats.avgOrderValue / 1000).toFixed(0)}k ₸</div>
                 <div className="text-xs text-gray-500">Возвраты: {data.stats.returnRate}%</div>
               </div>
             </div>
 
             {/* Balance */}
-            <div className="bg-white rounded-xl p-5 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Баланс</h3>
+            <div className="bg-gray-800/80 rounded-xl p-5 shadow-sm">
+              <h3 className="text-lg font-semibold text-white mb-4">Баланс</h3>
               <div className="grid grid-cols-3 gap-4">
-                <div className="text-center p-4 bg-emerald-50 rounded-lg">
+                <div className="text-center p-4 bg-emerald-500/10 rounded-lg">
                   <div className="text-2xl font-bold text-emerald-600">{(data.balance.available / 1000000).toFixed(2)}M ₸</div>
-                  <div className="text-sm text-gray-600">Доступно</div>
+                  <div className="text-sm text-gray-400">Доступно</div>
                 </div>
-                <div className="text-center p-4 bg-amber-50 rounded-lg">
+                <div className="text-center p-4 bg-amber-500/10 rounded-lg">
                   <div className="text-2xl font-bold text-amber-600">{(data.balance.pending / 1000).toFixed(0)}k ₸</div>
-                  <div className="text-sm text-gray-600">Ожидает</div>
+                  <div className="text-sm text-gray-400">Ожидает</div>
                 </div>
-                <div className="text-center p-4 bg-gray-50 rounded-lg">
-                  <div className="text-2xl font-bold text-gray-600">{(data.balance.hold / 1000).toFixed(0)}k ₸</div>
-                  <div className="text-sm text-gray-600">Заморожено</div>
+                <div className="text-center p-4 bg-gray-700/50 rounded-lg">
+                  <div className="text-2xl font-bold text-gray-400">{(data.balance.hold / 1000).toFixed(0)}k ₸</div>
+                  <div className="text-sm text-gray-400">Заморожено</div>
                 </div>
               </div>
             </div>
 
             {/* Recent Orders */}
-            <div className="bg-white rounded-xl p-5 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Последние заказы</h3>
+            <div className="bg-gray-800/80 rounded-xl p-5 shadow-sm">
+              <h3 className="text-lg font-semibold text-white mb-4">Последние заказы</h3>
               <div className="space-y-2">
                 {data.orders.slice(0, 5).map(order => {
                   const status = getOrderStatusInfo(order.status);
                   return (
-                    <div key={order.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div key={order.id} className="flex items-center justify-between p-3 bg-gray-700/50 rounded-lg">
                       <div className="flex items-center gap-3">
                         <span className={`p-2 rounded-lg ${status.color}`}>{status.icon}</span>
                         <div>
-                          <div className="font-medium text-gray-900">{order.id}</div>
+                          <div className="font-medium text-white">{order.id}</div>
                           <div className="text-xs text-gray-500">{order.customer} • {order.items} товаров</div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="font-medium text-gray-900">{(order.amount / 1000).toFixed(0)}k ₸</div>
+                        <div className="font-medium text-white">{(order.amount / 1000).toFixed(0)}k ₸</div>
                         <div className="text-xs text-gray-500">{order.date}</div>
                       </div>
                     </div>
@@ -235,31 +235,31 @@ export default function KaspiCabinetPage() {
 
         {activeTab === 'orders' && (
           <div>
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="bg-gray-800/80 rounded-xl shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-800/50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">ID заказа</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Дата</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Покупатель</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Телефон</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Товаров</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Сумма</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Статус</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">ID заказа</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Дата</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Покупатель</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Телефон</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Товаров</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Сумма</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Статус</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-700">
                     {data.orders.map(order => {
                       const status = getOrderStatusInfo(order.status);
                       return (
-                        <tr key={order.id} className="hover:bg-gray-50">
-                          <td className="px-4 py-3 font-medium text-gray-900">{order.id}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{order.date}</td>
-                          <td className="px-4 py-3 text-sm text-gray-900">{order.customer}</td>
+                        <tr key={order.id} className="hover:bg-gray-700/50">
+                          <td className="px-4 py-3 font-medium text-white">{order.id}</td>
+                          <td className="px-4 py-3 text-sm text-gray-400">{order.date}</td>
+                          <td className="px-4 py-3 text-sm text-white">{order.customer}</td>
                           <td className="px-4 py-3 text-sm text-gray-500">{order.phone}</td>
-                          <td className="px-4 py-3 text-sm text-gray-600">{order.items}</td>
-                          <td className="px-4 py-3 font-medium text-gray-900">{(order.amount / 1000).toFixed(0)}k ₸</td>
+                          <td className="px-4 py-3 text-sm text-gray-400">{order.items}</td>
+                          <td className="px-4 py-3 font-medium text-white">{(order.amount / 1000).toFixed(0)}k ₸</td>
                           <td className="px-4 py-3">
                             <span className={`inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium ${status.color}`}>
                               {status.icon}
@@ -278,39 +278,39 @@ export default function KaspiCabinetPage() {
 
         {activeTab === 'products' && (
           <div>
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
+            <div className="bg-gray-800/80 rounded-xl shadow-sm overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-gray-50">
+                  <thead className="bg-gray-800/50">
                     <tr>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">SKU</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Название</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Цена</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Остаток</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Продаж</th>
-                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600">Статус</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">SKU</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Название</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Цена</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Остаток</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Продаж</th>
+                      <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400">Статус</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
+                  <tbody className="divide-y divide-gray-700">
                     {data.products.map(product => (
-                      <tr key={product.sku} className="hover:bg-gray-50">
-                        <td className="px-4 py-3 font-mono text-sm text-gray-600">{product.sku}</td>
-                        <td className="px-4 py-3 font-medium text-gray-900">{product.name}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{(product.price / 1000).toFixed(0)}k ₸</td>
+                      <tr key={product.sku} className="hover:bg-gray-700/50">
+                        <td className="px-4 py-3 font-mono text-sm text-gray-400">{product.sku}</td>
+                        <td className="px-4 py-3 font-medium text-white">{product.name}</td>
+                        <td className="px-4 py-3 text-sm text-white">{(product.price / 1000).toFixed(0)}k ₸</td>
                         <td className="px-4 py-3">
-                          <span className={`text-sm font-medium ${product.stock === 0 ? 'text-red-600' : product.stock < 5 ? 'text-amber-600' : 'text-gray-900'}`}>
+                          <span className={`text-sm font-medium ${product.stock === 0 ? 'text-red-600' : product.stock < 5 ? 'text-amber-600' : 'text-white'}`}>
                             {product.stock}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-sm text-gray-600">{product.sales}</td>
+                        <td className="px-4 py-3 text-sm text-gray-400">{product.sales}</td>
                         <td className="px-4 py-3">
                           {product.status === 'active' ? (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-emerald-100 text-emerald-700">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-emerald-500/20 text-emerald-400">
                               <CheckCircle className="w-3 h-3" />
                               Активен
                             </span>
                           ) : (
-                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-red-100 text-red-700">
+                            <span className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-red-500/20 text-red-400">
                               <AlertTriangle className="w-3 h-3" />
                               Нет в наличии
                             </span>
@@ -328,22 +328,22 @@ export default function KaspiCabinetPage() {
         {activeTab === 'reviews' && (
           <div className="space-y-4">
             {data.reviews.map(review => (
-              <div key={review.id} className="bg-white rounded-xl p-4 shadow-sm">
+              <div key={review.id} className="bg-gray-800/80 rounded-xl p-4 shadow-sm">
                 <div className="flex items-start justify-between mb-2">
                   <div>
-                    <div className="font-medium text-gray-900">{review.customer}</div>
+                    <div className="font-medium text-white">{review.customer}</div>
                     <div className="text-xs text-gray-500">{review.product} • {review.date}</div>
                   </div>
                   <div className="flex items-center gap-1">
                     {[...Array(5)].map((_, i) => (
                       <Star
                         key={i}
-                        className={`w-4 h-4 ${i < review.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-300'}`}
+                        className={`w-4 h-4 ${i < review.rating ? 'fill-amber-400 text-amber-400' : 'text-gray-600'}`}
                       />
                     ))}
                   </div>
                 </div>
-                <p className="text-sm text-gray-600">{review.text}</p>
+                <p className="text-sm text-gray-400">{review.text}</p>
               </div>
             ))}
           </div>
@@ -352,41 +352,41 @@ export default function KaspiCabinetPage() {
         {activeTab === 'finance' && (
           <div className="space-y-6">
             {/* Balance Card */}
-            <div className="bg-white rounded-xl p-5 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Текущий баланс</h3>
+            <div className="bg-gray-800/80 rounded-xl p-5 shadow-sm">
+              <h3 className="text-lg font-semibold text-white mb-4">Текущий баланс</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                <div className="p-4 bg-emerald-500/10 rounded-lg border border-emerald-500/30">
                   <div className="text-sm text-emerald-600 mb-1">Доступно к выводу</div>
                   <div className="text-3xl font-bold text-emerald-700">{(data.balance.available / 1000000).toFixed(2)}M ₸</div>
                 </div>
-                <div className="p-4 bg-amber-50 rounded-lg border border-amber-200">
+                <div className="p-4 bg-amber-500/10 rounded-lg border border-amber-500/30">
                   <div className="text-sm text-amber-600 mb-1">Ожидает зачисления</div>
                   <div className="text-3xl font-bold text-amber-700">{(data.balance.pending / 1000).toFixed(0)}k ₸</div>
                 </div>
-                <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                  <div className="text-sm text-gray-600 mb-1">Заморожено</div>
+                <div className="p-4 bg-gray-700/50 rounded-lg border border-gray-700">
+                  <div className="text-sm text-gray-400 mb-1">Заморожено</div>
                   <div className="text-3xl font-bold text-gray-700">{(data.balance.hold / 1000).toFixed(0)}k ₸</div>
                 </div>
               </div>
             </div>
 
             {/* Revenue Stats */}
-            <div className="bg-white rounded-xl p-5 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Статистика выручки</h3>
+            <div className="bg-gray-800/80 rounded-xl p-5 shadow-sm">
+              <h3 className="text-lg font-semibold text-white mb-4">Статистика выручки</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="text-center p-4 border rounded-lg">
+                <div className="text-center p-4 border border-gray-700 rounded-lg">
                   <div className="text-sm text-gray-500 mb-1">Сегодня</div>
-                  <div className="text-2xl font-bold text-gray-900">{(data.stats.revenueToday / 1000000).toFixed(2)}M ₸</div>
+                  <div className="text-2xl font-bold text-white">{(data.stats.revenueToday / 1000000).toFixed(2)}M ₸</div>
                   <div className="text-xs text-gray-500">{data.stats.ordersToday} заказов</div>
                 </div>
-                <div className="text-center p-4 border rounded-lg">
+                <div className="text-center p-4 border border-gray-700 rounded-lg">
                   <div className="text-sm text-gray-500 mb-1">За неделю</div>
-                  <div className="text-2xl font-bold text-gray-900">{(data.stats.revenueThisWeek / 1000000).toFixed(2)}M ₸</div>
+                  <div className="text-2xl font-bold text-white">{(data.stats.revenueThisWeek / 1000000).toFixed(2)}M ₸</div>
                   <div className="text-xs text-gray-500">{data.stats.ordersThisWeek} заказов</div>
                 </div>
-                <div className="text-center p-4 border rounded-lg">
+                <div className="text-center p-4 border border-gray-700 rounded-lg">
                   <div className="text-sm text-gray-500 mb-1">За месяц</div>
-                  <div className="text-2xl font-bold text-gray-900">{(data.stats.revenueThisMonth / 1000000).toFixed(2)}M ₸</div>
+                  <div className="text-2xl font-bold text-white">{(data.stats.revenueThisMonth / 1000000).toFixed(2)}M ₸</div>
                   <div className="text-xs text-gray-500">{data.stats.ordersThisMonth} заказов</div>
                 </div>
               </div>

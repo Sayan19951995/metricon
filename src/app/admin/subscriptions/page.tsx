@@ -204,22 +204,22 @@ export default function SubscriptionsPage() {
 
   const getPlanColor = (plan: string | null) => {
     switch (plan) {
-      case 'pro': return 'bg-purple-100 text-purple-700';
-      case 'business': return 'bg-emerald-100 text-emerald-700';
-      default: return 'bg-blue-100 text-blue-700';
+      case 'pro': return 'bg-purple-500/20 text-purple-400';
+      case 'business': return 'bg-emerald-500/20 text-emerald-400';
+      default: return 'bg-blue-500/20 text-blue-400';
     }
   };
 
   const getStatusInfo = (status: string | null) => {
     switch (status) {
       case 'active':
-        return { icon: <CheckCircle className="w-4 h-4" />, text: 'Активна', color: 'text-emerald-600', bg: 'bg-emerald-50' };
+        return { icon: <CheckCircle className="w-4 h-4" />, text: 'Активна', color: 'text-emerald-600', bg: 'bg-emerald-500/10' };
       case 'expired':
-        return { icon: <Clock className="w-4 h-4" />, text: 'Истекла', color: 'text-amber-600', bg: 'bg-amber-50' };
+        return { icon: <Clock className="w-4 h-4" />, text: 'Истекла', color: 'text-amber-600', bg: 'bg-amber-500/10' };
       case 'cancelled':
-        return { icon: <XCircle className="w-4 h-4" />, text: 'Отменена', color: 'text-red-600', bg: 'bg-red-50' };
+        return { icon: <XCircle className="w-4 h-4" />, text: 'Отменена', color: 'text-red-600', bg: 'bg-red-500/10' };
       default:
-        return { icon: null, text: status || '—', color: 'text-gray-600', bg: 'bg-gray-50' };
+        return { icon: null, text: status || '—', color: 'text-gray-600', bg: 'bg-gray-700/50' };
     }
   };
 
@@ -229,15 +229,15 @@ export default function SubscriptionsPage() {
   ).slice(0, 8);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-100 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 min-h-screen">
       <div className="mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Подписки</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white">Подписки</h1>
           <p className="text-gray-500 mt-1">{loading ? 'Загрузка...' : `${subscriptions.length} подписок`}</p>
         </div>
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-4 py-2.5 bg-gray-900 rounded-xl text-sm font-medium text-white hover:bg-gray-800 transition-colors shadow-sm self-start"
+          className="flex items-center gap-2 px-4 py-2.5 bg-green-600 rounded-xl text-sm font-medium text-white hover:bg-green-700 transition-colors shadow-sm self-start"
         >
           <Plus className="w-4 h-4" />
           Создать подписку
@@ -245,7 +245,7 @@ export default function SubscriptionsPage() {
       </div>
 
       {/* Filters */}
-      <div className="bg-white rounded-xl p-4 shadow-sm mb-6 border border-gray-100">
+      <div className="bg-gray-800/80 rounded-xl p-4 shadow-sm mb-6 border border-gray-700">
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1 min-w-0 lg:max-w-md relative">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
@@ -255,7 +255,7 @@ export default function SubscriptionsPage() {
               value={search}
               onChange={(e) => { setSearch(e.target.value); setCurrentPage(1); }}
               style={{ paddingLeft: '48px' }}
-              className="w-full pr-4 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+              className="w-full pr-4 py-2.5 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
           <div className="flex items-center gap-3 flex-shrink-0">
@@ -263,7 +263,7 @@ export default function SubscriptionsPage() {
             <select
               value={planFilter}
               onChange={(e) => { setPlanFilter(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+              className="px-3 py-2.5 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-white text-sm"
             >
               <option value="all">Все тарифы</option>
               <option value="start">Старт</option>
@@ -273,7 +273,7 @@ export default function SubscriptionsPage() {
             <select
               value={statusFilter}
               onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
-              className="px-3 py-2.5 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-sm"
+              className="px-3 py-2.5 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-800 text-white text-sm"
             >
               <option value="all">Все статусы</option>
               <option value="active">Активные</option>
@@ -289,27 +289,27 @@ export default function SubscriptionsPage() {
           <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
         </div>
       ) : (
-        <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-gray-100">
+        <div className="bg-gray-800/80 rounded-xl shadow-sm overflow-hidden border border-gray-700">
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-200">
+              <thead className="bg-gray-800/50 border-b border-gray-700">
                 <tr>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Пользователь</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Тариф</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden md:table-cell">Срок действия</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider">Статус</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-600 uppercase tracking-wider hidden lg:table-cell">Осталось</th>
-                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-600 uppercase tracking-wider w-16">...</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Пользователь</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Тариф</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Срок действия</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">Статус</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell">Осталось</th>
+                  <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider w-16">...</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-700">
                 {paginated.map(sub => {
                   const statusInfo = getStatusInfo(sub.status);
                   const daysLeft = getDaysRemaining(sub.endDate);
                   return (
-                    <tr key={sub.id} className="hover:bg-gray-50 transition-colors">
+                    <tr key={sub.id} className="hover:bg-gray-700/50 transition-colors">
                       <td className="px-4 py-3">
-                        <div className="font-medium text-gray-900 text-sm">{sub.userName}</div>
+                        <div className="font-medium text-white text-sm">{sub.userName}</div>
                         <div className="text-xs text-gray-500">{sub.userEmail}</div>
                       </td>
                       <td className="px-4 py-3">
@@ -318,7 +318,7 @@ export default function SubscriptionsPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 hidden md:table-cell">
-                        <div className="flex items-center gap-1 text-sm text-gray-600">
+                        <div className="flex items-center gap-1 text-sm text-gray-400">
                           <Calendar className="w-4 h-4 text-gray-400" />
                           {formatDate(sub.startDate)} — {formatDate(sub.endDate)}
                         </div>
@@ -340,7 +340,7 @@ export default function SubscriptionsPage() {
                           <span className={`text-sm font-medium ${
                             daysLeft < 0 ? 'text-red-600' :
                             daysLeft <= 7 ? 'text-amber-600' :
-                            'text-gray-600'
+                            'text-gray-400'
                           }`}>
                             {daysLeft < 0
                               ? `${Math.abs(daysLeft)}д просрочена`
@@ -365,7 +365,7 @@ export default function SubscriptionsPage() {
                                 setOpenMenu(sub.id);
                               }
                             }}
-                            className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                            className="p-1.5 hover:bg-gray-700 rounded-lg transition-colors"
                           >
                             <MoreVertical className="w-5 h-5 text-gray-500" />
                           </button>
@@ -373,28 +373,28 @@ export default function SubscriptionsPage() {
                             <>
                               <div className="fixed inset-0 z-[90]" onClick={() => setOpenMenu(null)} />
                               <div
-                                className="fixed w-52 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-[100]"
+                                className="fixed w-52 bg-gray-800 rounded-lg shadow-lg border border-gray-700 py-1 z-[100]"
                                 style={{ top: menuPos.top, left: menuPos.left }}
                               >
                                 <button
                                   onClick={() => { setExtendModal(sub.id); setOpenMenu(null); }}
-                                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                  className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-2"
                                 >
                                   <CalendarPlus className="w-4 h-4 text-emerald-500" />
                                   Продлить
                                 </button>
                                 <button
                                   onClick={() => { setPlanModal({ subId: sub.id, currentPlan: sub.plan || 'start' }); setOpenMenu(null); }}
-                                  className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                                  className="w-full px-4 py-2 text-left text-sm text-gray-300 hover:bg-gray-700 flex items-center gap-2"
                                 >
                                   <CreditCard className="w-4 h-4 text-blue-500" />
                                   Изменить тариф
                                 </button>
-                                <div className="border-t border-gray-100 my-1" />
+                                <div className="border-t border-gray-700 my-1" />
                                 {sub.status !== 'cancelled' && (
                                   <button
                                     onClick={() => { setCancelModal(sub.id); setOpenMenu(null); }}
-                                    className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                                    className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-500/10 flex items-center gap-2"
                                   >
                                     <Ban className="w-4 h-4" />
                                     Отменить подписку
@@ -413,7 +413,7 @@ export default function SubscriptionsPage() {
           </div>
 
           {/* Pagination */}
-          <div className="px-4 py-3 border-t border-gray-200 flex items-center justify-between">
+          <div className="px-4 py-3 border-t border-gray-700 flex items-center justify-between">
             <div className="text-sm text-gray-500">
               {filteredSubscriptions.length > 0
                 ? `${((currentPage - 1) * itemsPerPage) + 1}–${Math.min(currentPage * itemsPerPage, filteredSubscriptions.length)} из ${filteredSubscriptions.length}`
@@ -424,15 +424,15 @@ export default function SubscriptionsPage() {
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage === 1}
-                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 rounded-lg border border-gray-700 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
-              <span className="text-sm text-gray-600">{currentPage} / {totalPages || 1}</span>
+              <span className="text-sm text-gray-400">{currentPage} / {totalPages || 1}</span>
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages}
-                className="p-2 rounded-lg border border-gray-200 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="p-2 rounded-lg border border-gray-700 hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
@@ -444,14 +444,14 @@ export default function SubscriptionsPage() {
       {/* Extend subscription modal */}
       {extendModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setExtendModal(null)}>
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">Продлить подписку</h3>
+          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-sm mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-white mb-1">Продлить подписку</h3>
             <p className="text-sm text-gray-500 mb-4">
               {subscriptions.find(s => s.id === extendModal)?.userName}
             </p>
 
             <div>
-              <label className="text-sm font-medium text-gray-700 mb-2 block">На сколько дней?</label>
+              <label className="text-sm font-medium text-gray-300 mb-2 block">На сколько дней?</label>
               <div className="flex gap-2 mb-3">
                 {[7, 30, 90, 365].map(d => (
                   <button
@@ -459,8 +459,8 @@ export default function SubscriptionsPage() {
                     onClick={() => setExtendDays(d)}
                     className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors ${
                       extendDays === d
-                        ? 'bg-blue-50 border-2 border-blue-500 text-blue-700 font-medium'
-                        : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200'
+                        ? 'bg-blue-500/20 border-2 border-blue-500 text-blue-400 font-medium'
+                        : 'bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600'
                     }`}
                   >
                     {d}д
@@ -471,7 +471,7 @@ export default function SubscriptionsPage() {
                 type="number"
                 value={extendDays}
                 onChange={(e) => setExtendDays(Number(e.target.value) || 0)}
-                className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Или введите количество дней"
                 min={1}
               />
@@ -480,7 +480,7 @@ export default function SubscriptionsPage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setExtendModal(null)}
-                className="flex-1 px-4 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+                className="flex-1 px-4 py-2.5 text-gray-400 hover:bg-gray-700 rounded-lg transition-colors border border-gray-700"
               >
                 Отмена
               </button>
@@ -499,8 +499,8 @@ export default function SubscriptionsPage() {
       {/* Change plan modal */}
       {planModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setPlanModal(null)}>
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Изменить тариф</h3>
+          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-sm mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-white mb-4">Изменить тариф</h3>
             <div className="space-y-2">
               {['start', 'business', 'pro'].map(plan => (
                 <button
@@ -509,8 +509,8 @@ export default function SubscriptionsPage() {
                   disabled={actionLoading}
                   className={`w-full px-4 py-3 rounded-lg text-left transition-colors ${
                     planModal.currentPlan === plan
-                      ? 'bg-blue-50 border-2 border-blue-500 text-blue-700'
-                      : 'bg-gray-50 hover:bg-gray-100 text-gray-700'
+                      ? 'bg-blue-500/20 border-2 border-blue-500 text-blue-400'
+                      : 'bg-gray-700 hover:bg-gray-600 text-gray-300'
                   }`}
                 >
                   <span className="font-medium">{planLabels[plan] || plan}</span>
@@ -518,7 +518,7 @@ export default function SubscriptionsPage() {
                 </button>
               ))}
             </div>
-            <button onClick={() => setPlanModal(null)} className="w-full mt-4 px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
+            <button onClick={() => setPlanModal(null)} className="w-full mt-4 px-4 py-2 text-gray-400 hover:bg-gray-700 rounded-lg transition-colors">
               Отмена
             </button>
           </div>
@@ -528,16 +528,16 @@ export default function SubscriptionsPage() {
       {/* Cancel subscription modal */}
       {cancelModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setCancelModal(null)}>
-          <div className="bg-white rounded-xl p-6 w-full max-w-sm mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">Отменить подписку?</h3>
+          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-sm mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-white mb-2">Отменить подписку?</h3>
             <p className="text-sm text-gray-500 mb-6">
-              Подписка пользователя <span className="font-medium text-gray-700">{subscriptions.find(s => s.id === cancelModal)?.userName}</span> будет отменена.
+              Подписка пользователя <span className="font-medium text-gray-300">{subscriptions.find(s => s.id === cancelModal)?.userName}</span> будет отменена.
               Это действие можно отменить, продлив подписку заново.
             </p>
             <div className="flex gap-3">
               <button
                 onClick={() => setCancelModal(null)}
-                className="flex-1 px-4 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+                className="flex-1 px-4 py-2.5 text-gray-400 hover:bg-gray-700 rounded-lg transition-colors border border-gray-700"
               >
                 Назад
               </button>
@@ -556,17 +556,17 @@ export default function SubscriptionsPage() {
       {/* Create subscription modal */}
       {createModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={() => setCreateModal(false)}>
-          <div className="bg-white rounded-xl p-6 w-full max-w-md mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Создать подписку</h3>
+          <div className="bg-gray-800 rounded-xl p-6 w-full max-w-md mx-4 shadow-xl" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-semibold text-white mb-4">Создать подписку</h3>
 
             <div className="space-y-4">
               {/* User search */}
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Пользователь</label>
+                <label className="text-sm font-medium text-gray-300 mb-2 block">Пользователь</label>
                 {createUserId ? (
-                  <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+                  <div className="flex items-center justify-between p-3 bg-blue-500/20 rounded-lg border border-blue-500/30">
                     <div>
-                      <div className="text-sm font-medium text-gray-900">
+                      <div className="text-sm font-medium text-white">
                         {allUsers.find(u => u.id === createUserId)?.name}
                       </div>
                       <div className="text-xs text-gray-500">
@@ -587,17 +587,17 @@ export default function SubscriptionsPage() {
                       placeholder="Поиск по имени или email..."
                       value={createUserSearch}
                       onChange={(e) => setCreateUserSearch(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded-lg text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                     {createUserSearch && (
-                      <div className="mt-2 max-h-40 overflow-y-auto border border-gray-200 rounded-lg divide-y divide-gray-100">
+                      <div className="mt-2 max-h-40 overflow-y-auto border border-gray-700 rounded-lg divide-y divide-gray-700">
                         {filteredCreateUsers.length > 0 ? filteredCreateUsers.map(u => (
                           <button
                             key={u.id}
                             onClick={() => { setCreateUserId(u.id); setCreateUserSearch(''); }}
-                            className="w-full px-3 py-2 text-left hover:bg-gray-50 transition-colors"
+                            className="w-full px-3 py-2 text-left hover:bg-gray-700/50 transition-colors"
                           >
-                            <div className="text-sm font-medium text-gray-900">{u.name}</div>
+                            <div className="text-sm font-medium text-white">{u.name}</div>
                             <div className="text-xs text-gray-500">{u.email}</div>
                           </button>
                         )) : (
@@ -611,7 +611,7 @@ export default function SubscriptionsPage() {
 
               {/* Plan */}
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Тариф</label>
+                <label className="text-sm font-medium text-gray-300 mb-2 block">Тариф</label>
                 <div className="space-y-2">
                   {['start', 'business', 'pro'].map(plan => (
                     <button
@@ -619,8 +619,8 @@ export default function SubscriptionsPage() {
                       onClick={() => setCreatePlan(plan)}
                       className={`w-full px-4 py-2.5 rounded-lg text-left text-sm transition-colors ${
                         createPlan === plan
-                          ? 'bg-blue-50 border-2 border-blue-500 text-blue-700 font-medium'
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200'
+                          ? 'bg-blue-500/20 border-2 border-blue-500 text-blue-400 font-medium'
+                          : 'bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600'
                       }`}
                     >
                       {planLabels[plan]}
@@ -631,7 +631,7 @@ export default function SubscriptionsPage() {
 
               {/* Duration */}
               <div>
-                <label className="text-sm font-medium text-gray-700 mb-2 block">Срок (дней)</label>
+                <label className="text-sm font-medium text-gray-300 mb-2 block">Срок (дней)</label>
                 <div className="flex gap-2">
                   {[7, 30, 90, 365].map(d => (
                     <button
@@ -639,8 +639,8 @@ export default function SubscriptionsPage() {
                       onClick={() => setCreateDays(d)}
                       className={`flex-1 px-3 py-2 rounded-lg text-sm transition-colors ${
                         createDays === d
-                          ? 'bg-blue-50 border-2 border-blue-500 text-blue-700 font-medium'
-                          : 'bg-gray-50 hover:bg-gray-100 text-gray-700 border border-gray-200'
+                          ? 'bg-blue-500/20 border-2 border-blue-500 text-blue-400 font-medium'
+                          : 'bg-gray-700 hover:bg-gray-600 text-gray-300 border border-gray-600'
                       }`}
                     >
                       {d}д
@@ -653,14 +653,14 @@ export default function SubscriptionsPage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setCreateModal(false)}
-                className="flex-1 px-4 py-2.5 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200"
+                className="flex-1 px-4 py-2.5 text-gray-400 hover:bg-gray-700 rounded-lg transition-colors border border-gray-700"
               >
                 Отмена
               </button>
               <button
                 onClick={handleCreate}
                 disabled={actionLoading || !createUserId}
-                className="flex-1 px-4 py-2.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors disabled:opacity-50 font-medium"
+                className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 font-medium"
               >
                 {actionLoading ? 'Создание...' : 'Создать'}
               </button>
