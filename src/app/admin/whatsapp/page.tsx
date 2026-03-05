@@ -21,14 +21,12 @@ export default function AdminWhatsAppPage() {
   const [filter, setFilter] = useState<'all' | 'on' | 'off'>('all');
   const [toggling, setToggling] = useState<string | null>(null);
 
-  // WA session
   const [waStatus, setWaStatus] = useState<string>('disconnected');
   const [waQr, setWaQr] = useState<string | null>(null);
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Test message modal
   const [testModal, setTestModal] = useState<StoreItem | null>(null);
   const [testPhone, setTestPhone] = useState('');
   const [testMessage, setTestMessage] = useState('');
@@ -172,33 +170,33 @@ export default function AdminWhatsAppPage() {
   const connectedCount = stores.filter(s => s.whatsapp_connected).length;
 
   return (
-    <div className="p-4 lg:p-8">
+    <div className="p-4 lg:p-8 min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100 flex items-center gap-3">
-          <MessageCircle className="w-7 h-7 text-green-500" />
+        <h1 className="text-2xl font-bold text-white flex items-center gap-3">
+          <MessageCircle className="w-7 h-7 text-green-400" />
           WhatsApp рассылка
         </h1>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Управление WhatsApp уведомлениями для магазинов</p>
+        <p className="text-gray-400 mt-1">Управление WhatsApp уведомлениями для магазинов</p>
       </div>
 
       {/* WA Session Block */}
-      <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 mb-6 border border-gray-200 dark:border-gray-700 shadow-sm">
+      <div className="bg-gray-800/80 rounded-2xl p-6 mb-6 border border-gray-700">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
             {waStatus === 'connected' ? (
-              <Wifi className="w-5 h-5 text-green-500" />
+              <Wifi className="w-5 h-5 text-green-400" />
             ) : (
-              <WifiOff className="w-5 h-5 text-red-500" />
+              <WifiOff className="w-5 h-5 text-red-400" />
             )}
             Сессия WhatsApp
           </h2>
-          <span className={`px-3 py-1 rounded-full text-xs font-medium ${
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
             waStatus === 'connected'
-              ? 'bg-green-100 dark:bg-green-500/20 text-green-700 dark:text-green-400'
+              ? 'bg-green-900/50 text-green-300 border border-green-700'
               : waStatus === 'server_offline'
-                ? 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-700 dark:text-yellow-400'
-                : 'bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400'
+                ? 'bg-yellow-900/50 text-yellow-300 border border-yellow-700'
+                : 'bg-red-900/50 text-red-300 border border-red-700'
           }`}>
             {waStatus === 'connected' ? 'Подключён' : waStatus === 'server_offline' ? 'Сервер недоступен' : 'Отключён'}
           </span>
@@ -206,19 +204,19 @@ export default function AdminWhatsAppPage() {
 
         {waStatus === 'connected' ? (
           <div className="flex items-center justify-between">
-            <p className="text-gray-600 dark:text-gray-400 text-sm">WhatsApp подключён и готов к отправке.</p>
+            <p className="text-gray-300 text-sm">WhatsApp подключён и готов к отправке.</p>
             <button
               onClick={handleDisconnect}
               disabled={disconnecting}
-              className="px-4 py-2 bg-red-100 dark:bg-red-500/20 text-red-700 dark:text-red-400 rounded-xl text-sm font-medium hover:bg-red-200 dark:hover:bg-red-500/30 transition-colors cursor-pointer disabled:opacity-50"
+              className="px-4 py-2 bg-red-900/40 text-red-300 border border-red-700 rounded-xl text-sm font-medium hover:bg-red-900/60 transition-colors cursor-pointer disabled:opacity-50"
             >
               {disconnecting ? 'Отключение...' : 'Отключить'}
             </button>
           </div>
         ) : waQr ? (
           <div className="flex flex-col items-center gap-4">
-            <p className="text-gray-600 dark:text-gray-400 text-sm">Отсканируйте QR-код в WhatsApp:</p>
-            <div className="bg-white p-4 rounded-xl shadow-sm">
+            <p className="text-gray-300 text-sm">Отсканируйте QR-код в WhatsApp:</p>
+            <div className="bg-white p-4 rounded-xl">
               <img src={`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(waQr)}`} alt="QR" className="w-64 h-64" />
             </div>
             <div className="flex items-center gap-2 text-gray-500 text-xs">
@@ -228,13 +226,13 @@ export default function AdminWhatsAppPage() {
           </div>
         ) : (
           <div className="flex items-center justify-between">
-            <p className="text-gray-600 dark:text-gray-400 text-sm">
+            <p className="text-gray-300 text-sm">
               {waStatus === 'server_offline' ? 'WhatsApp сервер (Railway) недоступен.' : 'Подключите WhatsApp для отправки уведомлений.'}
             </p>
             <button
               onClick={handleConnect}
               disabled={connecting}
-              className="px-4 py-2 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+              className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-500 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
             >
               {connecting ? (
                 <><Loader2 className="w-4 h-4 animate-spin" /> Подключение...</>
@@ -248,30 +246,30 @@ export default function AdminWhatsAppPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
-          <div className="text-gray-500 dark:text-gray-400 text-sm">Всего магазинов</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-1">{stores.length}</div>
+        <div className="bg-gray-800/80 rounded-xl p-4 border border-gray-700">
+          <div className="text-gray-400 text-sm">Всего магазинов</div>
+          <div className="text-2xl font-bold text-white mt-1">{stores.length}</div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-green-200 dark:border-green-800 shadow-sm">
-          <div className="text-green-600 dark:text-green-400 text-sm">Рассылка включена</div>
-          <div className="text-2xl font-bold text-green-600 dark:text-green-400 mt-1">{connectedCount}</div>
+        <div className="bg-gray-800/80 rounded-xl p-4 border border-green-800">
+          <div className="text-green-400 text-sm font-medium">Рассылка включена</div>
+          <div className="text-2xl font-bold text-green-400 mt-1">{connectedCount}</div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-xl p-4 border border-gray-200 dark:border-gray-700 shadow-sm">
-          <div className="text-gray-500 dark:text-gray-400 text-sm">Рассылка выключена</div>
-          <div className="text-2xl font-bold text-gray-700 dark:text-gray-300 mt-1">{stores.length - connectedCount}</div>
+        <div className="bg-gray-800/80 rounded-xl p-4 border border-gray-700">
+          <div className="text-gray-400 text-sm">Рассылка выключена</div>
+          <div className="text-2xl font-bold text-gray-300 mt-1">{stores.length - connectedCount}</div>
         </div>
       </div>
 
       {/* Search & Filter */}
       <div className="flex flex-col sm:flex-row gap-3 mb-6">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500" />
           <input
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Поиск по имени, email, телефону..."
-            className="w-full pl-10 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-green-500 shadow-sm"
+            className="w-full pl-10 pr-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
           />
         </div>
         <div className="flex gap-2">
@@ -281,8 +279,8 @@ export default function AdminWhatsAppPage() {
               onClick={() => setFilter(f)}
               className={`px-4 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
                 filter === f
-                  ? 'bg-green-500 text-white shadow-sm'
-                  : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-400 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  ? 'bg-green-600 text-white'
+                  : 'bg-gray-800 text-gray-400 border border-gray-700 hover:bg-gray-700'
               }`}
             >
               {f === 'all' ? 'Все' : f === 'on' ? 'Включены' : 'Выключены'}
@@ -297,39 +295,39 @@ export default function AdminWhatsAppPage() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-12 text-gray-500">Магазины не найдены</div>
       ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden shadow-sm">
+        <div className="bg-gray-800/80 rounded-xl border border-gray-700 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50">
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Магазин</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">Владелец</th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">Телефон</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">WA</th>
-                  <th className="text-center px-4 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">Действия</th>
+                <tr className="border-b border-gray-700">
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Магазин</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Владелец</th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell">Телефон</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">WA</th>
+                  <th className="text-center px-4 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Действия</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(store => (
-                  <tr key={store.id} className="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
+                  <tr key={store.id} className="border-b border-gray-700/50 hover:bg-gray-700/30 transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0">
-                          <Store className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                        <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center flex-shrink-0">
+                          <Store className="w-4 h-4 text-gray-400" />
                         </div>
                         <div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{store.name || '—'}</div>
+                          <div className="text-sm font-medium text-white">{store.name || '—'}</div>
                           <div className="text-xs text-gray-500 md:hidden">{store.owner_email}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
-                      <div className="text-sm text-gray-700 dark:text-gray-200">{store.owner_name}</div>
+                      <div className="text-sm text-gray-200">{store.owner_name}</div>
                       <div className="text-xs text-gray-500">{store.owner_email}</div>
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
-                      <div className="flex items-center gap-1.5 text-sm text-gray-600 dark:text-gray-300">
-                        <Phone className="w-3.5 h-3.5 text-gray-400" />
+                      <div className="flex items-center gap-1.5 text-sm text-gray-300">
+                        <Phone className="w-3.5 h-3.5 text-gray-500" />
                         {store.owner_phone || '—'}
                       </div>
                     </td>
@@ -340,9 +338,9 @@ export default function AdminWhatsAppPage() {
                         className="inline-flex items-center cursor-pointer disabled:opacity-50"
                       >
                         {store.whatsapp_connected ? (
-                          <ToggleRight className="w-8 h-8 text-green-500" />
+                          <ToggleRight className="w-8 h-8 text-green-400" />
                         ) : (
-                          <ToggleLeft className="w-8 h-8 text-gray-300 dark:text-gray-600" />
+                          <ToggleLeft className="w-8 h-8 text-gray-600" />
                         )}
                       </button>
                     </td>
@@ -350,7 +348,7 @@ export default function AdminWhatsAppPage() {
                       <button
                         onClick={() => openTestModal(store)}
                         disabled={waStatus !== 'connected'}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-50 dark:bg-green-500/20 text-green-600 dark:text-green-400 rounded-lg text-xs font-medium hover:bg-green-100 dark:hover:bg-green-500/30 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-green-900/40 text-green-300 border border-green-800 rounded-lg text-xs font-medium hover:bg-green-900/60 transition-colors cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
                       >
                         <Send className="w-3.5 h-3.5" />
                         Тест
@@ -366,34 +364,34 @@ export default function AdminWhatsAppPage() {
 
       {/* Test Message Modal */}
       {testModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setTestModal(null)}>
-          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700" onClick={e => e.stopPropagation()}>
-            <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-1">Тестовое сообщение</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">{testModal.name}</p>
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={() => setTestModal(null)}>
+          <div className="bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-700" onClick={e => e.stopPropagation()}>
+            <h3 className="text-lg font-bold text-white mb-1">Тестовое сообщение</h3>
+            <p className="text-sm text-gray-400 mb-4">{testModal.name}</p>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">Телефон</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Телефон</label>
                 <input
                   type="tel"
                   value={testPhone}
                   onChange={e => setTestPhone(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-green-500"
+                  className="w-full px-4 py-2.5 bg-gray-900 border border-gray-600 rounded-xl text-sm text-white focus:outline-none focus:border-green-500"
                   placeholder="+7XXXXXXXXXX"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-700 dark:text-gray-300 mb-1">Сообщение</label>
+                <label className="block text-sm font-medium text-gray-300 mb-1">Сообщение</label>
                 <textarea
                   value={testMessage}
                   onChange={e => setTestMessage(e.target.value)}
                   rows={3}
-                  className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-gray-100 focus:outline-none focus:border-green-500 resize-none"
+                  className="w-full px-4 py-2.5 bg-gray-900 border border-gray-600 rounded-xl text-sm text-white focus:outline-none focus:border-green-500 resize-none"
                 />
               </div>
 
               {sendResult && (
-                <div className={`flex items-center gap-2 text-sm font-medium ${sendResult === 'success' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                <div className={`flex items-center gap-2 text-sm font-medium ${sendResult === 'success' ? 'text-green-400' : 'text-red-400'}`}>
                   {sendResult === 'success' ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
                   {sendResult === 'success' ? 'Сообщение отправлено' : 'Ошибка отправки'}
                 </div>
@@ -402,14 +400,14 @@ export default function AdminWhatsAppPage() {
               <div className="flex gap-3">
                 <button
                   onClick={() => setTestModal(null)}
-                  className="flex-1 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+                  className="flex-1 px-4 py-2.5 bg-gray-700 text-gray-200 rounded-xl text-sm font-medium hover:bg-gray-600 transition-colors cursor-pointer"
                 >
                   Закрыть
                 </button>
                 <button
                   onClick={handleSendTest}
                   disabled={sending || !testPhone || !testMessage}
-                  className="flex-1 px-4 py-2.5 bg-green-500 text-white rounded-xl text-sm font-medium hover:bg-green-600 transition-colors cursor-pointer disabled:opacity-50"
+                  className="flex-1 px-4 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-500 transition-colors cursor-pointer disabled:opacity-50"
                 >
                   {sending ? 'Отправка...' : 'Отправить'}
                 </button>
