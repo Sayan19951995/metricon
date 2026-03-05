@@ -3,8 +3,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { Database } from '@/types/database'
 
 export const createMiddlewareClient = (request: NextRequest) => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co'
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder'
 
   return createClient<Database>(supabaseUrl, supabaseAnonKey, {
     auth: {
