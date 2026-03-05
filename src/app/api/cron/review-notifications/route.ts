@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
         const { data: user } = await supabaseAdmin
           .from('users')
           .select('phone')
-          .eq('id', store.user_id)
+          .eq('id', store.user_id as string)
           .single();
 
         const phone = (user as any)?.phone;
