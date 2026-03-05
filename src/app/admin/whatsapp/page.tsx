@@ -217,7 +217,7 @@ export default function AdminWhatsAppPage() {
           <div className="flex flex-col items-center gap-4">
             <p className="text-gray-300 text-sm">Отсканируйте QR-код в WhatsApp:</p>
             <div className="bg-white p-4 rounded-xl">
-              <img src={`https://api.qrserver.com/v1/create-qr-code/?size=256x256&data=${encodeURIComponent(waQr)}`} alt="QR" className="w-64 h-64" />
+              <img src={waQr.startsWith('data:') ? waQr : `data:image/png;base64,${waQr}`} alt="QR" className="w-64 h-64" />
             </div>
             <div className="flex items-center gap-2 text-gray-500 text-xs">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
