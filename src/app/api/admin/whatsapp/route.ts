@@ -136,9 +136,23 @@ export async function PATCH(request: NextRequest) {
     const cleanPhone = phone.replace(/\D/g, '');
     const waPhone = cleanPhone.startsWith('8') ? '7' + cleanPhone.slice(1) : cleanPhone;
 
-    // Use global session for sending
-    const ok = await waSendMessage(GLOBAL_STORE_ID, waPhone, message);
-    return NextResponse.json({ success: ok });
+    // Use global session for sending — with detailed error
+    try {
+      const WA_SERVER_URL = process.env.WA_SERVER_URL || 'http://localhost:3001';
+      const WA_SERVER_SECRET = process.env.WA_SERVER_SECRET || 'dev-secret';
+      const res = await fetch(`${WA_SERVER_URL}/message/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': WA_SERVER_SECRET },
+        body: JSON.stringify({ storeId: GLOBAL_STORE_ID, phone: waPhone, message }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        return NextResponse.json({ success: false, error: `WA ${res.status}: ${data.error || data.message || JSON.stringify(data)}` });
+      }
+      return NextResponse.json({ success: data.success === true, error: data.success ? null : (data.error || data.message || 'Unknown WA error') });
+    } catch (e: any) {
+      return NextResponse.json({ success: false, error: `WA server: ${e.message}` });
+    }
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 });

@@ -32,6 +32,7 @@ export default function AdminWhatsAppPage() {
   const [testMessage, setTestMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sendResult, setSendResult] = useState<'success' | 'error' | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   useEffect(() => {
     loadStores();
@@ -135,6 +136,7 @@ export default function AdminWhatsAppPage() {
     if (!testModal || !testPhone || !testMessage) return;
     setSending(true);
     setSendResult(null);
+    setSendError(null);
     try {
       const res = await fetchWithAuth('/api/admin/whatsapp', {
         method: 'PATCH',
@@ -143,8 +145,10 @@ export default function AdminWhatsAppPage() {
       });
       const data = await res.json();
       setSendResult(data.success ? 'success' : 'error');
-    } catch {
+      if (!data.success) setSendError(data.error || 'Неизвестная ошибка');
+    } catch (e: any) {
       setSendResult('error');
+      setSendError(e.message || 'Сеть недоступна');
     } finally {
       setSending(false);
     }
@@ -391,9 +395,12 @@ export default function AdminWhatsAppPage() {
               </div>
 
               {sendResult && (
-                <div className={`flex items-center gap-2 text-sm font-medium ${sendResult === 'success' ? 'text-green-400' : 'text-red-400'}`}>
-                  {sendResult === 'success' ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
-                  {sendResult === 'success' ? 'Сообщение отправлено' : 'Ошибка отправки'}
+                <div className={`text-sm font-medium ${sendResult === 'success' ? 'text-green-400' : 'text-red-400'}`}>
+                  <div className="flex items-center gap-2">
+                    {sendResult === 'success' ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+                    {sendResult === 'success' ? 'Сообщение отправлено' : 'Ошибка отправки'}
+                  </div>
+                  {sendError && <div className="mt-1 text-xs text-red-400/70 font-normal">{sendError}</div>}
                 </div>
               )}
 
