@@ -91,8 +91,7 @@ export default function AccountSettingsPage() {
   // Заполняем форму реальными данными при загрузке
   useEffect(() => {
     if (user) {
-      // Храним полный номер (только цифры, без +)
-      const cleanPhone = (user.phone || '').replace(/\D/g, '');
+      const cleanPhone = (user.phone || '').replace(/[^\d+]/g, '');
       setProfileForm({
         email: user.email || '',
         phone: cleanPhone,
@@ -128,7 +127,7 @@ export default function AccountSettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: profileForm.name,
-          phone: profileForm.phone ? `+${profileForm.phone.replace(/\D/g, '')}` : null,
+          phone: profileForm.phone ? (profileForm.phone.startsWith('+') ? profileForm.phone : `+${profileForm.phone}`) : null,
         }),
       });
       if (res.ok) {
@@ -273,11 +272,10 @@ export default function AccountSettingsPage() {
                     </div>
                     <input
                       type="tel"
-                      inputMode="numeric"
                       value={profileForm.phone}
                       onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, '').slice(0, 11);
-                        setProfileForm({...profileForm, phone: digits});
+                        const val = e.target.value.replace(/[^\d+]/g, '');
+                        setProfileForm({...profileForm, phone: val});
                       }}
                       className="flex-1 py-3 pr-4 pl-1 bg-transparent focus:outline-none text-gray-900 dark:text-white text-sm"
                       placeholder="+7 XXX XXX XX XX"
