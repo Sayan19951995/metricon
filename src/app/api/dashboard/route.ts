@@ -100,16 +100,28 @@ export async function GET(request: NextRequest) {
       .select('*', { count: 'exact', head: true })
       .eq('store_id', store.id);
 
-    // === Статистика за 30 дней ===
-    const monthStatsResult = await supabaseAdmin
-      .from('daily_stats')
-      .select('*')
+    // === Статистика за 30 дней (напрямую из orders — точнее чем daily_stats) ===
+    const thirtyDaysAgoStart = new Date(kzDaysAgo(30) + 'T00:00:00+05:00');
+    const monthOrdersResult = await supabaseAdmin
+      .from('orders')
+      .select('total_amount, items')
       .eq('store_id', store.id)
-      .gte('date', kzDaysAgo(30));
-    const monthStats = monthStatsResult.data || [];
+      .gte('created_at', thirtyDaysAgoStart.toISOString())
+      .not('status', 'in', '(cancelled,returned)');
+    const monthOrders = monthOrdersResult.data || [];
 
-    const monthRevenue = monthStats.reduce((sum: number, d: any) => sum + (d.revenue || 0), 0);
-    const monthOrdersCount = monthStats.reduce((sum: number, d: any) => sum + (d.orders_count || 0), 0);
+    const monthRevenue = monthOrders.reduce((sum: number, o: any) => sum + (o.total_amount || 0), 0);
+    const monthOrdersCount = monthOrders.length;
+
+    let monthProductsSold = 0;
+    for (const order of monthOrders) {
+      const items = order.items as Array<{ quantity: number }> | null;
+      if (items && Array.isArray(items)) {
+        for (const item of items) {
+          monthProductsSold += item.quantity || 0;
+        }
+      }
+    }
 
     // === Данные по неделям для графиков (KZ timezone) ===
     const currentWeekData: number[] = [];
@@ -284,7 +296,7 @@ export async function GET(request: NextRequest) {
         month: {
           revenue: monthRevenue,
           orders: monthOrdersCount,
-          productsSold: 0
+          productsSold: monthProductsSold
         },
         todayOrders: {
           total: activeOrders.length,

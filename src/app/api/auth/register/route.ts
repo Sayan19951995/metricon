@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/api-auth';
 import { emailService } from '@/lib/email/mailer';
+import { waSendMessage } from '@/lib/whatsapp/client';
 
 export async function POST(req: NextRequest) {
   try {
@@ -109,6 +110,16 @@ export async function POST(req: NextRequest) {
       }
     } else {
       console.error('generateLink returned no hashed_token:', linkData);
+    }
+
+    // 4. Send WhatsApp welcome message (best-effort, don't block registration)
+    if (phone) {
+      const cleanPhone = phone.replace(/\D/g, '');
+      const waPhone = cleanPhone.startsWith('8') ? '7' + cleanPhone.slice(1) : cleanPhone;
+      const welcomeMsg = `Добро пожаловать в Metricon! 🎉\n\nВам подарены 14 дней бесплатного Pro доступа.\n\nПодключите Kaspi магазин в настройках, чтобы активировать пробный период.\n\nЕсли есть вопросы — пишите сюда, мы поможем!`;
+      waSendMessage('metricon-global', waPhone, welcomeMsg).catch(err => {
+        console.error('Welcome WhatsApp failed:', err);
+      });
     }
 
     return NextResponse.json({ success: true });
