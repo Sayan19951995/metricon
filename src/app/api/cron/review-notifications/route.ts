@@ -19,11 +19,11 @@ export async function GET(request: NextRequest) {
 
   try {
     // Get all stores with WhatsApp connected and Kaspi merchant_id
-    const { data: stores } = await supabaseAdmin
+    const { data: stores } = await (supabaseAdmin
       .from('stores')
       .select('id, user_id, name, kaspi_merchant_id, kaspi_session, whatsapp_connected, last_review_count, last_rating')
       .eq('whatsapp_connected', true)
-      .not('kaspi_merchant_id', 'is', null);
+      .not('kaspi_merchant_id', 'is', null) as any);
 
     if (!stores || stores.length === 0) {
       return NextResponse.json({ success: true, message: 'No stores to check' });
