@@ -27,7 +27,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (userLoading || isAdmin === null) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
       </div>
     );
@@ -35,11 +35,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   if (!isAdmin) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="bg-white rounded-2xl p-8 shadow-sm max-w-sm text-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+        <div className="bg-gray-800 rounded-2xl p-8 shadow-sm max-w-sm text-center border border-gray-700">
           <ShieldAlert className="w-12 h-12 text-red-500 mx-auto mb-4" />
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Нет доступа</h2>
-          <p className="text-gray-500 text-sm mb-4">У вас нет прав администратора</p>
+          <h2 className="text-xl font-bold text-white mb-2">Нет доступа</h2>
+          <p className="text-gray-400 text-sm mb-4">У вас нет прав администратора</p>
           <button
             onClick={() => router.push('/app')}
             className="px-6 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
@@ -52,7 +52,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800">
       <AdminSidebar />
       <main className="lg:ml-64 min-h-screen pt-16 lg:pt-0">
         {children}
