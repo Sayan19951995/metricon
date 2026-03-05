@@ -67,6 +67,35 @@ export async function GET(request: NextRequest) {
         const ordersCount = Number(dailyData?.orders_count) || 0;
         const profit = Number(dailyData?.profit) || 0;
 
+        // Get yesterday's new orders (by created_at) for product breakdown
+        const yesterdayStart = `${yesterday}T00:00:00+05:00`;
+        const yesterdayEnd = `${yesterday}T23:59:59+05:00`;
+        const { data: orders } = await supabaseAdmin
+          .from('orders')
+          .select('items, total_amount')
+          .eq('store_id', store.id)
+          .gte('created_at', yesterdayStart)
+          .lte('created_at', yesterdayEnd);
+
+        // Aggregate products from order items
+        const productMap = new Map<string, { qty: number; total: number }>();
+        if (orders) {
+          for (const order of orders) {
+            const items = (order.items as any[]) || [];
+            for (const item of items) {
+              const name = item.product_name || item.name || 'Товар';
+              const qty = Number(item.quantity) || 1;
+              const total = Number(item.total) || Number(item.price) * qty || 0;
+              const existing = productMap.get(name) || { qty: 0, total: 0 };
+              productMap.set(name, { qty: existing.qty + qty, total: existing.total + total });
+            }
+          }
+        }
+
+        // Sort by quantity descending
+        const allProducts = [...productMap.entries()]
+          .sort((a, b) => b[1].qty - a[1].qty);
+
         // Get yesterday's ad data (if marketing connected)
         let adCost = 0;
         let adTransactions = 0;
@@ -88,7 +117,9 @@ export async function GET(request: NextRequest) {
 
         // Build message
         const storeName = store.name || 'Ваш магазин';
-        let message = `📈 *${storeName}* — сводка за вчера\n\n`;
+        const [y, m, d] = yesterday.split('-');
+        const dateStr = `${d}.${m}.${y}`;
+        let message = `📈 *${storeName}* — сводка за ${dateStr}\n\n`;
         message += `🛒 Продажи: ${ordersCount} заказов\n`;
         message += `💰 Выручка: ${formatMoney(revenue)} ₸\n`;
 
@@ -96,20 +127,27 @@ export async function GET(request: NextRequest) {
           message += `📊 Прибыль: ${formatMoney(profit)} ₸\n`;
         }
 
-        if (adCost > 0 || adTransactions > 0) {
-          message += `\n📣 *Реклама:*\n`;
+        if (allProducts.length > 0) {
+          message += `\n📦 *Товары:*\n`;
+          allProducts.forEach(([name, data]) => {
+            const shortName = name.length > 35 ? name.slice(0, 35) + '…' : name;
+            message += `  • ${shortName} — ${data.qty} шт. (${formatMoney(data.total)} ₸)\n`;
+          });
+        }
+
+        if (adCost > 0 || adTransactions > 0 || adGmv > 0) {
+          message += `\n📣 *Из них по рекламе:*\n`;
+          message += `  Продажи: ${adTransactions} заказов`;
+          if (adGmv > 0) message += ` на ${formatMoney(adGmv)} ₸`;
+          message += `\n`;
           message += `  Расходы: ${formatMoney(adCost)} ₸\n`;
-          message += `  Продажи с рекламы: ${adTransactions} заказов\n`;
-          if (adGmv > 0) {
-            message += `  Выручка с рекламы: ${formatMoney(adGmv)} ₸\n`;
-          }
           if (revenue > 0 && adGmv > 0) {
             const adPercent = ((adGmv / revenue) * 100).toFixed(0);
-            message += `  Доля рекламы в продажах: ${adPercent}%\n`;
+            message += `  Доля в продажах: ${adPercent}%\n`;
           }
           if (adGmv > 0 && adCost > 0) {
             const adCostPercent = ((adCost / adGmv) * 100).toFixed(0);
-            message += `  Расход на рекламу: ${adCostPercent}% от выручки\n`;
+            message += `  Расход: ${adCostPercent}% от выручки рекламы\n`;
           }
         }
 
