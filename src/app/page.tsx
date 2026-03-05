@@ -86,7 +86,7 @@ export default function HomePage() {
     {
       icon: Shield,
       title: 'Безопасность данных',
-      description: 'Шифрование данных, защищённые серверы в Казахстане, соответствие требованиям закона.'
+      description: 'Шифрование данных, безопасное хранение и передача по HTTPS. Соответствие требованиям закона.'
     },
     {
       icon: Globe,
@@ -201,32 +201,6 @@ export default function HomePage() {
     }
   ];
 
-  const addOnOptions = [
-    {
-      name: 'Авторассылка',
-      price: '9 900',
-      period: 'месяц',
-      description: 'Автоматические рассылки клиентам',
-      features: [
-        'Шаблоны сообщений',
-        'Расписание отправки',
-        'Напоминания о заказах',
-        'Статистика доставки'
-      ]
-    },
-    {
-      name: 'Автодемпинг',
-      price: '14 900',
-      period: 'месяц',
-      description: 'Автоматическое управление ценами',
-      features: [
-        'Мониторинг конкурентов',
-        'Стратегии: Undercut, Match, Position',
-        'Мин/макс цены, шаг изменения',
-        'История изменений цен'
-      ]
-    }
-  ];
 
   const faqItems = [
     {
@@ -757,40 +731,6 @@ export default function HomePage() {
                 </Link>
               </div>
             ))}
-          </div>
-
-          {/* Дополнительные опции */}
-          <div className="mt-16 max-w-3xl mx-auto">
-            <h3 className="text-xl font-bold text-gray-900 text-center mb-6">
-              Дополнительные опции к любому тарифу
-            </h3>
-            <div className="grid sm:grid-cols-2 gap-4">
-              {addOnOptions.map((addon, idx) => (
-                <div
-                  key={idx}
-                  className="bg-white rounded-xl p-5 border border-gray-200 hover:border-emerald-300 transition-colors"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div>
-                      <h4 className="font-bold text-gray-900">{addon.name}</h4>
-                      <p className="text-gray-500 text-sm">{addon.description}</p>
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      <span className="font-bold text-emerald-600">+{addon.price} ₸</span>
-                      <span className="text-gray-400 text-sm">/{addon.period}</span>
-                    </div>
-                  </div>
-                  <ul className="space-y-1.5">
-                    {addon.features.map((feature, i) => (
-                      <li key={i} className="flex items-center gap-2 text-sm text-gray-600">
-                        <CheckCircle className="w-4 h-4 text-emerald-500 flex-shrink-0" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-            </div>
           </div>
 
           <p className="text-center text-gray-500 mt-8 text-sm">

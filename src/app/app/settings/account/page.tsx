@@ -106,11 +106,39 @@ export default function AccountSettingsPage() {
     .toUpperCase()
     .slice(0, 2);
 
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
   const [passwordForm, setPasswordForm] = useState({
     current: '',
     new: '',
     confirm: ''
   });
+
+  const hasNoPhone = !profileForm.phone;
+
+  const handleSaveProfile = async () => {
+    setSaving(true);
+    try {
+      const { fetchWithAuth } = await import('@/lib/fetch-with-auth');
+      const res = await fetchWithAuth('/api/user/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: profileForm.name,
+          phone: profileForm.phone ? `+7${profileForm.phone.replace(/\D/g, '').replace(/^7/, '')}` : null,
+        }),
+      });
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+      }
+    } catch (e) {
+      console.error('Save profile error:', e);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const handlePasswordChange = () => {
     // Simulate password change
@@ -137,6 +165,17 @@ export default function AccountSettingsPage() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Настройки аккаунта</h1>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Управление профилем, паролем и безопасностью</p>
         </div>
+
+        {/* WhatsApp phone banner */}
+        {!loading && hasNoPhone && (
+          <div className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-2xl p-4 flex items-center gap-3">
+            <Phone className="w-5 h-5 text-red-500 flex-shrink-0" />
+            <div>
+              <p className="text-sm font-medium text-red-800 dark:text-red-200">Укажите номер WhatsApp</p>
+              <p className="text-sm text-red-600 dark:text-red-300">Для получения уведомлений о продажах, отзывах и сводок укажите номер телефона ниже.</p>
+            </div>
+          </div>
+        )}
 
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
@@ -221,25 +260,46 @@ export default function AccountSettingsPage() {
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Используется для входа и восстановления пароля</p>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Телефон</label>
-                  <div className="relative">
-                    <Phone className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Телефон (WhatsApp) {hasNoPhone && <span className="text-red-500">*</span>}
+                  </label>
+                  <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
+                    hasNoPhone ? 'border-red-300 dark:border-red-600' : 'border-gray-200 dark:border-gray-700'
+                  }`}>
+                    <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
+                      <Phone className="w-4 h-4 text-gray-400" />
+                    </div>
+                    <span className="text-gray-900 dark:text-white font-medium select-none whitespace-nowrap pl-1">+7</span>
                     <input
                       type="tel"
-                      value={profileForm.phone}
-                      onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})}
-                      className="w-full pl-12 pr-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors"
-                      placeholder="+7XXXXXXXXXX"
+                      inputMode="numeric"
+                      value={profileForm.phone.replace(/^\+?7/, '')}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                        setProfileForm({...profileForm, phone: digits});
+                      }}
+                      className="flex-1 py-3 pr-4 pl-1 bg-transparent focus:outline-none text-gray-900 dark:text-white text-sm"
+                      placeholder="7001234567"
                     />
                   </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Используется для WhatsApp уведомлений о продажах и отзывах</p>
                 </div>
               </div>
             </motion.div>
 
             {/* Save Button */}
-            <motion.div variants={itemVariants} className="flex justify-end">
-              <button className="px-6 py-2.5 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors cursor-pointer">
-                Сохранить изменения
+            <motion.div variants={itemVariants} className="flex items-center justify-end gap-3">
+              {saved && (
+                <span className="text-sm text-emerald-600 dark:text-emerald-400 flex items-center gap-1">
+                  <Check className="w-4 h-4" /> Сохранено
+                </span>
+              )}
+              <button
+                onClick={handleSaveProfile}
+                disabled={saving}
+                className="px-6 py-2.5 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                {saving ? 'Сохранение...' : 'Сохранить изменения'}
               </button>
             </motion.div>
           </motion.div>

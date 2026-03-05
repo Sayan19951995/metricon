@@ -483,6 +483,20 @@ export default function DashboardPage() {
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      {/* WhatsApp phone banner */}
+      {user && !user.phone && (
+        <div className="mb-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl p-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Bell className="w-4 h-4 text-red-500 flex-shrink-0" />
+            <p className="text-sm text-red-700 dark:text-red-300">
+              Укажите номер WhatsApp для получения уведомлений о продажах и отзывах
+            </p>
+          </div>
+          <a href="/app/settings/account" className="text-sm font-medium text-red-600 dark:text-red-400 hover:underline whitespace-nowrap ml-2">
+            Указать
+          </a>
+        </div>
+      )}
       {/* Header */}
       <div className="flex justify-between items-start gap-4 mb-6 lg:mb-8">
         <div>

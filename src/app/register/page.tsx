@@ -53,6 +53,12 @@ export default function RegisterPage() {
       newErrors.email = 'Введите корректный email';
     }
 
+    if (!formData.phone) {
+      newErrors.phone = 'Укажите номер для WhatsApp уведомлений';
+    } else if (formData.phone.replace(/\D/g, '').length < 10) {
+      newErrors.phone = 'Введите корректный номер телефона';
+    }
+
     if (!formData.password) {
       newErrors.password = 'Введите пароль';
     } else if (formData.password.length < 6) {
@@ -284,9 +290,11 @@ export default function RegisterPage() {
               {/* Phone */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Номер телефона <span className="text-gray-400 font-normal">(необязательно)</span>
+                  Номер телефона (WhatsApp) <span className="text-red-500">*</span>
                 </label>
-                <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all">
+                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
+                  errors.phone ? 'border-red-300 bg-red-50' : 'border-gray-200'
+                }`}>
                   <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
                     <Phone className="w-4 h-4 text-gray-400" />
                   </div>
@@ -303,6 +311,9 @@ export default function RegisterPage() {
                     placeholder="7001234567"
                   />
                 </div>
+                {errors.phone && (
+                  <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
+                )}
               </div>
 
               {/* Password */}
