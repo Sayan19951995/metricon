@@ -89,6 +89,11 @@ export function useUser(): UserData & { impersonating: boolean; stopImpersonatin
           return;
         }
 
+        // Продлеваем cookie при каждом визите (90 дней)
+        if (typeof document !== 'undefined') {
+          document.cookie = 'metricon-session=1; path=/; max-age=7776000; samesite=strict';
+        }
+
         // Check for impersonation
         const impersonateRaw = localStorage.getItem(IMPERSONATE_KEY);
         let targetUserId: string | null = null;

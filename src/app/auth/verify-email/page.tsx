@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase/client';
 import { BarChart3, CheckCircle } from 'lucide-react';
 
 function setSessionCookie() {
-  document.cookie = 'metricon-session=1; path=/; max-age=604800; samesite=strict';
+  document.cookie = 'metricon-session=1; path=/; max-age=7776000; samesite=strict';
 }
 
 function VerifyEmailContent() {
