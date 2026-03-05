@@ -102,8 +102,14 @@ export async function GET(request: NextRequest) {
           message += `  Продажи с рекламы: ${adTransactions} заказов\n`;
           if (adGmv > 0) {
             message += `  Выручка с рекламы: ${formatMoney(adGmv)} ₸\n`;
-            const roas = adCost > 0 ? (adGmv / adCost).toFixed(1) : '—';
-            message += `  ROAS: ${roas}x\n`;
+          }
+          if (revenue > 0 && adGmv > 0) {
+            const adPercent = ((adGmv / revenue) * 100).toFixed(0);
+            message += `  Доля рекламы в продажах: ${adPercent}%\n`;
+          }
+          if (adGmv > 0 && adCost > 0) {
+            const adCostPercent = ((adCost / adGmv) * 100).toFixed(0);
+            message += `  Расход на рекламу: ${adCostPercent}% от выручки\n`;
           }
         }
 
