@@ -40,7 +40,7 @@ export async function GET(request: NextRequest) {
   const { data: users } = await supabaseAdmin
     .from('users')
     .select('id, name, email, phone')
-    .in('id', userIds);
+    .in('id', userIds as string[]);
 
   const userMap = new Map((users || []).map((u: any) => [u.id, u]));
 
