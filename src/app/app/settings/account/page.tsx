@@ -91,9 +91,12 @@ export default function AccountSettingsPage() {
   // Заполняем форму реальными данными при загрузке
   useEffect(() => {
     if (user) {
+      // Убираем +7/8 из номера — в state храним только 10 цифр
+      const rawPhone = (user.phone || '').replace(/\D/g, '');
+      const cleanPhone = rawPhone.replace(/^(?:\+?7|8)/, '');
       setProfileForm({
         email: user.email || '',
-        phone: user.phone || '',
+        phone: cleanPhone,
         name: user.name || ''
       });
     }
@@ -126,7 +129,7 @@ export default function AccountSettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: profileForm.name,
-          phone: profileForm.phone ? `+7${profileForm.phone.replace(/\D/g, '').replace(/^7/, '')}` : null,
+          phone: profileForm.phone ? `+7${profileForm.phone.replace(/\D/g, '')}` : null,
         }),
       });
       if (res.ok) {
@@ -273,13 +276,13 @@ export default function AccountSettingsPage() {
                     <input
                       type="tel"
                       inputMode="numeric"
-                      value={profileForm.phone.replace(/^\+?7/, '')}
+                      value={profileForm.phone}
                       onChange={(e) => {
                         const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
                         setProfileForm({...profileForm, phone: digits});
                       }}
                       className="flex-1 py-3 pr-4 pl-1 bg-transparent focus:outline-none text-gray-900 dark:text-white text-sm"
-                      placeholder="7001234567"
+                      placeholder="XXX XXX XX XX"
                     />
                   </div>
                   <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">Используется для WhatsApp уведомлений о продажах и отзывах</p>
