@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@/hooks/useUser';
+import { getPlanLimits } from '@/lib/plan-limits';
+import UpgradePrompt from '@/components/UpgradePrompt';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { Plus, Trash2, Calendar, Search, Package, ChevronDown, HelpCircle } from 'lucide-react';
 import { format } from 'date-fns';
@@ -26,7 +28,7 @@ interface Product {
 const fmt = (n: number) => Math.round(n).toLocaleString('ru-RU');
 
 export default function ExpensesPage() {
-  const { user, loading: userLoading } = useUser();
+  const { user, subscription, loading: userLoading } = useUser();
 
   const [expenses, setExpenses] = useState<OperationalExpense[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
@@ -160,6 +162,10 @@ export default function ExpensesPage() {
         <div className="animate-spin w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full" />
       </div>
     );
+  }
+
+  if (!getPlanLimits(subscription?.plan).canExpenses) {
+    return <UpgradePrompt requiredPlan="business" featureName="Расходы и P&L" />;
   }
 
   return (

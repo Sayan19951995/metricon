@@ -3,6 +3,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/hooks/useUser';
+import { getPlanLimits } from '@/lib/plan-limits';
+import UpgradePrompt from '@/components/UpgradePrompt';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import BrandLoader from '@/components/ui/BrandLoader';
 import DateRangeCalendar from '@/components/DateRangeCalendar';
@@ -77,7 +79,7 @@ interface MarketingSummary {
 
 export default function KaspiMarketingPage() {
   const router = useRouter();
-  const { user, store, loading: userLoading } = useUser();
+  const { user, store, subscription, loading: userLoading } = useUser();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -275,6 +277,10 @@ export default function KaspiMarketingPage() {
   const fmtMoney = (n: number) => `${Math.round(n).toLocaleString('ru-RU')} ₸`;
 
   if (userLoading) return <BrandLoader />;
+  if (!getPlanLimits(subscription?.plan).canAdvertising) {
+    return <UpgradePrompt requiredPlan="business" featureName="Реклама" />;
+  }
+
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

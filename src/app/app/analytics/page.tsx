@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, DollarSign, TrendingUp, Calculator, Calendar, ChevronDown, ChevronRight, ChevronUp, Package, CheckCircle, AlertCircle, AlertTriangle, XCircle, Truck, Star, MessageCircle, ThumbsUp, Plus, X, Trash2, HelpCircle, BarChart3, RotateCcw, UserCheck } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { getPlanLimits } from '@/lib/plan-limits';
+import UpgradePrompt from '@/components/UpgradePrompt';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import { supabase } from '@/lib/supabase/client';
 import { getSmoothPath } from '@/lib/smoothPath';
@@ -243,7 +245,8 @@ function AnalyticsPageSkeleton() {
 
 // Основной контент страницы
 function AnalyticsPageContent() {
-  const { user, store, loading: userLoading } = useUser();
+  const { user, store, subscription, loading: userLoading } = useUser();
+  const planLimits = getPlanLimits(subscription?.plan);
   const searchParams = useSearchParams();
   const tabFromUrl = searchParams.get('tab') as TabType | null;
   const validTabs: TabType[] = ['finances', 'sales', 'managers', 'reviews'];
@@ -701,8 +704,16 @@ function AnalyticsPageContent() {
     };
   }, [showCalendar]);
 
+  const clampStartDate = (start: Date | null): Date | null => {
+    if (!start || !planLimits.analyticsDays) return start;
+    const minDate = new Date();
+    minDate.setHours(0, 0, 0, 0);
+    minDate.setDate(minDate.getDate() - (planLimits.analyticsDays - 1));
+    return start < minDate ? minDate : start;
+  };
+
   const handleApplyDateRange = (start: Date | null, end: Date | null) => {
-    setStartDate(start);
+    setStartDate(clampStartDate(start));
     setEndDate(end);
     setShowCalendar(false);
   };
@@ -737,7 +748,7 @@ function AnalyticsPageContent() {
       case 'year':
         // Весь год - все доступные данные (с 1 октября 2025)
         const yearStart = new Date('2025-10-01');
-        setStartDate(yearStart);
+        setStartDate(clampStartDate(yearStart));
         setEndDate(today);
         break;
     }
@@ -1080,6 +1091,10 @@ function AnalyticsPageContent() {
 
   if (userLoading || dataLoading) {
     return <AnalyticsPageSkeleton />;
+  }
+
+  if (planLimits.analyticsDays === 0) {
+    return <UpgradePrompt requiredPlan="business" featureName="Аналитика" />;
   }
 
   return (

@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useUser } from '@/hooks/useUser';
+import { getPlanLimits } from '@/lib/plan-limits';
+import UpgradePrompt from '@/components/UpgradePrompt';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import BrandLoader from '@/components/ui/BrandLoader';
 import Link from 'next/link';
@@ -30,7 +32,7 @@ interface MarketingSummary {
 }
 
 export default function AdvertisingPage() {
-  const { user, store, loading: userLoading } = useUser();
+  const { user, store, subscription, loading: userLoading } = useUser();
   const [summary, setSummary] = useState<MarketingSummary | null>(null);
   const [loading, setLoading] = useState(false);
   const [connected, setConnected] = useState(false);
@@ -74,6 +76,9 @@ export default function AdvertisingPage() {
   const fmt = (n: number) => n.toLocaleString('ru-RU');
 
   if (userLoading) return <BrandLoader />;
+  if (!getPlanLimits(subscription?.plan).canAdvertising) {
+    return <UpgradePrompt requiredPlan="business" featureName="Реклама" />;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">

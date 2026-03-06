@@ -16,7 +16,7 @@ const PLAN_PRICES: Record<string, number> = {
   start: 9900,
   business: 14900,
   pro: 24900,
-  preorder: 12900,
+  preorder: 8900, // business tier default
   'auto-pricing': 19990, // business tier default
 };
 

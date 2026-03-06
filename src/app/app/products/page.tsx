@@ -7,6 +7,7 @@ import {
   BoxSelect, AlertTriangle, ShoppingBag,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
+import { getPlanLimits } from '@/lib/plan-limits';
 import { getStale, setCache } from '@/lib/cache';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import type { KaspiProduct } from '@/lib/kaspi/api-client';
@@ -25,7 +26,7 @@ interface CabinetSession {
 }
 
 export default function ProductsPage() {
-  const { user, loading: userLoading } = useUser();
+  const { user, subscription, loading: userLoading } = useUser();
 
   // Session
   const [session, setSession] = useState<CabinetSession | null>(null);
@@ -335,6 +336,33 @@ export default function ProductsPage() {
           saving={saving}
         />
       )}
+
+      {/* Plan usage banner */}
+      {(() => {
+        const limits = getPlanLimits(subscription?.plan);
+        if (!limits.maxProducts) return null;
+        const pct = allProducts.length / limits.maxProducts;
+        if (pct < 0.8) return null;
+        const isOver = allProducts.length >= limits.maxProducts;
+        return (
+          <div className={`mb-4 flex items-center gap-3 px-4 py-3 rounded-xl text-sm ${
+            isOver
+              ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400'
+              : 'bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400'
+          }`}>
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+            </svg>
+            <span>
+              {isOver
+                ? `Достигнут лимит тарифа: ${allProducts.length} из ${limits.maxProducts} товаров. Новые товары не синхронизируются.`
+                : `Использовано ${allProducts.length} из ${limits.maxProducts} товаров тарифа.`}
+              {' '}
+              <a href="/app/subscription" className="underline font-medium">Улучшить тариф</a>
+            </span>
+          </div>
+        );
+      })()}
 
       {/* Header */}
       <div className="mb-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">

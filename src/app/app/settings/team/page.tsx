@@ -110,9 +110,9 @@ const rolePermissions: Record<RoleType, string[]> = {
 
 // Лимиты по тарифам
 const planLimits = {
-  start: { roles: 1, name: 'Старт' },
-  business: { roles: 3, name: 'Бизнес' },
-  pro: { roles: 10, name: 'Pro' }
+  start: { roles: 0, name: 'Старт' },
+  business: { roles: 2, name: 'Бизнес' },
+  pro: { roles: 5, name: 'Pro' }
 };
 
 export default function TeamSettingsPage() {
@@ -299,9 +299,11 @@ export default function TeamSettingsPage() {
                 </span>
               </div>
               <p className="text-sm text-gray-600 dark:text-gray-300">
-                {canAddMore
+                {maxRoles === 0
+                  ? 'Сотрудники недоступны на тарифе «Старт». Перейдите на «Бизнес» или «Pro».'
+                  : canAddMore
                   ? `Вы можете добавить ещё ${maxRoles - currentRolesCount} сотрудников`
-                  : 'Достигнут лимит сотрудников. Перейдите на Pro для добавления до 5 ролей.'}
+                  : 'Достигнут лимит. Перейдите на «Pro» для добавления до 5 сотрудников.'}
               </p>
               {!canAddMore && (
                 <Link
