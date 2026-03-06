@@ -1,6 +1,5 @@
 import makeWASocket, {
   DisconnectReason,
-  useMultiFileAuthState,
   WASocket,
   ConnectionState,
   Browsers,
@@ -8,13 +7,12 @@ import makeWASocket, {
 } from '@whiskeysockets/baileys';
 import { Boom } from '@hapi/boom';
 import * as QRCode from 'qrcode';
-import * as path from 'path';
-import * as fs from 'fs';
 import pino from 'pino';
+import { useSupabaseAuthState, deleteSupabaseAuthState, hasSupabaseAuthState } from './supabase-auth-state.js';
 
 const logger = pino({ level: 'info' });
 
-// Время простоя перед закрытием ленивой сессии (5 минут)
+// Idle timeout before closing an unused session (5 minutes)
 const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
 
 // Callback для обработки входящих сообщений (poll ответы, текст)
@@ -39,24 +37,7 @@ const MAX_RETRIES = 5;
 
 class SessionManager {
   private sessions = new Map<string, SessionInfo>();
-  private authDir: string;
   private incomingHandler: IncomingMessageHandler | null = null;
-
-  constructor() {
-    this.authDir = process.env.AUTH_DIR || path.join(process.cwd(), 'auth_sessions');
-    if (!fs.existsSync(this.authDir)) {
-      fs.mkdirSync(this.authDir, { recursive: true });
-    }
-  }
-
-  private getSessionDir(storeId: string): string {
-    return path.join(this.authDir, storeId);
-  }
-
-  private hasCredentials(storeId: string): boolean {
-    const dir = this.getSessionDir(storeId);
-    return fs.existsSync(path.join(dir, 'creds.json'));
-  }
 
   /**
    * Начать новую сессию (для QR-сканирования).
@@ -110,7 +91,7 @@ class SessionManager {
       return this.sessions.get(storeId)?.status === 'connected';
     }
 
-    if (!this.hasCredentials(storeId)) {
+    if (!(await hasSupabaseAuthState(storeId))) {
       return false;
     }
 
@@ -202,11 +183,12 @@ class SessionManager {
   /**
    * Получить статус сессии.
    */
-  getStatus(storeId: string): { status: string; qr: string | null } {
+  async getStatus(storeId: string): Promise<{ status: string; qr: string | null }> {
     const session = this.sessions.get(storeId);
     if (!session) {
+      const hasCreds = await hasSupabaseAuthState(storeId);
       return {
-        status: this.hasCredentials(storeId) ? 'disconnected' : 'not_registered',
+        status: hasCreds ? 'disconnected' : 'not_registered',
         qr: null,
       };
     }
@@ -230,23 +212,19 @@ class SessionManager {
       try {
         await session.socket?.logout();
       } catch {
-        // Игнорируем ошибки при logout
+        // ignore logout errors
       }
       session.socket?.end(undefined);
       this.sessions.delete(storeId);
     }
 
-    // Удаляем credentials
-    const dir = this.getSessionDir(storeId);
-    if (fs.existsSync(dir)) {
-      fs.rmSync(dir, { recursive: true, force: true });
-    }
+    await deleteSupabaseAuthState(storeId);
   }
 
   // === Private methods ===
 
   private async connect(storeId: string, info: SessionInfo): Promise<void> {
-    const { state, saveCreds } = await useMultiFileAuthState(this.getSessionDir(storeId));
+    const { state, saveCreds } = await useSupabaseAuthState(storeId);
 
     // Получаем актуальную версию WhatsApp Web (без неё — 405 ошибка)
     let version: [number, number, number];

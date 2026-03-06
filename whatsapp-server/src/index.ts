@@ -34,9 +34,9 @@ app.post('/session/start', async (req, res) => {
 });
 
 // Статус сессии
-app.get('/session/:storeId/status', (req, res) => {
+app.get('/session/:storeId/status', async (req, res) => {
   const { storeId } = req.params;
-  const result = sessionManager.getStatus(storeId);
+  const result = await sessionManager.getStatus(storeId);
   res.json(result);
 });
 
