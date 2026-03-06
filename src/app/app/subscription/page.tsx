@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 // Интерфейсы
 interface SubscriptionPlan {
@@ -25,6 +26,12 @@ interface AddOnOption {
   description: string;
   features: string[];
   active?: boolean;
+}
+
+interface PaymentModal {
+  planId: string;
+  planName: string;
+  price: number;
 }
 
 // Данные планов подписки
@@ -149,6 +156,10 @@ const currentSubscription = {
 
 export default function SubscriptionPage() {
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
+  const [paymentModal, setPaymentModal] = useState<PaymentModal | null>(null);
+  const [kaspiPhone, setKaspiPhone] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [submitResult, setSubmitResult] = useState<'success' | 'error' | null>(null);
 
   // Расчёт цен с учётом периода
   const getPrice = (plan: SubscriptionPlan) => {
@@ -186,6 +197,36 @@ export default function SubscriptionPage() {
     const diff = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
     return diff > 0 ? diff : 0;
   };
+
+  function openPaymentModal(plan: SubscriptionPlan) {
+    setPaymentModal({ planId: plan.id, planName: plan.name, price: getPrice(plan) });
+    setKaspiPhone('');
+    setSubmitResult(null);
+  }
+
+  function closePaymentModal() {
+    setPaymentModal(null);
+    setKaspiPhone('');
+    setSubmitResult(null);
+  }
+
+  async function handleSubmitPayment() {
+    if (!paymentModal || !kaspiPhone) return;
+    setSubmitting(true);
+    try {
+      const res = await fetchWithAuth('/api/subscriptions/request-payment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ planId: paymentModal.planId, kaspiPhone }),
+      });
+      const data = await res.json();
+      setSubmitResult(data.success ? 'success' : 'error');
+    } catch {
+      setSubmitResult('error');
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16 lg:pt-0 lg:pl-64">
@@ -234,7 +275,13 @@ export default function SubscriptionPage() {
                 <p className="text-white/60 text-xs mt-1">{formatDate(currentSubscription.endDate)}</p>
               </div>
               <div className="flex flex-col gap-2">
-                <button className="px-6 py-3 bg-white text-emerald-600 rounded-xl font-medium hover:bg-white/90 transition-colors">
+                <button
+                  onClick={() => {
+                    const plan = subscriptionPlans.find(p => p.name === currentSubscription.plan);
+                    if (plan) openPaymentModal(plan);
+                  }}
+                  className="px-6 py-3 bg-white text-emerald-600 rounded-xl font-medium hover:bg-white/90 transition-colors"
+                >
                   Продлить сейчас
                 </button>
                 <button className="px-6 py-2 text-white/80 hover:text-white text-sm transition-colors">
@@ -373,12 +420,13 @@ export default function SubscriptionPage() {
               </ul>
 
               <button
+                onClick={() => !plan.current && openPaymentModal(plan)}
                 className={`w-full py-3 rounded-xl font-medium transition-all ${
                   plan.current
                     ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-default'
                     : plan.popular
-                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:shadow-lg hover:shadow-emerald-500/25'
-                    : 'bg-gray-900 dark:bg-gray-700 text-white hover:bg-gray-800 dark:hover:bg-gray-600'
+                    ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:shadow-lg hover:shadow-emerald-500/25 cursor-pointer'
+                    : 'bg-gray-900 dark:bg-gray-700 text-white hover:bg-gray-800 dark:hover:bg-gray-600 cursor-pointer'
                 }`}
                 disabled={plan.current}
               >
@@ -457,7 +505,7 @@ export default function SubscriptionPage() {
             {[
               {
                 q: 'Как работает оплата?',
-                a: 'Оплата происходит автоматически в начале каждого периода. Вы можете отменить подписку в любой момент, и она будет активна до конца оплаченного периода.',
+                a: 'Выберите тариф, введите номер Kaspi — мы выставим счёт и активируем подписку вручную. Обычно это занимает не более 30 минут.',
               },
               {
                 q: 'Могу ли я сменить план?',
@@ -496,6 +544,80 @@ export default function SubscriptionPage() {
           </button>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {paymentModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={closePaymentModal}>
+          <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl max-w-md w-full p-6 border border-gray-200 dark:border-gray-700" onClick={e => e.stopPropagation()}>
+            {submitResult === 'success' ? (
+              <div className="text-center py-4">
+                <div className="w-16 h-16 bg-emerald-100 dark:bg-emerald-900/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                  <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                </div>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Заявка отправлена!</h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
+                  Мы получили вашу заявку и выставим счёт в WhatsApp в ближайшее время.
+                </p>
+                <button
+                  onClick={closePaymentModal}
+                  className="w-full py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors"
+                >
+                  Закрыть
+                </button>
+              </div>
+            ) : (
+              <>
+                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-1">
+                  Оплата тарифа «{paymentModal.planName}»
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
+                  {paymentModal.price.toLocaleString('ru-RU')} ₸ / мес
+                </p>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                      Номер Kaspi для выставления счёта
+                    </label>
+                    <input
+                      type="tel"
+                      value={kaspiPhone}
+                      onChange={e => setKaspiPhone(e.target.value)}
+                      placeholder="+7XXXXXXXXXX"
+                      className="w-full px-4 py-2.5 bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-600 rounded-xl text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-emerald-500"
+                    />
+                    <p className="text-xs text-gray-400 mt-1">
+                      Мы отправим запрос на оплату через Kaspi на этот номер
+                    </p>
+                  </div>
+
+                  {submitResult === 'error' && (
+                    <p className="text-sm text-red-500">Ошибка при отправке заявки. Попробуйте ещё раз.</p>
+                  )}
+
+                  <div className="flex gap-3">
+                    <button
+                      onClick={closePaymentModal}
+                      className="flex-1 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-medium hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                    >
+                      Отмена
+                    </button>
+                    <button
+                      onClick={handleSubmitPayment}
+                      disabled={submitting || !kaspiPhone}
+                      className="flex-1 py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors disabled:opacity-50"
+                    >
+                      {submitting ? 'Отправка...' : 'Отправить заявку'}
+                    </button>
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

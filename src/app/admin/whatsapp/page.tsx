@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Search, Send, ToggleLeft, ToggleRight, Phone, Store, CheckCircle, XCircle, Wifi, WifiOff, QrCode, Loader2 } from 'lucide-react';
+import { MessageCircle, Search, Send, ToggleLeft, ToggleRight, Phone, Store, CheckCircle, XCircle, Wifi, WifiOff, QrCode, Loader2, Bell } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface StoreItem {
@@ -27,6 +27,10 @@ export default function AdminWhatsAppPage() {
   const [disconnecting, setDisconnecting] = useState(false);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
+  const [notifPhone, setNotifPhone] = useState('');
+  const [savingNotifPhone, setSavingNotifPhone] = useState(false);
+  const [notifPhoneSaved, setNotifPhoneSaved] = useState(false);
+
   const [testModal, setTestModal] = useState<StoreItem | null>(null);
   const [testPhone, setTestPhone] = useState('');
   const [testMessage, setTestMessage] = useState('');
@@ -36,8 +40,32 @@ export default function AdminWhatsAppPage() {
 
   useEffect(() => {
     loadStores();
+    loadNotifPhone();
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
+
+  async function loadNotifPhone() {
+    try {
+      const res = await fetchWithAuth('/api/admin/settings');
+      const data = await res.json();
+      if (data.success) setNotifPhone(data.settings.notification_phone || '');
+    } catch { /* ignore */ }
+  }
+
+  async function saveNotifPhone() {
+    setSavingNotifPhone(true);
+    try {
+      await fetchWithAuth('/api/admin/settings', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notification_phone: notifPhone }),
+      });
+      setNotifPhoneSaved(true);
+      setTimeout(() => setNotifPhoneSaved(false), 2000);
+    } catch { /* ignore */ } finally {
+      setSavingNotifPhone(false);
+    }
+  }
 
   async function loadStores() {
     try {
@@ -182,6 +210,34 @@ export default function AdminWhatsAppPage() {
           WhatsApp рассылка
         </h1>
         <p className="text-gray-400 mt-1">Управление WhatsApp уведомлениями для магазинов</p>
+      </div>
+
+      {/* Notification Phone */}
+      <div className="bg-gray-800/80 rounded-2xl p-6 mb-6 border border-gray-700">
+        <h2 className="text-lg font-semibold text-white flex items-center gap-2 mb-4">
+          <Bell className="w-5 h-5 text-yellow-400" />
+          Уведомления об оплате
+        </h2>
+        <p className="text-sm text-gray-400 mb-4">
+          Номер WhatsApp, на который приходят заявки на оплату от клиентов.
+        </p>
+        <div className="flex gap-3">
+          <input
+            type="tel"
+            value={notifPhone}
+            onChange={e => setNotifPhone(e.target.value)}
+            placeholder="+7XXXXXXXXXX"
+            className="flex-1 px-4 py-2.5 bg-gray-900 border border-gray-600 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-yellow-500"
+          />
+          <button
+            onClick={saveNotifPhone}
+            disabled={savingNotifPhone}
+            className="px-5 py-2.5 bg-yellow-600 text-white rounded-xl text-sm font-medium hover:bg-yellow-500 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+          >
+            {notifPhoneSaved ? <CheckCircle className="w-4 h-4" /> : savingNotifPhone ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
+            {notifPhoneSaved ? 'Сохранено' : 'Сохранить'}
+          </button>
+        </div>
       </div>
 
       {/* WA Session Block */}
