@@ -8,12 +8,16 @@ const PLAN_NAMES: Record<string, string> = {
   start: 'Старт',
   business: 'Бизнес',
   pro: 'Pro',
+  preorder: 'Предзаказ',
+  'auto-pricing': 'Автодемпинг',
 };
 
 const PLAN_PRICES: Record<string, number> = {
   start: 9900,
   business: 14900,
   pro: 24900,
+  preorder: 12900,
+  'auto-pricing': 19990, // business tier default
 };
 
 /** POST /api/subscriptions/request-payment */
