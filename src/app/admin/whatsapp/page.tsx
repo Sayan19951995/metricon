@@ -83,6 +83,7 @@ export default function AdminWhatsAppPage() {
 
   async function handleConnect() {
     setConnecting(true);
+    startPolling(); // start polling immediately regardless of response
     try {
       const res = await fetchWithAuth('/api/admin/whatsapp', {
         method: 'PATCH',
@@ -90,11 +91,12 @@ export default function AdminWhatsAppPage() {
         body: JSON.stringify({ action: 'connect' }),
       });
       const data = await res.json();
-      setWaStatus(data.status || 'disconnected');
+      setWaStatus(data.status || 'connecting');
       setWaQr(data.qr || null);
-      if (data.status !== 'connected') startPolling();
+      if (data.status === 'connected') stopPolling();
     } catch (e) {
       console.error('Connect error:', e);
+      // polling already started — it will pick up QR once server is ready
     } finally {
       setConnecting(false);
     }
@@ -251,14 +253,17 @@ export default function AdminWhatsAppPage() {
             )}
             Сессия WhatsApp
           </h2>
-          <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+          <span className={`px-3 py-1 rounded-full text-xs font-semibold flex items-center gap-1.5 ${
             waStatus === 'connected'
               ? 'bg-green-900/50 text-green-300 border border-green-700'
               : waStatus === 'server_offline'
                 ? 'bg-yellow-900/50 text-yellow-300 border border-yellow-700'
-                : 'bg-red-900/50 text-red-300 border border-red-700'
+                : waStatus === 'connecting' || waStatus === 'qr_pending'
+                  ? 'bg-blue-900/50 text-blue-300 border border-blue-700'
+                  : 'bg-red-900/50 text-red-300 border border-red-700'
           }`}>
-            {waStatus === 'connected' ? 'Подключён' : waStatus === 'server_offline' ? 'Сервер недоступен' : 'Отключён'}
+            {(waStatus === 'connecting' || waStatus === 'qr_pending') && <Loader2 className="w-3 h-3 animate-spin" />}
+            {waStatus === 'connected' ? 'Подключён' : waStatus === 'server_offline' ? 'Сервер недоступен' : waStatus === 'connecting' ? 'Подключение...' : waStatus === 'qr_pending' ? 'Ожидание сканирования' : 'Отключён'}
           </span>
         </div>
 

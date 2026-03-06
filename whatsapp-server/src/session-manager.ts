@@ -67,7 +67,7 @@ class SessionManager {
     await this.connect(storeId, info);
 
     // Ждём QR или подключение (макс 45 сек)
-    await this.waitForQrOrConnect(storeId, 45000);
+    await this.waitForQrOrConnect(storeId, 8000);
 
     const current = this.sessions.get(storeId);
     if (!current) {
