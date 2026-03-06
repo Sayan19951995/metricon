@@ -30,6 +30,8 @@ export default function AdminWhatsAppPage() {
   const [notifPhone, setNotifPhone] = useState('');
   const [savingNotifPhone, setSavingNotifPhone] = useState(false);
   const [notifPhoneSaved, setNotifPhoneSaved] = useState(false);
+  const [testingNotif, setTestingNotif] = useState(false);
+  const [notifTestResult, setNotifTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
 
   const [testModal, setTestModal] = useState<StoreItem | null>(null);
   const [testPhone, setTestPhone] = useState('');
@@ -54,16 +56,45 @@ export default function AdminWhatsAppPage() {
 
   async function saveNotifPhone() {
     setSavingNotifPhone(true);
+    setNotifTestResult(null);
     try {
-      await fetchWithAuth('/api/admin/settings', {
+      const res = await fetchWithAuth('/api/admin/settings', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ notification_phone: notifPhone }),
       });
-      setNotifPhoneSaved(true);
-      setTimeout(() => setNotifPhoneSaved(false), 2000);
-    } catch { /* ignore */ } finally {
+      if (res.ok) {
+        setNotifPhoneSaved(true);
+        setTimeout(() => setNotifPhoneSaved(false), 2000);
+      } else {
+        setNotifTestResult({ ok: false, msg: `Ошибка сохранения (${res.status})` });
+      }
+    } catch (e: any) {
+      setNotifTestResult({ ok: false, msg: `Ошибка: ${e.message}` });
+    } finally {
       setSavingNotifPhone(false);
+    }
+  }
+
+  async function handleTestNotifPhone() {
+    setTestingNotif(true);
+    setNotifTestResult(null);
+    try {
+      const res = await fetchWithAuth('/api/admin/whatsapp', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'test_notif_phone' }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setNotifTestResult({ ok: true, msg: `Тест отправлен на ${data.phone}` });
+      } else {
+        setNotifTestResult({ ok: false, msg: data.error || 'Неизвестная ошибка' });
+      }
+    } catch (e: any) {
+      setNotifTestResult({ ok: false, msg: `Ошибка: ${e.message}` });
+    } finally {
+      setTestingNotif(false);
     }
   }
 
@@ -261,7 +292,22 @@ export default function AdminWhatsAppPage() {
             {notifPhoneSaved ? <CheckCircle className="w-4 h-4" /> : savingNotifPhone ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
             {notifPhoneSaved ? 'Сохранено' : 'Сохранить'}
           </button>
+          <button
+            onClick={handleTestNotifPhone}
+            disabled={testingNotif || waStatus !== 'connected'}
+            title="Отправить тестовое WA сообщение на сохранённый номер"
+            className="px-4 py-2.5 bg-gray-700 text-gray-200 border border-gray-600 rounded-xl text-sm font-medium hover:bg-gray-600 transition-colors cursor-pointer disabled:opacity-40 flex items-center gap-2"
+          >
+            {testingNotif ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+            Тест
+          </button>
         </div>
+        {notifTestResult && (
+          <p className={`mt-2 text-sm font-medium flex items-center gap-1.5 ${notifTestResult.ok ? 'text-green-400' : 'text-red-400'}`}>
+            {notifTestResult.ok ? <CheckCircle className="w-4 h-4" /> : <XCircle className="w-4 h-4" />}
+            {notifTestResult.msg}
+          </p>
+        )}
       </div>
 
       {/* WA Session Block */}

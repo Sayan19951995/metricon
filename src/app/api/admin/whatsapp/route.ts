@@ -133,6 +133,35 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ success: true, whatsapp_connected: !current });
   }
 
+  // Test notification phone: read from app_settings and send test message
+  if (action === 'test_notif_phone') {
+    const { data: settingsRow } = await supabaseAdmin
+      .from('app_settings' as any)
+      .select('value')
+      .eq('key', 'notification_phone')
+      .single();
+    const notifPhone = (settingsRow as any)?.value;
+    if (!notifPhone) {
+      return NextResponse.json({ success: false, error: 'notification_phone не сохранён в базе данных. Введите номер и нажмите Сохранить.' });
+    }
+    try {
+      const WA_SERVER_URL = process.env.WA_SERVER_URL || 'http://localhost:3001';
+      const WA_SERVER_SECRET = process.env.WA_SERVER_SECRET || 'dev-secret';
+      const res = await fetch(`${WA_SERVER_URL}/message/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': WA_SERVER_SECRET },
+        body: JSON.stringify({ storeId: GLOBAL_STORE_ID, phone: notifPhone, message: `✅ Тест Metricon: уведомления об оплате настроены. Номер: ${notifPhone}` }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.success === false) {
+        return NextResponse.json({ success: false, error: `WA error: ${data.error || res.status}`, phone: notifPhone });
+      }
+      return NextResponse.json({ success: true, phone: notifPhone });
+    } catch (e: any) {
+      return NextResponse.json({ success: false, error: `WA server: ${e.message}`, phone: notifPhone });
+    }
+  }
+
   if (action === 'send_test') {
     if (!phone || !message) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
