@@ -84,8 +84,13 @@ export async function PATCH(request: NextRequest) {
   const body = await request.json();
   const { action, storeId, phone, message } = body;
 
-  if (action === 'connect') {
+  if (action === 'connect' || action === 'force_reconnect') {
     try {
+      // force_reconnect: disconnect first to clear stale session + credentials
+      if (action === 'force_reconnect') {
+        await waDisconnect(GLOBAL_STORE_ID).catch(() => {});
+        await new Promise(r => setTimeout(r, 500));
+      }
       const result = await waStartSession(GLOBAL_STORE_ID);
       return NextResponse.json({ success: true, status: result.status, qr: result.qr });
     } catch (e: any) {

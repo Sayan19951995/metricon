@@ -297,9 +297,14 @@ class SessionManager {
           info.status = 'disconnected';
           info.connectPromise = null;
         } else {
+          // loggedOut — delete stale credentials so next startSession generates fresh QR
           info.status = 'disconnected';
           info.connectPromise = null;
           this.sessions.delete(storeId);
+          deleteSupabaseAuthState(storeId).catch(e =>
+            console.error(`[${storeId}] Failed to delete stale creds:`, e)
+          );
+          console.log(`[${storeId}] Stale credentials deleted, next connect will show QR`);
         }
       }
     });

@@ -54,15 +54,23 @@ export async function POST(request: NextRequest) {
     });
 
   // Get notification phone from app_settings
-  const { data: settingsRow } = await supabaseAdmin
+  const { data: settingsRow, error: settingsError } = await supabaseAdmin
     .from('app_settings' as any)
     .select('value')
     .eq('key', 'notification_phone')
     .single();
 
   const notifPhone = (settingsRow as any)?.value;
-  if (notifPhone) {
-    const message =
+  console.log('[request-payment] notifPhone:', notifPhone, 'settingsError:', settingsError?.message);
+
+  let waSent = false;
+  let waError: string | null = null;
+
+  if (!notifPhone) {
+    waError = 'notification_phone не настроен в app_settings';
+    console.error('[request-payment]', waError);
+  } else {
+    const waMessage =
       `💳 *Запрос на оплату подписки*\n\n` +
       `👤 Клиент: ${userName} (${userEmail})\n` +
       `📋 Тариф: ${planName} — ${price.toLocaleString('ru-RU')} ₸/мес\n` +
@@ -70,8 +78,10 @@ export async function POST(request: NextRequest) {
       `Подтвердите заявку в админке:\n` +
       `metricon.kz/admin/payment-requests`;
 
-    await waSendMessage('metricon-global', notifPhone, message);
+    waSent = await waSendMessage('metricon-global', notifPhone, waMessage);
+    console.log('[request-payment] waSent:', waSent, 'to:', notifPhone);
+    if (!waSent) waError = 'waSendMessage вернул false (WA не подключён?)';
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, waSent, waError });
 }

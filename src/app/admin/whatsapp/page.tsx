@@ -120,6 +120,28 @@ export default function AdminWhatsAppPage() {
     }
   }
 
+  async function handleForceReconnect() {
+    setConnecting(true);
+    setWaQr(null);
+    setWaStatus('connecting');
+    startPolling();
+    try {
+      const res = await fetchWithAuth('/api/admin/whatsapp', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'force_reconnect' }),
+      });
+      const data = await res.json();
+      setWaStatus(data.status || 'connecting');
+      setWaQr(data.qr || null);
+      if (data.status === 'connected') stopPolling();
+    } catch (e) {
+      console.error('Force reconnect error:', e);
+    } finally {
+      setConnecting(false);
+    }
+  }
+
   function startPolling() {
     stopPolling();
     pollRef.current = setInterval(async () => {
@@ -290,21 +312,31 @@ export default function AdminWhatsAppPage() {
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between gap-3 flex-wrap">
             <p className="text-gray-300 text-sm">
-              {waStatus === 'server_offline' ? 'WhatsApp сервер (Railway) недоступен.' : 'Подключите WhatsApp для отправки уведомлений.'}
+              {waStatus === 'server_offline' ? 'WhatsApp сервер (Railway) недоступен.' : waStatus === 'connecting' ? 'Подключение — ожидайте QR-код...' : 'Подключите WhatsApp для отправки уведомлений.'}
             </p>
-            <button
-              onClick={handleConnect}
-              disabled={connecting}
-              className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-500 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
-            >
-              {connecting ? (
-                <><Loader2 className="w-4 h-4 animate-spin" /> Подключение...</>
-              ) : (
-                <><QrCode className="w-4 h-4" /> Подключить</>
-              )}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={handleConnect}
+                disabled={connecting}
+                className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-500 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+              >
+                {connecting ? (
+                  <><Loader2 className="w-4 h-4 animate-spin" /> Подключение...</>
+                ) : (
+                  <><QrCode className="w-4 h-4" /> Подключить</>
+                )}
+              </button>
+              <button
+                onClick={handleForceReconnect}
+                disabled={connecting}
+                title="Сбросить сессию и получить новый QR"
+                className="px-3 py-2 bg-gray-700 text-gray-300 border border-gray-600 rounded-xl text-sm font-medium hover:bg-gray-600 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
+              >
+                <QrCode className="w-4 h-4" /> Новый QR
+              </button>
+            </div>
           </div>
         )}
       </div>

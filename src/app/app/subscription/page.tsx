@@ -160,6 +160,7 @@ export default function SubscriptionPage() {
   const [kaspiPhone, setKaspiPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<'success' | 'error' | null>(null);
+  const [submitDebug, setSubmitDebug] = useState<string | null>(null);
 
   // Расчёт цен с учётом периода
   const getPrice = (plan: SubscriptionPlan) => {
@@ -208,6 +209,7 @@ export default function SubscriptionPage() {
     setPaymentModal(null);
     setKaspiPhone('');
     setSubmitResult(null);
+    setSubmitDebug(null);
   }
 
   async function handleSubmitPayment() {
@@ -221,6 +223,7 @@ export default function SubscriptionPage() {
       });
       const data = await res.json();
       setSubmitResult(data.success ? 'success' : 'error');
+      if (data.waError) setSubmitDebug(data.waError);
     } catch {
       setSubmitResult('error');
     } finally {
@@ -557,9 +560,14 @@ export default function SubscriptionPage() {
                   </svg>
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Заявка отправлена!</h3>
-                <p className="text-gray-500 dark:text-gray-400 text-sm mb-6">
+                <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">
                   Мы получили вашу заявку и выставим счёт в WhatsApp в ближайшее время.
                 </p>
+                {submitDebug && (
+                  <p className="text-xs text-amber-500 mb-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
+                    ⚠️ WA: {submitDebug}
+                  </p>
+                )}
                 <button
                   onClick={closePaymentModal}
                   className="w-full py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors"
