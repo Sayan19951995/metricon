@@ -102,8 +102,8 @@ const subscriptionPlans: SubscriptionPlan[] = [
   },
 ];
 
-// Дополнительные опции
-const addOnOptions: AddOnOption[] = [
+// Дополнительные опции (active определяется динамически из subscription.addons)
+const addOnOptions: Omit<AddOnOption, 'active'>[] = [
   {
     id: 'preorder',
     name: 'Предзаказ',
@@ -115,22 +115,8 @@ const addOnOptions: AddOnOption[] = [
       'Автообновление статусов',
       'Лимит товаров = ваш тариф',
     ],
-    active: false,
   },
   // TODO: Авторассылка скрыта — Kaspi закрыл доступ к номерам телефонов. Вернуть когда откроют.
-  // {
-  //   id: 'auto-mailing',
-  //   name: 'Авторассылка',
-  //   price: 12900,
-  //   description: 'Автоматические рассылки клиентам',
-  //   features: [
-  //     'Шаблоны сообщений',
-  //     'Расписание отправки',
-  //     'Напоминания о заказах',
-  //     'Лимит товаров = ваш тариф',
-  //   ],
-  //   active: false,
-  // },
   {
     id: 'auto-pricing',
     name: 'Автодемпинг',
@@ -142,7 +128,6 @@ const addOnOptions: AddOnOption[] = [
       'Мин/макс цены, шаг изменения',
       'Цена зависит от тарифа',
     ],
-    active: false,
   },
 ];
 
@@ -168,6 +153,7 @@ export default function SubscriptionPage() {
   const [submitDebug, setSubmitDebug] = useState<string | null>(null);
 
   // Real subscription data
+  const activeAddons = new Set(subscription?.addons || []);
   const currentPlanId = subscription?.plan || null;
   const currentPlanName = currentPlanId ? (PLAN_NAME_MAP[currentPlanId] || currentPlanId) : null;
   const currentSubscription = subscription ? {
@@ -473,14 +459,16 @@ export default function SubscriptionPage() {
             Подключите к любому тарифу для расширения возможностей
           </p>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            {addOnOptions.map((addon) => (
+            {addOnOptions.map((addon) => {
+              const isActive = activeAddons.has(addon.id);
+              return (
               <div
                 key={addon.id}
                 className={`relative bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border-2 transition-all hover:shadow-lg ${
-                  addon.active ? 'border-emerald-500' : 'border-gray-100 dark:border-gray-700'
+                  isActive ? 'border-emerald-500' : 'border-gray-100 dark:border-gray-700'
                 }`}
               >
-                {addon.active && (
+                {isActive && (
                   <div className="absolute -top-3 right-4">
                     <span className="bg-emerald-500 text-white text-xs font-medium px-3 py-1 rounded-full">
                       Активно
@@ -511,16 +499,18 @@ export default function SubscriptionPage() {
                 </ul>
 
                 <button
+                  onClick={() => !isActive && openPaymentModal({ ...addon, price: typeof addon.price === 'number' ? addon.price : getAddonPrice(addon) } as any)}
                   className={`w-full py-2.5 rounded-lg font-medium transition-all ${
-                    addon.active
-                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                      : 'bg-emerald-500 text-white hover:bg-emerald-600'
+                    isActive
+                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-default'
+                      : 'bg-emerald-500 text-white hover:bg-emerald-600 cursor-pointer'
                   }`}
                 >
-                  {addon.active ? 'Отключить' : 'Подключить'}
+                  {isActive ? 'Активно' : 'Подключить'}
                 </button>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
 
