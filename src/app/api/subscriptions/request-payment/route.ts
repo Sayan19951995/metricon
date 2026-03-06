@@ -39,6 +39,20 @@ export async function POST(request: NextRequest) {
   const userName = (userData as any)?.name || auth.user.email;
   const userEmail = auth.user.email;
 
+  // Save payment request to DB
+  await supabaseAdmin
+    .from('payment_requests' as any)
+    .insert({
+      user_id: auth.user.id,
+      user_name: userName,
+      user_email: userEmail,
+      plan_id: planId,
+      plan_name: planName,
+      price,
+      kaspi_phone: kaspiPhone,
+      status: 'pending',
+    });
+
   // Get notification phone from app_settings
   const { data: settingsRow } = await supabaseAdmin
     .from('app_settings' as any)
@@ -47,19 +61,17 @@ export async function POST(request: NextRequest) {
     .single();
 
   const notifPhone = (settingsRow as any)?.value;
-  if (!notifPhone) {
-    return NextResponse.json({ success: false, message: 'Номер уведомлений не настроен' }, { status: 500 });
+  if (notifPhone) {
+    const message =
+      `💳 *Запрос на оплату подписки*\n\n` +
+      `👤 Клиент: ${userName} (${userEmail})\n` +
+      `📋 Тариф: ${planName} — ${price.toLocaleString('ru-RU')} ₸/мес\n` +
+      `📱 Kaspi номер: ${kaspiPhone}\n\n` +
+      `Подтвердите заявку в админке:\n` +
+      `metricon.kz/admin/payment-requests`;
+
+    await waSendMessage('metricon-global', notifPhone, message);
   }
-
-  const message =
-    `💳 *Запрос на оплату подписки*\n\n` +
-    `👤 Клиент: ${userName} (${userEmail})\n` +
-    `📋 Тариф: ${planName} — ${price.toLocaleString('ru-RU')} ₸/мес\n` +
-    `📱 Kaspi номер: ${kaspiPhone}\n\n` +
-    `Выставите счёт и активируйте подписку в админке:\n` +
-    `metricon.kz/admin/subscriptions`;
-
-  await waSendMessage('metricon-global', notifPhone, message);
 
   return NextResponse.json({ success: true });
 }

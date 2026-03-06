@@ -4,43 +4,66 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { Menu, X, LayoutDashboard, Users, CreditCard, MessageCircle, ArrowLeft } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Users, CreditCard, MessageCircle, ArrowLeft, Bell } from 'lucide-react';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface NavItem {
   name: string;
   href: string;
   icon: React.ReactNode;
+  badge?: number;
 }
-
-const navigation: NavItem[] = [
-  {
-    name: 'Дашборд',
-    href: '/admin',
-    icon: <LayoutDashboard className="w-5 h-5" />
-  },
-  {
-    name: 'Пользователи',
-    href: '/admin/users',
-    icon: <Users className="w-5 h-5" />
-  },
-  {
-    name: 'Подписки',
-    href: '/admin/subscriptions',
-    icon: <CreditCard className="w-5 h-5" />
-  },
-  {
-    name: 'WhatsApp',
-    href: '/admin/whatsapp',
-    icon: <MessageCircle className="w-5 h-5" />
-  },
-];
 
 export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [pendingPayments, setPendingPayments] = useState(0);
   const clickCountRef = useRef(0);
   const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load pending payment requests count
+  useEffect(() => {
+    async function loadBadge() {
+      try {
+        const res = await fetchWithAuth('/api/admin/payment-requests?status=pending');
+        const data = await res.json();
+        setPendingPayments((data.data || []).length);
+      } catch { /* ignore */ }
+    }
+    loadBadge();
+    const interval = setInterval(loadBadge, 60000); // refresh every 60s
+    return () => clearInterval(interval);
+  }, []);
+
+  const navigation: NavItem[] = [
+    {
+      name: 'Дашборд',
+      href: '/admin',
+      icon: <LayoutDashboard className="w-5 h-5" />,
+    },
+    {
+      name: 'Пользователи',
+      href: '/admin/users',
+      icon: <Users className="w-5 h-5" />,
+    },
+    {
+      name: 'Подписки',
+      href: '/admin/subscriptions',
+      icon: <CreditCard className="w-5 h-5" />,
+    },
+    {
+      name: 'Заявки на оплату',
+      href: '/admin/payment-requests',
+      icon: <Bell className="w-5 h-5" />,
+      badge: pendingPayments,
+    },
+    {
+      name: 'WhatsApp',
+      href: '/admin/whatsapp',
+      icon: <MessageCircle className="w-5 h-5" />,
+    },
+  ];
 
   // Секретный доступ к аналитике - 5 кликов на версии
   const handleSecretClick = () => {
@@ -118,6 +141,11 @@ export default function AdminSidebar() {
           >
             {item.icon}
             <span className="flex-1">{item.name}</span>
+            {item.badge != null && item.badge > 0 && (
+              <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                {item.badge}
+              </span>
+            )}
           </Link>
         ))}
 
@@ -160,12 +188,21 @@ export default function AdminSidebar() {
             <span className="text-green-400 text-xs ml-1 font-medium">ADMIN</span>
           </div>
         </div>
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
-        >
-          {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        <div className="flex items-center gap-2">
+          {pendingPayments > 0 && (
+            <Link href="/admin/payment-requests">
+              <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                {pendingPayments}
+              </span>
+            </Link>
+          )}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className="p-2 text-white hover:bg-white/10 rounded-lg transition-colors"
+          >
+            {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Overlay */}
