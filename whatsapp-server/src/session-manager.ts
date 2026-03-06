@@ -13,7 +13,7 @@ import { useSupabaseAuthState, deleteSupabaseAuthState, hasSupabaseAuthState } f
 const logger = pino({ level: 'info' });
 
 // Idle timeout before closing an unused session (5 minutes)
-const IDLE_TIMEOUT_MS = 5 * 60 * 1000;
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
 
 // Callback для обработки входящих сообщений (poll ответы, текст)
 type IncomingMessageHandler = (storeId: string, msg: {

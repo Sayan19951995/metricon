@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { requireAuth, supabaseAdmin } from '@/lib/api-auth';
 import { waSendMessage } from '@/lib/whatsapp/client';
 
+export const maxDuration = 30; // seconds — allow time for WA reconnect
+
 const PLAN_NAMES: Record<string, string> = {
   start: 'Старт',
   business: 'Бизнес',
