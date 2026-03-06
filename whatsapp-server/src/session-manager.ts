@@ -12,8 +12,8 @@ import { useSupabaseAuthState, deleteSupabaseAuthState, hasSupabaseAuthState } f
 
 const logger = pino({ level: 'info' });
 
-// Idle timeout before closing an unused session (5 minutes)
-const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // 30 minutes
+// Sessions that should never be closed due to inactivity
+const PERSISTENT_SESSIONS = new Set(['metricon-global']);
 
 // Callback для обработки входящих сообщений (poll ответы, текст)
 type IncomingMessageHandler = (storeId: string, msg: {
@@ -34,6 +34,7 @@ interface SessionInfo {
 }
 
 const MAX_RETRIES = 5;
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // for non-persistent sessions only
 
 class SessionManager {
   private sessions = new Map<string, SessionInfo>();
@@ -282,20 +283,24 @@ class SessionManager {
 
         console.log(`[${storeId}] Disconnected (code: ${statusCode}, reconnect: ${shouldReconnect})`);
 
-        if (shouldReconnect && info.retryCount < MAX_RETRIES) {
-          info.retryCount++;
-          const delay = Math.min(3000 * info.retryCount, 15000);
-          console.log(`[${storeId}] Reconnect attempt ${info.retryCount}/${MAX_RETRIES} in ${delay}ms...`);
-          setTimeout(() => {
-            const current = this.sessions.get(storeId);
-            if (current && current.status !== 'connected') {
-              this.connect(storeId, current);
-            }
-          }, delay);
-        } else if (shouldReconnect) {
-          console.log(`[${storeId}] Max retries reached, giving up`);
-          info.status = 'disconnected';
-          info.connectPromise = null;
+        if (shouldReconnect) {
+          const isPersistent = PERSISTENT_SESSIONS.has(storeId);
+          if (!isPersistent && info.retryCount >= MAX_RETRIES) {
+            console.log(`[${storeId}] Max retries reached, giving up`);
+            info.status = 'disconnected';
+            info.connectPromise = null;
+          } else {
+            info.retryCount++;
+            // Persistent sessions: cap delay at 15s but retry forever
+            const delay = Math.min(3000 * Math.min(info.retryCount, 5), 15000);
+            console.log(`[${storeId}] Reconnect attempt ${info.retryCount}${isPersistent ? ' (persistent, will retry forever)' : `/${MAX_RETRIES}`} in ${delay}ms...`);
+            setTimeout(() => {
+              const current = this.sessions.get(storeId);
+              if (current && current.status !== 'connected') {
+                this.connect(storeId, current);
+              }
+            }, delay);
+          }
         } else {
           // loggedOut — delete stale credentials so next startSession generates fresh QR
           info.status = 'disconnected';
@@ -358,6 +363,9 @@ class SessionManager {
   }
 
   private resetIdleTimer(storeId: string): void {
+    // Persistent sessions (e.g. metricon-global) never time out
+    if (PERSISTENT_SESSIONS.has(storeId)) return;
+
     const session = this.sessions.get(storeId);
     if (!session) return;
 

@@ -189,4 +189,11 @@ app.listen(PORT, () => {
   // Инициализация feedback системы
   initFeedbackHandler();
   feedbackScheduler.start();
+
+  // Auto-start persistent sessions on boot (reconnect from saved credentials)
+  sessionManager.ensureConnected('metricon-global').then(connected => {
+    console.log(`[boot] metricon-global: ${connected ? 'connected ✓' : 'not connected (needs QR scan)'}`);
+  }).catch(err => {
+    console.error('[boot] metricon-global auto-start failed:', err);
+  });
 });
