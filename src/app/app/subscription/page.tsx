@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
+import { useUser } from '@/hooks/useUser';
 
 // Интерфейсы
 interface SubscriptionPlan {
@@ -145,22 +146,38 @@ const addOnOptions: AddOnOption[] = [
   },
 ];
 
-// Текущая подписка (mock данные)
-const currentSubscription = {
-  plan: 'Бизнес',
-  startDate: '2025-01-15',
-  endDate: '2025-02-15',
-  autoRenew: true,
-  nextPayment: 14900,
+const PLAN_NAME_MAP: Record<string, string> = {
+  start: 'Старт',
+  business: 'Бизнес',
+  pro: 'Pro',
+};
+
+const PLAN_PRICE_MAP: Record<string, number> = {
+  start: 9900,
+  business: 14900,
+  pro: 24900,
 };
 
 export default function SubscriptionPage() {
+  const { subscription, loading: userLoading } = useUser();
   const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'yearly'>('monthly');
   const [paymentModal, setPaymentModal] = useState<PaymentModal | null>(null);
   const [kaspiPhone, setKaspiPhone] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [submitResult, setSubmitResult] = useState<'success' | 'error' | null>(null);
   const [submitDebug, setSubmitDebug] = useState<string | null>(null);
+
+  // Real subscription data
+  const currentPlanId = subscription?.plan || null;
+  const currentPlanName = currentPlanId ? (PLAN_NAME_MAP[currentPlanId] || currentPlanId) : null;
+  const currentSubscription = subscription ? {
+    plan: currentPlanName || '—',
+    startDate: subscription.start_date || new Date().toISOString().split('T')[0],
+    endDate: subscription.end_date || new Date().toISOString().split('T')[0],
+    autoRenew: subscription.auto_renew ?? true,
+    nextPayment: PLAN_PRICE_MAP[currentPlanId || ''] || 0,
+    status: subscription.status,
+  } : null;
 
   // Расчёт цен с учётом периода
   const getPrice = (plan: SubscriptionPlan) => {
@@ -172,27 +189,19 @@ export default function SubscriptionPage() {
 
   // Получение цены аддона в зависимости от тарифа
   const getAddonPrice = (addon: AddOnOption) => {
-    if (typeof addon.price === 'number') {
-      return addon.price;
-    }
-    // Определяем текущий тариф
-    const planName = currentSubscription.plan.toLowerCase();
-    if (planName === 'старт' || planName === 'start') return addon.price.start;
-    if (planName === 'бизнес' || planName === 'business') return addon.price.business;
-    if (planName === 'pro' || planName === 'про') return addon.price.pro;
-    return addon.price.start; // по умолчанию
+    if (typeof addon.price === 'number') return addon.price;
+    if (currentPlanId === 'business') return addon.price.business;
+    if (currentPlanId === 'pro') return addon.price.pro;
+    return addon.price.start;
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('ru-RU', {
-      day: 'numeric',
-      month: 'long',
-      year: 'numeric',
-    });
+    return date.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
   };
 
   const daysUntilExpiry = () => {
+    if (!currentSubscription?.endDate) return 0;
     const end = new Date(currentSubscription.endDate);
     const now = new Date();
     const diff = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
@@ -203,6 +212,7 @@ export default function SubscriptionPage() {
     setPaymentModal({ planId: plan.id, planName: plan.name, price: getPrice(plan) });
     setKaspiPhone('');
     setSubmitResult(null);
+    setSubmitDebug(null);
   }
 
   function closePaymentModal() {
@@ -245,69 +255,81 @@ export default function SubscriptionPage() {
         </div>
 
         {/* Текущий план */}
-        <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 lg:p-8 mb-8 text-white">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
-            <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
-                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                  </svg>
+        {userLoading ? (
+          <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 lg:p-8 mb-8 text-white animate-pulse">
+            <div className="h-8 bg-white/20 rounded w-48 mb-4" />
+            <div className="h-4 bg-white/20 rounded w-64" />
+          </div>
+        ) : currentSubscription ? (
+          <div className="bg-gradient-to-r from-emerald-500 to-teal-500 rounded-2xl p-6 lg:p-8 mb-8 text-white">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+              <div>
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                    </svg>
+                  </div>
+                  <div>
+                    <p className="text-white/70 text-sm">Текущий план</p>
+                    <h2 className="text-2xl font-bold">{currentSubscription.plan}</h2>
+                    {currentSubscription.status && currentSubscription.status !== 'active' && (
+                      <span className="text-xs bg-white/20 px-2 py-0.5 rounded-full">{currentSubscription.status}</span>
+                    )}
+                  </div>
                 </div>
-                <div>
-                  <p className="text-white/70 text-sm">Текущий план</p>
-                  <h2 className="text-2xl font-bold">{currentSubscription.plan}</h2>
+                <div className="mt-4 space-y-1">
+                  {currentSubscription.endDate && (
+                    <p className="text-white/80">
+                      <span className="text-white/60">Активен до:</span>{' '}
+                      <span className="font-semibold">{formatDate(currentSubscription.endDate)}</span>
+                    </p>
+                  )}
+                  <p className="text-white/80">
+                    <span className="text-white/60">Осталось:</span>{' '}
+                    <span className="font-semibold">{daysUntilExpiry()} дней</span>
+                  </p>
                 </div>
               </div>
-              <div className="mt-4 space-y-1">
-                <p className="text-white/80">
-                  <span className="text-white/60">Активен до:</span>{' '}
-                  <span className="font-semibold">{formatDate(currentSubscription.endDate)}</span>
-                </p>
-                <p className="text-white/80">
-                  <span className="text-white/60">Осталось:</span>{' '}
-                  <span className="font-semibold">{daysUntilExpiry()} дней</span>
-                </p>
+
+              <div className="flex flex-col sm:flex-row gap-3">
+                {currentSubscription.nextPayment > 0 && currentSubscription.endDate && (
+                  <div className="bg-white/10 rounded-xl px-6 py-4 text-center">
+                    <p className="text-white/60 text-sm mb-1">Следующий платёж</p>
+                    <p className="text-2xl font-bold">{currentSubscription.nextPayment.toLocaleString('ru-RU')} ₸</p>
+                    <p className="text-white/60 text-xs mt-1">{formatDate(currentSubscription.endDate)}</p>
+                  </div>
+                )}
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={() => {
+                      const plan = subscriptionPlans.find(p => p.id === currentPlanId);
+                      if (plan) openPaymentModal(plan);
+                    }}
+                    className="px-6 py-3 bg-white text-emerald-600 rounded-xl font-medium hover:bg-white/90 transition-colors"
+                  >
+                    Продлить сейчас
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="bg-white/10 rounded-xl px-6 py-4 text-center">
-                <p className="text-white/60 text-sm mb-1">Следующий платёж</p>
-                <p className="text-2xl font-bold">{currentSubscription.nextPayment.toLocaleString('ru-RU')} ₸</p>
-                <p className="text-white/60 text-xs mt-1">{formatDate(currentSubscription.endDate)}</p>
+            {currentSubscription.startDate && currentSubscription.endDate && (
+              <div className="mt-6">
+                <div className="flex justify-between text-sm text-white/70 mb-2">
+                  <span>Начало: {formatDate(currentSubscription.startDate)}</span>
+                  <span>Окончание: {formatDate(currentSubscription.endDate)}</span>
+                </div>
+                <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-white rounded-full transition-all duration-500"
+                    style={{ width: `${Math.max(0, 100 - (daysUntilExpiry() / 30 * 100))}%` }}
+                  />
+                </div>
               </div>
-              <div className="flex flex-col gap-2">
-                <button
-                  onClick={() => {
-                    const plan = subscriptionPlans.find(p => p.name === currentSubscription.plan);
-                    if (plan) openPaymentModal(plan);
-                  }}
-                  className="px-6 py-3 bg-white text-emerald-600 rounded-xl font-medium hover:bg-white/90 transition-colors"
-                >
-                  Продлить сейчас
-                </button>
-                <button className="px-6 py-2 text-white/80 hover:text-white text-sm transition-colors">
-                  Отменить подписку
-                </button>
-              </div>
-            </div>
+            )}
           </div>
-
-          {/* Прогресс-бар */}
-          <div className="mt-6">
-            <div className="flex justify-between text-sm text-white/70 mb-2">
-              <span>Начало: {formatDate(currentSubscription.startDate)}</span>
-              <span>Окончание: {formatDate(currentSubscription.endDate)}</span>
-            </div>
-            <div className="h-2 bg-white/20 rounded-full overflow-hidden">
-              <div
-                className="h-full bg-white rounded-full transition-all duration-500"
-                style={{ width: `${Math.max(0, 100 - (daysUntilExpiry() / 30 * 100))}%` }}
-              />
-            </div>
-          </div>
-        </div>
+        ) : null}
 
         {/* Переключатель периода */}
         <div className="flex justify-center mb-8">
@@ -340,18 +362,20 @@ export default function SubscriptionPage() {
 
         {/* Планы */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {subscriptionPlans.map((plan) => (
+          {subscriptionPlans.map((plan) => {
+            const isCurrent = plan.id === currentPlanId;
+            return (
             <div
               key={plan.id}
               className={`relative bg-white dark:bg-gray-800 rounded-2xl p-6 lg:p-8 shadow-sm border-2 transition-all hover:shadow-lg ${
-                plan.current
+                isCurrent
                   ? 'border-emerald-500 ring-2 ring-emerald-500/20'
                   : plan.popular
                   ? 'border-gray-200 dark:border-gray-700'
                   : 'border-gray-100 dark:border-gray-700'
               }`}
             >
-              {plan.popular && (
+              {plan.popular && !isCurrent && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className="bg-gradient-to-r from-orange-500 to-amber-500 text-white text-xs font-bold px-4 py-1 rounded-full">
                     ПОПУЛЯРНЫЙ ВЫБОР
@@ -359,7 +383,7 @@ export default function SubscriptionPage() {
                 </div>
               )}
 
-              {plan.current && (
+              {isCurrent && (
                 <div className="absolute -top-3 right-4">
                   <span className="bg-emerald-500 text-white text-xs font-medium px-3 py-1 rounded-full">
                     Текущий
@@ -367,7 +391,7 @@ export default function SubscriptionPage() {
                 </div>
               )}
 
-              {plan.badge && !plan.popular && (
+              {plan.badge && !plan.popular && !isCurrent && (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2">
                   <span className="bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-medium px-4 py-1 rounded-full">
                     {plan.badge}
@@ -423,20 +447,21 @@ export default function SubscriptionPage() {
               </ul>
 
               <button
-                onClick={() => !plan.current && openPaymentModal(plan)}
+                onClick={() => !isCurrent && openPaymentModal(plan)}
                 className={`w-full py-3 rounded-xl font-medium transition-all ${
-                  plan.current
+                  isCurrent
                     ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 cursor-default'
                     : plan.popular
                     ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-white hover:shadow-lg hover:shadow-emerald-500/25 cursor-pointer'
                     : 'bg-gray-900 dark:bg-gray-700 text-white hover:bg-gray-800 dark:hover:bg-gray-600 cursor-pointer'
                 }`}
-                disabled={plan.current}
+                disabled={isCurrent}
               >
-                {plan.current ? 'Текущий план' : 'Выбрать план'}
+                {isCurrent ? 'Текущий план' : 'Выбрать план'}
               </button>
             </div>
-          ))}
+            );
+          })}
         </div>
 
         {/* Дополнительные опции */}
