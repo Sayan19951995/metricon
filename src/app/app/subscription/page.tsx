@@ -561,7 +561,7 @@ export default function SubscriptionPage() {
                 </div>
                 <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Заявка отправлена!</h3>
                 <p className="text-gray-500 dark:text-gray-400 text-sm mb-2">
-                  Мы получили вашу заявку и выставим счёт в WhatsApp в ближайшее время.
+                  Мы получили вашу заявку и выставим счёт в Kaspi в ближайшее время.
                 </p>
                 {submitDebug && (
                   <p className="text-xs text-amber-500 mb-4 bg-amber-50 dark:bg-amber-900/20 rounded-lg px-3 py-2">
