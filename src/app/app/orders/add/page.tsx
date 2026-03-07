@@ -186,12 +186,9 @@ export default function AddOrderPage() {
             className="w-full bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl px-4 py-3 text-sm text-gray-900 dark:text-white focus:outline-none focus:border-emerald-500 transition-colors cursor-pointer"
           >
             <option value="cash">Наличные</option>
-            <option value="card">Перевод на карту</option>
-            <option value="kaspi">Kaspi перевод</option>
-            <option value="instagram">Instagram</option>
-            <option value="whatsapp">WhatsApp</option>
-            <option value="telegram">Telegram</option>
-            <option value="other">Другое</option>
+            <option value="transfer">Перевод</option>
+            <option value="invoice_phys">Счёт на оплату физ</option>
+            <option value="invoice_legal">Счёт на оплату юр</option>
           </select>
         </div>
 
