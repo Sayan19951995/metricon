@@ -2544,7 +2544,41 @@ function AnalyticsPageContent() {
         {/* Managers Tab */}
         {activeTab === 'managers' && (() => {
           type ManagerOrder = { orderId: string; amount: number; channel: string; comment: string | null; status: string; customer: string; productName: string; itemsCount: number; confirmedAt: string | null; createdAt: string | null };
-          const allManagerSales: Array<{ manager: string; count: number; revenue: number; channels: Record<string, number>; topChannel: string; orders: ManagerOrder[]; products: Array<{ code: string; name: string; qty: number; revenue: number }> }> = apiData?.managerSales || [];
+          const rawManagerSales: Array<{ manager: string; count: number; revenue: number; channels: Record<string, number>; topChannel: string; orders: ManagerOrder[]; products: Array<{ code: string; name: string; qty: number; revenue: number }> }> = apiData?.managerSales || [];
+
+          // Фильтруем заказы менеджеров по выбранному периоду
+          const allManagerSales = (() => {
+            if (!startDate || !endDate) return rawManagerSales;
+            const sTime = new Date(startDate); sTime.setHours(0, 0, 0, 0);
+            const eTime = new Date(endDate); eTime.setHours(23, 59, 59, 999);
+            return rawManagerSales.map(m => {
+              const filteredOrders = m.orders.filter(o => {
+                const dateStr = o.createdAt || o.confirmedAt;
+                if (!dateStr) return false;
+                const utcMs = new Date(dateStr).getTime();
+                const kzDate = new Date(utcMs + 5 * 3600000);
+                kzDate.setHours(12, 0, 0, 0);
+                return kzDate >= sTime && kzDate <= eTime;
+              });
+              const revenue = filteredOrders.reduce((s, o) => s + o.amount, 0);
+              const channels: Record<string, number> = {};
+              for (const o of filteredOrders) {
+                channels[o.channel] = (channels[o.channel] || 0) + 1;
+              }
+              const topChannel = Object.entries(channels).sort((a, b) => b[1] - a[1])[0]?.[0] || '';
+              // Rebuild products from filtered orders
+              const prodMap = new Map<string, { name: string; qty: number; revenue: number }>();
+              for (const o of filteredOrders) {
+                const key = o.productName || 'Товар';
+                const ex = prodMap.get(key);
+                if (ex) { ex.qty += o.itemsCount || 1; ex.revenue += o.amount; }
+                else prodMap.set(key, { name: key, qty: o.itemsCount || 1, revenue: o.amount });
+              }
+              const products = Array.from(prodMap.entries()).map(([code, d]) => ({ code, ...d }));
+              return { ...m, orders: filteredOrders, count: filteredOrders.length, revenue, channels, topChannel, products };
+            }).filter(m => m.orders.length > 0);
+          })();
+
           const MANAGER_COLORS = ['#8b5cf6', '#ec4899', '#06b6d4', '#f59e0b', '#10b981', '#f43f5e', '#6366f1', '#14b8a6', '#a78bfa', '#fb7185'];
           const managerNames = allManagerSales.map(m => m.manager);
 
