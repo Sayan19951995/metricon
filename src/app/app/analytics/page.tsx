@@ -2957,7 +2957,7 @@ function AnalyticsPageContent() {
                         <Pie data={pieData} cx="50%" cy="50%" labelLine={false} outerRadius="90%" innerRadius="25%" dataKey="value" stroke="none">
                           {pieData.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
                         </Pie>
-                        <Tooltip formatter={(value: number) => `${fmt(value)} ₸`} contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: 'none', borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', fontSize: '11px', padding: '4px 8px' }} />
+                        <Tooltip formatter={(value) => `${fmt(value as number)} ₸`} contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: 'none', borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', fontSize: '11px', padding: '4px 8px' }} />
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="mt-2 space-y-0.5">
