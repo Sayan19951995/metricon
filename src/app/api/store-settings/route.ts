@@ -7,11 +7,11 @@ export async function GET(request: NextRequest) {
     if ('error' in auth) return auth.error;
     const userId = auth.user.id;
 
-    const { data: store } = await supabaseAdmin
+    const { data: store } = await (supabaseAdmin
       .from('stores')
       .select('commission_rate, tax_rate, manager_commissions_enabled')
       .eq('user_id', userId)
-      .single();
+      .single() as any);
 
     if (!store) {
       return NextResponse.json({ success: false, message: 'Магазин не найден' }, { status: 400 });
