@@ -88,7 +88,7 @@ function ClaimSaleModal({ order, comment, onCommentChange, onConfirm, onCancel }
   onCancel: () => void;
 }) {
   const [selectedChannel, setSelectedChannel] = useState('');
-  const channels = ['Instagram', 'TikTok', 'WhatsApp', 'Telegram', 'Facebook', '2GIS', 'Телефон', 'Другое'];
+  const channels = ['Instagram', 'TikTok', 'WhatsApp', 'Telegram', 'Kaspi Market', '2GIS', 'Телефон', 'Другое'];
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
