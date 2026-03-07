@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
           `Рейтинг: ⭐ ${ratingStr} (${currentCount} отзывов)\n\n` +
           `Посмотреть: metricon.kz/app/analytics`;
 
-        const sent = await waSendMessage(store.id, waPhone, message);
+        const sent = await waSendMessage('metricon-global', waPhone, message);
         if (sent) notified++;
 
       } catch (err) {

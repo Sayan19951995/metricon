@@ -153,7 +153,7 @@ export async function GET(request: NextRequest) {
 
         message += `\nПодробнее: metricon.kz/app/analytics`;
 
-        const ok = await waSendMessage(store.id, waPhone, message);
+        const ok = await waSendMessage('metricon-global', waPhone, message);
         if (ok) sent++;
 
       } catch (err) {
