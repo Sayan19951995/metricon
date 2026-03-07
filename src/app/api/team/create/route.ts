@@ -1,27 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
-
-// Серверный клиент с правами администратора
-const supabaseAdmin = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co',
-  process.env.SUPABASE_SERVICE_ROLE_KEY || 'placeholder',
-  { auth: { autoRefreshToken: false, persistSession: false } }
-);
+import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
 
 /**
  * POST /api/team/create
  * Создать аккаунт для члена команды (владелец задаёт email + пароль)
- * Body: { ownerUserId, name, email, password, role }
+ * Body: { name, email, password, role }
  */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json();
-    const { ownerUserId, name, email, password, role } = body;
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+    const ownerUserId = auth.user.id;
 
-    if (!ownerUserId || !name || !email || !password || !role) {
+    const body = await request.json();
+    const { name, email, password, role } = body;
+
+    if (!name || !email || !password || !role) {
       return NextResponse.json({
         success: false,
-        message: 'ownerUserId, name, email, password и role обязательны',
+        message: 'name, email, password и role обязательны',
       }, { status: 400 });
     }
 
@@ -40,7 +37,7 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Находим магазин владельца (через admin чтобы обойти RLS)
+    // Находим магазин владельца
     const { data: store } = await supabaseAdmin
       .from('stores')
       .select('id')
