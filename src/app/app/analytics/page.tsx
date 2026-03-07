@@ -2923,18 +2923,18 @@ function AnalyticsPageContent() {
               {/* Pie Charts: Канал + Тип */}
               {allOrders.length > 0 && (() => {
                 const PIE_COLORS = ['#8b5cf6', '#ec4899', '#06b6d4', '#f59e0b', '#10b981', '#f43f5e', '#6366f1', '#14b8a6', '#a78bfa', '#fb7185'];
-                // Channel distribution
+                // Channel distribution by amount
                 const chMap = new Map<string, number>();
                 for (const o of allOrders) {
                   const label = channelLabel(o.channel);
-                  chMap.set(label, (chMap.get(label) || 0) + 1);
+                  chMap.set(label, (chMap.get(label) || 0) + o.amount);
                 }
                 const channelPieData = Array.from(chMap.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
-                // Type distribution
+                // Type distribution by amount
                 const typeMap = new Map<string, number>();
                 for (const o of allOrders) {
                   const type = o.orderId.startsWith('M-') ? 'Офлайн' : 'Kaspi';
-                  typeMap.set(type, (typeMap.get(type) || 0) + 1);
+                  typeMap.set(type, (typeMap.get(type) || 0) + o.amount);
                 }
                 const typePieData = Array.from(typeMap.entries()).map(([name, value]) => ({ name, value }));
                 const TYPE_COLORS = ['#f59e0b', '#ef4444'];
@@ -2942,12 +2942,12 @@ function AnalyticsPageContent() {
                 const renderPie = (title: string, pieData: Array<{ name: string; value: number }>, colors: string[]) => (
                   <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 lg:p-5 shadow-sm">
                     <h4 className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white mb-2 sm:mb-3">{title}</h4>
-                    <ResponsiveContainer width="100%" height={160}>
+                    <ResponsiveContainer width="100%" height={280}>
                       <PieChart>
                         <Pie data={pieData} cx="50%" cy="50%" labelLine={false} outerRadius="90%" innerRadius="25%" dataKey="value">
                           {pieData.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
                         </Pie>
-                        <Tooltip contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: 'none', borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', fontSize: '11px', padding: '4px 8px' }} />
+                        <Tooltip formatter={(value: number) => `${fmt(value)} ₸`} contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: 'none', borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', fontSize: '11px', padding: '4px 8px' }} />
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="mt-2 space-y-0.5">
@@ -2959,7 +2959,7 @@ function AnalyticsPageContent() {
                             <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: colors[i % colors.length] }} />
                             <div className="flex-1 flex justify-between items-center min-w-0">
                               <span className="text-xs text-gray-700 dark:text-gray-300 truncate">{item.name}</span>
-                              <span className="text-xs font-medium text-gray-900 dark:text-white ml-1">{item.value} <span className="text-gray-400">({pct}%)</span></span>
+                              <span className="text-xs font-medium text-gray-900 dark:text-white ml-1">{fmt(item.value)} ₸ <span className="text-gray-400">({pct}%)</span></span>
                             </div>
                           </div>
                         );
