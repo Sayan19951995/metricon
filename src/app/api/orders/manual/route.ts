@@ -56,6 +56,14 @@ export async function POST(request: NextRequest) {
     // Generate a unique order ID for manual orders
     const manualId = `M-${Date.now()}`;
 
+    // If date is just "YYYY-MM-DD", treat as Kazakhstan noon (UTC+5)
+    let orderDate: string;
+    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      orderDate = `${date}T12:00:00+05:00`;
+    } else {
+      orderDate = date || new Date().toISOString();
+    }
+
     const { error } = await supabaseAdmin
       .from('orders')
       .insert({
@@ -65,8 +73,8 @@ export async function POST(request: NextRequest) {
         total_amount: totalAmount,
         items,
         customer_name: 'Ручной заказ',
-        created_at: date || new Date().toISOString(),
-        completed_at: date || new Date().toISOString(),
+        created_at: orderDate,
+        completed_at: orderDate,
         confirmed_at: new Date().toISOString(),
         confirmed_by: userName,
         sale_source: source,
