@@ -119,12 +119,12 @@ export async function PATCH(request: NextRequest) {
     const userId = auth.user.id;
 
     const body = await request.json();
-    const { memberId, role } = body;
+    const { memberId, role, commission_offline, commission_kaspi, salary_fixed } = body;
 
-    if (!memberId || !role) {
+    if (!memberId) {
       return NextResponse.json({
         success: false,
-        message: 'memberId и role обязательны',
+        message: 'memberId обязателен',
       }, { status: 400 });
     }
 
@@ -139,9 +139,15 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: false, message: 'Нет прав' }, { status: 403 });
     }
 
+    const updateData: Record<string, any> = {};
+    if (role !== undefined) updateData.role = role;
+    if (commission_offline !== undefined) updateData.commission_offline = commission_offline;
+    if (commission_kaspi !== undefined) updateData.commission_kaspi = commission_kaspi;
+    if (salary_fixed !== undefined) updateData.salary_fixed = salary_fixed;
+
     const { error } = await supabaseAdmin
       .from('team_members' as any)
-      .update({ role })
+      .update(updateData)
       .eq('id', memberId)
       .eq('store_id', store.id);
 

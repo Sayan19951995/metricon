@@ -37,6 +37,9 @@ interface TeamMember {
   status: 'active' | 'pending' | 'inactive';
   lastActive?: string;
   invitedAt?: string;
+  commission_offline?: number;
+  commission_kaspi?: number;
+  salary_fixed?: number;
 }
 
 // Описание ролей
@@ -129,6 +132,8 @@ export default function TeamSettingsPage() {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [createError, setCreateError] = useState<string | null>(null);
+  const [commissionsEnabled, setCommissionsEnabled] = useState(false);
+  const [savingCommission, setSavingCommission] = useState<string | null>(null);
 
   const currentPlan = (subscription?.plan as 'start' | 'business' | 'pro') || 'start';
   const maxRoles = planLimits[currentPlan]?.roles || 1;
@@ -159,6 +164,9 @@ export default function TeamSettingsPage() {
           role: m.role as RoleType,
           status: m.status as 'active' | 'pending' | 'inactive',
           invitedAt: m.created_at ? new Date(m.created_at).toLocaleDateString('ru-RU') : undefined,
+          commission_offline: Number(m.commission_offline) || 0,
+          commission_kaspi: Number(m.commission_kaspi) || 0,
+          salary_fixed: Number(m.salary_fixed) || 0,
         }));
         setTeamMembers([ownerMember, ...apiMembers]);
       }
@@ -171,7 +179,13 @@ export default function TeamSettingsPage() {
 
   useEffect(() => {
     loadMembers();
-  }, [loadMembers]);
+    // Load commissions enabled flag
+    if (user?.id) {
+      fetchWithAuth('/api/store-settings').then(r => r.json()).then(json => {
+        if (json.success) setCommissionsEnabled(json.data?.managerCommissionsEnabled ?? false);
+      }).catch(() => {});
+    }
+  }, [loadMembers, user?.id]);
 
   const handleCreate = async () => {
     if (!createEmail || !createPassword || !createName || !canAddMore || !user?.id) return;
@@ -229,6 +243,26 @@ export default function TeamSettingsPage() {
     } catch (err) {
       console.error('Change role error:', err);
       await loadMembers(); // revert on error
+    }
+  };
+
+  const handleSaveCommission = async (member: TeamMember) => {
+    setSavingCommission(member.id);
+    try {
+      await fetchWithAuth('/api/team', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          memberId: member.id,
+          commission_offline: member.commission_offline || 0,
+          commission_kaspi: member.commission_kaspi || 0,
+          salary_fixed: member.salary_fixed || 0,
+        }),
+      });
+    } catch (err) {
+      console.error('Save commission error:', err);
+    } finally {
+      setSavingCommission(null);
     }
   };
 
@@ -395,6 +429,57 @@ export default function TeamSettingsPage() {
                   })()}
                   {roleDescriptions[member.role].name}
                 </div>
+
+                {/* Commission fields for managers */}
+                {commissionsEnabled && member.role === 'manager' && (
+                  <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                    <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-2">Настройки ЗП</p>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <label className="text-[10px] text-gray-400 dark:text-gray-500">Оффлайн %</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          value={member.commission_offline || 0}
+                          onChange={(e) => setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, commission_offline: Number(e.target.value) } : m))}
+                          className="w-full px-2 py-1.5 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 text-gray-900 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-gray-400 dark:text-gray-500">Каспи %</label>
+                        <input
+                          type="number"
+                          min="0"
+                          max="100"
+                          step="0.1"
+                          value={member.commission_kaspi || 0}
+                          onChange={(e) => setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, commission_kaspi: Number(e.target.value) } : m))}
+                          className="w-full px-2 py-1.5 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 text-gray-900 dark:text-white"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] text-gray-400 dark:text-gray-500">Фикс ₸</label>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1000"
+                          value={member.salary_fixed || 0}
+                          onChange={(e) => setTeamMembers(prev => prev.map(m => m.id === member.id ? { ...m, salary_fixed: Number(e.target.value) } : m))}
+                          className="w-full px-2 py-1.5 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:border-indigo-500 text-gray-900 dark:text-white"
+                        />
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleSaveCommission(member)}
+                      disabled={savingCommission === member.id}
+                      className="mt-2 px-3 py-1.5 text-xs font-medium bg-indigo-500 hover:bg-indigo-600 disabled:bg-gray-300 text-white rounded-lg transition-colors cursor-pointer"
+                    >
+                      {savingCommission === member.id ? 'Сохранение...' : 'Сохранить ставки'}
+                    </button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

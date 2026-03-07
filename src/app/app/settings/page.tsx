@@ -8,7 +8,8 @@ import {
   ChevronRight,
   Palette,
   LogOut,
-  Users
+  Users,
+  Calculator
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -72,6 +73,13 @@ export default function SettingsPage() {
           description: 'Управление доступом сотрудников',
           href: '/app/settings/team',
           color: 'bg-indigo-100 text-indigo-600'
+        },
+        {
+          icon: Calculator,
+          title: 'Расчёт прибыли',
+          description: 'Комиссии, налоги, ЗП менеджеров',
+          href: '/app/settings/profit',
+          color: 'bg-emerald-100 text-emerald-600'
         },
         {
           icon: CreditCard,

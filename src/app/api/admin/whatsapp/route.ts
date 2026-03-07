@@ -153,8 +153,10 @@ export async function PATCH(request: NextRequest) {
         body: JSON.stringify({ storeId: GLOBAL_STORE_ID, phone: notifPhone, message: `✅ Тест Metricon: уведомления об оплате настроены. Номер: ${notifPhone}` }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok || data.success === false) {
-        return NextResponse.json({ success: false, error: `WA error: ${data.error || res.status}`, phone: notifPhone });
+      console.log('WA test_notif_phone response:', res.status, JSON.stringify(data));
+      const isOk = res.ok && (data.success !== false && data.error === undefined);
+      if (!isOk) {
+        return NextResponse.json({ success: false, error: `WA error: ${data.error || data.message || JSON.stringify(data)}`, phone: notifPhone });
       }
       return NextResponse.json({ success: true, phone: notifPhone });
     } catch (e: any) {
@@ -180,10 +182,13 @@ export async function PATCH(request: NextRequest) {
         body: JSON.stringify({ storeId: GLOBAL_STORE_ID, phone: waPhone, message }),
       });
       const data = await res.json().catch(() => ({}));
+      console.log('WA send_test response:', res.status, JSON.stringify(data));
       if (!res.ok) {
         return NextResponse.json({ success: false, error: `WA ${res.status}: ${data.error || data.message || JSON.stringify(data)}` });
       }
-      return NextResponse.json({ success: data.success === true, error: data.success ? null : (data.error || data.message || 'Unknown WA error') });
+      // WA server may return {sent: true} or {messageId: '...'} instead of {success: true}
+      const isSuccess = data.success === true || data.sent === true || !!data.messageId;
+      return NextResponse.json({ success: isSuccess, error: isSuccess ? null : (data.error || data.message || `Unexpected response: ${JSON.stringify(data)}`) });
     } catch (e: any) {
       return NextResponse.json({ success: false, error: `WA server: ${e.message}` });
     }

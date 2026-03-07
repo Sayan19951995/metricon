@@ -27,7 +27,7 @@ import { getStale, setCache } from '@/lib/cache';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 type OrderStatus = 'new' | 'sign_required' | 'pickup' | 'delivery' | 'kaspi_delivery' | 'archive' | 'completed' | 'cancelled' | 'returned';
-type FilterStatus = 'all' | OrderStatus | 'awaiting' | 'transfer' | 'transmitted';
+type FilterStatus = 'all' | OrderStatus | 'awaiting' | 'transfer' | 'transmitted' | 'offline' | 'my_sales';
 type SortField = 'code' | 'customer' | 'date' | 'items' | 'total' | 'status';
 type SortDirection = 'asc' | 'desc';
 
@@ -170,6 +170,7 @@ export default function OrdersPage() {
   const [claimTarget, setClaimTarget] = useState<Order | null>(null);
   const [claimComment, setClaimComment] = useState('');
   const [productImageMap, setProductImageMap] = useState<Map<string, string>>(new Map());
+  const [myCommission, setMyCommission] = useState<{ enabled: boolean; commission_offline: number; commission_kaspi: number; salary_fixed: number } | null>(null);
 
   const mapOrderData = (data: any[]): Order[] => {
     const mapped = data.map((o: any) => {
@@ -241,6 +242,14 @@ export default function OrdersPage() {
       loadOrders();
     }
   }, [store?.id]);
+
+  useEffect(() => {
+    if (user?.id && role === 'manager') {
+      fetchWithAuth('/api/team/my-commission').then(r => r.json()).then(json => {
+        if (json.success) setMyCommission(json.data);
+      }).catch(() => {});
+    }
+  }, [user?.id, role]);
 
   const loadOrders = async () => {
     if (!store?.id) return;
@@ -434,7 +443,9 @@ export default function OrdersPage() {
         || (filterStatus as any) === 'awaiting' && (o.rawStatus.includes('awaiting') || o.rawStatus.includes('preorder') || o.rawStatus.includes('packing') || o.rawStatus === 'kaspi_delivery')
         || (filterStatus as any) === 'transfer' && o.rawStatus === 'kaspi_delivery_transfer'
         || (filterStatus as any) === 'transmitted' && o.rawStatus.includes('transmitted')
-        || !['awaiting', 'transfer', 'transmitted'].includes(filterStatus as any) && o.status === filterStatus;
+        || (filterStatus as any) === 'offline' && o.code.startsWith('M-')
+        || (filterStatus as any) === 'my_sales' && o.confirmed_by === (user?.name || user?.email || '')
+        || !['awaiting', 'transfer', 'transmitted', 'offline', 'my_sales'].includes(filterStatus as any) && o.status === filterStatus;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
@@ -471,6 +482,8 @@ export default function OrdersPage() {
     if (status === 'awaiting') return orders.filter(isAwaiting).length;
     if (status === 'transfer') return orders.filter(o => o.rawStatus === 'kaspi_delivery_transfer').length;
     if (status === 'transmitted') return orders.filter(o => o.rawStatus.includes('transmitted')).length;
+    if (status === 'offline') return orders.filter(o => o.code.startsWith('M-')).length;
+    if (status === 'my_sales') return orders.filter(o => o.confirmed_by === (user?.name || user?.email || '')).length;
     return orders.filter(o => o.status === status).length;
   };
 
@@ -479,19 +492,56 @@ export default function OrdersPage() {
     if (status === 'awaiting') return orders.filter(isAwaiting).reduce((sum, o) => sum + o.total, 0);
     if (status === 'transfer') return orders.filter(o => o.rawStatus === 'kaspi_delivery_transfer').reduce((sum, o) => sum + o.total, 0);
     if (status === 'transmitted') return orders.filter(o => o.rawStatus.includes('transmitted')).reduce((sum, o) => sum + o.total, 0);
+    if (status === 'offline') return orders.filter(o => o.code.startsWith('M-')).reduce((sum, o) => sum + o.total, 0);
+    if (status === 'my_sales') return orders.filter(o => o.confirmed_by === (user?.name || user?.email || '')).reduce((sum, o) => sum + o.total, 0);
     return orders.filter(o => o.status === status).reduce((sum, o) => sum + o.total, 0);
   };
 
-  // Статистические карточки — все статусы из Kaspi API (state)
-  const statsCards = [
-    { key: 'all' as const, label: 'Все заказы', icon: ShoppingBag, color: 'bg-gray-100 dark:bg-gray-800', iconColor: 'text-gray-600 dark:text-gray-400', borderColor: 'border-gray-200 dark:border-gray-600' },
-    { key: 'new' as const, label: 'Новые', icon: Zap, color: 'bg-orange-50 dark:bg-orange-900/30', iconColor: 'text-orange-600 dark:text-orange-400', borderColor: 'border-orange-200 dark:border-orange-700' },
-    { key: 'sign_required' as const, label: 'Подписание', icon: ArrowRightLeft, color: 'bg-yellow-50 dark:bg-yellow-900/30', iconColor: 'text-yellow-600 dark:text-yellow-400', borderColor: 'border-yellow-200 dark:border-yellow-700' },
-    { key: 'pickup' as const, label: 'Самовывоз', icon: MapPin, color: 'bg-purple-50 dark:bg-purple-900/30', iconColor: 'text-purple-600 dark:text-purple-400', borderColor: 'border-purple-200 dark:border-purple-700' },
-    { key: 'delivery' as const, label: 'Моя доставка', icon: Truck, color: 'bg-blue-50 dark:bg-blue-900/30', iconColor: 'text-blue-600 dark:text-blue-400', borderColor: 'border-blue-200 dark:border-blue-700' },
-    { key: 'awaiting' as const, label: 'Ожидает сборки', icon: Package, color: 'bg-amber-50 dark:bg-amber-900/30', iconColor: 'text-amber-600 dark:text-amber-400', borderColor: 'border-amber-200 dark:border-amber-700' },
-    { key: 'transfer' as const, label: 'Передача', icon: ArrowRightLeft, color: 'bg-teal-50 dark:bg-teal-900/30', iconColor: 'text-teal-600 dark:text-teal-400', borderColor: 'border-teal-200 dark:border-teal-700' },
-    { key: 'transmitted' as const, label: 'Переданы на доставку', icon: Truck, color: 'bg-sky-50 dark:bg-sky-900/30', iconColor: 'text-sky-600 dark:text-sky-400', borderColor: 'border-sky-200 dark:border-sky-700' },
+  // Персональная статистика менеджера
+  const myName = user?.name || user?.email || '';
+  const mySales = orders.filter(o => o.confirmed_by === myName && o.confirmed_at);
+
+  const kzNow = new Date(Date.now() + 5 * 3600000);
+  const todayStr = kzNow.toISOString().split('T')[0];
+  const yesterdayStr = new Date(kzNow.getTime() - 86400000).toISOString().split('T')[0];
+  const thisMonthStr = todayStr.slice(0, 7); // "YYYY-MM"
+  const prevMonth = new Date(kzNow.getFullYear(), kzNow.getMonth() - 1, 1);
+  const prevMonthStr = `${prevMonth.getFullYear()}-${String(prevMonth.getMonth() + 1).padStart(2, '0')}`;
+
+  const getConfirmedDateStr = (o: Order) => {
+    if (!o.confirmed_at) return '';
+    return new Date(new Date(o.confirmed_at).getTime() + 5 * 3600000).toISOString().split('T')[0];
+  };
+
+  const salesToday = mySales.filter(o => getConfirmedDateStr(o) === todayStr);
+  const salesYesterday = mySales.filter(o => getConfirmedDateStr(o) === yesterdayStr);
+  const salesThisMonth = mySales.filter(o => getConfirmedDateStr(o).startsWith(thisMonthStr));
+  const salesPrevMonth = mySales.filter(o => getConfirmedDateStr(o).startsWith(prevMonthStr));
+
+  const sumOf = (arr: Order[]) => arr.reduce((s, o) => s + o.total, 0);
+  const avgCheck = mySales.length > 0 ? Math.round(sumOf(mySales) / mySales.length) : 0;
+
+  const calcSalary = (sales: Order[]) => {
+    if (!myCommission?.enabled) return 0;
+    const offline = sales.filter(o => o.code.startsWith('M-'));
+    const kaspi = sales.filter(o => !o.code.startsWith('M-'));
+    return Math.round(
+      (myCommission.salary_fixed || 0)
+      + sumOf(offline) * (myCommission.commission_offline || 0) / 100
+      + sumOf(kaspi) * (myCommission.commission_kaspi || 0) / 100
+    );
+  };
+
+  const monthNames = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+  const thisMonthName = monthNames[kzNow.getMonth()];
+  const prevMonthName = monthNames[prevMonth.getMonth()];
+
+  const personalStats = [
+    { label: 'Сегодня', count: salesToday.length, amount: sumOf(salesToday), icon: Zap, color: 'bg-emerald-50 dark:bg-emerald-900/30', iconColor: 'text-emerald-600 dark:text-emerald-400' },
+    { label: 'Вчера', count: salesYesterday.length, amount: sumOf(salesYesterday), icon: ShoppingBag, color: 'bg-blue-50 dark:bg-blue-900/30', iconColor: 'text-blue-600 dark:text-blue-400' },
+    { label: thisMonthName, count: salesThisMonth.length, amount: sumOf(salesThisMonth), icon: Package, color: 'bg-indigo-50 dark:bg-indigo-900/30', iconColor: 'text-indigo-600 dark:text-indigo-400', salary: calcSalary(salesThisMonth) },
+    { label: prevMonthName, count: salesPrevMonth.length, amount: sumOf(salesPrevMonth), icon: Truck, color: 'bg-purple-50 dark:bg-purple-900/30', iconColor: 'text-purple-600 dark:text-purple-400', salary: calcSalary(salesPrevMonth) },
+    { label: 'Средний чек', count: mySales.length, amount: avgCheck, icon: ArrowUpDown, color: 'bg-amber-50 dark:bg-amber-900/30', iconColor: 'text-amber-600 dark:text-amber-400', isAvg: true },
   ];
 
   const getStatusColor = (status: OrderStatus) => {
@@ -543,15 +593,14 @@ export default function OrdersPage() {
         <h1 className="text-2xl sm:text-3xl font-bold dark:text-white">Заказы</h1>
       </div>
 
-      {/* Stats Cards */}
+      {/* Personal Stats Cards */}
       <div className="flex flex-wrap gap-3 sm:gap-4 mb-4 sm:mb-6">
-        {statsCards.filter(card => card.key === 'all' || countByStatus(card.key) > 0).map((card) => {
+        {personalStats.map((card) => {
           const Icon = card.icon;
           return (
             <div
-              key={card.key}
-              onClick={() => setFilterStatus(card.key)}
-              className={`flex-1 min-w-[140px] ${card.color} ${filterStatus === card.key ? `border-2 ${card.borderColor}` : 'border border-transparent'} rounded-xl p-3 sm:p-4 cursor-pointer hover:shadow-md transition-all`}
+              key={card.label}
+              className={`flex-1 min-w-[140px] ${card.color} border border-transparent rounded-xl p-3 sm:p-4`}
             >
               <div className="flex items-center gap-2 mb-2">
                 <div className={`p-1.5 rounded-lg ${card.color}`}>
@@ -560,8 +609,18 @@ export default function OrdersPage() {
                 <span className="text-xs font-medium text-gray-600 dark:text-gray-300 truncate">{card.label}</span>
               </div>
               <div className="space-y-1">
-                <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">{countByStatus(card.key)}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{totalByStatus(card.key).toLocaleString()} ₸</p>
+                <p className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">
+                  {(card as any).isAvg ? `${card.amount.toLocaleString()} ₸` : card.count}
+                </p>
+                {!(card as any).isAvg && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">{card.amount.toLocaleString()} ₸</p>
+                )}
+                {(card as any).isAvg && (
+                  <p className="text-xs text-gray-500 dark:text-gray-400">из {card.count} продаж</p>
+                )}
+                {(card as any).salary > 0 && (
+                  <p className="text-xs font-medium text-indigo-600 dark:text-indigo-400">ЗП: {(card as any).salary.toLocaleString()} ₸</p>
+                )}
               </div>
             </div>
           );
@@ -618,6 +677,8 @@ export default function OrdersPage() {
             { key: 'awaiting' as FilterStatus, label: 'Ожидает сборки', active: 'bg-amber-500 text-white', activeCount: 'text-amber-200' },
             { key: 'transfer' as FilterStatus, label: 'Передача', active: 'bg-teal-500 text-white', activeCount: 'text-teal-200' },
             { key: 'transmitted' as FilterStatus, label: 'Переданы на доставку', active: 'bg-sky-500 text-white', activeCount: 'text-sky-200' },
+            { key: 'offline' as FilterStatus, label: 'Оффлайн продажи', active: 'bg-emerald-500 text-white', activeCount: 'text-emerald-200' },
+            { key: 'my_sales' as FilterStatus, label: 'Мои продажи', active: 'bg-indigo-500 text-white', activeCount: 'text-indigo-200' },
           ].filter(btn => btn.key === 'all' || btn.key === filterStatus || countByStatus(btn.key) > 0).map(btn => (
             <button
               key={btn.key}

@@ -13,7 +13,9 @@ import {
   Receipt,
   Truck,
   ExternalLink,
-  Percent
+  Percent,
+  Users,
+  ChevronDown
 } from 'lucide-react';
 
 // Комиссии Kaspi по категориям
@@ -80,6 +82,9 @@ export default function ProfitSettingsPage() {
   const [tax, setTax] = useState(defaultSettings.tax);
   const [commissionRate, setCommissionRate] = useState(12.5);
   const [deliveryType, setDeliveryType] = useState<'city' | 'kazakhstan' | 'express'>(defaultSettings.deliveryType);
+  const [managerCommissionsEnabled, setManagerCommissionsEnabled] = useState(false);
+  const [showCommissions, setShowCommissions] = useState(false);
+  const [showDelivery, setShowDelivery] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -92,6 +97,7 @@ export default function ProfitSettingsPage() {
       if (json.success && json.data) {
         setCommissionRate(json.data.commissionRate ?? 12.5);
         setTax(json.data.taxRate ?? 4.0);
+        setManagerCommissionsEnabled(json.data.managerCommissionsEnabled ?? false);
       }
     } catch (err) {
       console.error('Failed to fetch settings:', err);
@@ -123,6 +129,7 @@ export default function ProfitSettingsPage() {
         body: JSON.stringify({
           commissionRate,
           taxRate: tax,
+          managerCommissionsEnabled,
         }),
       });
       const json = await res.json();
@@ -211,15 +218,23 @@ export default function ProfitSettingsPage() {
                 </p>
               </div>
 
-              {/* Kaspi Commission Info */}
+              {/* Kaspi Commission Info — collapsible */}
               <div className="p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl border border-blue-100 dark:border-blue-800">
-                <div className="flex gap-3">
-                  <Percent className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                  <div className="text-sm text-blue-800 dark:text-blue-200 w-full">
-                    <p className="font-medium mb-2">Справочник комиссий Kaspi</p>
-                    <p className="text-xs text-blue-600 dark:text-blue-400 mb-3">
-                      Ставки комиссии по категориям товаров
-                    </p>
+                <button
+                  onClick={() => setShowCommissions(!showCommissions)}
+                  className="flex items-center justify-between w-full cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <Percent className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                    <div className="text-left">
+                      <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Справочник комиссий Kaspi</p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400">Ставки комиссии по категориям товаров</p>
+                    </div>
+                  </div>
+                  <ChevronDown className={`w-4 h-4 text-blue-600 transition-transform ${showCommissions ? 'rotate-180' : ''}`} />
+                </button>
+                {showCommissions && (
+                  <div className="mt-3 ml-8">
                     <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3 text-xs">
                       <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-blue-700 dark:text-blue-300">
                         {categoryCommissions.map((item) => (
@@ -240,19 +255,28 @@ export default function ProfitSettingsPage() {
                       <ExternalLink className="w-3 h-3" />
                     </a>
                   </div>
-                </div>
+                )}
               </div>
 
             </div>
 
-            {/* Delivery Type Selection */}
+            {/* Delivery Type Selection — collapsible */}
             <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/30 rounded-xl border border-blue-100 dark:border-blue-800">
-              <div className="flex gap-3">
-                <Truck className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-blue-800 dark:text-blue-200 w-full">
-                  <p className="font-medium mb-3">Тип доставки Kaspi</p>
-
-                  {/* Delivery Type Buttons */}
+              <button
+                onClick={() => setShowDelivery(!showDelivery)}
+                className="flex items-center justify-between w-full cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <Truck className="w-5 h-5 text-blue-600 flex-shrink-0" />
+                  <div className="text-left">
+                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">Тип доставки Kaspi</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">Тарифы по весу и типу доставки</p>
+                  </div>
+                </div>
+                <ChevronDown className={`w-4 h-4 text-blue-600 transition-transform ${showDelivery ? 'rotate-180' : ''}`} />
+              </button>
+              {showDelivery && (
+                <div className="mt-3 ml-8">
                   <div className="flex gap-2 mb-3">
                     {(['city', 'kazakhstan', 'express'] as const).map((type) => (
                       <button
@@ -268,8 +292,6 @@ export default function ProfitSettingsPage() {
                       </button>
                     ))}
                   </div>
-
-                  {/* Rates Table */}
                   <div className="bg-white/50 dark:bg-gray-800/50 rounded-lg p-3 text-xs">
                     <p className="font-medium text-blue-800 dark:text-blue-200 mb-1">
                       Тарифы ({deliveryTypeLabels[deliveryType]}, свыше 10,000 ₸):
@@ -293,6 +315,43 @@ export default function ProfitSettingsPage() {
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </div>
+              )}
+            </div>
+
+            {/* Manager Commissions Toggle */}
+            <div className="mt-6 p-4 bg-indigo-50 dark:bg-indigo-900/30 rounded-xl border border-indigo-100 dark:border-indigo-800">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <Users className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  <div>
+                    <p className="text-sm font-medium text-indigo-800 dark:text-indigo-200">ЗП менеджеров</p>
+                    <p className="text-xs text-indigo-600 dark:text-indigo-400 mt-0.5">
+                      Начисление зарплаты менеджерам от продаж. Ставки настраиваются в разделе «Команда».
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={async () => {
+                    const newVal = !managerCommissionsEnabled;
+                    setManagerCommissionsEnabled(newVal);
+                    try {
+                      await fetchWithAuth('/api/store-settings', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ managerCommissionsEnabled: newVal }),
+                      });
+                    } catch {
+                      setManagerCommissionsEnabled(!newVal);
+                    }
+                  }}
+                  className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer flex-shrink-0 ${
+                    managerCommissionsEnabled ? 'bg-indigo-500' : 'bg-gray-300 dark:bg-gray-600'
+                  }`}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${
+                    managerCommissionsEnabled ? 'translate-x-5' : ''
+                  }`} />
+                </button>
               </div>
             </div>
 
