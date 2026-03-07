@@ -1898,7 +1898,7 @@ function AnalyticsPageContent() {
                       </ResponsiveContainer>
 
                       {/* Итоги под графиком — из chartData (согласованы с графиком) */}
-                      <div className="mt-3 lg:mt-4 grid grid-cols-6 gap-1 lg:gap-3">
+                      <div className="mt-3 lg:mt-4 grid grid-cols-3 lg:grid-cols-6 gap-1 lg:gap-3">
                         <div className="bg-white dark:bg-gray-800 rounded-lg px-1.5 py-1.5 lg:px-4 lg:py-3 shadow-sm text-center">
                           <div className="text-[9px] lg:text-sm text-gray-400">выручка</div>
                           <div className="text-xs lg:text-base font-semibold text-blue-600 dark:text-blue-400">
@@ -2414,11 +2414,11 @@ function AnalyticsPageContent() {
                       className="overflow-hidden"
                     >
                       <div className="p-3 sm:p-5 lg:p-6 bg-white/50 dark:bg-gray-800/50">
-                      <div className="grid grid-cols-2 gap-2 sm:gap-4 lg:gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 lg:gap-6">
                         {/* Sales Sources Distribution */}
                         <div className="bg-white dark:bg-gray-800 rounded-xl p-2 sm:p-3 lg:p-5 shadow-sm">
                           <h4 className="text-[11px] sm:text-sm lg:text-base font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2 lg:mb-3">Источники продаж</h4>
-                          <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 300 : window.innerWidth >= 640 ? 140 : 110}>
+                          <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 300 : 200}>
                             <PieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                               <Pie
                                 data={salesSourcesData}
@@ -2429,6 +2429,7 @@ function AnalyticsPageContent() {
                                 innerRadius="25%"
                                 fill="#8884d8"
                                 dataKey="value"
+                                stroke="none"
                               >
                                 {salesSourcesData.map((_, index) => (
                                   <Cell key={`cell-${index}`} fill={SALES_SOURCE_COLORS[index % SALES_SOURCE_COLORS.length]} />
@@ -2452,18 +2453,22 @@ function AnalyticsPageContent() {
                             {salesSourcesData.map((item, index) => {
                               const total = salesSourcesData.reduce((sum: number, i) => sum + i.value, 0);
                               const percent = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
+                              const approxRevenue = total > 0 ? Math.round((item.value / total) * data.totalRevenue) : 0;
                               return (
                                 <div
                                   key={item.name}
-                                  className="flex items-center gap-1 sm:gap-2 lg:gap-3 px-1 lg:px-2 py-0.5 lg:py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
+                                  className="flex items-start gap-1 sm:gap-2 lg:gap-3 px-1 lg:px-2 py-0.5 lg:py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-700"
                                 >
                                   <div
-                                    className="w-2 h-2 sm:w-2.5 sm:h-2.5 lg:w-3 lg:h-3 rounded-full flex-shrink-0"
+                                    className="w-2 h-2 sm:w-2.5 sm:h-2.5 lg:w-3 lg:h-3 rounded-full flex-shrink-0 mt-0.5"
                                     style={{ backgroundColor: SALES_SOURCE_COLORS[index] }}
                                   />
-                                  <div className="flex-1 flex justify-between items-center min-w-0">
-                                    <span className="text-[10px] sm:text-xs lg:text-sm text-gray-700 dark:text-gray-300 truncate">{item.name}</span>
-                                    <span className="text-[9px] sm:text-[11px] lg:text-sm font-medium text-gray-900 dark:text-white ml-1">{item.value} <span className="text-gray-400">({percent}%)</span></span>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-center">
+                                      <span className="text-[10px] sm:text-xs lg:text-sm text-gray-700 dark:text-gray-300">{item.name}</span>
+                                      <span className="text-[9px] sm:text-[11px] lg:text-sm font-medium text-gray-900 dark:text-white ml-1">{item.value} шт. ({percent}%)</span>
+                                    </div>
+                                    <div className="text-[9px] sm:text-[11px] lg:text-sm font-medium text-gray-500 dark:text-gray-400">{fmt(approxRevenue)} ₸</div>
                                   </div>
                                 </div>
                               );
@@ -2474,7 +2479,7 @@ function AnalyticsPageContent() {
                         {/* Delivery Mode */}
                         <div className="bg-white dark:bg-gray-800 rounded-xl p-2 sm:p-3 lg:p-5 shadow-sm">
                           <h4 className="text-[11px] sm:text-sm lg:text-base font-semibold text-gray-900 dark:text-white mb-1 sm:mb-2 lg:mb-3">Способы доставки</h4>
-                          <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 300 : window.innerWidth >= 640 ? 140 : 110}>
+                          <ResponsiveContainer width="100%" height={typeof window !== 'undefined' && window.innerWidth >= 1024 ? 300 : 200}>
                             <PieChart margin={{ top: 5, right: 5, bottom: 5, left: 5 }}>
                               <Pie
                                 data={deliveryData}
@@ -2485,6 +2490,7 @@ function AnalyticsPageContent() {
                                 innerRadius="25%"
                                 fill="#8884d8"
                                 dataKey="value"
+                                stroke="none"
                               >
                                 {deliveryData.map((_, index) => (
                                   <Cell key={`cell-${index}`} fill={DELIVERY_COLORS[index % DELIVERY_COLORS.length]} />
@@ -2508,21 +2514,23 @@ function AnalyticsPageContent() {
                             {deliveryData.map((item, index) => {
                               const total = deliveryData.reduce((sum: number, i) => sum + i.value, 0);
                               const percent = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
+                              const approxRevenue = total > 0 ? Math.round((item.value / total) * data.totalRevenue) : 0;
                               return (
                                 <div key={item.name}>
                                   <button
                                     onClick={() => item.value > 0 && setDeliveryPopup({ name: item.name, key: item.key, color: DELIVERY_COLORS[index] })}
-                                    className={`w-full flex items-center gap-1 sm:gap-2 lg:gap-3 px-1 lg:px-2 py-0.5 lg:py-1 rounded transition-colors ${item.value > 0 ? 'hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer' : 'opacity-50'}`}
+                                    className={`w-full flex items-start gap-1 sm:gap-2 lg:gap-3 px-1 lg:px-2 py-0.5 lg:py-1 rounded transition-colors text-left ${item.value > 0 ? 'hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer' : 'opacity-50'}`}
                                   >
                                     <div
-                                      className="w-2 h-2 sm:w-2.5 sm:h-2.5 lg:w-3 lg:h-3 rounded-full flex-shrink-0"
+                                      className="w-2 h-2 sm:w-2.5 sm:h-2.5 lg:w-3 lg:h-3 rounded-full flex-shrink-0 mt-0.5"
                                       style={{ backgroundColor: DELIVERY_COLORS[index] }}
                                     />
-                                    <div className="flex-1 flex justify-between items-center min-w-0">
-                                      <span className="text-[10px] sm:text-xs lg:text-sm text-gray-700 dark:text-gray-300 truncate">{item.name}</span>
-                                      <div className="flex items-center gap-1">
-                                        <span className="text-[9px] sm:text-[11px] lg:text-sm font-medium text-gray-900 dark:text-white">{item.value} <span className="text-gray-400">({percent}%)</span></span>
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex justify-between items-center">
+                                        <span className="text-[10px] sm:text-xs lg:text-sm text-gray-700 dark:text-gray-300">{item.name}</span>
+                                        <span className="text-[9px] sm:text-[11px] lg:text-sm font-medium text-gray-900 dark:text-white ml-1">{item.value} шт. ({percent}%)</span>
                                       </div>
+                                      <div className="text-[9px] sm:text-[11px] lg:text-sm font-medium text-gray-500 dark:text-gray-400">{fmt(approxRevenue)} ₸</div>
                                     </div>
                                   </button>
                                 </div>
@@ -2588,7 +2596,7 @@ function AnalyticsPageContent() {
             'TikTok': 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300',
             'WhatsApp': 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300',
             'Telegram': 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300',
-            'Kaspi Market': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
+            'Kaspi': 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300',
             '2GIS': 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300',
             'Телефон': 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300',
             'Другое': 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
@@ -2844,9 +2852,9 @@ function AnalyticsPageContent() {
                       <tbody>
                         {productsList.map((p) => (
                           <tr key={p.code} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
-                            <td className="py-3 px-4 sm:px-6 text-gray-900 dark:text-white font-medium">{p.name}</td>
-                            <td className="py-3 px-3 text-right text-gray-600 dark:text-gray-400">{p.qty} шт.</td>
-                            <td className="py-3 px-3 pr-4 sm:pr-6 text-right font-semibold text-gray-900 dark:text-white">{fmt(p.revenue)} ₸</td>
+                            <td className="py-3 px-4 sm:px-6 text-gray-900 dark:text-white font-medium max-w-[200px] truncate" title={p.name}>{p.name}</td>
+                            <td className="py-3 px-3 text-right text-gray-600 dark:text-gray-400 whitespace-nowrap">{p.qty} шт.</td>
+                            <td className="py-3 px-3 pr-4 sm:pr-6 text-right font-semibold text-gray-900 dark:text-white whitespace-nowrap">{fmt(p.revenue)} ₸</td>
                           </tr>
                         ))}
                       </tbody>
@@ -2924,27 +2932,29 @@ function AnalyticsPageContent() {
               {allOrders.length > 0 && (() => {
                 const PIE_COLORS = ['#8b5cf6', '#ec4899', '#06b6d4', '#f59e0b', '#10b981', '#f43f5e', '#6366f1', '#14b8a6', '#a78bfa', '#fb7185'];
                 // Channel distribution by amount
-                const chMap = new Map<string, number>();
+                const chMap = new Map<string, { amount: number; count: number }>();
                 for (const o of allOrders) {
                   const label = channelLabel(o.channel);
-                  chMap.set(label, (chMap.get(label) || 0) + o.amount);
+                  const ex = chMap.get(label) || { amount: 0, count: 0 };
+                  chMap.set(label, { amount: ex.amount + o.amount, count: ex.count + 1 });
                 }
-                const channelPieData = Array.from(chMap.entries()).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
+                const channelPieData = Array.from(chMap.entries()).map(([name, d]) => ({ name, value: d.amount, count: d.count })).sort((a, b) => b.value - a.value);
                 // Type distribution by amount
-                const typeMap = new Map<string, number>();
+                const typeMap = new Map<string, { amount: number; count: number }>();
                 for (const o of allOrders) {
                   const type = o.orderId.startsWith('M-') ? 'Офлайн' : 'Kaspi';
-                  typeMap.set(type, (typeMap.get(type) || 0) + o.amount);
+                  const ex = typeMap.get(type) || { amount: 0, count: 0 };
+                  typeMap.set(type, { amount: ex.amount + o.amount, count: ex.count + 1 });
                 }
-                const typePieData = Array.from(typeMap.entries()).map(([name, value]) => ({ name, value }));
+                const typePieData = Array.from(typeMap.entries()).map(([name, d]) => ({ name, value: d.amount, count: d.count }));
                 const TYPE_COLORS = ['#f59e0b', '#ef4444'];
 
-                const renderPie = (title: string, pieData: Array<{ name: string; value: number }>, colors: string[]) => (
+                const renderPie = (title: string, pieData: Array<{ name: string; value: number; count: number }>, colors: string[]) => (
                   <div className="bg-white dark:bg-gray-800 rounded-xl p-3 sm:p-4 lg:p-5 shadow-sm">
                     <h4 className="text-xs sm:text-sm font-semibold text-gray-900 dark:text-white mb-2 sm:mb-3">{title}</h4>
                     <ResponsiveContainer width="100%" height={280}>
                       <PieChart>
-                        <Pie data={pieData} cx="50%" cy="50%" labelLine={false} outerRadius="90%" innerRadius="25%" dataKey="value">
+                        <Pie data={pieData} cx="50%" cy="50%" labelLine={false} outerRadius="90%" innerRadius="25%" dataKey="value" stroke="none">
                           {pieData.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
                         </Pie>
                         <Tooltip formatter={(value: number) => `${fmt(value)} ₸`} contentStyle={{ backgroundColor: 'rgba(255,255,255,0.95)', border: 'none', borderRadius: '6px', boxShadow: '0 2px 8px rgba(0,0,0,0.1)', fontSize: '11px', padding: '4px 8px' }} />
@@ -2955,11 +2965,11 @@ function AnalyticsPageContent() {
                         const total = pieData.reduce((s, d) => s + d.value, 0);
                         const pct = total > 0 ? ((item.value / total) * 100).toFixed(0) : 0;
                         return (
-                          <div key={item.name} className="flex items-center gap-2 px-1 py-0.5 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
-                            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: colors[i % colors.length] }} />
-                            <div className="flex-1 flex justify-between items-center min-w-0">
-                              <span className="text-xs text-gray-700 dark:text-gray-300 truncate">{item.name}</span>
-                              <span className="text-xs font-medium text-gray-900 dark:text-white ml-1">{fmt(item.value)} ₸ <span className="text-gray-400">({pct}%)</span></span>
+                          <div key={item.name} className="flex items-start gap-2 px-1 py-1 rounded hover:bg-gray-50 dark:hover:bg-gray-700">
+                            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0 mt-0.5" style={{ backgroundColor: colors[i % colors.length] }} />
+                            <div className="flex-1 min-w-0">
+                              <div className="text-xs text-gray-700 dark:text-gray-300">{item.name}</div>
+                              <div className="text-xs font-medium text-gray-900 dark:text-white">{item.count} шт. · {fmt(item.value)} ₸ <span className="text-gray-400">({pct}%)</span></div>
                             </div>
                           </div>
                         );
@@ -2969,7 +2979,7 @@ function AnalyticsPageContent() {
                 );
 
                 return (
-                  <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     {renderPie('По каналу', channelPieData, PIE_COLORS)}
                     {renderPie('По типу', typePieData, TYPE_COLORS)}
                   </div>

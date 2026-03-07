@@ -1129,13 +1129,7 @@ export default function WarehousePage() {
               <button
                 key={slug ?? 'all'}
                 onClick={() => { setGroupFilter(slug); setPage(0); }}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  if (slug && slug !== 'none' && confirm(`Удалить группу "${name}"? Товары будут откреплены.`)) {
-                    deleteGroup(slug);
-                  }
-                }}
-                className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${
+                className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors inline-flex items-center gap-1 ${
                   groupFilter === slug
                     ? 'text-white'
                     : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
@@ -1143,6 +1137,15 @@ export default function WarehousePage() {
                 style={groupFilter === slug ? { backgroundColor: color, color: '#fff' } : undefined}
               >
                 {name} ({count})
+                {slug && slug !== 'none' && (
+                  <span
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (confirm(`Удалить группу "${name}"? Товары будут откреплены.`)) deleteGroup(slug);
+                    }}
+                    className="ml-0.5 opacity-50 hover:opacity-100 cursor-pointer"
+                  >×</span>
+                )}
               </button>
             );
           })}
@@ -1155,6 +1158,8 @@ export default function WarehousePage() {
               +
             </button>
             {showCreateGroup && (
+              <>
+              <div className="fixed inset-0 z-40" onClick={() => setShowCreateGroup(false)} />
               <div className="absolute left-0 top-full mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-xl shadow-lg z-50 p-3 w-56">
                 <input
                   type="text"
@@ -1183,6 +1188,7 @@ export default function WarehousePage() {
                   {creatingGroup ? 'Создание...' : 'Создать'}
                 </button>
               </div>
+              </>
             )}
           </div>
         </div>
