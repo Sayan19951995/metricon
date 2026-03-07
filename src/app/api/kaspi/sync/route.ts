@@ -784,7 +784,8 @@ export async function POST(request: NextRequest) {
         .not('status', 'in', '(cancelled,returned)');
 
       for (const mo of (manualOrders || [])) {
-        const moDate = new Date(new Date(mo.created_at).getTime() + 5 * 3600000)
+        if (!mo.created_at) continue;
+        const moDate = new Date(new Date(mo.created_at as string).getTime() + 5 * 3600000)
           .toISOString().split('T')[0];
         if (!dailyStats.has(moDate)) {
           dailyStats.set(moDate, { revenue: 0, orders_count: 0 });
