@@ -2549,16 +2549,16 @@ function AnalyticsPageContent() {
           // Фильтруем заказы менеджеров по выбранному периоду
           const allManagerSales = (() => {
             if (!startDate || !endDate) return rawManagerSales;
-            const sTime = new Date(startDate); sTime.setHours(0, 0, 0, 0);
-            const eTime = new Date(endDate); eTime.setHours(23, 59, 59, 999);
+            const pad2 = (n: number) => String(n).padStart(2, '0');
+            const sStr = `${startDate.getFullYear()}-${pad2(startDate.getMonth() + 1)}-${pad2(startDate.getDate())}`;
+            const eStr = `${endDate.getFullYear()}-${pad2(endDate.getMonth() + 1)}-${pad2(endDate.getDate())}`;
             return rawManagerSales.map(m => {
               const filteredOrders = m.orders.filter(o => {
                 const dateStr = o.createdAt || o.confirmedAt;
                 if (!dateStr) return false;
                 const utcMs = new Date(dateStr).getTime();
-                const kzDate = new Date(utcMs + 5 * 3600000);
-                kzDate.setHours(12, 0, 0, 0);
-                return kzDate >= sTime && kzDate <= eTime;
+                const kzDateStr = new Date(utcMs + 5 * 3600000).toISOString().split('T')[0];
+                return kzDateStr >= sStr && kzDateStr <= eStr;
               });
               const revenue = filteredOrders.reduce((s, o) => s + o.amount, 0);
               const channels: Record<string, number> = {};
