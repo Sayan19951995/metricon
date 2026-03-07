@@ -2866,6 +2866,7 @@ function AnalyticsPageContent() {
                       <thead>
                         <tr className="border-b border-gray-100 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/30">
                           <th className="text-left py-3 px-4 sm:px-6 text-gray-500 dark:text-gray-400 font-medium">Дата</th>
+                          <th className="text-left py-3 px-3 text-gray-500 dark:text-gray-400 font-medium">Тип</th>
                           {!managerFilter && <th className="text-left py-3 px-3 text-gray-500 dark:text-gray-400 font-medium hidden sm:table-cell">Менеджер</th>}
                           <th className="text-left py-3 px-3 text-gray-500 dark:text-gray-400 font-medium">Товар</th>
                           <th className="text-left py-3 px-3 text-gray-500 dark:text-gray-400 font-medium hidden sm:table-cell">Канал</th>
@@ -2879,6 +2880,11 @@ function AnalyticsPageContent() {
                           return (
                             <tr key={i} className="border-b border-gray-50 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors">
                               <td className="py-3 px-4 sm:px-6 text-gray-500 dark:text-gray-400 whitespace-nowrap">{fmtDate(o.createdAt || o.confirmedAt)}</td>
+                              <td className="py-3 px-3">
+                                <span className={`px-1.5 py-0.5 rounded text-[10px] font-medium ${o.orderId.startsWith('M-') ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300' : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300'}`}>
+                                  {o.orderId.startsWith('M-') ? 'Офлайн' : 'Kaspi'}
+                                </span>
+                              </td>
                               {!managerFilter && (
                                 <td className="py-3 px-3 hidden sm:table-cell">
                                   <span className="inline-flex items-center gap-1 text-xs font-medium" style={{ color: MANAGER_COLORS[mIdx % MANAGER_COLORS.length] }}>
