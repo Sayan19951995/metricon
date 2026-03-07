@@ -56,9 +56,13 @@ export async function POST(request: NextRequest) {
     // Generate a unique order ID for manual orders
     const manualId = `M-${Date.now()}`;
 
-    // If date is just "YYYY-MM-DD", treat as Kazakhstan noon (UTC+5)
+    // Treat date as Kazakhstan time (UTC+5)
     let orderDate: string;
-    if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    if (date && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(date)) {
+      // datetime-local: "2026-03-06T14:30"
+      orderDate = `${date}:00+05:00`;
+    } else if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      // date only: "2026-03-06"
       orderDate = `${date}T12:00:00+05:00`;
     } else {
       orderDate = date || new Date().toISOString();

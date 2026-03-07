@@ -28,7 +28,11 @@ export default function AddOrderPage() {
   const router = useRouter();
   const { user, store, loading: userLoading } = useUser();
   const [source, setSource] = useState('cash');
-  const [date, setDate] = useState('');
+  // Default to current Kazakhstan time (UTC+5)
+  const [date, setDate] = useState(() => {
+    const kzNow = new Date(Date.now() + 5 * 3600000);
+    return kzNow.toISOString().slice(0, 16); // "YYYY-MM-DDTHH:MM"
+  });
   const [comment, setComment] = useState('');
   const [items, setItems] = useState<OrderItem[]>([]);
   const [saving, setSaving] = useState(false);
