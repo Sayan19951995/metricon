@@ -87,6 +87,46 @@ export async function POST(request: NextRequest) {
 
     if (error) throw error;
 
+    // Update daily_stats for the order date
+    const orderDateKz = new Date(new Date(orderDate).getTime() + 5 * 3600000);
+    const statDate = orderDateKz.toISOString().split('T')[0];
+    const totalCost = (items as any[]).reduce((sum: number, it: any) => {
+      const costPrice = Number(it.cost_price) || 0;
+      const qty = Number(it.quantity) || 1;
+      return sum + costPrice * qty;
+    }, 0);
+
+    const { data: existing } = await supabaseAdmin
+      .from('daily_stats')
+      .select('revenue, orders_count, cost, profit')
+      .eq('store_id', storeId)
+      .eq('date', statDate)
+      .single();
+
+    if (existing) {
+      await supabaseAdmin
+        .from('daily_stats')
+        .update({
+          revenue: (Number(existing.revenue) || 0) + totalAmount,
+          orders_count: (Number(existing.orders_count) || 0) + 1,
+          cost: (Number(existing.cost) || 0) + totalCost,
+          profit: (Number(existing.profit) || 0) + totalAmount - totalCost,
+        })
+        .eq('store_id', storeId)
+        .eq('date', statDate);
+    } else {
+      await supabaseAdmin
+        .from('daily_stats')
+        .insert({
+          store_id: storeId,
+          date: statDate,
+          revenue: totalAmount,
+          orders_count: 1,
+          cost: totalCost,
+          profit: totalAmount - totalCost,
+        });
+    }
+
     // Create product records for custom items (product_code starts with 'custom_')
     // This allows analytics to find cost prices via costPriceMap
     const customItems = (items as any[]).filter((it: any) => it.product_code?.startsWith('custom_'));
@@ -139,7 +179,7 @@ export async function DELETE(request: NextRequest) {
     // Fetch the order — ensure it belongs to this store and is a manual order
     const { data: order, error: fetchError } = await supabaseAdmin
       .from('orders')
-      .select('id, kaspi_order_id')
+      .select('id, kaspi_order_id, total_amount, items, created_at')
       .eq('id', orderId)
       .eq('store_id', storeId)
       .single();
@@ -154,6 +194,36 @@ export async function DELETE(request: NextRequest) {
 
     const { error } = await supabaseAdmin.from('orders').delete().eq('id', orderId);
     if (error) throw error;
+
+    // Subtract from daily_stats
+    if (order.created_at) {
+      const delDateKz = new Date(new Date(order.created_at).getTime() + 5 * 3600000);
+      const delStatDate = delDateKz.toISOString().split('T')[0];
+      const delAmount = Number(order.total_amount) || 0;
+      const delCost = ((order.items as any[]) || []).reduce((sum: number, it: any) => {
+        return sum + (Number(it.cost_price) || 0) * (Number(it.quantity) || 1);
+      }, 0);
+
+      const { data: stat } = await supabaseAdmin
+        .from('daily_stats')
+        .select('revenue, orders_count, cost, profit')
+        .eq('store_id', storeId)
+        .eq('date', delStatDate)
+        .single();
+
+      if (stat) {
+        await supabaseAdmin
+          .from('daily_stats')
+          .update({
+            revenue: Math.max(0, (Number(stat.revenue) || 0) - delAmount),
+            orders_count: Math.max(0, (Number(stat.orders_count) || 0) - 1),
+            cost: Math.max(0, (Number(stat.cost) || 0) - delCost),
+            profit: (Number(stat.profit) || 0) - delAmount + delCost,
+          })
+          .eq('store_id', storeId)
+          .eq('date', delStatDate);
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {
