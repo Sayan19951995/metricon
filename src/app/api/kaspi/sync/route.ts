@@ -773,6 +773,28 @@ export async function POST(request: NextRequest) {
       stat.orders_count += 1;
     }
 
+    // Add manual (offline) orders to daily_stats so they don't get wiped by upsert
+    const dates = Array.from(dailyStats.keys());
+    if (dates.length > 0) {
+      const { data: manualOrders } = await supabaseAdmin
+        .from('orders')
+        .select('created_at, total_amount, items')
+        .eq('store_id', store.id)
+        .like('kaspi_order_id', 'M-%')
+        .not('status', 'in', '(cancelled,returned)');
+
+      for (const mo of (manualOrders || [])) {
+        const moDate = new Date(new Date(mo.created_at).getTime() + 5 * 3600000)
+          .toISOString().split('T')[0];
+        if (!dailyStats.has(moDate)) {
+          dailyStats.set(moDate, { revenue: 0, orders_count: 0 });
+        }
+        const stat = dailyStats.get(moDate)!;
+        stat.revenue += Number(mo.total_amount) || 0;
+        stat.orders_count += 1;
+      }
+    }
+
     // Batch upsert daily_stats
     const statsToUpsert = Array.from(dailyStats.entries()).map(([date, stat]) => ({
       store_id: store.id,
