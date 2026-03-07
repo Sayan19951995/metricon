@@ -46,7 +46,7 @@ async function notifyWebhook(event, data) {
 function formatJid(phone) {
   let cleaned = phone.replace(/[\s\-\(\)]/g, '');
   if (cleaned.startsWith('+')) cleaned = cleaned.slice(1);
-  // Kazakhstan: 8 → 7
+  // Kazakhstan: 8 -> 7
   if (cleaned.startsWith('8') && cleaned.length === 11) {
     cleaned = '7' + cleaned.slice(1);
   }
@@ -76,10 +76,17 @@ async function startSession(storeId) {
     return { status: 'qr_pending', qr: existing.qr };
   }
 
+  // If reconnecting, don't start another
+  if (existing && existing.status === 'reconnecting') {
+    return { status: 'reconnecting', qr: null };
+  }
+
   const authDir = path.join(__dirname, 'auth', storeId);
   if (!fs.existsSync(authDir)) {
     fs.mkdirSync(authDir, { recursive: true });
   }
+
+  const hasAuthFiles = fs.existsSync(path.join(authDir, 'creds.json'));
 
   const { state, saveCreds } = await useMultiFileAuthState(authDir);
   const { version } = await fetchLatestBaileysVersion();
@@ -101,6 +108,7 @@ async function startSession(storeId) {
     status: 'connecting',
     qr: null,
     reconnectAttempts: 0,
+    hasAuthFiles,
   };
   sessions.set(storeId, session);
 
@@ -131,19 +139,32 @@ async function startSession(storeId) {
       const statusCode = lastDisconnect?.error?.output?.statusCode;
       const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
 
-      console.log(`[WA] Disconnected: store ${storeId}, code=${statusCode}, reconnect=${shouldReconnect}`);
+      console.log(`[WA] Disconnected: store ${storeId}, code=${statusCode}, shouldReconnect=${shouldReconnect}`);
 
-      if (shouldReconnect && session.reconnectAttempts < 5) {
-        session.reconnectAttempts++;
-        session.status = 'reconnecting';
-        const delay = Math.min(1000 * Math.pow(2, session.reconnectAttempts), 30000);
-        console.log(`[WA] Reconnecting store ${storeId} in ${delay}ms (attempt ${session.reconnectAttempts})`);
-        setTimeout(() => startSession(storeId), delay);
-      } else {
+      if (!shouldReconnect) {
+        // loggedOut (401) — auth is invalid, delete creds and stop
+        console.log(`[WA] Logged out, clearing auth for ${storeId}`);
         session.status = 'disconnected';
         sessions.delete(storeId);
+        const authPath = path.join(__dirname, 'auth', storeId);
+        if (fs.existsSync(authPath)) {
+          fs.rmSync(authPath, { recursive: true, force: true });
+        }
         notifyWebhook('connection_update', { storeId, status: 'disconnected' });
+        return;
       }
+
+      // Reconnect with no limit — exponential backoff up to 60s
+      session.reconnectAttempts++;
+      session.status = 'reconnecting';
+      const delay = Math.min(1000 * Math.pow(2, session.reconnectAttempts), 60000);
+      console.log(`[WA] Reconnecting store ${storeId} in ${delay}ms (attempt ${session.reconnectAttempts})`);
+      setTimeout(() => {
+        sessions.delete(storeId);
+        startSession(storeId).catch(err => {
+          console.error(`[WA] Reconnect failed for ${storeId}:`, err.message);
+        });
+      }, delay);
     }
   });
 
@@ -164,7 +185,7 @@ async function startSession(storeId) {
         continue;
       }
 
-      // Regular text message — could be a reply to bad_response
+      // Regular text message
       const text =
         msg.message.conversation ||
         msg.message.extendedTextMessage?.text ||
@@ -185,13 +206,8 @@ async function startSession(storeId) {
       const phone = update.key.remoteJid?.replace('@s.whatsapp.net', '') || '';
 
       for (const vote of pollUpdate) {
-        // vote.pollUpdateMessageKey = original poll msg key
-        // vote.vote.selectedOptions = array of selected hashes
-        // We need to decode the selected option names
         const selectedOptions = vote.vote?.selectedOptions || [];
         if (selectedOptions.length > 0 && phone) {
-          // Baileys gives SHA256 hashes of options, we need to match
-          // For simplicity, store the raw vote and let webhook decode
           notifyWebhook('poll_vote', {
             storeId,
             phone,
@@ -210,9 +226,33 @@ async function startSession(storeId) {
 }
 
 /**
- * Disconnect and optionally delete auth for a store.
+ * Restore all sessions from auth directory on startup.
  */
-async function disconnectSession(storeId) {
+async function restoreSessions() {
+  const authBase = path.join(__dirname, 'auth');
+  if (!fs.existsSync(authBase)) return;
+
+  const dirs = fs.readdirSync(authBase).filter(d => {
+    const full = path.join(authBase, d);
+    return fs.statSync(full).isDirectory() && fs.existsSync(path.join(full, 'creds.json'));
+  });
+
+  console.log(`[WA] Found ${dirs.length} saved session(s) to restore: ${dirs.join(', ') || 'none'}`);
+
+  for (const storeId of dirs) {
+    try {
+      console.log(`[WA] Restoring session: ${storeId}`);
+      await startSession(storeId);
+    } catch (err) {
+      console.error(`[WA] Failed to restore session ${storeId}:`, err.message);
+    }
+  }
+}
+
+/**
+ * Disconnect session. Only deletes auth files if deleteAuth=true (explicit logout).
+ */
+async function disconnectSession(storeId, deleteAuth = true) {
   const session = sessions.get(storeId);
   if (session?.sock) {
     try {
@@ -220,14 +260,19 @@ async function disconnectSession(storeId) {
     } catch {
       // ignore
     }
-    session.sock.end();
+    try {
+      session.sock.end();
+    } catch {
+      // ignore
+    }
   }
   sessions.delete(storeId);
 
-  // Delete auth files
-  const authDir = path.join(__dirname, 'auth', storeId);
-  if (fs.existsSync(authDir)) {
-    fs.rmSync(authDir, { recursive: true, force: true });
+  if (deleteAuth) {
+    const authDir = path.join(__dirname, 'auth', storeId);
+    if (fs.existsSync(authDir)) {
+      fs.rmSync(authDir, { recursive: true, force: true });
+    }
   }
 }
 
@@ -237,7 +282,7 @@ async function disconnectSession(storeId) {
 async function sendMessage(storeId, phone, message) {
   const session = sessions.get(storeId);
   if (!session || session.status !== 'connected') {
-    throw new Error(`Store ${storeId} not connected`);
+    throw new Error(`Store ${storeId} not connected (status: ${session?.status || 'no session'})`);
   }
 
   const jid = formatJid(phone);
@@ -292,4 +337,5 @@ module.exports = {
   sendPoll,
   sendBatch,
   formatJid,
+  restoreSessions,
 };

@@ -11,6 +11,7 @@ const {
   sendMessage,
   sendPoll,
   sendBatch,
+  restoreSessions,
 } = require('./sessions');
 
 const app = express();
@@ -144,8 +145,15 @@ app.post('/message/send-batch', async (req, res) => {
 });
 
 // Start server
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`[WA Server] Running on port ${PORT}`);
   console.log(`[WA Server] API Key: ${API_KEY.slice(0, 3)}...`);
   console.log(`[WA Server] Webhook: ${process.env.WEBHOOK_URL || 'http://localhost:3000/api/whatsapp/webhook'}`);
+
+  // Auto-restore saved sessions on startup
+  try {
+    await restoreSessions();
+  } catch (err) {
+    console.error('[WA Server] Failed to restore sessions:', err.message);
+  }
 });
