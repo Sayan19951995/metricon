@@ -27,6 +27,7 @@ export default function AdminWhatsAppPage() {
   const [pairingPhone, setPairingPhone] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const connectingRef = useRef(false);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
 
   const [notifPhone, setNotifPhone] = useState('');
@@ -177,14 +178,16 @@ export default function AdminWhatsAppPage() {
       const res = await fetchWithAuth(`/api/admin/whatsapp?_t=${Date.now()}`, { cache: 'no-store' });
       const data = await res.json();
       setStores(data.stores || []);
-      // Only set connected/disconnected/server_offline — ignore stale qr_pending/code_pending
-      const status = data.waStatus || 'disconnected';
-      if (status === 'connected' || status === 'disconnected' || status === 'server_offline') {
-        setWaStatus(status);
-      } else {
-        setWaStatus('disconnected');
+      // Don't overwrite state if a connect is in progress (race condition on slow networks)
+      if (!connectingRef.current) {
+        const status = data.waStatus || 'disconnected';
+        if (status === 'connected' || status === 'disconnected' || status === 'server_offline') {
+          setWaStatus(status);
+        } else {
+          setWaStatus('disconnected');
+        }
+        setPairingCode(data.pairingCode || null);
       }
-      setPairingCode(data.pairingCode || null);
     } catch (e) {
       console.error('Load error:', e);
     } finally {
@@ -195,6 +198,7 @@ export default function AdminWhatsAppPage() {
   async function handleConnect() {
     if (!pairingPhone) return;
     setConnecting(true);
+    connectingRef.current = true;
     setPairingCode(null);
     try {
       const res = await fetchWithAuth('/api/admin/whatsapp', {
@@ -213,6 +217,7 @@ export default function AdminWhatsAppPage() {
       console.error('Connect error:', e);
     } finally {
       setConnecting(false);
+      connectingRef.current = false;
     }
   }
 
@@ -237,6 +242,7 @@ export default function AdminWhatsAppPage() {
   async function handleForceReconnect() {
     if (!pairingPhone) return;
     setConnecting(true);
+    connectingRef.current = true;
     setWaQr(null);
     setPairingCode(null);
     setWaStatus('connecting');
@@ -256,6 +262,7 @@ export default function AdminWhatsAppPage() {
       console.error('Force reconnect error:', e);
     } finally {
       setConnecting(false);
+      connectingRef.current = false;
     }
   }
 

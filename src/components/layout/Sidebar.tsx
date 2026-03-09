@@ -245,7 +245,7 @@ export default function Sidebar() {
             title={isExpanded ? undefined : 'Мой план'}
             className={cn(
               'flex items-center gap-3 w-full px-3 py-2.5 text-white rounded-xl text-sm font-medium transition-colors',
-              isTrial ? 'bg-purple-500 hover:bg-purple-600' : 'bg-emerald-500 hover:bg-emerald-600'
+              isTrial ? 'bg-purple-500 hover:bg-purple-600' : 'bg-blue-600 hover:bg-blue-700'
             )}
           >
             <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">

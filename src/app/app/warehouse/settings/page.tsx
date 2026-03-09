@@ -197,7 +197,7 @@ export default function WarehouseSettingsPage() {
   // Loading skeleton
   if (userLoading || settingsLoading) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      <div className="p-4 sm:p-6 lg:p-8 bg-slate-200 dark:bg-gray-900 min-h-screen">
         <div className="mb-6">
           <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse mb-4" />
           <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse mb-2" />
@@ -216,7 +216,7 @@ export default function WarehouseSettingsPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-slate-200 dark:bg-gray-900 min-h-screen">
       {/* Header */}
       <div className="mb-6 lg:mb-8">
         <Link

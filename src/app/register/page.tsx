@@ -126,9 +126,9 @@ export default function RegisterPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 flex">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 flex">
       {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-emerald-500 to-emerald-600 p-12 flex-col justify-between relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 to-blue-700 p-12 flex-col justify-between relative overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl"></div>
@@ -157,7 +157,7 @@ export default function RegisterPage() {
                 <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
                   <CheckCircle className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-emerald-50">{feature}</span>
+                <span className="text-blue-50">{feature}</span>
               </div>
             ))}
           </div>
@@ -173,13 +173,13 @@ export default function RegisterPage() {
               </div>
               <div>
                 <div className="text-white font-medium">Асхат Калиев</div>
-                <div className="text-emerald-100 text-sm">TechStore Almaty</div>
+                <div className="text-blue-100 text-sm">TechStore Almaty</div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="relative z-10 text-emerald-100 text-sm">
+        <div className="relative z-10 text-blue-100 text-sm">
           © 2025 Metricon. Все права защищены.
         </div>
       </div>
@@ -190,8 +190,8 @@ export default function RegisterPage() {
           {/* Mobile Logo */}
           <div className="lg:hidden mb-8 text-center">
             <Link href="/" className="inline-flex items-center gap-3">
-              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-                <BarChart3 className="w-7 h-7 text-emerald-600" />
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <BarChart3 className="w-7 h-7 text-blue-600" />
               </div>
               <span className="text-2xl font-bold text-gray-900">Metricon</span>
             </Link>
@@ -244,7 +244,7 @@ export default function RegisterPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Ваше имя
                 </label>
-                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
+                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all ${
                   errors.name ? 'border-red-300 bg-red-50' : 'border-gray-200'
                 }`}>
                   <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
@@ -268,7 +268,7 @@ export default function RegisterPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Email
                 </label>
-                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
+                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all ${
                   errors.email ? 'border-red-300 bg-red-50' : 'border-gray-200'
                 }`}>
                   <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
@@ -292,7 +292,7 @@ export default function RegisterPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Номер телефона (WhatsApp) <span className="text-red-500">*</span>
                 </label>
-                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
+                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all ${
                   errors.phone ? 'border-red-300 bg-red-50' : 'border-gray-200'
                 }`}>
                   <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
@@ -321,7 +321,7 @@ export default function RegisterPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Пароль
                 </label>
-                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
+                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all ${
                   errors.password ? 'border-red-300 bg-red-50' : 'border-gray-200'
                 }`}>
                   <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
@@ -354,15 +354,15 @@ export default function RegisterPage() {
                     type="checkbox"
                     checked={formData.agree}
                     onChange={(e) => setFormData({ ...formData, agree: e.target.checked })}
-                    className="w-4 h-4 mt-0.5 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                    className="w-4 h-4 mt-0.5 rounded border-gray-300 text-blue-500 focus:ring-blue-500 cursor-pointer"
                   />
                   <span className="text-sm text-gray-600">
                     Я согласен с{' '}
-                    <Link href="/terms" className="text-emerald-600 hover:underline">
+                    <Link href="/terms" className="text-blue-600 hover:underline">
                       условиями использования
                     </Link>{' '}
                     и{' '}
-                    <Link href="/privacy" className="text-emerald-600 hover:underline">
+                    <Link href="/privacy" className="text-blue-600 hover:underline">
                       политикой конфиденциальности
                     </Link>
                   </span>
@@ -376,7 +376,7 @@ export default function RegisterPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -391,7 +391,7 @@ export default function RegisterPage() {
             {/* Login Link */}
             <p className="text-center text-gray-600">
               Уже есть аккаунт?{' '}
-              <Link href="/login" className="text-emerald-600 hover:text-emerald-700 font-medium">
+              <Link href="/login" className="text-blue-600 hover:text-blue-700 font-medium">
                 Войти
               </Link>
             </p>

@@ -152,14 +152,14 @@ export default function AddOrderPage() {
 
   if (userLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-slate-200 dark:bg-gray-900">
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
       </div>
     );
   }
 
   return (
-    <div className="p-4 sm:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-4 sm:p-8 bg-slate-200 dark:bg-gray-900 min-h-screen">
       {/* Header */}
       <div className="mb-6 sm:mb-8">
         <button

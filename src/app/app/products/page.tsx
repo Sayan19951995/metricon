@@ -315,7 +315,7 @@ export default function ProductsPage() {
 
   // === RENDER ===
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen relative">
+    <div className="p-4 sm:p-6 lg:p-8 bg-slate-200 dark:bg-gray-900 min-h-screen relative">
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${

@@ -1,6 +1,6 @@
 export default function DashboardLoading() {
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-slate-200 dark:bg-gray-900 min-h-screen">
       {/* Header skeleton */}
       <div className="flex justify-between items-start gap-4 mb-6 lg:mb-8">
         <div>

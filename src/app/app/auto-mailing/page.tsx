@@ -590,7 +590,7 @@ export default function AutoMailingPage() {
 
   if (userLoading || loading) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      <div className="p-4 sm:p-6 lg:p-8 bg-slate-200 dark:bg-gray-900 min-h-screen">
         <div className="mb-6 lg:mb-8">
           <div className="h-8 w-48 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
           <div className="h-4 w-72 bg-gray-200 dark:bg-gray-700 rounded mt-2 animate-pulse" />
@@ -610,7 +610,7 @@ export default function AutoMailingPage() {
   }
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-slate-200 dark:bg-gray-900 min-h-screen">
       {/* Header */}
       <div className="mb-6 lg:mb-8">
         <h1 className="text-2xl sm:text-3xl font-bold mb-2 dark:text-white">Авторассылка</h1>

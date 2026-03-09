@@ -180,7 +180,7 @@ export default function AnalyticsPage() {
 // Скелетон загрузки
 function AnalyticsPageSkeleton() {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-slate-200 dark:bg-gray-900 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto animate-pulse">
         {/* Header */}
         <div className="mb-6 lg:mb-8">
@@ -1094,7 +1094,7 @@ function AnalyticsPageContent() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
+    <div className="min-h-screen bg-slate-200 dark:bg-gray-900 p-4 sm:p-6 lg:p-8 overflow-x-hidden">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="mb-6 lg:mb-8">

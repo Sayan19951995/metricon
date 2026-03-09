@@ -43,13 +43,13 @@ export default function HomePage() {
       icon: LineChart,
       title: 'Глубокая аналитика',
       description: 'Продажи, прибыль, маржа, средний чек — все ключевые метрики в реальном времени с графиками.',
-      color: 'bg-blue-500'
+      color: 'bg-blue-600'
     },
     {
       icon: PieChart,
       title: 'Финансовые отчёты',
       description: 'P&L, движение денег, детализация по дням. Понимайте реальную прибыль с учётом всех расходов.',
-      color: 'bg-emerald-500'
+      color: 'bg-blue-600'
     },
     {
       icon: Package,
@@ -230,7 +230,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <Link href="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
                 <BarChart3 className="w-6 h-6 text-white" />
               </div>
               <span className="text-xl font-bold text-gray-900">Metricon</span>
@@ -254,7 +254,7 @@ export default function HomePage() {
               </Link>
               <Link
                 href="/register"
-                className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-all text-sm shadow-lg shadow-emerald-500/20"
+                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all text-sm shadow-lg shadow-blue-600/20"
               >
                 Начать бесплатно
               </Link>
@@ -280,7 +280,7 @@ export default function HomePage() {
                 <a href="#faq" className="px-4 py-2 text-gray-600 hover:bg-gray-50 rounded-lg">FAQ</a>
                 <div className="flex gap-2 mt-2">
                   <Link href="/login" className="flex-1 px-4 py-2.5 text-center text-gray-700 border border-gray-200 rounded-xl font-medium">Войти</Link>
-                  <Link href="/register" className="flex-1 px-4 py-2.5 text-center bg-emerald-500 text-white rounded-xl font-medium">Начать</Link>
+                  <Link href="/register" className="flex-1 px-4 py-2.5 text-center bg-blue-600 text-white rounded-xl font-medium">Начать</Link>
                 </div>
               </nav>
             </div>
@@ -292,21 +292,21 @@ export default function HomePage() {
       <section className="pt-28 pb-20 bg-gradient-to-b from-gray-50 to-white relative overflow-hidden">
         {/* Background Elements */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-40 right-0 w-[600px] h-[600px] bg-emerald-100/50 rounded-full blur-3xl -translate-x-1/2"></div>
+          <div className="absolute top-40 right-0 w-[600px] h-[600px] bg-blue-100/50 rounded-full blur-3xl -translate-x-1/2"></div>
           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-100/50 rounded-full blur-3xl translate-y-1/2"></div>
         </div>
 
         <div className="container mx-auto px-4 relative z-10">
           <div className="max-w-4xl mx-auto text-center">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-100 rounded-full text-emerald-700 text-sm font-medium mb-6">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 rounded-full text-blue-700 text-sm font-medium mb-6">
               <Gift className="w-4 h-4" />
               <span>14 дней Pro доступа бесплатно — без привязки карты</span>
             </div>
 
             <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-6 leading-tight">
               Аналитика для продавцов{' '}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-emerald-600">
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-blue-700">
                 Kaspi.kz
               </span>
             </h1>
@@ -319,7 +319,7 @@ export default function HomePage() {
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-10">
               <Link
                 href="/register"
-                className="w-full sm:w-auto px-8 py-4 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold text-lg transition-all flex items-center justify-center gap-2 shadow-xl shadow-emerald-500/25"
+                className="w-full sm:w-auto px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold text-lg transition-all flex items-center justify-center gap-2 shadow-xl shadow-blue-600/25"
               >
                 Попробовать бесплатно
                 <ArrowRight className="w-5 h-5" />
@@ -335,15 +335,15 @@ export default function HomePage() {
 
             <div className="flex flex-wrap items-center justify-center gap-x-8 gap-y-3 text-sm text-gray-500">
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-500" />
+                <CheckCircle className="w-4 h-4 text-blue-600" />
                 Настройка за 5 минут
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-500" />
+                <CheckCircle className="w-4 h-4 text-blue-600" />
                 Без привязки карты
               </div>
               <div className="flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-emerald-500" />
+                <CheckCircle className="w-4 h-4 text-blue-600" />
                 Отмена в любой момент
               </div>
             </div>
@@ -359,7 +359,7 @@ export default function HomePage() {
                   <div className="w-3 h-3 bg-green-400 rounded-full"></div>
                 </div>
                 <div className="ml-4 flex-1 bg-gray-700 rounded-lg px-3 py-1.5 text-sm text-gray-300 flex items-center gap-2">
-                  <Shield className="w-3.5 h-3.5 text-emerald-400" />
+                  <Shield className="w-3.5 h-3.5 text-blue-400" />
                   metricon.kz/app
                 </div>
               </div>
@@ -369,26 +369,26 @@ export default function HomePage() {
                   <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
                     <div className="text-xs text-gray-500 mb-1">Продажи сегодня</div>
                     <div className="text-lg sm:text-xl font-bold text-gray-900">₸1.2M</div>
-                    <div className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
+                    <div className="text-xs text-blue-600 flex items-center gap-1 mt-1">
                       <TrendingUp className="w-3 h-3" />+12%
                     </div>
                   </div>
                   <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
                     <div className="text-xs text-gray-500 mb-1">Заказов</div>
                     <div className="text-lg sm:text-xl font-bold text-gray-900">47</div>
-                    <div className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
+                    <div className="text-xs text-blue-600 flex items-center gap-1 mt-1">
                       <TrendingUp className="w-3 h-3" />+8%
                     </div>
                   </div>
                   <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
                     <div className="text-xs text-gray-500 mb-1">Прибыль</div>
-                    <div className="text-lg sm:text-xl font-bold text-emerald-600">₸186K</div>
+                    <div className="text-lg sm:text-xl font-bold text-blue-600">₸186K</div>
                     <div className="text-xs text-gray-500 mt-1">15.5% маржа</div>
                   </div>
                   <div className="bg-white rounded-xl p-3 sm:p-4 shadow-sm border border-gray-100">
                     <div className="text-xs text-gray-500 mb-1">ROI рекламы</div>
                     <div className="text-lg sm:text-xl font-bold text-gray-900">412%</div>
-                    <div className="text-xs text-emerald-600 flex items-center gap-1 mt-1">
+                    <div className="text-xs text-blue-600 flex items-center gap-1 mt-1">
                       <Sparkles className="w-3 h-3" />Отлично
                     </div>
                   </div>
@@ -401,7 +401,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex items-end gap-1.5 h-24">
                       {[35, 45, 40, 60, 55, 75, 65, 80, 70, 85, 75, 90, 85, 95].map((h, i) => (
-                        <div key={i} className="flex-1 bg-gradient-to-t from-emerald-500 to-emerald-400 rounded-t transition-all hover:from-emerald-600 hover:to-emerald-500" style={{ height: `${h}%` }}></div>
+                        <div key={i} className="flex-1 bg-gradient-to-t from-blue-600 to-blue-500 rounded-t transition-all hover:from-blue-700 hover:to-blue-600" style={{ height: `${h}%` }}></div>
                       ))}
                     </div>
                   </div>
@@ -431,7 +431,7 @@ export default function HomePage() {
       </section>
 
       {/* Stats Section */}
-      <section className="py-16 bg-emerald-500 relative overflow-hidden">
+      <section className="py-16 bg-blue-600 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 left-1/4 w-64 h-64 bg-white rounded-full blur-3xl"></div>
           <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-white rounded-full blur-3xl"></div>
@@ -441,7 +441,7 @@ export default function HomePage() {
             {stats.map((stat, idx) => (
               <div key={idx} className="text-center">
                 <div className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white mb-2">{stat.value}</div>
-                <div className="text-emerald-100 text-sm sm:text-base">{stat.label}</div>
+                <div className="text-blue-100 text-sm sm:text-base">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -452,7 +452,7 @@ export default function HomePage() {
       <section id="features" className="py-20 scroll-mt-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 rounded-full text-emerald-700 text-sm font-medium mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 rounded-full text-blue-700 text-sm font-medium mb-4">
               <Sparkles className="w-4 h-4" />
               Возможности
             </div>
@@ -485,7 +485,7 @@ export default function HomePage() {
       <section id="how-it-works" className="py-20 bg-gray-50 scroll-mt-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 rounded-full text-emerald-700 text-sm font-medium mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 rounded-full text-blue-700 text-sm font-medium mb-4">
               <Rocket className="w-4 h-4" />
               Быстрый старт
             </div>
@@ -520,9 +520,9 @@ export default function HomePage() {
             ].map((item, idx) => (
               <div key={idx} className="relative">
                 <div className="bg-white rounded-2xl p-6 border border-gray-100 h-full">
-                  <div className="text-5xl font-bold text-emerald-100 mb-4">{item.step}</div>
-                  <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center mb-4">
-                    <item.icon className="w-6 h-6 text-emerald-600" />
+                  <div className="text-5xl font-bold text-blue-100 mb-4">{item.step}</div>
+                  <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center mb-4">
+                    <item.icon className="w-6 h-6 text-blue-600" />
                   </div>
                   <h3 className="text-xl font-semibold text-gray-900 mb-2">{item.title}</h3>
                   <p className="text-gray-600">{item.description}</p>
@@ -543,7 +543,7 @@ export default function HomePage() {
         <div className="container mx-auto px-4">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             <div>
-              <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 rounded-full text-emerald-700 text-sm font-medium mb-4">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 rounded-full text-blue-700 text-sm font-medium mb-4">
                 <Shield className="w-4 h-4" />
                 Преимущества
               </div>
@@ -557,8 +557,8 @@ export default function HomePage() {
               <div className="space-y-6">
                 {advantages.map((item, idx) => (
                   <div key={idx} className="flex gap-4">
-                    <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <item.icon className="w-6 h-6 text-emerald-600" />
+                    <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                      <item.icon className="w-6 h-6 text-blue-600" />
                     </div>
                     <div>
                       <h3 className="font-semibold text-gray-900 mb-1">{item.title}</h3>
@@ -569,7 +569,7 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-3xl p-8 text-white relative overflow-hidden">
+            <div className="bg-gradient-to-br from-blue-600 to-blue-700 rounded-3xl p-8 text-white relative overflow-hidden">
               <div className="absolute inset-0 opacity-10">
                 <div className="absolute top-10 right-10 w-40 h-40 bg-white rounded-full blur-2xl"></div>
                 <div className="absolute bottom-10 left-10 w-60 h-60 bg-white rounded-full blur-2xl"></div>
@@ -582,20 +582,20 @@ export default function HomePage() {
                 <h3 className="text-3xl font-bold mb-4">
                   14 дней Pro доступа бесплатно
                 </h3>
-                <p className="text-emerald-100 mb-6 text-lg">
+                <p className="text-blue-100 mb-6 text-lg">
                   Попробуйте все функции платформы без ограничений. Никаких скрытых платежей — просто зарегистрируйтесь и начните.
                 </p>
                 <ul className="space-y-3 mb-8">
                   {['Безлимит товаров', 'Все интеграции', 'Персональный менеджер', 'Приоритетная поддержка'].map((item, idx) => (
                     <li key={idx} className="flex items-center gap-3">
-                      <CheckCircle className="w-5 h-5 text-emerald-200" />
+                      <CheckCircle className="w-5 h-5 text-blue-200" />
                       <span>{item}</span>
                     </li>
                   ))}
                 </ul>
                 <Link
                   href="/register"
-                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-emerald-600 rounded-xl font-semibold hover:bg-emerald-50 transition-colors"
+                  className="inline-flex items-center gap-2 px-6 py-3 bg-white text-blue-600 rounded-xl font-semibold hover:bg-blue-50 transition-colors"
                 >
                   Активировать бесплатно
                   <ArrowRight className="w-5 h-5" />
@@ -610,7 +610,7 @@ export default function HomePage() {
       <section id="testimonials" className="py-20 bg-gray-50 scroll-mt-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 rounded-full text-emerald-700 text-sm font-medium mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 rounded-full text-blue-700 text-sm font-medium mb-4">
               <Star className="w-4 h-4" />
               Отзывы
             </div>
@@ -633,7 +633,7 @@ export default function HomePage() {
                 <p className="text-gray-600 mb-6 leading-relaxed">"{testimonial.text}"</p>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-white font-semibold">
+                    <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center text-white font-semibold">
                       {testimonial.avatar}
                     </div>
                     <div>
@@ -641,7 +641,7 @@ export default function HomePage() {
                       <div className="text-sm text-gray-500">{testimonial.company}</div>
                     </div>
                   </div>
-                  <div className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm font-medium">
+                  <div className="px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-medium">
                     {testimonial.result}
                   </div>
                 </div>
@@ -655,7 +655,7 @@ export default function HomePage() {
       <section id="pricing" className="py-20 scroll-mt-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 rounded-full text-emerald-700 text-sm font-medium mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 rounded-full text-blue-700 text-sm font-medium mb-4">
               <Wallet className="w-4 h-4" />
               Тарифы
             </div>
@@ -673,7 +673,7 @@ export default function HomePage() {
                 key={idx}
                 className={`bg-white rounded-2xl p-6 border-2 relative ${
                   plan.popular
-                    ? 'border-emerald-500 shadow-xl shadow-emerald-500/10 scale-105'
+                    ? 'border-blue-600 shadow-xl shadow-blue-600/10 scale-105'
                     : 'border-gray-100'
                 }`}
               >
@@ -683,7 +683,7 @@ export default function HomePage() {
                   </div>
                 )}
                 {plan.badge && !plan.popular && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white text-sm font-medium rounded-full whitespace-nowrap flex items-center gap-1.5">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 bg-gradient-to-r from-blue-600 to-blue-700 text-white text-sm font-medium rounded-full whitespace-nowrap flex items-center gap-1.5">
                     <Gift className="w-3.5 h-3.5" />
                     {plan.badge}
                   </div>
@@ -699,7 +699,7 @@ export default function HomePage() {
                     <span className="text-gray-500">₸/{plan.period}</span>
                   </div>
                   {plan.badge && plan.popular && (
-                    <div className="mt-2 inline-flex items-center gap-1 px-2 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full">
+                    <div className="mt-2 inline-flex items-center gap-1 px-2 py-1 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
                       {plan.badge}
                     </div>
                   )}
@@ -707,7 +707,7 @@ export default function HomePage() {
                 <ul className="space-y-3 mb-6">
                   {plan.features.map((feature, i) => (
                     <li key={i} className="flex items-start gap-3">
-                      <CheckCircle className="w-5 h-5 text-emerald-500 flex-shrink-0 mt-0.5" />
+                      <CheckCircle className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
                       <span className="text-gray-600 text-sm">{feature}</span>
                     </li>
                   ))}
@@ -722,7 +722,7 @@ export default function HomePage() {
                   href="/register"
                   className={`w-full py-3 rounded-xl font-medium transition-all flex items-center justify-center gap-2 ${
                     plan.popular
-                      ? 'bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-500/25'
+                      ? 'bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-600/25'
                       : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                   }`}
                 >
@@ -743,7 +743,7 @@ export default function HomePage() {
       <section id="faq" className="py-20 bg-gray-50 scroll-mt-20">
         <div className="container mx-auto px-4">
           <div className="text-center mb-16">
-            <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-100 rounded-full text-emerald-700 text-sm font-medium mb-4">
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 rounded-full text-blue-700 text-sm font-medium mb-4">
               <BookOpen className="w-4 h-4" />
               FAQ
             </div>
@@ -777,7 +777,7 @@ export default function HomePage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-br from-emerald-500 to-emerald-600 relative overflow-hidden">
+      <section className="py-20 bg-gradient-to-br from-blue-600 to-blue-700 relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 right-10 w-72 h-72 bg-white rounded-full blur-3xl"></div>
           <div className="absolute bottom-10 left-10 w-96 h-96 bg-white rounded-full blur-3xl"></div>
@@ -792,13 +792,13 @@ export default function HomePage() {
             <h2 className="text-3xl sm:text-4xl font-bold text-white mb-6">
               Готовы увеличить продажи на Kaspi?
             </h2>
-            <p className="text-xl text-emerald-100 mb-8">
+            <p className="text-xl text-blue-100 mb-8">
               Начните с 14 дней бесплатного Pro доступа. Без привязки карты, без обязательств.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
                 href="/register"
-                className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-gray-100 text-emerald-600 rounded-xl font-semibold text-lg transition-all flex items-center justify-center gap-2 shadow-xl"
+                className="w-full sm:w-auto px-8 py-4 bg-white hover:bg-gray-100 text-blue-600 rounded-xl font-semibold text-lg transition-all flex items-center justify-center gap-2 shadow-xl"
               >
                 Начать бесплатно
                 <ArrowRight className="w-5 h-5" />
@@ -820,7 +820,7 @@ export default function HomePage() {
           <div className="grid md:grid-cols-5 gap-8 mb-8">
             <div className="md:col-span-2">
               <Link href="/" className="flex items-center gap-2 mb-4">
-                <div className="w-10 h-10 bg-emerald-500 rounded-xl flex items-center justify-center">
+                <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center">
                   <BarChart3 className="w-6 h-6 text-white" />
                 </div>
                 <span className="text-xl font-bold text-white">Metricon</span>

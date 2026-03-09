@@ -226,7 +226,7 @@ export default function DashboardPage() {
 
   // Скелетон-заглушка дашборда
   const DashboardSkeleton = () => (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-slate-200 dark:bg-gray-900 min-h-screen">
       {/* Header skeleton */}
       <div className="flex justify-between items-start gap-4 mb-6 lg:mb-8">
         <div>
@@ -380,7 +380,7 @@ export default function DashboardPage() {
   // Kaspi не подключен — показываем призыв подключить
   if (!dataLoading && !kaspiConnected) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      <div className="p-4 sm:p-6 lg:p-8 bg-slate-200 dark:bg-gray-900 min-h-screen">
         <div className="flex justify-between items-start gap-4 mb-6 lg:mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Дашборд</h1>
@@ -447,7 +447,7 @@ export default function DashboardPage() {
   // Ошибка
   if (dataError) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-slate-200 dark:bg-gray-900">
         <div className="text-center">
           <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-3" />
           <p className="text-gray-700 dark:text-gray-200 font-medium">Ошибка загрузки</p>
@@ -460,7 +460,7 @@ export default function DashboardPage() {
   // Если данных нет вообще
   if (!dashboardData) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
+      <div className="flex items-center justify-center min-h-screen bg-slate-200 dark:bg-gray-900">
         <div className="text-center">
           <Package className="w-12 h-12 text-gray-400 mx-auto mb-3" />
           <p className="text-gray-700 dark:text-gray-200 font-medium">Нет данных</p>
@@ -482,7 +482,7 @@ export default function DashboardPage() {
   const hasData = sales.weekData.some(v => v > 0);
 
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+    <div className="p-4 sm:p-6 lg:p-8 bg-slate-200 dark:bg-gray-900 min-h-screen">
       {/* WhatsApp phone banner */}
       {user && !user.phone && (
         <div className="mb-4 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-700 rounded-xl p-3 flex items-center justify-between">

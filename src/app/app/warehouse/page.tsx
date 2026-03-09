@@ -664,7 +664,7 @@ export default function WarehousePage() {
   // Loading skeleton
   if (userLoading || (loading && products.length === 0)) {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      <div className="p-4 sm:p-6 lg:p-8 bg-slate-200 dark:bg-gray-900 min-h-screen">
         <div className="flex justify-between items-start gap-4 mb-6">
           <div>
             <div className="h-8 w-32 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
@@ -699,7 +699,7 @@ export default function WarehousePage() {
   // ==================== WAREHOUSE ROLE VIEW ====================
   if (role === 'warehouse') {
     return (
-      <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen">
+      <div className="p-4 sm:p-6 lg:p-8 bg-slate-200 dark:bg-gray-900 min-h-screen">
         {/* Toast */}
         {toast && (
           <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${
@@ -894,7 +894,7 @@ export default function WarehousePage() {
 
   // ==================== OWNER/ADMIN VIEW ====================
   return (
-    <div className="p-4 sm:p-6 lg:p-8 bg-gray-50 dark:bg-gray-900 min-h-screen relative" onClick={() => groupMenuId && setGroupMenuId(null)}>
+    <div className="p-4 sm:p-6 lg:p-8 bg-slate-200 dark:bg-gray-900 min-h-screen relative" onClick={() => groupMenuId && setGroupMenuId(null)}>
       {/* Toast */}
       {toast && (
         <div className={`fixed top-4 right-4 z-50 px-4 py-3 rounded-xl shadow-lg text-sm font-medium ${
