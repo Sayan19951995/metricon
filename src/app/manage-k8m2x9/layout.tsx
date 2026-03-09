@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, ShieldAlert, Lock } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
-import { supabase } from '@/lib/supabase/client';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import AdminSidebar from './components/AdminSidebar';
 
@@ -30,24 +29,18 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   useEffect(() => {
     if (userLoading) return;
 
-    // No user = not logged in → not admin
     if (!user?.id) {
       setIsAdmin(false);
       return;
     }
 
-    supabase
-      .from('users')
-      .select('*')
-      .eq('id', user.id)
-      .single()
-      .then(({ data, error }) => {
-        if (error) {
-          console.warn('Admin check error:', error.code, error.message);
-          setIsAdmin(false);
-          return;
-        }
-        setIsAdmin(!!(data as any)?.is_admin);
+    // Check admin via API (uses supabaseAdmin, bypasses RLS)
+    fetchWithAuth('/api/admin/stats')
+      .then((res) => {
+        setIsAdmin(res.ok);
+      })
+      .catch(() => {
+        setIsAdmin(false);
       });
   }, [user?.id, userLoading]);
 
