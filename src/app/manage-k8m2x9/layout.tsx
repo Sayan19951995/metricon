@@ -3,14 +3,12 @@
 import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Loader2, ShieldAlert, Lock } from 'lucide-react';
-import { useUser } from '@/hooks/useUser';
-import { fetchWithAuth } from '@/lib/fetch-with-auth';
+import { supabase } from '@/lib/supabase/client';
 import AdminSidebar from './components/AdminSidebar';
 
 const PIN_SESSION_KEY = 'admin-pin-verified';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { user, loading: userLoading } = useUser();
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
   const [pinVerified, setPinVerified] = useState(false);
   const [pinValue, setPinValue] = useState('');
@@ -26,23 +24,40 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   }, []);
 
+  // Check admin: wait for real Supabase session, then call API
   useEffect(() => {
-    if (userLoading) return;
+    async function checkAdmin() {
+      // Get real session (not cache) — waits for auth to initialize
+      const { data: { session } } = await supabase.auth.getSession();
 
-    if (!user?.id) {
-      setIsAdmin(false);
-      return;
+      if (!session?.access_token) {
+        // Try refreshing
+        const { data: refreshData } = await supabase.auth.refreshSession();
+        if (!refreshData.session?.access_token) {
+          setIsAdmin(false);
+          return;
+        }
+      }
+
+      const token = session?.access_token || (await supabase.auth.getSession()).data.session?.access_token;
+
+      if (!token) {
+        setIsAdmin(false);
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/stats', {
+          headers: { 'Authorization': `Bearer ${token}` },
+        });
+        setIsAdmin(res.ok);
+      } catch {
+        setIsAdmin(false);
+      }
     }
 
-    // Check admin via API (uses supabaseAdmin, bypasses RLS)
-    fetchWithAuth('/api/admin/stats')
-      .then((res) => {
-        setIsAdmin(res.ok);
-      })
-      .catch(() => {
-        setIsAdmin(false);
-      });
-  }, [user?.id, userLoading]);
+    checkAdmin();
+  }, []);
 
   const handlePinSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,9 +67,13 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     setPinError('');
 
     try {
-      const res = await fetchWithAuth('/api/admin/verify-pin', {
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/admin/verify-pin', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token || ''}`,
+        },
         body: JSON.stringify({ pin: pinValue }),
       });
 
@@ -73,7 +92,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     }
   };
 
-  if (userLoading || isAdmin === null) {
+  if (isAdmin === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
