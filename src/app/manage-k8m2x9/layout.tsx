@@ -48,9 +48,6 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           return;
         }
         setIsAdmin(!!(data as any)?.is_admin);
-      })
-      .catch(() => {
-        setIsAdmin(false);
       });
   }, [user?.id, userLoading]);
 
