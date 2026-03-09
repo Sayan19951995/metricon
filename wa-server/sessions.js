@@ -136,20 +136,26 @@ async function startSession(storeId, pairingPhone = null) {
   };
   sessions.set(storeId, session);
 
-  // If phone number provided and not yet registered, request pairing code
-  // Use a promise so we can await it before returning
-  let pairingPromise = null;
-  if (pairingPhone) {
-    pairingPromise = new Promise((resolve) => {
-      // Wait for socket to be ready before requesting pairing code
-      setTimeout(async () => {
+  // Promise to wait for pairing code (resolved when QR event fires and we request pairing)
+  let pairingResolve = null;
+  const pairingPromise = pairingPhone
+    ? new Promise((resolve) => { pairingResolve = resolve; })
+    : null;
+
+  // Handle connection updates
+  sock.ev.on('connection.update', async (update) => {
+    const { connection, lastDisconnect, qr } = update;
+
+    if (qr) {
+      if (pairingPhone && !session.pairingCode) {
+        // Socket is ready (QR received) — request pairing code instead of showing QR
         try {
           if (!sock.authState?.creds?.registered) {
             const cleanPhone = pairingPhone.replace(/[^\d]/g, '');
             const phone = cleanPhone.startsWith('8') && cleanPhone.length === 11
               ? '7' + cleanPhone.slice(1)
               : cleanPhone;
-            console.log(`[WA] Requesting pairing code for ${phone}`);
+            console.log(`[WA] Socket ready (QR event), requesting pairing code for ${phone}`);
             const code = await sock.requestPairingCode(phone);
             session.pairingCode = code;
             session.status = 'code_pending';
@@ -158,23 +164,16 @@ async function startSession(storeId, pairingPhone = null) {
         } catch (err) {
           console.error(`[WA] Pairing code request failed:`, err.message);
         }
-        resolve();
-      }, 3000);
-    });
-  }
-
-  // Handle connection updates
-  sock.ev.on('connection.update', async (update) => {
-    const { connection, lastDisconnect, qr } = update;
-
-    if (qr && !pairingPhone) {
-      // Generate QR as data URL (only if not using phone pairing)
-      try {
-        session.qr = await QRCode.toDataURL(qr, { width: 256 });
-        session.status = 'qr_pending';
-        console.log(`[WA] QR generated for store ${storeId}`);
-      } catch (err) {
-        console.error(`[WA] QR generation failed:`, err);
+        if (pairingResolve) { pairingResolve(); pairingResolve = null; }
+      } else if (!pairingPhone) {
+        // No phone pairing — show QR
+        try {
+          session.qr = await QRCode.toDataURL(qr, { width: 256 });
+          session.status = 'qr_pending';
+          console.log(`[WA] QR generated for store ${storeId}`);
+        } catch (err) {
+          console.error(`[WA] QR generation failed:`, err);
+        }
       }
     }
 
@@ -284,7 +283,15 @@ async function startSession(storeId, pairingPhone = null) {
 
   // Wait for pairing code if requested, otherwise just wait for initial connection
   if (pairingPromise) {
-    await pairingPromise;
+    // Wait for pairing code, but timeout after 15s if QR never arrives
+    await Promise.race([
+      pairingPromise,
+      new Promise(resolve => setTimeout(() => {
+        console.log(`[WA] Pairing code timeout for ${storeId} (15s)`);
+        if (pairingResolve) { pairingResolve(); pairingResolve = null; }
+        resolve();
+      }, 15000)),
+    ]);
   } else {
     await new Promise(resolve => setTimeout(resolve, 2000));
   }
