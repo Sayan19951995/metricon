@@ -52,6 +52,8 @@ export async function triggerWhatsAppMessages(
 ): Promise<{ sent: number; failed: number }> {
   if (orders.length === 0) return { sent: 0, failed: 0 };
 
+  console.log(`[WA-TRIGGER] ${triggerType} for store ${storeId}: ${orders.length} order(s)`);
+
   // 1. Проверяем, подключен ли WhatsApp у магазина
   const { data: store } = await supabase
     .from('stores')
@@ -60,12 +62,14 @@ export async function triggerWhatsAppMessages(
     .single();
 
   if (!store?.whatsapp_connected) {
+    console.log(`[WA-TRIGGER] ${storeId}: WhatsApp not connected, skipping`);
     return { sent: 0, failed: 0 };
   }
 
   // Проверяем, включена ли авторассылка в настройках
   const mailingSettings = (store as any).mailing_settings as Record<string, any> | null;
   if (mailingSettings && mailingSettings.enabled === false) {
+    console.log(`[WA-TRIGGER] ${storeId}: mailing disabled, skipping`);
     return { sent: 0, failed: 0 };
   }
 
@@ -80,8 +84,10 @@ export async function triggerWhatsAppMessages(
 
   const template = templates?.[0];
   if (!template || !template.template_ru) {
+    console.log(`[WA-TRIGGER] ${storeId}: no active template for "${triggerType}", skipping`);
     return { sent: 0, failed: 0 };
   }
+  console.log(`[WA-TRIGGER] ${storeId}: using template "${template.name || template.id}" for ${triggerType}`);
 
   // 3. Дедупликация — проверяем, какие заказы уже получали сообщение
   const orderIds = orders.map(o => o.kaspi_order_id).filter(Boolean);
@@ -113,7 +119,9 @@ export async function triggerWhatsAppMessages(
     const messageText = substituteVariables(template.template_ru, order, storeName);
 
     try {
+      console.log(`[WA-TRIGGER] ${storeId}: sending to ${order.customer_phone} (order ${order.kaspi_order_id})`);
       const success = await waSendMessage(storeId, order.customer_phone, messageText);
+      console.log(`[WA-TRIGGER] ${storeId}: send result = ${success} for ${order.kaspi_order_id}`);
 
       // 4. Логируем в message_logs
       await supabase.from('message_logs').insert({

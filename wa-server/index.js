@@ -20,6 +20,29 @@ app.use(express.json());
 const API_KEY = process.env.API_KEY || 'dev-secret';
 const PORT = process.env.PORT || 3001;
 
+// ========== In-memory log buffer ==========
+const LOG_MAX = 200;
+const logBuffer = [];
+
+function addLog(level, msg) {
+  logBuffer.push({ ts: Date.now(), level, msg });
+  if (logBuffer.length > LOG_MAX) logBuffer.shift();
+}
+
+// Intercept console.log/error to capture logs
+const origLog = console.log;
+const origError = console.error;
+console.log = (...args) => {
+  const msg = args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ');
+  if (msg.startsWith('[WA]') || msg.startsWith('[API]')) addLog('info', msg);
+  origLog.apply(console, args);
+};
+console.error = (...args) => {
+  const msg = args.map(a => typeof a === 'string' ? a : (a instanceof Error ? a.message : JSON.stringify(a))).join(' ');
+  if (msg.startsWith('[WA]') || msg.startsWith('[API]')) addLog('error', msg);
+  origError.apply(console, args);
+};
+
 // Auth middleware
 function authMiddleware(req, res, next) {
   const key = req.headers['x-api-key'];
@@ -36,16 +59,23 @@ app.get('/health', (_req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });
 });
 
+// ========== Logs endpoint ==========
+app.get('/logs', (req, res) => {
+  const since = parseInt(req.query.since) || 0;
+  const logs = since ? logBuffer.filter(l => l.ts > since) : logBuffer.slice(-50);
+  res.json({ logs });
+});
+
 // ========== Session endpoints ==========
 
-// POST /session/start — Start session, return QR
+// POST /session/start — Start session, return QR or pairing code
 app.post('/session/start', async (req, res) => {
   try {
-    const { storeId } = req.body;
+    const { storeId, phone } = req.body;
     if (!storeId) return res.status(400).json({ error: 'storeId required' });
 
-    console.log(`[API] Starting session for store ${storeId}`);
-    const result = await startSession(storeId);
+    console.log(`[API] Starting session for store ${storeId}${phone ? ` (phone pairing: ${phone})` : ''}`);
+    const result = await startSession(storeId, phone || null);
     res.json(result);
   } catch (err) {
     console.error('[API] /session/start error:', err);
@@ -63,7 +93,7 @@ app.get('/session/:storeId/status', (req, res) => {
       return res.json({ status: 'disconnected', qr: null });
     }
 
-    res.json({ status: session.status, qr: session.qr });
+    res.json({ status: session.status, qr: session.qr, pairingCode: session.pairingCode || null });
   } catch (err) {
     console.error('[API] /session/status error:', err);
     res.status(500).json({ error: err.message });
@@ -82,11 +112,13 @@ app.get('/session/:storeId/qr', (req, res) => {
 });
 
 // DELETE /session/:storeId — Disconnect
+// ?deleteAuth=true to also wipe auth files (force new QR)
 app.delete('/session/:storeId', async (req, res) => {
   try {
     const { storeId } = req.params;
-    console.log(`[API] Disconnecting store ${storeId}`);
-    await disconnectSession(storeId);
+    const deleteAuth = req.query.deleteAuth === 'true';
+    console.log(`[API] Disconnecting store ${storeId}, deleteAuth=${deleteAuth}`);
+    await disconnectSession(storeId, deleteAuth);
     res.json({ success: true });
   } catch (err) {
     console.error('[API] /session/disconnect error:', err);
@@ -108,7 +140,7 @@ app.post('/message/send', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('[API] /message/send error:', err);
-    res.json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: err.message || String(err) || 'Unknown send error' });
   }
 });
 

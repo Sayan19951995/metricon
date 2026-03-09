@@ -54,34 +54,56 @@ function formatJid(phone) {
 }
 
 /**
- * Get or create a session for a store.
+ * Get session for a store. Read-only — just returns current state.
  */
 function getSession(storeId) {
-  return sessions.get(storeId) || null;
+  const session = sessions.get(storeId);
+  if (!session) return null;
+  return session;
 }
 
 /**
  * Start a Baileys session for a store.
- * Returns { status, qr }.
+ * If pairingPhone is provided, uses phone number pairing instead of QR.
+ * Returns { status, qr, pairingCode }.
  */
-async function startSession(storeId) {
+async function startSession(storeId, pairingPhone = null) {
   // If already connected, return status
   const existing = sessions.get(storeId);
   if (existing && existing.status === 'connected') {
-    return { status: 'connected', qr: null };
+    return { status: 'connected', qr: null, pairingCode: null };
   }
 
-  // If already connecting (QR pending), return current QR
-  if (existing && existing.status === 'qr_pending') {
-    return { status: 'qr_pending', qr: existing.qr };
+  // If code_pending and has code, check if socket is still alive
+  if (existing && existing.status === 'code_pending' && existing.pairingCode) {
+    const wsState = existing.sock?.ws?.readyState;
+    // Only return cached code if socket is alive (readyState 0=connecting or 1=open)
+    if (wsState === 0 || wsState === 1) {
+      return { status: 'code_pending', qr: null, pairingCode: existing.pairingCode };
+    }
+    // Socket dead — fall through to create fresh session
+    console.log(`[WA] code_pending but socket dead (ws=${wsState}), creating fresh session`);
   }
 
   // If reconnecting, don't start another
   if (existing && existing.status === 'reconnecting') {
-    return { status: 'reconnecting', qr: null };
+    return { status: 'reconnecting', qr: null, pairingCode: null };
+  }
+
+  // Clean up any existing stale session before starting new one
+  if (existing) {
+    try { existing.sock?.end(); } catch {}
+    sessions.delete(storeId);
   }
 
   const authDir = path.join(__dirname, 'auth', storeId);
+
+  // If pairing by phone, always start fresh — old creds have registered=true which skips pairing
+  if (pairingPhone && fs.existsSync(authDir)) {
+    fs.rmSync(authDir, { recursive: true, force: true });
+    console.log(`[WA] Cleared old auth for ${storeId} (fresh pairing)`);
+  }
+
   if (!fs.existsSync(authDir)) {
     fs.mkdirSync(authDir, { recursive: true });
   }
@@ -107,17 +129,46 @@ async function startSession(storeId) {
     storeId,
     status: 'connecting',
     qr: null,
+    pairingCode: null,
+    pairingPhone: pairingPhone || null,
     reconnectAttempts: 0,
     hasAuthFiles,
   };
   sessions.set(storeId, session);
 
+  // If phone number provided and not yet registered, request pairing code
+  // Use a promise so we can await it before returning
+  let pairingPromise = null;
+  if (pairingPhone) {
+    pairingPromise = new Promise((resolve) => {
+      // Wait for socket to be ready before requesting pairing code
+      setTimeout(async () => {
+        try {
+          if (!sock.authState?.creds?.registered) {
+            const cleanPhone = pairingPhone.replace(/[^\d]/g, '');
+            const phone = cleanPhone.startsWith('8') && cleanPhone.length === 11
+              ? '7' + cleanPhone.slice(1)
+              : cleanPhone;
+            console.log(`[WA] Requesting pairing code for ${phone}`);
+            const code = await sock.requestPairingCode(phone);
+            session.pairingCode = code;
+            session.status = 'code_pending';
+            console.log(`[WA] Pairing code for store ${storeId}: ${code}`);
+          }
+        } catch (err) {
+          console.error(`[WA] Pairing code request failed:`, err.message);
+        }
+        resolve();
+      }, 3000);
+    });
+  }
+
   // Handle connection updates
   sock.ev.on('connection.update', async (update) => {
     const { connection, lastDisconnect, qr } = update;
 
-    if (qr) {
-      // Generate QR as data URL
+    if (qr && !pairingPhone) {
+      // Generate QR as data URL (only if not using phone pairing)
       try {
         session.qr = await QRCode.toDataURL(qr, { width: 256 });
         session.status = 'qr_pending';
@@ -154,17 +205,29 @@ async function startSession(storeId) {
         return;
       }
 
-      // Reconnect with no limit — exponential backoff up to 60s
-      session.reconnectAttempts++;
-      session.status = 'reconnecting';
-      const delay = Math.min(1000 * Math.pow(2, session.reconnectAttempts), 60000);
-      console.log(`[WA] Reconnecting store ${storeId} in ${delay}ms (attempt ${session.reconnectAttempts})`);
-      setTimeout(() => {
-        sessions.delete(storeId);
-        startSession(storeId).catch(err => {
-          console.error(`[WA] Reconnect failed for ${storeId}:`, err.message);
-        });
-      }, delay);
+      // During pairing (code_pending + 515): reconnect socket to keep pairing alive
+      if (session.status === 'code_pending' && statusCode === 515) {
+        console.log(`[WA] Socket died during pairing for ${storeId} (code=515), reconnecting socket...`);
+        const savedCode = session.pairingCode;
+        setTimeout(() => {
+          sessions.delete(storeId);
+          startSession(storeId, null).then(() => {
+            const newSession = sessions.get(storeId);
+            if (newSession && newSession.status !== 'connected') {
+              if (savedCode) newSession.pairingCode = savedCode;
+              newSession.status = 'code_pending';
+            }
+          }).catch(err => {
+            console.error(`[WA] Pairing reconnect failed for ${storeId}:`, err.message);
+          });
+        }, 1000);
+        return;
+      }
+
+      // No auto-reconnect — user must reconnect manually via UI
+      session.status = 'disconnected';
+      console.log(`[WA] Session ${storeId} marked disconnected. Manual reconnect required.`);
+      notifyWebhook('connection_update', { storeId, status: 'disconnected' });
     }
   });
 
@@ -219,10 +282,14 @@ async function startSession(storeId) {
     }
   });
 
-  // Wait a moment for initial connection
-  await new Promise(resolve => setTimeout(resolve, 2000));
+  // Wait for pairing code if requested, otherwise just wait for initial connection
+  if (pairingPromise) {
+    await pairingPromise;
+  } else {
+    await new Promise(resolve => setTimeout(resolve, 2000));
+  }
 
-  return { status: session.status, qr: session.qr };
+  return { status: session.status, qr: session.qr, pairingCode: session.pairingCode };
 }
 
 /**
@@ -277,7 +344,7 @@ async function disconnectSession(storeId, deleteAuth = true) {
 }
 
 /**
- * Send a text message.
+ * Send a text message. No auto-reconnect — just report errors.
  */
 async function sendMessage(storeId, phone, message) {
   const session = sessions.get(storeId);
@@ -286,8 +353,14 @@ async function sendMessage(storeId, phone, message) {
   }
 
   const jid = formatJid(phone);
-  await session.sock.sendMessage(jid, { text: message });
-  return true;
+  try {
+    await session.sock.sendMessage(jid, { text: message });
+    return true;
+  } catch (err) {
+    console.error(`[WA] sendMessage failed for ${storeId}:`, err.message);
+    session.status = 'disconnected';
+    throw new Error(`Ошибка отправки: ${err.message}`);
+  }
 }
 
 /**

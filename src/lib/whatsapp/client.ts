@@ -7,38 +7,45 @@ const WA_SERVER_URL = process.env.WA_SERVER_URL || 'http://localhost:3001';
 const WA_SERVER_SECRET = process.env.WA_SERVER_SECRET || 'dev-secret';
 
 async function waFetch(path: string, options: RequestInit = {}): Promise<any> {
-  const url = `${WA_SERVER_URL}${path}`;
+  const separator = path.includes('?') ? '&' : '?';
+  const url = `${WA_SERVER_URL}${path}${separator}_t=${Date.now()}`;
   const res = await fetch(url, {
     ...options,
+    cache: 'no-store',
+    next: { revalidate: 0 },
     headers: {
       'Content-Type': 'application/json',
       'x-api-key': WA_SERVER_SECRET,
       ...options.headers,
     },
-  });
+  } as any);
+
+  const data = await res.json().catch(() => null);
+  console.log(`[waFetch] ${options.method || 'GET'} ${path} → ${res.status}`, JSON.stringify(data));
 
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new Error(`WA server error ${res.status}: ${text}`);
+    throw new Error(`WA server error ${res.status}: ${JSON.stringify(data)}`);
   }
 
-  return res.json();
+  return data;
 }
 
 /**
- * Начать сессию WhatsApp для магазина. Возвращает QR-код (base64).
+ * Начать сессию WhatsApp для магазина.
+ * Если phone передан — используется привязка по номеру (pairing code).
  */
-export async function waStartSession(storeId: string): Promise<{ qr: string | null; status: string }> {
+export async function waStartSession(storeId: string, phone?: string): Promise<{ qr: string | null; status: string; pairingCode?: string | null }> {
   return waFetch('/session/start', {
     method: 'POST',
-    body: JSON.stringify({ storeId }),
+    body: JSON.stringify({ storeId, phone }),
   });
 }
+
 
 /**
  * Получить статус подключения WhatsApp.
  */
-export async function waGetStatus(storeId: string): Promise<{ status: string; qr: string | null }> {
+export async function waGetStatus(storeId: string): Promise<{ status: string; qr: string | null; pairingCode?: string | null }> {
   return waFetch(`/session/${storeId}/status`);
 }
 
@@ -62,17 +69,31 @@ export async function waDisconnect(storeId: string): Promise<void> {
 }
 
 /**
+ * Получить логи WA сервера.
+ */
+export async function waGetLogs(since = 0): Promise<Array<{ ts: number; level: string; msg: string }>> {
+  try {
+    const data = await waFetch(`/logs?since=${since}`);
+    return data.logs || [];
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Отправить одно сообщение.
  */
 export async function waSendMessage(storeId: string, phone: string, message: string): Promise<boolean> {
   try {
+    console.log(`[WA-CLIENT] sendMessage: store=${storeId}, phone=${phone}, msg="${message.slice(0, 50)}..."`);
     const data = await waFetch('/message/send', {
       method: 'POST',
       body: JSON.stringify({ storeId, phone, message }),
     });
+    console.log(`[WA-CLIENT] sendMessage result:`, data);
     return data.success === true;
   } catch (err) {
-    console.error(`waSendMessage error [${storeId}]:`, err);
+    console.error(`[WA-CLIENT] sendMessage FAILED [${storeId}]:`, err);
     return false;
   }
 }

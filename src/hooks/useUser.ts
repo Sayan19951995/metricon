@@ -65,7 +65,7 @@ export function useUser(): UserData & { impersonating: boolean; stopImpersonatin
   const stopImpersonating = () => {
     localStorage.removeItem(IMPERSONATE_KEY);
     setImpersonating(false);
-    window.location.href = '/admin/users';
+    window.location.href = '/manage-k8m2x9/users';
   };
 
   useEffect(() => {

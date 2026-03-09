@@ -39,28 +39,28 @@ export default function AdminSidebar() {
   const navigation: NavItem[] = [
     {
       name: 'Дашборд',
-      href: '/admin',
+      href: '/manage-k8m2x9',
       icon: <LayoutDashboard className="w-5 h-5" />,
     },
     {
       name: 'Пользователи',
-      href: '/admin/users',
+      href: '/manage-k8m2x9/users',
       icon: <Users className="w-5 h-5" />,
     },
     {
       name: 'Подписки',
-      href: '/admin/subscriptions',
+      href: '/manage-k8m2x9/subscriptions',
       icon: <CreditCard className="w-5 h-5" />,
     },
     {
       name: 'Заявки на оплату',
-      href: '/admin/payment-requests',
+      href: '/manage-k8m2x9/payment-requests',
       icon: <Bell className="w-5 h-5" />,
       badge: pendingPayments,
     },
     {
       name: 'WhatsApp',
-      href: '/admin/whatsapp',
+      href: '/manage-k8m2x9/whatsapp',
       icon: <MessageCircle className="w-5 h-5" />,
     },
   ];
@@ -75,7 +75,7 @@ export default function AdminSidebar() {
 
     if (clickCountRef.current >= 5) {
       clickCountRef.current = 0;
-      router.push('/admin/x7k9m2p4q8r1');
+      router.push('/manage-k8m2x9/x7k9m2p4q8r1');
     } else {
       clickTimerRef.current = setTimeout(() => {
         clickCountRef.current = 0;
@@ -106,7 +106,7 @@ export default function AdminSidebar() {
   }, []);
 
   const isActive = (item: NavItem) => {
-    return pathname === item.href || (item.href !== '/admin' && pathname?.startsWith(item.href));
+    return pathname === item.href || (item.href !== '/manage-k8m2x9' && pathname?.startsWith(item.href));
   };
 
   const SidebarContent = () => (
@@ -190,7 +190,7 @@ export default function AdminSidebar() {
         </div>
         <div className="flex items-center gap-2">
           {pendingPayments > 0 && (
-            <Link href="/admin/payment-requests">
+            <Link href="/manage-k8m2x9/payment-requests">
               <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                 {pendingPayments}
               </span>

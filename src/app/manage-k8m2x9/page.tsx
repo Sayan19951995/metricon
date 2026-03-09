@@ -167,14 +167,14 @@ export default function AdminDashboard() {
         </div>
         <div className="flex items-center gap-3">
           <Link
-            href="/admin/users"
+            href="/manage-k8m2x9/users"
             className="flex items-center gap-2 px-4 py-2.5 bg-gray-800 border border-gray-700 rounded-xl text-sm font-medium text-gray-300 hover:bg-gray-700 transition-colors shadow-sm"
           >
             <Users className="w-4 h-4" />
             Пользователи
           </Link>
           <Link
-            href="/admin/subscriptions"
+            href="/manage-k8m2x9/subscriptions"
             className="flex items-center gap-2 px-4 py-2.5 bg-green-600 rounded-xl text-sm font-medium text-white hover:bg-green-700 transition-colors shadow-sm"
           >
             <CreditCard className="w-4 h-4" />
@@ -357,7 +357,7 @@ export default function AdminDashboard() {
         <div className="bg-gray-800/80 rounded-xl p-5 shadow-sm border border-gray-700">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white">Новые пользователи</h3>
-            <Link href="/admin/users" className="text-sm text-blue-400 hover:text-blue-500 flex items-center gap-1">
+            <Link href="/manage-k8m2x9/users" className="text-sm text-blue-400 hover:text-blue-500 flex items-center gap-1">
               Все <ChevronRight className="w-4 h-4" />
             </Link>
           </div>

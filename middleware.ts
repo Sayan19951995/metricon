@@ -12,6 +12,20 @@ const PUBLIC_API_PREFIXES = [
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // === Защита страниц /manage-k8m2x9/* (админка) ===
+  if (pathname.startsWith('/manage-k8m2x9')) {
+    const hasSession =
+      req.cookies.has('metricon-session') ||
+      req.cookies.getAll().some(
+        (c) => c.name.startsWith('sb-') && c.name.includes('-auth-token')
+      );
+
+    if (!hasSession) {
+      return NextResponse.redirect(new URL('/login', req.url));
+    }
+    return NextResponse.next();
+  }
+
   // === Защита страниц /app/* (существующая логика) ===
   if (pathname.startsWith('/app/')) {
     const hasSession =
@@ -50,5 +64,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/app/:path*', '/api/:path*'],
+  matcher: ['/app/:path*', '/api/:path*', '/manage-k8m2x9/:path*'],
 };

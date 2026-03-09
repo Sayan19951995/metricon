@@ -204,7 +204,7 @@ export default function StoreAnalyticsPage() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => router.push('/admin/x7k9m2p4q8r1')}
+            onClick={() => router.push('/manage-k8m2x9/x7k9m2p4q8r1')}
             className="w-10 h-10 bg-gray-800 hover:bg-gray-700 rounded-lg flex items-center justify-center transition-colors"
           >
             <ArrowLeft className="w-5 h-5 text-gray-400" />

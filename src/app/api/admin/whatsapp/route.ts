@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin, requireAuth } from '@/lib/api-auth';
-import { waSendMessage, waStartSession, waGetStatus, waDisconnect } from '@/lib/whatsapp/client';
+import { waSendMessage, waStartSession, waGetStatus, waDisconnect, waGetLogs } from '@/lib/whatsapp/client';
+
+export const dynamic = 'force-dynamic';
+export const fetchCache = 'force-no-store';
 
 async function requireAdmin(request: NextRequest) {
   const auth = await requireAuth(request);
@@ -32,10 +35,12 @@ export async function GET(request: NextRequest) {
   // Get global WA session status
   let waStatus = 'disconnected';
   let waQr: string | null = null;
+  let waPairingCode: string | null = null;
   try {
     const result = await waGetStatus(GLOBAL_STORE_ID);
     waStatus = result.status;
     waQr = result.qr;
+    waPairingCode = result.pairingCode || null;
   } catch {
     waStatus = 'server_offline';
   }
@@ -46,7 +51,7 @@ export async function GET(request: NextRequest) {
     .order('name') as any);
 
   if (!stores) {
-    return NextResponse.json({ stores: [], waStatus, waQr });
+    return NextResponse.json({ stores: [], waStatus, waQr, pairingCode: waPairingCode });
   }
 
   // Enrich with user info
@@ -70,7 +75,7 @@ export async function GET(request: NextRequest) {
     };
   });
 
-  return NextResponse.json({ stores: enriched, waStatus, waQr });
+  return NextResponse.json({ stores: enriched, waStatus, waQr, pairingCode: waPairingCode });
 }
 
 /**
@@ -91,8 +96,11 @@ export async function PATCH(request: NextRequest) {
         await waDisconnect(GLOBAL_STORE_ID).catch(() => {});
         await new Promise(r => setTimeout(r, 500));
       }
-      const result = await waStartSession(GLOBAL_STORE_ID);
-      return NextResponse.json({ success: true, status: result.status, qr: result.qr });
+      // phone field used for pairing by phone number
+      const pairingPhone = body.pairingPhone || null;
+      const result = await waStartSession(GLOBAL_STORE_ID, pairingPhone);
+      console.log('[WA API] connect result:', JSON.stringify(result));
+      return NextResponse.json({ success: true, status: result.status, qr: result.qr, pairingCode: result.pairingCode || null });
     } catch (e: any) {
       return NextResponse.json({ error: e.message || 'WA server error' }, { status: 500 });
     }
@@ -110,9 +118,9 @@ export async function PATCH(request: NextRequest) {
   if (action === 'status') {
     try {
       const result = await waGetStatus(GLOBAL_STORE_ID);
-      return NextResponse.json({ success: true, status: result.status, qr: result.qr });
+      return NextResponse.json({ success: true, status: result.status, qr: result.qr, pairingCode: result.pairingCode || null });
     } catch {
-      return NextResponse.json({ success: true, status: 'server_offline', qr: null });
+      return NextResponse.json({ success: true, status: 'server_offline', qr: null, pairingCode: null });
     }
   }
 
@@ -164,6 +172,16 @@ export async function PATCH(request: NextRequest) {
     }
   }
 
+  if (action === 'logs') {
+    try {
+      const since = body.since || 0;
+      const logs = await waGetLogs(since);
+      return NextResponse.json({ success: true, logs });
+    } catch {
+      return NextResponse.json({ success: true, logs: [] });
+    }
+  }
+
   if (action === 'send_test') {
     if (!phone || !message) {
       return NextResponse.json({ error: 'Missing fields' }, { status: 400 });
@@ -183,12 +201,10 @@ export async function PATCH(request: NextRequest) {
       });
       const data = await res.json().catch(() => ({}));
       console.log('WA send_test response:', res.status, JSON.stringify(data));
-      if (!res.ok) {
-        return NextResponse.json({ success: false, error: `WA ${res.status}: ${data.error || data.message || JSON.stringify(data)}` });
+      if (!res.ok || data.success === false || data.error) {
+        return NextResponse.json({ success: false, error: data.error || data.message || `WA ${res.status}: ${JSON.stringify(data)}` });
       }
-      // WA server may return {sent: true} or {messageId: '...'} instead of {success: true}
-      const isSuccess = data.success === true || data.sent === true || !!data.messageId;
-      return NextResponse.json({ success: isSuccess, error: isSuccess ? null : (data.error || data.message || `Unexpected response: ${JSON.stringify(data)}`) });
+      return NextResponse.json({ success: true });
     } catch (e: any) {
       return NextResponse.json({ success: false, error: `WA server: ${e.message}` });
     }

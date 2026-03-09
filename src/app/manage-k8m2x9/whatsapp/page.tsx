@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { MessageCircle, Search, Send, ToggleLeft, ToggleRight, Phone, Store, CheckCircle, XCircle, Wifi, WifiOff, QrCode, Loader2, Bell } from 'lucide-react';
+import { MessageCircle, Search, Send, ToggleLeft, ToggleRight, Phone, Store, CheckCircle, XCircle, Wifi, WifiOff, Loader2, Bell, Terminal, ChevronDown, ChevronUp } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface StoreItem {
@@ -23,6 +23,8 @@ export default function AdminWhatsAppPage() {
 
   const [waStatus, setWaStatus] = useState<string>('disconnected');
   const [waQr, setWaQr] = useState<string | null>(null);
+  const [pairingCode, setPairingCode] = useState<string | null>(null);
+  const [pairingPhone, setPairingPhone] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
   const pollRef = useRef<NodeJS.Timeout | null>(null);
@@ -40,10 +42,71 @@ export default function AdminWhatsAppPage() {
   const [sendResult, setSendResult] = useState<'success' | 'error' | null>(null);
   const [sendError, setSendError] = useState<string | null>(null);
 
+  // Logs
+  const [logs, setLogs] = useState<Array<{ ts: number; level: string; msg: string }>>([]);
+  const [logsOpen, setLogsOpen] = useState(true);
+  const logsSinceRef = useRef(0);
+  const logsPollRef = useRef<NodeJS.Timeout | null>(null);
+  const logsEndRef = useRef<HTMLDivElement | null>(null);
+
+  // Periodic status check ref (separate from QR polling)
+  const statusPollRef = useRef<NodeJS.Timeout | null>(null);
+
+  async function fetchLogs() {
+    try {
+      const res = await fetchWithAuth('/api/admin/whatsapp', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'logs', since: logsSinceRef.current }),
+      });
+      const data = await res.json();
+      if (data.logs?.length > 0) {
+        setLogs(prev => {
+          const merged = [...prev, ...data.logs];
+          return merged.slice(-200); // keep last 200
+        });
+        logsSinceRef.current = data.logs[data.logs.length - 1].ts;
+        // Auto-scroll
+        setTimeout(() => logsEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 50);
+      }
+    } catch { /* ignore */ }
+  }
+
   useEffect(() => {
     loadStores();
     loadNotifPhone();
-    return () => { if (pollRef.current) clearInterval(pollRef.current); };
+    fetchLogs();
+
+    // Poll logs every 5s
+    logsPollRef.current = setInterval(fetchLogs, 5000);
+
+    // Poll WA status every 30s to detect disconnects
+    statusPollRef.current = setInterval(async () => {
+      try {
+        const res = await fetchWithAuth('/api/admin/whatsapp', {
+          method: 'PATCH',
+          cache: 'no-store',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'status' }),
+        });
+        const data = await res.json();
+        // Only update status to connected/disconnected/server_offline
+        // Don't let stale code_pending/qr_pending from server overwrite UI state
+        const status = data.status || 'disconnected';
+        if (status === 'connected' || status === 'disconnected' || status === 'server_offline') {
+          setWaStatus(status);
+          if (status === 'connected') setPairingCode(null);
+        }
+      } catch {
+        setWaStatus('server_offline');
+      }
+    }, 30000);
+
+    return () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+      if (statusPollRef.current) clearInterval(statusPollRef.current);
+      if (logsPollRef.current) clearInterval(logsPollRef.current);
+    };
   }, []);
 
   async function loadNotifPhone() {
@@ -90,9 +153,20 @@ export default function AdminWhatsAppPage() {
         setNotifTestResult({ ok: true, msg: `Тест отправлен на ${data.phone}` });
       } else {
         setNotifTestResult({ ok: false, msg: data.error || 'Неизвестная ошибка' });
+        // Refresh WA status
+        try {
+          const statusRes = await fetchWithAuth('/api/admin/whatsapp', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'status' }),
+          });
+          const statusData = await statusRes.json();
+          setWaStatus(statusData.status || 'disconnected');
+        } catch { setWaStatus('server_offline'); }
       }
     } catch (e: any) {
       setNotifTestResult({ ok: false, msg: `Ошибка: ${e.message}` });
+      setWaStatus('server_offline');
     } finally {
       setTestingNotif(false);
     }
@@ -100,11 +174,17 @@ export default function AdminWhatsAppPage() {
 
   async function loadStores() {
     try {
-      const res = await fetchWithAuth('/api/admin/whatsapp');
+      const res = await fetchWithAuth(`/api/admin/whatsapp?_t=${Date.now()}`, { cache: 'no-store' });
       const data = await res.json();
       setStores(data.stores || []);
-      setWaStatus(data.waStatus || 'disconnected');
-      setWaQr(data.waQr || null);
+      // Only set connected/disconnected/server_offline — ignore stale qr_pending/code_pending
+      const status = data.waStatus || 'disconnected';
+      if (status === 'connected' || status === 'disconnected' || status === 'server_offline') {
+        setWaStatus(status);
+      } else {
+        setWaStatus('disconnected');
+      }
+      setPairingCode(data.pairingCode || null);
     } catch (e) {
       console.error('Load error:', e);
     } finally {
@@ -113,21 +193,24 @@ export default function AdminWhatsAppPage() {
   }
 
   async function handleConnect() {
+    if (!pairingPhone) return;
     setConnecting(true);
-    startPolling(); // start polling immediately regardless of response
+    setPairingCode(null);
     try {
       const res = await fetchWithAuth('/api/admin/whatsapp', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'connect' }),
+        body: JSON.stringify({ action: 'connect', pairingPhone }),
       });
       const data = await res.json();
+      console.log('[WA PAGE] connect response:', data);
       setWaStatus(data.status || 'connecting');
       setWaQr(data.qr || null);
-      if (data.status === 'connected') stopPolling();
+      setPairingCode(data.pairingCode || null);
+      // Start polling only AFTER we got the response (so poll doesn't overwrite pairingCode)
+      if (data.status !== 'connected') startPolling();
     } catch (e) {
       console.error('Connect error:', e);
-      // polling already started — it will pick up QR once server is ready
     } finally {
       setConnecting(false);
     }
@@ -152,20 +235,23 @@ export default function AdminWhatsAppPage() {
   }
 
   async function handleForceReconnect() {
+    if (!pairingPhone) return;
     setConnecting(true);
     setWaQr(null);
+    setPairingCode(null);
     setWaStatus('connecting');
-    startPolling();
     try {
       const res = await fetchWithAuth('/api/admin/whatsapp', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'force_reconnect' }),
+        body: JSON.stringify({ action: 'force_reconnect', pairingPhone }),
       });
       const data = await res.json();
+      console.log('[WA PAGE] force_reconnect response:', data);
       setWaStatus(data.status || 'connecting');
       setWaQr(data.qr || null);
-      if (data.status === 'connected') stopPolling();
+      setPairingCode(data.pairingCode || null);
+      if (data.status !== 'connected') startPolling();
     } catch (e) {
       console.error('Force reconnect error:', e);
     } finally {
@@ -185,9 +271,14 @@ export default function AdminWhatsAppPage() {
         const data = await res.json();
         setWaStatus(data.status || 'disconnected');
         setWaQr(data.qr || null);
-        if (data.status === 'connected') stopPolling();
+        // Don't overwrite existing pairingCode with null from status poll
+        if (data.pairingCode) {
+          setPairingCode(data.pairingCode);
+        }
+        if (data.status === 'connected') { stopPolling(); setPairingCode(null); }
+        if (data.status === 'disconnected') { stopPolling(); }
       } catch { /* ignore */ }
-    }, 3000);
+    }, 5000);
   }
 
   function stopPolling() {
@@ -228,10 +319,24 @@ export default function AdminWhatsAppPage() {
       });
       const data = await res.json();
       setSendResult(data.success ? 'success' : 'error');
-      if (!data.success) setSendError(data.error || 'Неизвестная ошибка');
+      if (!data.success) {
+        setSendError(data.error || 'Неизвестная ошибка');
+        // Refresh WA status — session may have disconnected
+        try {
+          const statusRes = await fetchWithAuth('/api/admin/whatsapp', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'status' }),
+          });
+          const statusData = await statusRes.json();
+          setWaStatus(statusData.status || 'disconnected');
+          setWaQr(statusData.qr || null);
+        } catch { setWaStatus('server_offline'); }
+      }
     } catch (e: any) {
       setSendResult('error');
       setSendError(e.message || 'Сеть недоступна');
+      setWaStatus('server_offline');
     } finally {
       setSending(false);
     }
@@ -326,12 +431,12 @@ export default function AdminWhatsAppPage() {
               ? 'bg-green-900/50 text-green-300 border border-green-700'
               : waStatus === 'server_offline'
                 ? 'bg-yellow-900/50 text-yellow-300 border border-yellow-700'
-                : waStatus === 'connecting' || waStatus === 'qr_pending'
+                : connecting || pairingCode
                   ? 'bg-blue-900/50 text-blue-300 border border-blue-700'
                   : 'bg-red-900/50 text-red-300 border border-red-700'
           }`}>
-            {(waStatus === 'connecting' || waStatus === 'qr_pending') && <Loader2 className="w-3 h-3 animate-spin" />}
-            {waStatus === 'connected' ? 'Подключён' : waStatus === 'server_offline' ? 'Сервер недоступен' : waStatus === 'connecting' ? 'Подключение...' : waStatus === 'qr_pending' ? 'Ожидание сканирования' : 'Отключён'}
+            {(connecting || pairingCode) && <Loader2 className="w-3 h-3 animate-spin" />}
+            {waStatus === 'connected' ? 'Подключён' : waStatus === 'server_offline' ? 'Сервер недоступен' : connecting ? 'Подключение...' : pairingCode ? 'Ожидание кода' : 'Отключён'}
           </span>
         </div>
 
@@ -346,41 +451,54 @@ export default function AdminWhatsAppPage() {
               {disconnecting ? 'Отключение...' : 'Отключить'}
             </button>
           </div>
-        ) : waQr ? (
+        ) : pairingCode ? (
           <div className="flex flex-col items-center gap-4">
-            <p className="text-gray-300 text-sm">Отсканируйте QR-код в WhatsApp:</p>
-            <div className="bg-white p-4 rounded-xl">
-              <img src={waQr.startsWith('data:') ? waQr : `data:image/png;base64,${waQr}`} alt="QR" className="w-64 h-64" />
+            <p className="text-gray-300 text-sm">Введите этот код в WhatsApp на телефоне:</p>
+            <div className="bg-gray-900 border border-gray-600 rounded-2xl px-8 py-5">
+              <div className="text-4xl font-mono font-bold text-white tracking-[0.3em] text-center">
+                {pairingCode.slice(0, 4)}-{pairingCode.slice(4)}
+              </div>
             </div>
-            <div className="flex items-center gap-2 text-gray-500 text-xs">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              Ожидание сканирования...
+            <p className="text-gray-500 text-xs text-center max-w-sm">
+              Откройте WhatsApp → Связанные устройства → Связать устройство → Связать по номеру телефона → введите код выше
+            </p>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-gray-500 text-xs">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Ожидание подключения...
+              </div>
+              <button
+                onClick={() => { setPairingCode(null); stopPolling(); handleConnect(); }}
+                disabled={connecting}
+                className="px-4 py-2 bg-gray-700 text-gray-200 border border-gray-600 rounded-xl text-xs font-medium hover:bg-gray-600 transition-colors cursor-pointer disabled:opacity-50"
+              >
+                Новый код
+              </button>
             </div>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="space-y-4">
             <p className="text-gray-300 text-sm">
-              {waStatus === 'server_offline' ? 'WhatsApp сервер (Railway) недоступен.' : waStatus === 'connecting' ? 'Подключение — ожидайте QR-код...' : 'Подключите WhatsApp для отправки уведомлений.'}
+              {waStatus === 'server_offline' ? 'WhatsApp сервер недоступен.' : waStatus === 'connecting' || waStatus === 'code_pending' ? 'Подключение...' : 'Введите номер WhatsApp для привязки.'}
             </p>
-            <div className="flex gap-2">
+            <div className="flex gap-3">
+              <input
+                type="tel"
+                value={pairingPhone}
+                onChange={e => setPairingPhone(e.target.value)}
+                placeholder="+7 XXX XXX XXXX"
+                className="flex-1 px-4 py-2.5 bg-gray-900 border border-gray-600 rounded-xl text-sm text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
+              />
               <button
                 onClick={handleConnect}
-                disabled={connecting}
-                className="px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-500 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                disabled={connecting || !pairingPhone || waStatus === 'server_offline'}
+                className="px-5 py-2.5 bg-green-600 text-white rounded-xl text-sm font-medium hover:bg-green-500 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-2"
               >
                 {connecting ? (
                   <><Loader2 className="w-4 h-4 animate-spin" /> Подключение...</>
                 ) : (
-                  <><QrCode className="w-4 h-4" /> Подключить</>
+                  <><Phone className="w-4 h-4" /> Подключить</>
                 )}
-              </button>
-              <button
-                onClick={handleForceReconnect}
-                disabled={connecting}
-                title="Сбросить сессию и получить новый QR"
-                className="px-3 py-2 bg-gray-700 text-gray-300 border border-gray-600 rounded-xl text-sm font-medium hover:bg-gray-600 transition-colors cursor-pointer disabled:opacity-50 flex items-center gap-1.5"
-              >
-                <QrCode className="w-4 h-4" /> Новый QR
               </button>
             </div>
           </div>
@@ -504,6 +622,42 @@ export default function AdminWhatsAppPage() {
           </div>
         </div>
       )}
+
+      {/* Server Logs */}
+      <div className="bg-gray-800/80 rounded-2xl border border-gray-700 mt-6 overflow-hidden">
+        <button
+          onClick={() => setLogsOpen(!logsOpen)}
+          className="w-full flex items-center justify-between px-6 py-4 hover:bg-gray-700/30 transition-colors cursor-pointer"
+        >
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <Terminal className="w-5 h-5 text-gray-400" />
+            Логи WA сервера
+            <span className="text-xs text-gray-500 font-normal ml-2">{logs.length} записей</span>
+          </h2>
+          {logsOpen ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
+        </button>
+        {logsOpen && (
+          <div className="px-4 pb-4">
+            <div className="bg-gray-950 rounded-xl border border-gray-700 max-h-80 overflow-y-auto font-mono text-xs p-3 space-y-0.5">
+              {logs.length === 0 ? (
+                <div className="text-gray-600 py-4 text-center">Нет логов</div>
+              ) : (
+                logs.map((log, i) => (
+                  <div key={`${log.ts}-${i}`} className="flex gap-2">
+                    <span className="text-gray-600 flex-shrink-0">
+                      {new Date(log.ts).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                    </span>
+                    <span className={log.level === 'error' ? 'text-red-400' : log.msg.includes('Connected') ? 'text-green-400' : log.msg.includes('Disconnected') ? 'text-yellow-400' : 'text-gray-300'}>
+                      {log.msg}
+                    </span>
+                  </div>
+                ))
+              )}
+              <div ref={logsEndRef} />
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* Test Message Modal */}
       {testModal && (

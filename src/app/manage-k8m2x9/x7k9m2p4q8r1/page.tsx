@@ -189,7 +189,7 @@ export default function SecretStoresPage() {
           </div>
         </div>
         <button
-          onClick={() => router.push('/admin')}
+          onClick={() => router.push('/manage-k8m2x9')}
           className="flex items-center gap-2 px-3 py-2 rounded-lg bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700 transition-colors text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
