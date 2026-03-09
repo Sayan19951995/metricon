@@ -22,7 +22,7 @@ const sessions = new Map();
 
 // Webhook URL to notify main app
 const WEBHOOK_URL = process.env.WEBHOOK_URL || 'http://localhost:3000/api/whatsapp/webhook';
-const API_KEY = process.env.API_KEY || 'dev-secret';
+const API_KEY = process.env.WA_SERVER_SECRET || process.env.API_KEY || 'dev-secret';
 
 /**
  * Send event to the main app webhook.

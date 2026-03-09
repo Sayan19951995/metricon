@@ -17,7 +17,7 @@ const {
 const app = express();
 app.use(express.json());
 
-const API_KEY = process.env.API_KEY || 'dev-secret';
+const API_KEY = process.env.WA_SERVER_SECRET || process.env.API_KEY || 'dev-secret';
 const PORT = process.env.PORT || 3001;
 
 // ========== In-memory log buffer ==========
