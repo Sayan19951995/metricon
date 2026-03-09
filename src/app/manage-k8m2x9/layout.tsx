@@ -28,15 +28,29 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   }, []);
 
   useEffect(() => {
-    if (userLoading || !user?.id) return;
+    if (userLoading) return;
+
+    // No user = not logged in → not admin
+    if (!user?.id) {
+      setIsAdmin(false);
+      return;
+    }
 
     supabase
       .from('users')
       .select('*')
       .eq('id', user.id)
       .single()
-      .then(({ data }) => {
+      .then(({ data, error }) => {
+        if (error) {
+          console.warn('Admin check error:', error.code, error.message);
+          setIsAdmin(false);
+          return;
+        }
         setIsAdmin(!!(data as any)?.is_admin);
+      })
+      .catch(() => {
+        setIsAdmin(false);
       });
   }, [user?.id, userLoading]);
 
