@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Mail, Lock, ArrowRight, BarChart3, CheckCircle } from 'lucide-react';
 import { supabase } from '@/lib/supabase/client';
@@ -13,6 +13,8 @@ function setSessionCookie() {
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/app';
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
@@ -22,7 +24,7 @@ export default function LoginPage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_IN' && session) {
         setSessionCookie();
-        router.push('/app');
+        router.push(redirectTo);
       }
     });
     return () => subscription.unsubscribe();
@@ -70,7 +72,7 @@ export default function LoginPage() {
       if (error) throw error;
 
       setSessionCookie();
-      router.push('/app');
+      router.push(redirectTo);
     } catch (err: any) {
       const msg = (err.message || '').toLowerCase();
       if (msg.includes('email not confirmed') || msg.includes('email_not_confirmed')) {
@@ -114,9 +116,9 @@ export default function LoginPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-emerald-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800 flex">
       {/* Left Side - Branding */}
-      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-emerald-500 to-emerald-600 p-12 flex-col justify-between relative overflow-hidden">
+      <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-blue-600 to-blue-700 p-12 flex-col justify-between relative overflow-hidden">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-20 left-20 w-72 h-72 bg-white rounded-full blur-3xl"></div>
@@ -145,7 +147,7 @@ export default function LoginPage() {
                 <div className="w-6 h-6 bg-white/20 rounded-full flex items-center justify-center">
                   <CheckCircle className="w-4 h-4 text-white" />
                 </div>
-                <span className="text-emerald-50">{feature}</span>
+                <span className="text-blue-50">{feature}</span>
               </div>
             ))}
           </div>
@@ -153,22 +155,22 @@ export default function LoginPage() {
           <div className="flex items-center gap-8 pt-6">
             <div>
               <div className="text-3xl font-bold text-white">500+</div>
-              <div className="text-emerald-100 text-sm">Активных продавцов</div>
+              <div className="text-blue-100 text-sm">Активных продавцов</div>
             </div>
             <div className="w-px h-12 bg-white/20"></div>
             <div>
               <div className="text-3xl font-bold text-white">2.5B ₸</div>
-              <div className="text-emerald-100 text-sm">Оборот в месяц</div>
+              <div className="text-blue-100 text-sm">Оборот в месяц</div>
             </div>
             <div className="w-px h-12 bg-white/20"></div>
             <div>
               <div className="text-3xl font-bold text-white">99.9%</div>
-              <div className="text-emerald-100 text-sm">Uptime</div>
+              <div className="text-blue-100 text-sm">Uptime</div>
             </div>
           </div>
         </div>
 
-        <div className="relative z-10 text-emerald-100 text-sm">
+        <div className="relative z-10 text-blue-100 text-sm">
           © 2025 Metricon. Все права защищены.
         </div>
       </div>
@@ -179,8 +181,8 @@ export default function LoginPage() {
           {/* Mobile Logo */}
           <div className="lg:hidden mb-8 text-center">
             <Link href="/" className="inline-flex items-center gap-3">
-              <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center">
-                <BarChart3 className="w-7 h-7 text-emerald-600" />
+              <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center">
+                <BarChart3 className="w-7 h-7 text-blue-600" />
               </div>
               <span className="text-2xl font-bold text-gray-900 dark:text-white">Metricon</span>
             </Link>
@@ -204,7 +206,7 @@ export default function LoginPage() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Email
                 </label>
-                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
+                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all ${
                   errors.email ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/20' : 'border-gray-200 dark:border-gray-700'
                 }`}>
                   <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
@@ -228,7 +230,7 @@ export default function LoginPage() {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   Пароль
                 </label>
-                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent transition-all ${
+                <div className={`flex items-center border rounded-xl overflow-hidden focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all ${
                   errors.password ? 'border-red-300 bg-red-50 dark:border-red-700 dark:bg-red-900/20' : 'border-gray-200 dark:border-gray-700'
                 }`}>
                   <div className="flex items-center justify-center w-12 h-12 flex-shrink-0">
@@ -261,11 +263,11 @@ export default function LoginPage() {
                     type="checkbox"
                     checked={formData.remember}
                     onChange={(e) => setFormData({ ...formData, remember: e.target.checked })}
-                    className="w-4 h-4 rounded border-gray-300 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
+                    className="w-4 h-4 rounded border-gray-300 text-blue-500 focus:ring-blue-500 cursor-pointer"
                   />
                   <span className="text-sm text-gray-600 dark:text-gray-400">Запомнить меня</span>
                 </label>
-                <Link href="/forgot-password" className="text-sm text-emerald-600 hover:text-emerald-700 font-medium">
+                <Link href="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 font-medium">
                   Забыли пароль?
                 </Link>
               </div>
@@ -274,7 +276,7 @@ export default function LoginPage() {
               <button
                 type="submit"
                 disabled={isLoading}
-                className="w-full py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isLoading ? (
                   <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
@@ -321,7 +323,7 @@ export default function LoginPage() {
             {/* Register Link */}
             <p className="text-center text-gray-600 dark:text-gray-400">
               Нет аккаунта?{' '}
-              <Link href="/register" className="text-emerald-600 hover:text-emerald-700 font-medium">
+              <Link href="/register" className="text-blue-600 hover:text-blue-700 font-medium">
                 Зарегистрироваться
               </Link>
             </p>
