@@ -19,8 +19,8 @@ const themeScript = `
   (function() {
     try {
       var theme = localStorage.getItem('theme');
-      var isDark = theme === 'dark' ||
-        (theme === 'system' || !theme) && window.matchMedia('(prefers-color-scheme: dark)').matches;
+      var isDark = theme === 'dark' || !theme ||
+        (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
       if (isDark) {
         document.documentElement.classList.add('dark');
       } else {

@@ -13,8 +13,8 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 function getInitialTheme(): Theme {
-  if (typeof window === 'undefined') return 'system';
-  return (localStorage.getItem('theme') as Theme) || 'system';
+  if (typeof window === 'undefined') return 'dark';
+  return (localStorage.getItem('theme') as Theme) || 'dark';
 }
 
 function getResolvedTheme(theme: Theme): 'light' | 'dark' {
@@ -27,8 +27,8 @@ function getResolvedTheme(theme: Theme): 'light' | 'dark' {
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [mounted, setMounted] = useState(false);
-  const [theme, setThemeState] = useState<Theme>('system');
-  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('light');
+  const [theme, setThemeState] = useState<Theme>('dark');
+  const [resolvedTheme, setResolvedTheme] = useState<'light' | 'dark'>('dark');
 
   // Initial mount - read from localStorage
   useEffect(() => {
