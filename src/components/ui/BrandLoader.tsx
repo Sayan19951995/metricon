@@ -50,12 +50,12 @@ export default function BrandLoader({ text = 'Загрузка...' }: { text?: s
         <div className="relative" style={{ width: '72px', height: '72px' }}>
           {/* Glow ring */}
           <div
-            className="absolute inset-0 bg-emerald-400/15 dark:bg-emerald-400/20 rounded-2xl"
+            className="absolute inset-0 bg-blue-400/15 dark:bg-blue-400/20 rounded-2xl"
             style={{ animation: 'bl-glow 2s ease-in-out infinite' }}
           />
 
           {/* Main container */}
-          <div className="relative w-full h-full bg-gradient-to-br from-emerald-400 via-emerald-500 to-emerald-600 rounded-2xl flex items-center justify-center shadow-xl shadow-emerald-500/20 dark:shadow-emerald-500/30">
+          <div className="relative w-full h-full bg-gradient-to-br from-blue-400 via-blue-500 to-blue-600 rounded-2xl flex items-center justify-center shadow-xl shadow-blue-500/20 dark:shadow-blue-500/30">
             {/* M as chart line */}
             <svg width="36" height="36" viewBox="0 0 32 32" fill="none">
               <path
@@ -74,7 +74,7 @@ export default function BrandLoader({ text = 'Загрузка...' }: { text?: s
 
           {/* Orbiting dot */}
           <div
-            className="absolute w-2 h-2 bg-emerald-400 rounded-full"
+            className="absolute w-2 h-2 bg-blue-400 rounded-full"
             style={{
               animation: 'bl-orbit 2s linear infinite',
               top: 'calc(50% - 4px)',
