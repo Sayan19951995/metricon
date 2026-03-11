@@ -31,8 +31,7 @@ interface SessionInfo {
   idleTimer: ReturnType<typeof setTimeout> | null;
   connectPromise: Promise<void> | null;
   retryCount: number;
-  wasEverConnected: boolean;   // true once we get first 'open' — used to guard cred deletion
-  loggedOutRetry: boolean;     // true if we already retried once after loggedOut
+  loggedOutRetries: number;    // how many times we've retried after loggedOut (401)
 }
 
 const MAX_RETRIES = 5;
@@ -64,8 +63,7 @@ class SessionManager {
       idleTimer: null,
       connectPromise: null,
       retryCount: 0,
-      wasEverConnected: false,
-      loggedOutRetry: false,
+      loggedOutRetries: 0,
     };
     this.sessions.set(storeId, info);
 
@@ -107,8 +105,7 @@ class SessionManager {
       idleTimer: null,
       connectPromise: null,
       retryCount: 0,
-      wasEverConnected: false,
-      loggedOutRetry: false,
+      loggedOutRetries: 0,
     };
     this.sessions.set(storeId, info);
 
@@ -279,9 +276,8 @@ class SessionManager {
         info.status = 'connected';
         info.qr = null;
         info.connectPromise = null;
-        info.wasEverConnected = true;
-        info.loggedOutRetry = false;
         info.retryCount = 0;
+        info.loggedOutRetries = 0;
         this.resetIdleTimer(storeId);
         console.log(`[${storeId}] Connected ✓`);
       }
@@ -290,7 +286,7 @@ class SessionManager {
         const statusCode = (lastDisconnect?.error as Boom)?.output?.statusCode;
         const isLoggedOut = statusCode === DisconnectReason.loggedOut;
 
-        console.log(`[${storeId}] Disconnected (code: ${statusCode}, wasEverConnected: ${info.wasEverConnected}, loggedOutRetry: ${info.loggedOutRetry})`);
+        console.log(`[${storeId}] Disconnected (code: ${statusCode})`);
 
         if (!isLoggedOut) {
           // Network error, timeout, etc — always retry
@@ -302,7 +298,7 @@ class SessionManager {
           } else {
             info.retryCount++;
             const delay = Math.min(3000 * Math.min(info.retryCount, 5), 15000);
-            console.log(`[${storeId}] Reconnect attempt ${info.retryCount}${isPersistent ? ' (persistent)' : `/${MAX_RETRIES}`} in ${delay}ms...`);
+            console.log(`[${storeId}] Reconnect attempt ${info.retryCount}${isPersistent ? ' (persistent, will retry forever)' : `/${MAX_RETRIES}`} in ${delay}ms...`);
             setTimeout(() => {
               const current = this.sessions.get(storeId);
               if (current && current.status !== 'connected') {
@@ -311,13 +307,14 @@ class SessionManager {
             }, delay);
           }
         } else {
-          // loggedOut (401) — possibly a transient error on reconnect, not always genuine logout
-          // If session never connected in this lifecycle (fresh boot reconnect), try once more
-          // before deleting credentials — guards against Railway restart false-positives
-          if (!info.wasEverConnected && !info.loggedOutRetry) {
-            info.loggedOutRetry = true;
-            const delay = 5000;
-            console.log(`[${storeId}] loggedOut on fresh boot, retrying once in ${delay}ms before deleting creds...`);
+          // loggedOut (401) — Railway restarts often trigger false-positive loggedOut
+          // Retry up to 3 times before giving up. NEVER delete credentials automatically —
+          // credentials are only deleted via explicit /disconnect API.
+          const MAX_LOGGED_OUT_RETRIES = 3;
+          if (info.loggedOutRetries < MAX_LOGGED_OUT_RETRIES) {
+            info.loggedOutRetries++;
+            const delay = 5000 * info.loggedOutRetries;
+            console.log(`[${storeId}] loggedOut (401), retry ${info.loggedOutRetries}/${MAX_LOGGED_OUT_RETRIES} in ${delay}ms...`);
             setTimeout(() => {
               const current = this.sessions.get(storeId);
               if (current && current.status !== 'connected') {
@@ -325,14 +322,12 @@ class SessionManager {
               }
             }, delay);
           } else {
-            // Genuinely logged out — delete credentials, next connect will show QR
+            // All retries failed — stop, but PRESERVE credentials in Supabase.
+            // Use /disconnect API to clear creds and re-register via QR.
             info.status = 'disconnected';
             info.connectPromise = null;
             this.sessions.delete(storeId);
-            deleteSupabaseAuthState(storeId).catch(e =>
-              console.error(`[${storeId}] Failed to delete stale creds:`, e)
-            );
-            console.log(`[${storeId}] Credentials deleted (wasEverConnected=${info.wasEverConnected}), next connect will show QR`);
+            console.log(`[${storeId}] loggedOut after ${info.loggedOutRetries} retries — stopping. Credentials preserved in Supabase. Use /disconnect to re-register.`);
           }
         }
       }
