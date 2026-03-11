@@ -104,11 +104,19 @@ export async function GET(request: NextRequest) {
     try {
       campaigns = await client.getCampaigns(start, end);
     } catch {
+      if (KaspiMarketingClient.isReconnectOnCooldown(session)) {
+        throw new Error('Сессия маркетинга истекла. Переподключитесь в настройках.');
+      }
       // Сессия могла протухнуть — пробуем переподключиться
       console.log('[Marketing] Session expired, attempting reconnect...');
+      // Сохраняем timestamp до попытки (чтобы кулдаун сработал даже при неудаче)
+      const stampedSession = KaspiMarketingClient.stampReconnectAttempt(session);
+      await supabaseAdmin.from('stores')
+        .update({ marketing_session: JSON.parse(JSON.stringify(stampedSession)) })
+        .eq('user_id', userId);
+
       const newSession = await KaspiMarketingClient.tryReconnect(session);
       if (newSession) {
-        // Сохраняем обновлённую сессию
         await supabaseAdmin.from('stores')
           .update({ marketing_session: JSON.parse(JSON.stringify(newSession)) })
           .eq('user_id', userId);

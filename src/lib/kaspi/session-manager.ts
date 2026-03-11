@@ -8,12 +8,20 @@
 import { KaspiAPIClient, kaspiCabinetLogin } from './api-client';
 import { supabase } from '@/lib/supabase/client';
 
+const CABINET_RECONNECT_COOLDOWN_MS = 30 * 60 * 1000;
+
 interface KaspiSession {
   cookies: string;
   merchant_id: string;
   created_at?: string;
   username?: string;
   password?: string;
+  last_reconnect_attempt?: string;
+}
+
+function isCabinetOnCooldown(session: KaspiSession): boolean {
+  if (!session.last_reconnect_attempt) return false;
+  return Date.now() - new Date(session.last_reconnect_attempt).getTime() < CABINET_RECONNECT_COOLDOWN_MS;
 }
 
 interface SessionResult {
@@ -58,7 +66,21 @@ export async function getOrRefreshCabinetClient(
     return null;
   }
 
+  if (isCabinetOnCooldown(session)) {
+    const elapsed = Date.now() - new Date(session.last_reconnect_attempt!).getTime();
+    const left = Math.round((CABINET_RECONNECT_COOLDOWN_MS - elapsed) / 60000);
+    console.log(`[SessionManager] Reconnect cooldown for store ${storeId}: ${left}min left, skipping`);
+    return null;
+  }
+
   console.log(`[SessionManager] Session expired for store ${storeId}, attempting auto-relogin...`);
+
+  // Сохраняем timestamp до попытки (кулдаун сработает даже при неудаче)
+  const stampedSession: KaspiSession = { ...session, last_reconnect_attempt: new Date().toISOString() };
+  await supabase
+    .from('stores')
+    .update({ kaspi_session: stampedSession as any })
+    .eq('id', storeId);
 
   try {
     const loginResult = await kaspiCabinetLogin(session.username, session.password);
@@ -75,6 +97,7 @@ export async function getOrRefreshCabinetClient(
       created_at: new Date().toISOString(),
       username: session.username,
       password: session.password,
+      last_reconnect_attempt: new Date().toISOString(),
     };
 
     // Сохраняем новую сессию в БД
@@ -104,7 +127,21 @@ export async function refreshCabinetSession(
 ): Promise<SessionResult | null> {
   if (!session?.username || !session?.password) return null;
 
+  if (isCabinetOnCooldown(session)) {
+    const elapsed = Date.now() - new Date(session.last_reconnect_attempt!).getTime();
+    const left = Math.round((CABINET_RECONNECT_COOLDOWN_MS - elapsed) / 60000);
+    console.log(`[SessionManager] Refresh cooldown for store ${storeId}: ${left}min left, skipping`);
+    return null;
+  }
+
   const merchantId = session.merchant_id || fallbackMerchantId || '';
+
+  // Сохраняем timestamp до попытки
+  const stampedSession: KaspiSession = { ...session, last_reconnect_attempt: new Date().toISOString() };
+  await supabase
+    .from('stores')
+    .update({ kaspi_session: stampedSession as any })
+    .eq('id', storeId);
 
   try {
     const loginResult = await kaspiCabinetLogin(session.username, session.password);
@@ -121,6 +158,7 @@ export async function refreshCabinetSession(
       created_at: new Date().toISOString(),
       username: session.username,
       password: session.password,
+      last_reconnect_attempt: new Date().toISOString(),
     };
 
     await supabase

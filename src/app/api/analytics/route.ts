@@ -480,18 +480,27 @@ export async function GET(request: NextRequest) {
         try {
           campaigns = await client.getCampaigns(startDate, endDate);
         } catch {
-          console.log('[Analytics] Marketing session expired, reconnecting...');
-          const newSession = await KaspiMarketingClient.tryReconnect(session);
-          if (newSession) {
-            await supabaseAdmin.from('stores')
-              .update({ marketing_session: JSON.parse(JSON.stringify(newSession)) })
-              .eq('id', store.id);
-            client = new KaspiMarketingClient(newSession);
-            campaigns = await client.getCampaigns(startDate, endDate);
-            console.log('[Analytics] Marketing reconnected');
-          } else {
-            console.error('[Analytics] Marketing reconnect failed — no credentials');
+          if (KaspiMarketingClient.isReconnectOnCooldown(session)) {
+            console.log('[Analytics] Marketing reconnect on cooldown, skipping');
             campaigns = [];
+          } else {
+            console.log('[Analytics] Marketing session expired, reconnecting...');
+            const stampedSession = KaspiMarketingClient.stampReconnectAttempt(session);
+            await supabaseAdmin.from('stores')
+              .update({ marketing_session: JSON.parse(JSON.stringify(stampedSession)) })
+              .eq('id', store.id);
+            const newSession = await KaspiMarketingClient.tryReconnect(session);
+            if (newSession) {
+              await supabaseAdmin.from('stores')
+                .update({ marketing_session: JSON.parse(JSON.stringify(newSession)) })
+                .eq('id', store.id);
+              client = new KaspiMarketingClient(newSession);
+              campaigns = await client.getCampaigns(startDate, endDate);
+              console.log('[Analytics] Marketing reconnected');
+            } else {
+              console.error('[Analytics] Marketing reconnect failed');
+              campaigns = [];
+            }
           }
         }
 

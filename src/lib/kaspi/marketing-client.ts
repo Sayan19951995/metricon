@@ -98,6 +98,7 @@ export interface MarketingSession {
   created_at: string;
   username?: string;
   password?: string;
+  last_reconnect_attempt?: string;
 }
 
 export class KaspiMarketingClient {
@@ -113,14 +114,38 @@ export class KaspiMarketingClient {
    * Попытка переподключения если сессия протухла.
    * Возвращает новую сессию или null если нет credentials.
    */
+  /** Cooldown 30 min between reconnect attempts to avoid account bans */
+  static readonly RECONNECT_COOLDOWN_MS = 30 * 60 * 1000;
+
+  static isReconnectOnCooldown(session: MarketingSession): boolean {
+    if (!session.last_reconnect_attempt) return false;
+    const elapsed = Date.now() - new Date(session.last_reconnect_attempt).getTime();
+    return elapsed < KaspiMarketingClient.RECONNECT_COOLDOWN_MS;
+  }
+
   static async tryReconnect(session: MarketingSession): Promise<MarketingSession | null> {
     if (!session.username || !session.password) return null;
-    try {
-      const { session: newSession } = await KaspiMarketingClient.login(session.username, session.password);
-      return newSession;
-    } catch {
+
+    if (KaspiMarketingClient.isReconnectOnCooldown(session)) {
+      const elapsed = Date.now() - new Date(session.last_reconnect_attempt!).getTime();
+      const left = Math.round((KaspiMarketingClient.RECONNECT_COOLDOWN_MS - elapsed) / 60000);
+      console.log(`[Marketing] Reconnect cooldown: ${left}min left, skipping`);
       return null;
     }
+
+    try {
+      const { session: newSession } = await KaspiMarketingClient.login(session.username, session.password);
+      newSession.last_reconnect_attempt = new Date().toISOString();
+      return newSession;
+    } catch (err) {
+      console.error('[Marketing] Reconnect login failed:', err);
+      return null;
+    }
+  }
+
+  /** Returns the session object with last_reconnect_attempt stamped (for saving to DB on failed attempt) */
+  static stampReconnectAttempt(session: MarketingSession): MarketingSession {
+    return { ...session, last_reconnect_attempt: new Date().toISOString() };
   }
 
   /**

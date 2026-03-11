@@ -612,9 +612,9 @@ export default function KaspiMarketingPage() {
                   <div className="bg-white dark:bg-gray-800 rounded-xl p-4 shadow-sm">
                     <div className="flex items-center gap-2 mb-1">
                       <TrendingUp className="w-4 h-4 text-emerald-500" />
-                      <span className="text-xs text-gray-500 dark:text-gray-400">ROAS</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">% от продаж</span>
                     </div>
-                    <p className="text-lg font-bold text-gray-900 dark:text-white">{summary.roas.toFixed(1)}x</p>
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">{summary.crr.toFixed(1)}%</p>
                   </div>
                 </div>
               )}

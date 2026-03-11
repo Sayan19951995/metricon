@@ -24,7 +24,7 @@ export async function GET(request: NextRequest) {
 
     // Get stores and subscriptions in parallel
     const [storesResult, subsResult] = await Promise.all([
-      supabaseAdmin.from('stores').select('id, user_id, name, kaspi_merchant_id'),
+      supabaseAdmin.from('stores').select('id, user_id, name, kaspi_merchant_id, kaspi_api_key, marketing_session'),
       supabaseAdmin.from('subscriptions').select('id, user_id, plan, status, start_date, end_date, auto_renew'),
     ]);
 
@@ -51,6 +51,8 @@ export async function GET(request: NextRequest) {
         isBlocked: u.is_blocked || false,
         storeName: store?.name || null,
         kaspiConnected: !!store?.kaspi_merchant_id,
+        kaspiApiConnected: !!store?.kaspi_api_key,
+        kaspiMarketingConnected: !!store?.marketing_session,
         plan: sub?.plan || null,
         subscriptionStatus: sub?.status || null,
         subscriptionEnd: sub?.end_date || null,

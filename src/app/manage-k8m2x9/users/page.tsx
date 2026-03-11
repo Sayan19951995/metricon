@@ -20,6 +20,8 @@ interface AdminUser {
   isBlocked: boolean;
   storeName: string | null;
   kaspiConnected: boolean;
+  kaspiApiConnected: boolean;
+  kaspiMarketingConnected: boolean;
   plan: string | null;
   subscriptionStatus: string | null;
   subscriptionEnd: string | null;
@@ -265,7 +267,9 @@ export default function UsersPage() {
                   >
                     Тариф <SortIcon field="plan" />
                   </th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Kaspi</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Кабинет</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">API</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Маркетинг</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell">Магазин</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider hidden lg:table-cell">Источник</th>
                   <th className="px-4 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider w-16">...</th>
@@ -310,11 +314,23 @@ export default function UsersPage() {
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
                       {u.kaspiConnected ? (
-                        <span className="flex items-center gap-1 text-emerald-600 text-sm">
-                          <CheckCircle className="w-4 h-4" />
-                        </span>
+                        <CheckCircle className="w-4 h-4 text-emerald-500" />
                       ) : (
-                        <span className="text-gray-400 text-sm">—</span>
+                        <span className="text-gray-600 text-sm">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      {u.kaspiApiConnected ? (
+                        <CheckCircle className="w-4 h-4 text-blue-500" />
+                      ) : (
+                        <span className="text-gray-600 text-sm">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      {u.kaspiMarketingConnected ? (
+                        <CheckCircle className="w-4 h-4 text-purple-500" />
+                      ) : (
+                        <span className="text-gray-600 text-sm">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 hidden lg:table-cell">
@@ -584,9 +600,21 @@ export default function UsersPage() {
                   </span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-gray-700">
-                  <span className="text-gray-500">Kaspi</span>
-                  <span className={u.kaspiConnected ? 'text-emerald-600' : 'text-gray-400'}>
+                  <span className="text-gray-500">Кабинет Kaspi</span>
+                  <span className={u.kaspiConnected ? 'text-emerald-500' : 'text-gray-400'}>
                     {u.kaspiConnected ? 'Подключён' : 'Нет'}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-700">
+                  <span className="text-gray-500">Kaspi API</span>
+                  <span className={u.kaspiApiConnected ? 'text-blue-400' : 'text-gray-400'}>
+                    {u.kaspiApiConnected ? 'Подключён' : 'Нет'}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-700">
+                  <span className="text-gray-500">Kaspi Маркетинг</span>
+                  <span className={u.kaspiMarketingConnected ? 'text-purple-400' : 'text-gray-400'}>
+                    {u.kaspiMarketingConnected ? 'Подключён' : 'Нет'}
                   </span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-gray-700">

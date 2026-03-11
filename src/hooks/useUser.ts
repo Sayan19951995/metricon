@@ -47,8 +47,19 @@ interface UserData {
 const CACHE_KEY = 'user_data';
 const IMPERSONATE_KEY = 'admin_impersonating';
 
+function getImpersonateTarget(): { adminId: string; targetId: string; targetEmail: string } | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(IMPERSONATE_KEY);
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch { return null; }
+}
+
 export function useUser(): UserData & { impersonating: boolean; stopImpersonating: () => void } {
-  const stale = getStale<{ user: User; store: Store | null; subscription: Subscription | null }>(CACHE_KEY);
+  // Don't use cache when impersonating — it would show the admin's own data
+  const imp = getImpersonateTarget();
+  const stale = imp ? null : getStale<{ user: User; store: Store | null; subscription: Subscription | null }>(CACHE_KEY);
   const cached = stale?.data ?? null;
 
   const [data, setData] = useState<UserData>({
@@ -56,7 +67,7 @@ export function useUser(): UserData & { impersonating: boolean; stopImpersonatin
     store: cached?.store || null,
     subscription: cached?.subscription || null,
     role: (cached as any)?.role || 'owner',
-    loading: !cached,
+    loading: true,
     error: null
   });
 
@@ -95,20 +106,31 @@ export function useUser(): UserData & { impersonating: boolean; stopImpersonatin
         }
 
         // Check for impersonation
-        const impersonateRaw = localStorage.getItem(IMPERSONATE_KEY);
-        let targetUserId: string | null = null;
-        if (impersonateRaw) {
+        const impTarget = getImpersonateTarget();
+        const targetUserId: string | null = (impTarget && impTarget.adminId === authUser.id) ? impTarget.targetId : null;
+
+        if (targetUserId) {
+          setImpersonating(true);
+          // Fetch impersonated user's data via API (uses service role, bypasses RLS)
           try {
-            const imp = JSON.parse(impersonateRaw);
-            // Only impersonate if the current auth user is the admin who started it
-            if (imp.adminId === authUser.id && imp.targetId) {
-              targetUserId = imp.targetId;
-              setImpersonating(true);
+            const res = await fetch('/api/user/profile', {
+              headers: { 'Authorization': `Bearer ${session?.access_token}`, 'X-Impersonate-User': targetUserId },
+            });
+            const json = await res.json();
+            if (json.success && json.user) {
+              setData({ user: json.user, store: json.store, subscription: json.subscription, role: json.role || 'owner', loading: false, error: null });
+            } else {
+              localStorage.removeItem(IMPERSONATE_KEY);
+              setImpersonating(false);
+              setData(prev => ({ ...prev, loading: false, error: 'Пользователь не найден' }));
             }
-          } catch { /* ignore bad JSON */ }
+          } catch {
+            setData(prev => ({ ...prev, loading: false, error: 'Ошибка загрузки данных' }));
+          }
+          return;
         }
 
-        const lookupUserId = targetUserId || authUser.id;
+        const lookupUserId = authUser.id;
 
         // Ищем пользователя в таблице users
         let { data: user, error: userError } = await supabase
@@ -127,12 +149,6 @@ export function useUser(): UserData & { impersonating: boolean; stopImpersonatin
 
           if (userByEmail) {
             user = userByEmail;
-          } else if (targetUserId) {
-            // Impersonating a non-existent user — bail
-            localStorage.removeItem(IMPERSONATE_KEY);
-            setImpersonating(false);
-            setData(prev => ({ ...prev, loading: false, error: 'Пользователь не найден' }));
-            return;
           } else {
             // Создаём запись (первый вход через Google)
             const name = authUser.user_metadata?.full_name

@@ -52,3 +52,4 @@ kaspi-*.png
 # Temp files
 tmpclaude-*
 nul
+.env*.local
