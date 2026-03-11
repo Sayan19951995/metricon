@@ -125,7 +125,7 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Recent Kaspi connections (use created_at if available, fallback skip)
+    // Kaspi API connected (kaspi_api_key set, use store.created_at as proxy date)
     for (const store of stores) {
       if (store.kaspi_merchant_id) {
         const storeDate = store.created_at;
@@ -140,6 +140,53 @@ export async function GET(request: NextRequest) {
               detail: store.name,
             });
           }
+        }
+      }
+
+      // Kaspi API key connected
+      if (store.kaspi_api_key) {
+        const apiDate = (store as any).kaspi_api_connected_at || store.created_at;
+        if (apiDate && apiDate >= cutoff) {
+          const u = users.find(x => x.id === store.user_id);
+          if (u) {
+            events.push({
+              type: 'kaspi_api_connected',
+              name: u.name,
+              email: u.email,
+              date: apiDate,
+              detail: store.name,
+            });
+          }
+        }
+      }
+
+      // Kaspi Cabinet connected
+      const kaspiSession = (store as any).kaspi_session;
+      if (kaspiSession?.created_at && kaspiSession.created_at >= cutoff) {
+        const u = users.find(x => x.id === store.user_id);
+        if (u) {
+          events.push({
+            type: 'kaspi_cabinet_connected',
+            name: u.name,
+            email: u.email,
+            date: kaspiSession.created_at,
+            detail: store.name,
+          });
+        }
+      }
+
+      // Kaspi Marketing connected
+      const marketingSession = (store as any).marketing_session;
+      if (marketingSession?.created_at && marketingSession.created_at >= cutoff) {
+        const u = users.find(x => x.id === store.user_id);
+        if (u) {
+          events.push({
+            type: 'kaspi_marketing_connected',
+            name: u.name,
+            email: u.email,
+            date: marketingSession.created_at,
+            detail: marketingSession.merchant_name || store.name,
+          });
         }
       }
     }

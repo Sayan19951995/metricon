@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Users, CreditCard, TrendingUp, UserPlus, Store, Loader2,
-  DollarSign, ArrowRight, UserCheck, Wifi, ChevronRight,
+  DollarSign, ArrowRight, UserCheck, Wifi, ChevronRight, Key, Monitor, Megaphone,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
@@ -76,6 +76,21 @@ const activityConfig: Record<string, { icon: React.ReactNode; color: string; lab
     icon: <Wifi className="w-4 h-4" />,
     color: 'bg-purple-500/20 text-purple-400',
     label: 'подключил Kaspi',
+  },
+  kaspi_api_connected: {
+    icon: <Key className="w-4 h-4" />,
+    color: 'bg-blue-500/20 text-blue-400',
+    label: 'подключил API',
+  },
+  kaspi_cabinet_connected: {
+    icon: <Monitor className="w-4 h-4" />,
+    color: 'bg-cyan-500/20 text-cyan-400',
+    label: 'подключил Kaspi Кабинет',
+  },
+  kaspi_marketing_connected: {
+    icon: <Megaphone className="w-4 h-4" />,
+    color: 'bg-pink-500/20 text-pink-400',
+    label: 'подключил Kaspi Маркетинг',
   },
 };
 
