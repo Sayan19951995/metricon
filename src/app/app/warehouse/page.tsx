@@ -317,8 +317,7 @@ export default function WarehousePage() {
           .eq('store_id', store.id)
           .limit(1)
           .single()
-          .then(r => r.data)
-          .catch(() => null),
+          .then(r => r.data ?? null, () => null),
       ]);
 
       if (dbResult.error) throw dbResult.error;
