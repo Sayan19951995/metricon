@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { Menu, X, LayoutDashboard, Users, CreditCard, MessageCircle, ArrowLeft, Bell } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Users, CreditCard, MessageCircle, ArrowLeft, Bell, AlertTriangle } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface NavItem {
@@ -19,6 +19,7 @@ export default function AdminSidebar() {
   const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pendingPayments, setPendingPayments] = useState(0);
+  const [alertCount, setAlertCount] = useState(0);
   const clickCountRef = useRef(0);
   const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -32,7 +33,21 @@ export default function AdminSidebar() {
       } catch { /* ignore */ }
     }
     loadBadge();
-    const interval = setInterval(loadBadge, 60000); // refresh every 60s
+    const interval = setInterval(loadBadge, 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Load alerts count
+  useEffect(() => {
+    async function loadAlerts() {
+      try {
+        const res = await fetchWithAuth('/api/admin/alerts');
+        const data = await res.json();
+        setAlertCount((data.alerts || []).length);
+      } catch { /* ignore */ }
+    }
+    loadAlerts();
+    const interval = setInterval(loadAlerts, 2 * 60 * 1000); // refresh every 2 min
     return () => clearInterval(interval);
   }, []);
 
@@ -57,6 +72,12 @@ export default function AdminSidebar() {
       href: '/manage-k8m2x9/payment-requests',
       icon: <Bell className="w-5 h-5" />,
       badge: pendingPayments,
+    },
+    {
+      name: 'Алерты',
+      href: '/manage-k8m2x9/alerts',
+      icon: <AlertTriangle className="w-5 h-5" />,
+      badge: alertCount,
     },
     {
       name: 'WhatsApp',
