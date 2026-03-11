@@ -7,54 +7,17 @@ import {
   Mail,
   Phone,
   Key,
-  Shield,
   Eye,
   EyeOff,
-  Smartphone,
-  Monitor,
-  Trash2,
   Check,
   X,
   AlertTriangle,
-  Clock,
-  MapPin,
   ChevronLeft
 } from 'lucide-react';
 import Link from 'next/link';
 import { useUser } from '@/hooks/useUser';
 
-type TabType = 'profile' | 'security' | 'sessions';
-
-// Mock активные сессии
-const activeSessions = [
-  {
-    id: 1,
-    device: 'Chrome на Windows',
-    icon: Monitor,
-    location: 'Алматы, Казахстан',
-    ip: '178.91.xxx.xxx',
-    lastActive: 'Сейчас активен',
-    current: true
-  },
-  {
-    id: 2,
-    device: 'Safari на iPhone',
-    icon: Smartphone,
-    location: 'Алматы, Казахстан',
-    ip: '178.91.xxx.xxx',
-    lastActive: '2 часа назад',
-    current: false
-  },
-  {
-    id: 3,
-    device: 'Chrome на MacBook',
-    icon: Monitor,
-    location: 'Астана, Казахстан',
-    ip: '95.57.xxx.xxx',
-    lastActive: 'Вчера, 18:45',
-    current: false
-  }
-];
+type TabType = 'profile' | 'security';
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -206,19 +169,6 @@ export default function AccountSettingsPage() {
               Безопасность
             </span>
           </button>
-          <button
-            onClick={() => setActiveTab('sessions')}
-            className={`px-5 py-2.5 rounded-xl text-sm font-medium transition-all cursor-pointer ${
-              activeTab === 'sessions'
-                ? 'bg-emerald-500 text-white shadow-sm'
-                : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              Сессии
-            </span>
-          </button>
         </div>
 
         {/* Profile Tab */}
@@ -337,104 +287,6 @@ export default function AccountSettingsPage() {
               </div>
             </motion.div>
 
-            {/* Login History */}
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">История входов</h3>
-              <div className="space-y-3">
-                {[
-                  { date: 'Сегодня, 10:23', location: 'Алматы, Казахстан', device: 'Chrome, Windows', success: true },
-                  { date: 'Вчера, 18:45', location: 'Астана, Казахстан', device: 'Safari, macOS', success: true },
-                  { date: '15.01.2026, 09:12', location: 'Алматы, Казахстан', device: 'Chrome, Windows', success: true },
-                  { date: '14.01.2026, 22:30', location: 'Неизвестно', device: 'Firefox, Linux', success: false },
-                ].map((login, index) => (
-                  <div key={index} className="flex items-center justify-between py-3 border-b border-gray-50 dark:border-gray-700 last:border-0">
-                    <div className="flex items-center gap-3">
-                      <div className={`w-2 h-2 rounded-full ${login.success ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                      <div>
-                        <p className="text-sm font-medium text-gray-900 dark:text-white">{login.date}</p>
-                        <p className="text-xs text-gray-500 dark:text-gray-400">{login.device}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                      <MapPin className="w-4 h-4" />
-                      {login.location}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-
-        {/* Sessions Tab */}
-        {activeTab === 'sessions' && (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="space-y-6"
-          >
-            {/* Active Sessions */}
-            <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Активные сессии</h3>
-                <button className="px-4 py-2 bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 rounded-xl text-sm font-medium hover:bg-red-200 dark:hover:bg-red-900/50 transition-colors cursor-pointer">
-                  Завершить все сессии
-                </button>
-              </div>
-              <div className="space-y-4">
-                {activeSessions.map((session) => (
-                  <div key={session.id} className={`flex items-center justify-between p-4 rounded-xl ${
-                    session.current ? 'bg-emerald-50 dark:bg-emerald-900/30 border border-emerald-200 dark:border-emerald-700' : 'bg-gray-50 dark:bg-gray-900'
-                  }`}>
-                    <div className="flex items-center gap-4">
-                      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                        session.current ? 'bg-emerald-100 dark:bg-emerald-800/50' : 'bg-gray-200 dark:bg-gray-700'
-                      }`}>
-                        <session.icon className={`w-5 h-5 ${session.current ? 'text-emerald-600 dark:text-emerald-400' : 'text-gray-600 dark:text-gray-400'}`} />
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900 dark:text-white">{session.device}</p>
-                          {session.current && (
-                            <span className="px-2 py-0.5 bg-emerald-100 dark:bg-emerald-800/50 text-emerald-700 dark:text-emerald-300 text-xs font-medium rounded-full">
-                              Текущая
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-3 mt-1 text-sm text-gray-500 dark:text-gray-400">
-                          <span className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            {session.location}
-                          </span>
-                          <span>IP: {session.ip}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <div className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400">
-                          <Clock className="w-4 h-4" />
-                          {session.lastActive}
-                        </div>
-                      </div>
-                      {!session.current && (
-                        <button className="p-2 text-red-500 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-lg transition-colors cursor-pointer">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
-
-            {/* Security Notice */}
-            <motion.div variants={itemVariants} className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-2xl p-4">
-              <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>Совет:</strong> Если вы видите незнакомые устройства, рекомендуется изменить пароль и завершить все сессии.
-              </p>
-            </motion.div>
           </motion.div>
         )}
 
