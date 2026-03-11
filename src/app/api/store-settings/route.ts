@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
     const { data: store } = await (supabaseAdmin
       .from('stores')
-      .select('commission_rate, tax_rate, manager_commissions_enabled')
+      .select('commission_rate, tax_rate, manager_commissions_enabled, daily_report_enabled')
       .eq('user_id', userId)
       .single() as any);
 
@@ -23,6 +23,7 @@ export async function GET(request: NextRequest) {
         commissionRate: store.commission_rate ?? 12.5,
         taxRate: store.tax_rate ?? 4.0,
         managerCommissionsEnabled: (store as any).manager_commissions_enabled ?? false,
+        dailyReportEnabled: (store as any).daily_report_enabled ?? false,
       }
     });
   } catch (error) {
@@ -40,12 +41,13 @@ export async function PUT(request: NextRequest) {
     const userId = auth.user.id;
 
     const body = await request.json();
-    const { commissionRate, taxRate, managerCommissionsEnabled } = body;
+    const { commissionRate, taxRate, managerCommissionsEnabled, dailyReportEnabled } = body;
 
     const update: Record<string, any> = {};
     if (commissionRate !== undefined) update.commission_rate = commissionRate;
     if (taxRate !== undefined) update.tax_rate = taxRate;
     if (managerCommissionsEnabled !== undefined) update.manager_commissions_enabled = managerCommissionsEnabled;
+    if (dailyReportEnabled !== undefined) update.daily_report_enabled = dailyReportEnabled;
 
     const { error } = await supabaseAdmin.from('stores')
       .update(update)

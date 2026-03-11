@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Bell,
@@ -17,8 +17,10 @@ import {
   X,
   Send,
   Volume2,
-  VolumeX
+  VolumeX,
+  BarChart2
 } from 'lucide-react';
+import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import Link from 'next/link';
 
 const containerVariants = {
@@ -42,6 +44,41 @@ export default function NotificationSettingsPage() {
   const [showTelegramModal, setShowTelegramModal] = useState(false);
   const [telegramCode, setTelegramCode] = useState('');
   const [soundEnabled, setSoundEnabled] = useState(true);
+
+  // WhatsApp daily report
+  const [waConnected, setWaConnected] = useState(false);
+  const [dailyReportEnabled, setDailyReportEnabled] = useState(false);
+  const [dailyReportSaving, setDailyReportSaving] = useState(false);
+
+  useEffect(() => {
+    // Load WA status and daily report setting
+    Promise.all([
+      fetchWithAuth('/api/whatsapp').then(r => r.json()).catch(() => null),
+      fetchWithAuth('/api/store-settings').then(r => r.json()).catch(() => null),
+    ]).then(([waData, settingsData]) => {
+      if (waData?.status === 'connected') setWaConnected(true);
+      if (settingsData?.data?.dailyReportEnabled !== undefined) {
+        setDailyReportEnabled(settingsData.data.dailyReportEnabled);
+      }
+    });
+  }, []);
+
+  async function toggleDailyReport() {
+    const newValue = !dailyReportEnabled;
+    setDailyReportEnabled(newValue);
+    setDailyReportSaving(true);
+    try {
+      await fetchWithAuth('/api/store-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dailyReportEnabled: newValue }),
+      });
+    } catch {
+      setDailyReportEnabled(!newValue); // revert on error
+    } finally {
+      setDailyReportSaving(false);
+    }
+  }
 
   const [emailSettings, setEmailSettings] = useState({
     newOrders: true,
@@ -278,6 +315,46 @@ export default function NotificationSettingsPage() {
                 checked={pushSettings.newReviews}
                 onChange={() => setPushSettings({...pushSettings, newReviews: !pushSettings.newReviews})}
               />
+            </div>
+          </motion.div>
+
+          {/* WhatsApp Notifications */}
+          <motion.div variants={itemVariants} className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
+                <MessageCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">WhatsApp уведомления</h3>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
+                  {waConnected ? 'Подключён' : 'Не подключён'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between py-3">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
+                  <BarChart2 className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900 dark:text-white text-sm">Ежедневный отчёт</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    {waConnected ? 'Сводка продаж каждое утро в 7:00' : 'Требуется подключить WhatsApp'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={toggleDailyReport}
+                disabled={!waConnected || dailyReportSaving}
+                className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
+                  dailyReportEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
+                }`}
+              >
+                <div className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                  dailyReportEnabled ? 'translate-x-6' : 'translate-x-1'
+                }`} />
+              </button>
             </div>
           </motion.div>
 
