@@ -15,15 +15,6 @@ const logger = pino({ level: 'info' });
 // Sessions that should never be closed due to inactivity
 const PERSISTENT_SESSIONS = new Set(['metricon-global']);
 
-// Callback для обработки входящих сообщений (poll ответы, текст)
-type IncomingMessageHandler = (storeId: string, msg: {
-  from: string;
-  messageId: string;
-  text?: string;
-  pollVotes?: Array<{ name: string; voters: string[] }>;
-  pollCreationMessageId?: string;
-}) => void;
-
 interface SessionInfo {
   socket: WASocket | null;
   qr: string | null;           // base64 QR image
@@ -39,7 +30,6 @@ const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // for non-persistent sessions only
 
 class SessionManager {
   private sessions = new Map<string, SessionInfo>();
-  private incomingHandler: IncomingMessageHandler | null = null;
 
   /**
    * Начать новую сессию (для QR-сканирования).
@@ -55,7 +45,6 @@ class SessionManager {
       return { qr: existing.qr, status: 'qr_pending' };
     }
 
-    // Создаём новую сессию
     const info: SessionInfo = {
       socket: null,
       qr: null,
@@ -69,7 +58,7 @@ class SessionManager {
 
     await this.connect(storeId, info);
 
-    // Ждём QR или подключение (макс 45 сек)
+    // Ждём QR или подключение (макс 8 сек)
     await this.waitForQrOrConnect(storeId, 8000);
 
     const current = this.sessions.get(storeId);
@@ -146,45 +135,6 @@ class SessionManager {
   }
 
   /**
-   * Отправить Poll (опрос).
-   */
-  async sendPoll(storeId: string, phone: string, question: string, options: string[]): Promise<{ success: boolean; messageId?: string }> {
-    const connected = await this.ensureConnected(storeId);
-    if (!connected) {
-      console.error(`[${storeId}] Cannot send poll: not connected`);
-      return { success: false };
-    }
-
-    const session = this.sessions.get(storeId);
-    if (!session?.socket) return { success: false };
-
-    try {
-      const jid = this.normalizePhone(phone);
-      const result = await session.socket.sendMessage(jid, {
-        poll: {
-          name: question,
-          values: options,
-          selectableCount: 1,
-        },
-      });
-      this.resetIdleTimer(storeId);
-      const messageId = result?.key?.id || null;
-      console.log(`[${storeId}] Poll sent to ${jid}, messageId=${messageId}`);
-      return { success: true, messageId: messageId || undefined };
-    } catch (err) {
-      console.error(`[${storeId}] Send poll error:`, err);
-      return { success: false };
-    }
-  }
-
-  /**
-   * Установить обработчик входящих сообщений (для feedback).
-   */
-  onIncomingMessage(handler: IncomingMessageHandler): void {
-    this.incomingHandler = handler;
-  }
-
-  /**
    * Получить статус сессии.
    */
   async getStatus(storeId: string): Promise<{ status: string; qr: string | null }> {
@@ -230,7 +180,6 @@ class SessionManager {
   private async connect(storeId: string, info: SessionInfo): Promise<void> {
     const { state, saveCreds } = await useSupabaseAuthState(storeId);
 
-    // Получаем актуальную версию WhatsApp Web (без неё — 405 ошибка)
     let version: [number, number, number];
     try {
       const result = await fetchLatestBaileysVersion();
@@ -262,7 +211,6 @@ class SessionManager {
       console.log(`[${storeId}] connection.update:`, JSON.stringify({ connection, qr: qr ? 'present' : null, lastDisconnect: lastDisconnect?.error?.message }));
 
       if (qr) {
-        // Генерируем QR как base64 PNG
         try {
           info.qr = await QRCode.toDataURL(qr);
           info.status = 'qr_pending';
@@ -307,7 +255,7 @@ class SessionManager {
             }, delay);
           }
         } else {
-          // loggedOut (401) — Railway restarts often trigger false-positive loggedOut
+          // loggedOut (401) — Railway restarts often trigger false-positive loggedOut.
           // Retry up to 3 times before giving up. NEVER delete credentials automatically —
           // credentials are only deleted via explicit /disconnect API.
           const MAX_LOGGED_OUT_RETRIES = 3;
@@ -327,54 +275,7 @@ class SessionManager {
             info.status = 'disconnected';
             info.connectPromise = null;
             this.sessions.delete(storeId);
-            console.log(`[${storeId}] loggedOut after ${info.loggedOutRetries} retries — stopping. Credentials preserved in Supabase. Use /disconnect to re-register.`);
-          }
-        }
-      }
-    });
-
-    // Обработка входящих сообщений (текст от клиентов)
-    socket.ev.on('messages.upsert', ({ messages: msgs }) => {
-      if (!this.incomingHandler) return;
-      for (const msg of msgs) {
-        if (msg.key.fromMe) continue;
-        const from = msg.key.remoteJid;
-        if (!from) continue;
-
-        const text = msg.message?.conversation || msg.message?.extendedTextMessage?.text || undefined;
-        if (text) {
-          this.incomingHandler(storeId, {
-            from,
-            messageId: msg.key.id || '',
-            text,
-          });
-        }
-      }
-    });
-
-    // Обработка ответов на Poll
-    socket.ev.on('messages.update', (updates) => {
-      if (!this.incomingHandler) return;
-      for (const update of updates) {
-        const pollUpdate = (update as any).update?.pollUpdates;
-        if (!pollUpdate || pollUpdate.length === 0) continue;
-
-        const from = update.key.remoteJid;
-        if (!from) continue;
-
-        for (const pu of pollUpdate) {
-          const votes: Array<{ name: string; voters: string[] }> = (pu.vote || []).map((v: any) => ({
-            name: v.optionName || '',
-            voters: v.voters || [],
-          }));
-
-          if (votes.length > 0) {
-            this.incomingHandler(storeId, {
-              from,
-              messageId: update.key.id || '',
-              pollVotes: votes,
-              pollCreationMessageId: update.key.id || '',
-            });
+            console.log(`[${storeId}] loggedOut after ${info.loggedOutRetries} retries — stopping. Credentials preserved. Use /disconnect to re-register.`);
           }
         }
       }
@@ -382,7 +283,6 @@ class SessionManager {
   }
 
   private resetIdleTimer(storeId: string): void {
-    // Persistent sessions (e.g. metricon-global) never time out
     if (PERSISTENT_SESSIONS.has(storeId)) return;
 
     const session = this.sessions.get(storeId);
@@ -398,15 +298,12 @@ class SessionManager {
   }
 
   private normalizePhone(phone: string): string {
-    // Убираем все нецифровые символы
     let digits = phone.replace(/\D/g, '');
 
-    // Казахстан: 8 → 7, +7 уже ок
     if (digits.startsWith('8') && digits.length === 11) {
       digits = '7' + digits.slice(1);
     }
 
-    // Если без кода страны (10 цифр) — добавляем 7 (Казахстан)
     if (digits.length === 10) {
       digits = '7' + digits;
     }

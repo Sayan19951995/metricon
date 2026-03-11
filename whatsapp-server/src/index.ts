@@ -1,8 +1,6 @@
 import express from 'express';
 import { authMiddleware } from './auth.js';
 import { sessionManager } from './session-manager.js';
-import { initFeedbackHandler } from './feedback-handler.js';
-import { feedbackScheduler } from './feedback-scheduler.js';
 
 const app = express();
 app.use(express.json());
@@ -16,7 +14,6 @@ app.use(authMiddleware);
 
 // === Сессии ===
 
-// Начать сессию (генерация QR)
 app.post('/session/start', async (req, res) => {
   try {
     const { storeId } = req.body;
@@ -33,14 +30,12 @@ app.post('/session/start', async (req, res) => {
   }
 });
 
-// Статус сессии
 app.get('/session/:storeId/status', async (req, res) => {
   const { storeId } = req.params;
   const result = await sessionManager.getStatus(storeId);
   res.json(result);
 });
 
-// Получить QR
 app.get('/session/:storeId/qr', (req, res) => {
   const { storeId } = req.params;
   const qr = sessionManager.getQR(storeId);
@@ -51,7 +46,6 @@ app.get('/session/:storeId/qr', (req, res) => {
   res.json({ qr });
 });
 
-// Отключить сессию
 app.delete('/session/:storeId', async (req, res) => {
   try {
     const { storeId } = req.params;
@@ -65,7 +59,6 @@ app.delete('/session/:storeId', async (req, res) => {
 
 // === Сообщения ===
 
-// Отправить сообщение
 app.post('/message/send', async (req, res) => {
   try {
     const { storeId, phone, message } = req.body;
@@ -82,7 +75,6 @@ app.post('/message/send', async (req, res) => {
   }
 });
 
-// Отправить batch сообщений
 app.post('/message/send-batch', async (req, res) => {
   try {
     const { storeId, messages } = req.body;
@@ -105,23 +97,6 @@ app.post('/message/send-batch', async (req, res) => {
     res.json({ success: true, results });
   } catch (err) {
     console.error('message/send-batch error:', err);
-    res.status(500).json({ error: 'Internal error' });
-  }
-});
-
-// Отправить poll (опрос)
-app.post('/poll/send', async (req, res) => {
-  try {
-    const { storeId, phone, question, options } = req.body;
-    if (!storeId || !phone || !question || !Array.isArray(options)) {
-      res.status(400).json({ error: 'storeId, phone, question, options[] обязательны' });
-      return;
-    }
-
-    const result = await sessionManager.sendPoll(storeId, phone, question, options);
-    res.json(result);
-  } catch (err) {
-    console.error('poll/send error:', err);
     res.status(500).json({ error: 'Internal error' });
   }
 });
@@ -186,11 +161,7 @@ const PORT = parseInt(process.env.PORT || '3001');
 app.listen(PORT, () => {
   console.log(`WhatsApp server running on port ${PORT}`);
 
-  // Инициализация feedback системы
-  initFeedbackHandler();
-  feedbackScheduler.start();
-
-  // Auto-start persistent sessions on boot (reconnect from saved credentials)
+  // Auto-start persistent sessions on boot
   sessionManager.ensureConnected('metricon-global').then(connected => {
     console.log(`[boot] metricon-global: ${connected ? 'connected ✓' : 'not connected (needs QR scan)'}`);
   }).catch(err => {
