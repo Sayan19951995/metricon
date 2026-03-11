@@ -196,4 +196,13 @@ app.listen(PORT, () => {
   }).catch(err => {
     console.error('[boot] metricon-global auto-start failed:', err);
   });
+
+  // Self-ping every 4 minutes to prevent Railway container from sleeping
+  const SELF_URL = process.env.RAILWAY_STATIC_URL
+    ? `https://${process.env.RAILWAY_STATIC_URL}/health`
+    : `http://localhost:${PORT}/health`;
+
+  setInterval(() => {
+    fetch(SELF_URL).catch(() => { /* ignore */ });
+  }, 4 * 60 * 1000);
 });
