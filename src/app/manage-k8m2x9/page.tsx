@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   Users, CreditCard, TrendingUp, UserPlus, Store, Loader2,
   DollarSign, ArrowRight, UserCheck, Wifi, ChevronRight, Key, Monitor, Megaphone,
-  UserCog, RefreshCw, UserPlus2,
+  UserCog, RefreshCw, UserPlus2, TrendingDown, ShoppingBag,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
@@ -107,6 +107,16 @@ const activityConfig: Record<string, { icon: React.ReactNode; color: string; lab
     icon: <UserPlus2 className="w-4 h-4" />,
     color: 'bg-teal-500/20 text-teal-400',
     label: 'добавил в команду',
+  },
+  auto_pricing_activated: {
+    icon: <TrendingDown className="w-4 h-4" />,
+    color: 'bg-amber-500/20 text-amber-400',
+    label: 'подключил Автодемпинг',
+  },
+  preorder_activated: {
+    icon: <ShoppingBag className="w-4 h-4" />,
+    color: 'bg-purple-500/20 text-purple-400',
+    label: 'подключил Предзаказ',
   },
 };
 

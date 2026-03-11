@@ -19,6 +19,31 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ success: false, error: 'Missing required fields' }, { status: 400 });
     }
 
+    // Check preorder addon — only allow enable if subscription has 'preorder' addon
+    if (action === 'enable') {
+      const { data: store } = await supabaseAdmin
+        .from('stores')
+        .select('user_id')
+        .eq('id', storeId)
+        .single();
+
+      const ownerId = store?.user_id ?? auth.user.id;
+
+      const { data: sub } = await supabaseAdmin
+        .from('subscriptions')
+        .select('addons, status')
+        .eq('user_id', ownerId)
+        .in('status', ['active', 'trial'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      const hasAddon = Array.isArray((sub as any)?.addons) && (sub as any).addons.includes('preorder');
+      if (!hasAddon) {
+        return NextResponse.json({ success: false, error: 'Функция предзаказа недоступна на вашем тарифе' }, { status: 403 });
+      }
+    }
+
     if (action === 'enable') {
       const preorderDays = Math.max(1, Math.min(30, days || 7));
       await updatePreorderOverrides(supabaseAdmin, storeId, skus, preorderDays);

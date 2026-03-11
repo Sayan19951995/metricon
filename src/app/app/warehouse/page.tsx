@@ -46,6 +46,7 @@ interface Product {
   stock_updated_at?: string | null;
   availabilities?: Availability[];
   kaspi_not_specified?: boolean;
+  preorder_days?: number | null;
 }
 
 export default function WarehousePage() {
@@ -299,8 +300,8 @@ export default function WarehousePage() {
     if (showRefresh) setRefreshing(true);
 
     try {
-      // Parallel: DB products (cost_price, id) + Cabinet stock (live quantity)
-      const [dbResult, cabinetResult] = await Promise.all([
+      // Parallel: DB products (cost_price, id) + Cabinet stock (live quantity) + preorder overrides
+      const [dbResult, cabinetResult, feedResult] = await Promise.all([
         supabase
           .from('products')
           .select('id, kaspi_id, name, sku, price, cost_price, quantity, kaspi_stock, image_url, category, active, product_group')
@@ -310,6 +311,14 @@ export default function WarehousePage() {
         fetchWithAuth('/api/kaspi/cabinet/products')
           .then(r => r.json())
           .catch(() => ({ success: false })),
+        supabase
+          .from('pricelist_feeds')
+          .select('preorder_overrides')
+          .eq('store_id', store.id)
+          .limit(1)
+          .single()
+          .then(r => r.data)
+          .catch(() => null),
       ]);
 
       if (dbResult.error) throw dbResult.error;
@@ -471,6 +480,12 @@ export default function WarehousePage() {
         const activeOnly = dbProducts.filter(p => p.active !== false);
         dbProducts.length = 0;
         dbProducts.push(...activeOnly);
+      }
+
+      // Apply preorder overrides
+      const preorderMap: Record<string, number> = (feedResult as any)?.preorder_overrides || {};
+      for (const p of dbProducts) {
+        p.preorder_days = p.sku && preorderMap[p.sku] != null ? preorderMap[p.sku] : null;
       }
 
       // Сортируем по имени
@@ -1292,6 +1307,11 @@ export default function WarehousePage() {
                         Мало
                       </span>
                     )}
+                    {product.preorder_days != null && (
+                      <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-medium rounded">
+                        Предзаказ {product.preorder_days}д
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center justify-between text-sm">
@@ -1426,7 +1446,14 @@ export default function WarehousePage() {
                           </div>
                         )}
                         <div className="min-w-0">
-                          <p className="text-sm font-medium truncate text-gray-900 dark:text-white">{product.name}</p>
+                          <div className="flex items-center gap-1.5">
+                            <p className="text-sm font-medium truncate text-gray-900 dark:text-white">{product.name}</p>
+                            {product.preorder_days != null && (
+                              <span className="shrink-0 px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-[10px] font-medium rounded">
+                                Предзаказ {product.preorder_days}д
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-gray-400">{product.sku || '—'}</p>
                         </div>
                       </div>

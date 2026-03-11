@@ -26,11 +26,12 @@ export async function GET(request: NextRequest) {
 
     // Parallel queries for stats
     // Note: use select('*') for subscriptions/stores since created_at may not exist
-    const [usersResult, subsResult, storesResult, teamMembersResult] = await Promise.all([
+    const [usersResult, subsResult, storesResult, teamMembersResult, pricingRulesResult] = await Promise.all([
       supabaseAdmin.from('users').select('id, name, email, created_at, updated_at', { count: 'exact' }),
       supabaseAdmin.from('subscriptions').select('*', { count: 'exact' }),
       supabaseAdmin.from('stores').select('*', { count: 'exact' }),
       supabaseAdmin.from('team_members' as any).select('id, store_id, email, name, role, created_at'),
+      (supabaseAdmin as any).from('auto_pricing_rules').select('store_id, created_at').order('created_at', { ascending: false }),
     ]);
 
     const totalUsers = usersResult.count || 0;
@@ -240,6 +241,26 @@ export async function GET(request: NextRequest) {
           email: member.email,
           date: member.created_at,
           detail: `${member.role}${store ? ` — ${store.name}` : ''}`,
+        });
+      }
+    }
+
+    // Auto-pricing rules created
+    const storeIdToUser = new Map(stores.map((s: any) => [s.id, users.find((u: any) => u.id === s.user_id)]));
+    const seenPricingStores = new Set<string>();
+    for (const rule of ((pricingRulesResult as any).data || [])) {
+      if (!rule.created_at || rule.created_at < cutoff) continue;
+      if (seenPricingStores.has(rule.store_id)) continue;
+      seenPricingStores.add(rule.store_id);
+      const u = storeIdToUser.get(rule.store_id);
+      if (u) {
+        const store = stores.find((s: any) => s.id === rule.store_id);
+        events.push({
+          type: 'auto_pricing_activated',
+          name: u.name,
+          email: u.email,
+          date: rule.created_at,
+          detail: store?.name || undefined,
         });
       }
     }

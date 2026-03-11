@@ -23,9 +23,11 @@ export async function GET(request: NextRequest) {
     const users = (usersRaw || []) as any[];
 
     // Get stores and subscriptions in parallel
-    const [storesResult, subsResult] = await Promise.all([
+    const [storesResult, subsResult, pricingResult, feedsResult] = await Promise.all([
       supabaseAdmin.from('stores').select('id, user_id, name, kaspi_merchant_id, kaspi_api_key, marketing_session'),
-      supabaseAdmin.from('subscriptions').select('id, user_id, plan, status, start_date, end_date, auto_renew'),
+      supabaseAdmin.from('subscriptions').select('id, user_id, plan, status, start_date, end_date, auto_renew, addons'),
+      (supabaseAdmin as any).from('auto_pricing_rules').select('store_id, status'),
+      supabaseAdmin.from('pricelist_feeds').select('store_id, preorder_overrides'),
     ]);
 
     const storesByUser = new Map<string, any>();
@@ -38,9 +40,22 @@ export async function GET(request: NextRequest) {
       subsByUser.set((s as any).user_id, s);
     }
 
+    // Build set of store_ids that have auto-pricing rules
+    const storesWithPricing = new Set<string>(
+      ((pricingResult as any).data || []).map((r: any) => r.store_id)
+    );
+
+    // Build set of store_ids that have preorder overrides (non-empty object)
+    const storesWithPreorder = new Set<string>(
+      ((feedsResult as any).data || [])
+        .filter((f: any) => f.preorder_overrides && Object.keys(f.preorder_overrides).length > 0)
+        .map((f: any) => f.store_id)
+    );
+
     const enrichedUsers = users.map((u: any) => {
       const store = storesByUser.get(u.id);
       const sub = subsByUser.get(u.id);
+      const addons: string[] = sub?.addons || [];
       return {
         id: u.id,
         name: u.name,
@@ -56,6 +71,8 @@ export async function GET(request: NextRequest) {
         plan: sub?.plan || null,
         subscriptionStatus: sub?.status || null,
         subscriptionEnd: sub?.end_date || null,
+        hasPreorder: addons.includes('preorder') || (store ? storesWithPreorder.has(store.id) : false),
+        hasAutoPricing: addons.includes('auto-pricing') || (store ? storesWithPricing.has(store.id) : false),
         utmSource: u.utm_source || null,
         utmMedium: u.utm_medium || null,
         utmCampaign: u.utm_campaign || null,

@@ -25,6 +25,8 @@ interface AdminUser {
   plan: string | null;
   subscriptionStatus: string | null;
   subscriptionEnd: string | null;
+  hasPreorder: boolean;
+  hasAutoPricing: boolean;
   utmSource: string | null;
   utmMedium: string | null;
   utmCampaign: string | null;
@@ -267,6 +269,8 @@ export default function UsersPage() {
                   >
                     Тариф <SortIcon field="plan" />
                   </th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Предзаказ</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Автодемпинг</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Кабинет</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">API</th>
                   <th className="px-4 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider hidden md:table-cell">Маркетинг</th>
@@ -310,6 +314,20 @@ export default function UsersPage() {
                         </span>
                       ) : (
                         <span className="text-xs text-gray-400">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      {u.hasPreorder ? (
+                        <CheckCircle className="w-4 h-4 text-purple-500" />
+                      ) : (
+                        <span className="text-gray-600 text-sm">—</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 hidden md:table-cell">
+                      {u.hasAutoPricing ? (
+                        <CheckCircle className="w-4 h-4 text-amber-500" />
+                      ) : (
+                        <span className="text-gray-600 text-sm">—</span>
                       )}
                     </td>
                     <td className="px-4 py-3 hidden md:table-cell">
@@ -615,6 +633,18 @@ export default function UsersPage() {
                   <span className="text-gray-500">Kaspi Маркетинг</span>
                   <span className={u.kaspiMarketingConnected ? 'text-purple-400' : 'text-gray-400'}>
                     {u.kaspiMarketingConnected ? 'Подключён' : 'Нет'}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-700">
+                  <span className="text-gray-500">Предзаказ</span>
+                  <span className={u.hasPreorder ? 'text-purple-400' : 'text-gray-400'}>
+                    {u.hasPreorder ? 'Активен' : 'Нет'}
+                  </span>
+                </div>
+                <div className="flex justify-between py-2 border-b border-gray-700">
+                  <span className="text-gray-500">Автодемпинг</span>
+                  <span className={u.hasAutoPricing ? 'text-amber-400' : 'text-gray-400'}>
+                    {u.hasAutoPricing ? 'Активен' : 'Нет'}
                   </span>
                 </div>
                 <div className="flex justify-between py-2 border-b border-gray-700">
