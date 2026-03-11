@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
-import { Menu, X, LayoutDashboard, Users, CreditCard, MessageCircle, ArrowLeft, Bell, AlertTriangle } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Users, CreditCard, MessageCircle, ArrowLeft, Bell, AlertTriangle, BarChart2 } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 
 interface NavItem {
@@ -56,6 +56,11 @@ export default function AdminSidebar() {
       name: 'Дашборд',
       href: '/manage-k8m2x9',
       icon: <LayoutDashboard className="w-5 h-5" />,
+    },
+    {
+      name: 'Аналитика',
+      href: '/manage-k8m2x9/analytics',
+      icon: <BarChart2 className="w-5 h-5" />,
     },
     {
       name: 'Пользователи',
