@@ -2,6 +2,25 @@ import express from 'express';
 import { authMiddleware } from './auth.js';
 import { sessionManager } from './session-manager.js';
 
+// === In-memory log buffer ===
+interface LogEntry { ts: number; level: string; msg: string; }
+const LOG_BUFFER: LogEntry[] = [];
+const MAX_LOG_ENTRIES = 500;
+
+function pushLog(level: string, args: any[]) {
+  const msg = args.map(a => typeof a === 'string' ? a : JSON.stringify(a)).join(' ');
+  LOG_BUFFER.push({ ts: Date.now(), level, msg });
+  if (LOG_BUFFER.length > MAX_LOG_ENTRIES) LOG_BUFFER.splice(0, LOG_BUFFER.length - MAX_LOG_ENTRIES);
+}
+
+const _origLog = console.log.bind(console);
+const _origErr = console.error.bind(console);
+const _origWarn = console.warn.bind(console);
+
+console.log = (...args: any[]) => { _origLog(...args); pushLog('info', args); };
+console.error = (...args: any[]) => { _origErr(...args); pushLog('error', args); };
+console.warn = (...args: any[]) => { _origWarn(...args); pushLog('warn', args); };
+
 const app = express();
 app.use(express.json());
 
@@ -99,6 +118,14 @@ app.post('/message/send-batch', async (req, res) => {
     console.error('message/send-batch error:', err);
     res.status(500).json({ error: 'Internal error' });
   }
+});
+
+// === Логи ===
+
+app.get('/logs', (req, res) => {
+  const since = parseInt(String(req.query.since || '0'), 10);
+  const logs = since > 0 ? LOG_BUFFER.filter(e => e.ts > since) : LOG_BUFFER.slice(-100);
+  res.json({ logs });
 });
 
 // === Прокси для Kaspi (Vercel IP заблокирован, Railway — нет) ===
