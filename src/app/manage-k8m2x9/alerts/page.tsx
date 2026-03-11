@@ -143,7 +143,7 @@ export default function AlertsPage() {
                     className="text-xs text-gray-500 hover:text-red-400 flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     <X className="w-3 h-3" />
-                    Снять
+                    Очистить
                   </button>
                 </div>
               </div>
