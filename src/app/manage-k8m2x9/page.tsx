@@ -5,6 +5,7 @@ import Link from 'next/link';
 import {
   Users, CreditCard, TrendingUp, UserPlus, Store, Loader2,
   DollarSign, ArrowRight, UserCheck, Wifi, ChevronRight, Key, Monitor, Megaphone,
+  UserCog, RefreshCw, UserPlus2,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
@@ -91,6 +92,21 @@ const activityConfig: Record<string, { icon: React.ReactNode; color: string; lab
     icon: <Megaphone className="w-4 h-4" />,
     color: 'bg-pink-500/20 text-pink-400',
     label: 'подключил Kaspi Маркетинг',
+  },
+  profile_updated: {
+    icon: <UserCog className="w-4 h-4" />,
+    color: 'bg-gray-500/20 text-gray-400',
+    label: 'обновил профиль',
+  },
+  subscription_updated: {
+    icon: <RefreshCw className="w-4 h-4" />,
+    color: 'bg-amber-500/20 text-amber-400',
+    label: 'изменил тариф',
+  },
+  team_member_added: {
+    icon: <UserPlus2 className="w-4 h-4" />,
+    color: 'bg-teal-500/20 text-teal-400',
+    label: 'добавил в команду',
   },
 };
 

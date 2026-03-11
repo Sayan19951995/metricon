@@ -26,15 +26,17 @@ export async function GET(request: NextRequest) {
 
     // Parallel queries for stats
     // Note: use select('*') for subscriptions/stores since created_at may not exist
-    const [usersResult, subsResult, storesResult] = await Promise.all([
-      supabaseAdmin.from('users').select('id, name, email, created_at', { count: 'exact' }),
+    const [usersResult, subsResult, storesResult, teamMembersResult] = await Promise.all([
+      supabaseAdmin.from('users').select('id, name, email, created_at, updated_at', { count: 'exact' }),
       supabaseAdmin.from('subscriptions').select('*', { count: 'exact' }),
       supabaseAdmin.from('stores').select('*', { count: 'exact' }),
+      supabaseAdmin.from('team_members' as any).select('id, store_id, email, name, role, created_at'),
     ]);
 
     const totalUsers = usersResult.count || 0;
     const users = (usersResult.data || []) as any[];
     const subscriptions = (subsResult.data || []) as any[];
+    const teamMembers = (teamMembersResult.data || []) as any[];
     const stores = (storesResult.data || []) as any[];
     const totalStores = storesResult.count || 0;
 
@@ -188,6 +190,57 @@ export async function GET(request: NextRequest) {
             detail: marketingSession.merchant_name || store.name,
           });
         }
+      }
+    }
+
+    // Profile updates (users with updated_at recently, different day from created_at)
+    for (const u of users) {
+      if (u.updated_at && u.updated_at >= cutoff) {
+        const createdDay = u.created_at ? new Date(u.created_at).toISOString().split('T')[0] : null;
+        const updatedDay = new Date(u.updated_at).toISOString().split('T')[0];
+        if (createdDay !== updatedDay) {
+          events.push({
+            type: 'profile_updated',
+            name: u.name,
+            email: u.email,
+            date: u.updated_at,
+          });
+        }
+      }
+    }
+
+    // Subscription plan changes (updated_at recent, different day from start_date)
+    for (const sub of subscriptions) {
+      if (sub.updated_at && sub.updated_at >= cutoff) {
+        const startDay = sub.start_date || null;
+        const updatedDay = new Date(sub.updated_at).toISOString().split('T')[0];
+        if (startDay !== updatedDay) {
+          const u = users.find(x => x.id === sub.user_id);
+          if (u) {
+            events.push({
+              type: 'subscription_updated',
+              name: u.name,
+              email: u.email,
+              date: sub.updated_at,
+              detail: sub.plan,
+            });
+          }
+        }
+      }
+    }
+
+    // Team member added
+    const storeMap = new Map(stores.map((s: any) => [s.id, s]));
+    for (const member of teamMembers) {
+      if (member.created_at && member.created_at >= cutoff) {
+        const store = storeMap.get(member.store_id);
+        events.push({
+          type: 'team_member_added',
+          name: member.name || member.email,
+          email: member.email,
+          date: member.created_at,
+          detail: `${member.role}${store ? ` — ${store.name}` : ''}`,
+        });
       }
     }
 
