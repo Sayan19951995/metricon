@@ -97,7 +97,6 @@ export async function getOrRefreshCabinetClient(
       created_at: new Date().toISOString(),
       username: session.username,
       password: session.password,
-      last_reconnect_attempt: new Date().toISOString(),
     };
 
     // Сохраняем новую сессию в БД
@@ -158,7 +157,6 @@ export async function refreshCabinetSession(
       created_at: new Date().toISOString(),
       username: session.username,
       password: session.password,
-      last_reconnect_attempt: new Date().toISOString(),
     };
 
     await supabase

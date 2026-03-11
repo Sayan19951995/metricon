@@ -98,3 +98,55 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, message: 'Внутренняя ошибка' }, { status: 500 });
   }
 }
+
+/**
+ * DELETE /api/admin/alerts
+ * Clears last_reconnect_attempt from a store's session to dismiss an alert.
+ * Body: { storeId, type: 'marketing' | 'cabinet' }
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const auth = await requireAuth(request);
+    if ('error' in auth) return auth.error;
+
+    const { data: adminCheck } = await supabaseAdmin
+      .from('users')
+      .select('is_admin')
+      .eq('id', auth.user.id)
+      .single();
+
+    if (!(adminCheck as any)?.is_admin) {
+      return NextResponse.json({ success: false, message: 'Forbidden' }, { status: 403 });
+    }
+
+    const { storeId, type } = await request.json();
+    if (!storeId || !type) {
+      return NextResponse.json({ success: false, message: 'storeId и type обязательны' }, { status: 400 });
+    }
+
+    const { data: store } = await supabaseAdmin
+      .from('stores')
+      .select('marketing_session, kaspi_session')
+      .eq('id', storeId)
+      .single();
+
+    if (!store) {
+      return NextResponse.json({ success: false, message: 'Магазин не найден' }, { status: 404 });
+    }
+
+    if (type === 'marketing' && store.marketing_session) {
+      const session = { ...(store.marketing_session as any) };
+      delete session.last_reconnect_attempt;
+      await supabaseAdmin.from('stores').update({ marketing_session: session }).eq('id', storeId);
+    } else if (type === 'cabinet' && store.kaspi_session) {
+      const session = { ...(store.kaspi_session as any) };
+      delete session.last_reconnect_attempt;
+      await supabaseAdmin.from('stores').update({ kaspi_session: session }).eq('id', storeId);
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err) {
+    console.error('Admin alerts DELETE error:', err);
+    return NextResponse.json({ success: false, message: 'Внутренняя ошибка' }, { status: 500 });
+  }
+}

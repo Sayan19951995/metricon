@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
-import { AlertTriangle, RefreshCw, Clock, CheckCircle } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Clock, CheckCircle, X } from 'lucide-react';
 import type { ClientAlert } from '@/app/api/admin/alerts/route';
 
 function formatMinutes(min: number): string {
@@ -26,6 +26,7 @@ export default function AlertsPage() {
   const [alerts, setAlerts] = useState<ClientAlert[]>([]);
   const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [dismissing, setDismissing] = useState<string | null>(null);
 
   async function load() {
     setLoading(true);
@@ -38,6 +39,21 @@ export default function AlertsPage() {
       /* ignore */
     } finally {
       setLoading(false);
+    }
+  }
+
+  async function dismiss(storeId: string, type: string) {
+    const key = `${storeId}-${type}`;
+    setDismissing(key);
+    try {
+      await fetchWithAuth('/api/admin/alerts', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId, type }),
+      });
+      await load();
+    } catch { /* ignore */ } finally {
+      setDismissing(null);
     }
   }
 
@@ -121,6 +137,14 @@ export default function AlertsPage() {
                     <Clock className="w-3 h-3" />
                     {formatMinutes(alert.minutesAgo)}
                   </span>
+                  <button
+                    onClick={() => dismiss(alert.storeId, alert.type)}
+                    disabled={dismissing === `${alert.storeId}-${alert.type}`}
+                    className="text-xs text-gray-500 hover:text-red-400 flex items-center gap-1 transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    <X className="w-3 h-3" />
+                    Снять
+                  </button>
                 </div>
               </div>
             ))}

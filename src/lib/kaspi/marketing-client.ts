@@ -135,7 +135,6 @@ export class KaspiMarketingClient {
 
     try {
       const { session: newSession } = await KaspiMarketingClient.login(session.username, session.password);
-      newSession.last_reconnect_attempt = new Date().toISOString();
       return newSession;
     } catch (err) {
       console.error('[Marketing] Reconnect login failed:', err);
