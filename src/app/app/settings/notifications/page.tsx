@@ -2,20 +2,18 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { MessageCircle, ChevronLeft, BarChart2 } from 'lucide-react';
+import { ChevronLeft, BarChart2 } from 'lucide-react';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
 import Link from 'next/link';
 
 export default function NotificationSettingsPage() {
-  const [waConnected, setWaConnected] = useState(false);
   const [dailyReportEnabled, setDailyReportEnabled] = useState(false);
-  const [dailyReportSaving, setDailyReportSaving] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    fetchWithAuth('/api/store-settings').then(r => r.json()).then(settingsData => {
-      if (settingsData?.data?.whatsappConnected) setWaConnected(true);
-      if (settingsData?.data?.dailyReportEnabled !== undefined) {
-        setDailyReportEnabled(settingsData.data.dailyReportEnabled);
+    fetchWithAuth('/api/store-settings').then(r => r.json()).then(data => {
+      if (data?.data?.dailyReportEnabled !== undefined) {
+        setDailyReportEnabled(data.data.dailyReportEnabled);
       }
     }).catch(() => {});
   }, []);
@@ -23,7 +21,7 @@ export default function NotificationSettingsPage() {
   async function toggleDailyReport() {
     const newValue = !dailyReportEnabled;
     setDailyReportEnabled(newValue);
-    setDailyReportSaving(true);
+    setSaving(true);
     try {
       await fetchWithAuth('/api/store-settings', {
         method: 'PUT',
@@ -33,7 +31,7 @@ export default function NotificationSettingsPage() {
     } catch {
       setDailyReportEnabled(!newValue);
     } finally {
-      setDailyReportSaving(false);
+      setSaving(false);
     }
   }
 
@@ -49,7 +47,7 @@ export default function NotificationSettingsPage() {
             Назад к настройкам
           </Link>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">Уведомления</h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Управление WhatsApp рассылкой</p>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Управление уведомлениями</p>
         </div>
 
         <motion.div
@@ -58,18 +56,6 @@ export default function NotificationSettingsPage() {
           transition={{ duration: 0.15 }}
         >
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 bg-green-100 dark:bg-green-900/30 rounded-xl flex items-center justify-center">
-                <MessageCircle className="w-5 h-5 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">WhatsApp уведомления</h3>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {waConnected ? 'Подключён' : 'Не подключён'}
-                </p>
-              </div>
-            </div>
-
             <div className="flex items-center justify-between py-3">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 bg-gray-100 dark:bg-gray-700 rounded-lg flex items-center justify-center">
@@ -77,14 +63,12 @@ export default function NotificationSettingsPage() {
                 </div>
                 <div>
                   <p className="font-medium text-gray-900 dark:text-white text-sm">Ежедневный отчёт</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">
-                    {waConnected ? 'Сводка продаж каждое утро в 7:00' : 'Требуется подключить WhatsApp'}
-                  </p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Сводка продаж каждое утро в 7:00 по WhatsApp</p>
                 </div>
               </div>
               <button
                 onClick={toggleDailyReport}
-                disabled={!waConnected || dailyReportSaving}
+                disabled={saving}
                 className={`relative w-11 h-6 rounded-full transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed ${
                   dailyReportEnabled ? 'bg-emerald-500' : 'bg-gray-300 dark:bg-gray-600'
                 }`}
