@@ -30,8 +30,7 @@ export async function GET(request: NextRequest) {
     // Get stores with WhatsApp connected and daily report enabled
     const { data: stores } = await supabaseAdmin
       .from('stores')
-      .select('id, user_id, name, whatsapp_connected, marketing_session')
-      .eq('whatsapp_connected', true)
+      .select('id, user_id, name, marketing_session')
       .eq('daily_report_enabled', true);
 
     if (!stores || stores.length === 0) {
