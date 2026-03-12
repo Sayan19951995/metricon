@@ -6,7 +6,13 @@
  */
 
 import { KaspiAPIClient, kaspiCabinetLogin } from './api-client';
-import { supabase } from '@/lib/supabase/client';
+import { createClient } from '@supabase/supabase-js';
+
+// Используем admin client (service role) — session-manager вызывается из API routes
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 const CABINET_RECONNECT_COOLDOWN_MS = 30 * 60 * 1000;
 
@@ -77,7 +83,7 @@ export async function getOrRefreshCabinetClient(
 
   // Сохраняем timestamp до попытки (кулдаун сработает даже при неудаче)
   const stampedSession: KaspiSession = { ...session, last_reconnect_attempt: new Date().toISOString() };
-  await supabase
+  await supabaseAdmin
     .from('stores')
     .update({ kaspi_session: stampedSession as any })
     .eq('id', storeId);
@@ -100,7 +106,7 @@ export async function getOrRefreshCabinetClient(
     };
 
     // Сохраняем новую сессию в БД
-    await supabase
+    await supabaseAdmin
       .from('stores')
       .update({ kaspi_session: newSession as any })
       .eq('id', storeId);
@@ -137,7 +143,7 @@ export async function refreshCabinetSession(
 
   // Сохраняем timestamp до попытки
   const stampedSession: KaspiSession = { ...session, last_reconnect_attempt: new Date().toISOString() };
-  await supabase
+  await supabaseAdmin
     .from('stores')
     .update({ kaspi_session: stampedSession as any })
     .eq('id', storeId);
@@ -159,7 +165,7 @@ export async function refreshCabinetSession(
       password: session.password,
     };
 
-    await supabase
+    await supabaseAdmin
       .from('stores')
       .update({ kaspi_session: newSession as any })
       .eq('id', storeId);
