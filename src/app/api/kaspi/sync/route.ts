@@ -337,6 +337,17 @@ export async function POST(request: NextRequest) {
             created_at: order.creationDate ? new Date(parseInt(order.creationDate)).toISOString() : new Date().toISOString(),
           }, { onConflict: 'store_id,kaspi_order_id' });
 
+          // Добавляем в dbOrderMap чтобы BFF фаза их подхватила
+          const { data: inserted } = await supabaseAdmin
+            .from('orders')
+            .select('id, kaspi_order_id, status, completed_at, delivery_mode, delivery_cost, items')
+            .eq('store_id', store.id)
+            .eq('kaspi_order_id', order.orderId)
+            .single();
+          if (inserted) {
+            dbOrderMap.set(inserted.kaspi_order_id, inserted);
+          }
+
           ordersCreated++;
         }, 10);
       }
@@ -356,6 +367,8 @@ export async function POST(request: NextRequest) {
       // Фаза 1: BFF запросы для новых completions (sequential из-за session guard)
       const bffDates = new Map<string, string>();
       const ordersNeedingDate: string[] = [];
+      let bffConsecutiveFailures = 0;
+      const BFF_MAX_FAILURES = 3;
       for (const order of completedOrders) {
         const dbOrder = dbOrderMap.get(order.orderId);
         if (!dbOrder) continue;
@@ -363,23 +376,37 @@ export async function POST(request: NextRequest) {
         if (kaspiStatus === 'completed' && !(dbOrder as any).completed_at) {
           ordersNeedingDate.push(order.orderId);
           if (bffSessionActive && cabinetClient) {
-            let exactDate = await cabinetClient.getOrderCompletionDate(order.orderId);
-            // Если BFF вернул null — попробуем перелогиниться один раз
+            let exactDate: string | null = null;
+            try {
+              exactDate = await cabinetClient.getOrderCompletionDate(order.orderId);
+            } catch (e) {
+              console.warn(`[SYNC] BFF error for ${order.orderId}:`, e);
+            }
+            // Если BFF вернул null — попробуем перелогиниться
             if (!exactDate && session?.username && session?.password) {
               console.log(`[SYNC] BFF returned null for ${order.orderId}, trying auto-relogin...`);
               const refreshed = await refreshCabinetSession(store.id, session, store.kaspi_merchant_id);
               if (refreshed) {
                 cabinetClient = refreshed.client;
-                exactDate = await cabinetClient.getOrderCompletionDate(order.orderId);
+                try {
+                  exactDate = await cabinetClient.getOrderCompletionDate(order.orderId);
+                } catch (e) {
+                  console.warn(`[SYNC] BFF error after relogin for ${order.orderId}:`, e);
+                }
               }
             }
             if (exactDate) {
               bffDates.set(order.orderId, exactDate);
               completionsDetected++;
+              bffConsecutiveFailures = 0;
               console.log(`SYNC: order ${order.orderId} completed_at from BFF: ${exactDate}`);
             } else {
-              bffSessionActive = false;
-              console.warn(`SYNC: BFF session expired, auto-relogin failed, disabling BFF`);
+              bffConsecutiveFailures++;
+              console.warn(`SYNC: BFF failed for ${order.orderId} (${bffConsecutiveFailures}/${BFF_MAX_FAILURES})`);
+              if (bffConsecutiveFailures >= BFF_MAX_FAILURES) {
+                bffSessionActive = false;
+                console.warn(`SYNC: ${BFF_MAX_FAILURES} consecutive BFF failures, disabling BFF for remaining orders`);
+              }
             }
           }
         }

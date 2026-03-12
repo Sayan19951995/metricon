@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   Search, Filter, MoreVertical, Shield, User,
   ChevronLeft, ChevronRight, CheckCircle, Store, Loader2,
-  Ban, LogIn, CreditCard, ArrowUpDown,
+  Ban, LogIn, CreditCard, ArrowUpDown, RefreshCw,
 } from 'lucide-react';
 import { useUser } from '@/hooks/useUser';
 import { fetchWithAuth } from '@/lib/fetch-with-auth';
@@ -18,6 +18,7 @@ interface AdminUser {
   createdAt: string;
   isAdmin: boolean;
   isBlocked: boolean;
+  storeId: string | null;
   storeName: string | null;
   kaspiConnected: boolean;
   kaspiApiConnected: boolean;
@@ -132,6 +133,38 @@ export default function UsersPage() {
       setSubModal(null);
       setSubPlan('start');
       setSubDays(30);
+    }
+  };
+
+  const [syncLoading, setSyncLoading] = useState<string | null>(null);
+  const [syncResult, setSyncResult] = useState<string | null>(null);
+
+  const syncCompletedAt = async (targetId: string) => {
+    const targetUser = users.find(u => u.id === targetId);
+    if (!targetUser?.storeId) {
+      setSyncResult('У пользователя нет магазина');
+      return;
+    }
+    setSyncLoading(targetId);
+    setOpenMenu(null);
+    setSyncResult(null);
+    try {
+      const res = await fetchWithAuth('/api/admin/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ storeId: targetUser.storeId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSyncResult(`Синк: ${data.fixed} исправлено из ${data.total}`);
+      } else {
+        setSyncResult(`Ошибка: ${data.message}`);
+      }
+    } catch (err) {
+      setSyncResult('Ошибка сети');
+    } finally {
+      setSyncLoading(null);
+      setTimeout(() => setSyncResult(null), 5000);
     }
   };
 
@@ -414,6 +447,14 @@ export default function UsersPage() {
                                 <CreditCard className="w-4 h-4 text-emerald-500" />
                                 Создать подписку
                               </button>
+                              <button
+                                onClick={() => syncCompletedAt(u.id)}
+                                disabled={!!syncLoading}
+                                className="w-full px-4 py-2 text-left text-sm text-orange-400 hover:bg-gray-700 flex items-center gap-2 disabled:opacity-50"
+                              >
+                                <RefreshCw className={`w-4 h-4 ${syncLoading === u.id ? 'animate-spin' : ''}`} />
+                                Синк поступлений
+                              </button>
                               <div className="border-t border-gray-700 my-1" />
                               <button
                                 onClick={() => impersonate(u.id)}
@@ -478,6 +519,13 @@ export default function UsersPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Sync result toast */}
+      {syncResult && (
+        <div className="fixed bottom-6 right-6 z-50 bg-gray-800 border border-gray-700 rounded-xl px-5 py-3 shadow-lg text-sm text-white">
+          {syncResult}
         </div>
       )}
 

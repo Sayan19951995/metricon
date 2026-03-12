@@ -64,6 +64,7 @@ export async function GET(request: NextRequest) {
         createdAt: u.created_at,
         isAdmin: u.is_admin || false,
         isBlocked: u.is_blocked || false,
+        storeId: store?.id || null,
         storeName: store?.name || null,
         kaspiConnected: !!store?.kaspi_merchant_id,
         kaspiApiConnected: !!store?.kaspi_api_key,
