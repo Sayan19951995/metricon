@@ -9,7 +9,8 @@ import {
   Palette,
   LogOut,
   Users,
-  Calculator
+  Calculator,
+  Bell
 } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -80,6 +81,13 @@ export default function SettingsPage() {
           description: 'Комиссии, налоги, ЗП менеджеров',
           href: '/app/settings/profit',
           color: 'bg-emerald-100 text-emerald-600'
+        },
+        {
+          icon: Bell,
+          title: 'Уведомления',
+          description: 'WhatsApp рассылка и ежедневные отчёты',
+          href: '/app/settings/notifications',
+          color: 'bg-orange-100 text-orange-600'
         },
         {
           icon: CreditCard,
