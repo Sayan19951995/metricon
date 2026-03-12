@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
     const { data: store } = await (supabaseAdmin
       .from('stores')
-      .select('commission_rate, tax_rate, manager_commissions_enabled, daily_report_enabled')
+      .select('commission_rate, tax_rate, manager_commissions_enabled, daily_report_enabled, whatsapp_connected')
       .eq('user_id', userId)
       .single() as any);
 
@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
         taxRate: store.tax_rate ?? 4.0,
         managerCommissionsEnabled: (store as any).manager_commissions_enabled ?? false,
         dailyReportEnabled: (store as any).daily_report_enabled ?? false,
+        whatsappConnected: (store as any).whatsapp_connected ?? false,
       }
     });
   } catch (error) {
