@@ -82,7 +82,7 @@ export async function POST(request: NextRequest) {
     // Если не сработало — relogin
     if (!testDate && session.username && session.password) {
       console.log(`[ADMIN SYNC] BFF test failed, trying relogin...`);
-      const refreshed = await refreshCabinetSession(storeId, session, store.kaspi_merchant_id);
+      const refreshed = await refreshCabinetSession(storeId, session, store.kaspi_merchant_id || undefined);
       if (refreshed) {
         client = refreshed.client;
         try {
