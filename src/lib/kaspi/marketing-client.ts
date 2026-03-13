@@ -410,54 +410,52 @@ export class KaspiMarketingClient {
   }
 
   /**
-   * Получить все кампании за период
+   * Получить все кампании за период.
+   * Пробует v5 → v4. Если оба упали с "Index was outside the bounds" (Kaspi bug
+   * на длинных диапазонах) — повторяет с 7-дневным диапазоном.
    */
   async getCampaigns(startDate: string, endDate: string): Promise<MarketingCampaign[]> {
-    // Try v5 first, fallback to v4 if Kaspi returns error (some merchants are on v4)
-    for (const apiVersion of ['v5', 'v4']) {
-      const url = `${MARKETING_BASE}/advertising/products/api/${apiVersion}/merchant/${this.merchantId}/Campaigns?StartDate=${startDate}&EndDate=${endDate}`;
-      console.log(`[Marketing] getCampaigns ${apiVersion} url=${url}`);
+    const ranges = [[startDate, endDate]];
+    // Fallback: last 7 days if the original range triggers Kaspi's IndexOutOfRange bug
+    const sevenDaysAgo = new Date(endDate);
+    sevenDaysAgo.setUTCDate(sevenDaysAgo.getUTCDate() - 6);
+    const fallbackStart = sevenDaysAgo.toISOString().split('T')[0];
+    if (fallbackStart !== startDate) ranges.push([fallbackStart, endDate]);
 
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          ...DEFAULT_HEADERS,
-          'Cookie': this.cookies,
-          'Referer': `${MARKETING_BASE}/advertising/campaigns?tab=campaigns`,
-        },
-      });
+    for (const [sDate, eDate] of ranges) {
+      for (const apiVersion of ['v5', 'v4']) {
+        const url = `${MARKETING_BASE}/advertising/products/api/${apiVersion}/merchant/${this.merchantId}/Campaigns?StartDate=${sDate}&EndDate=${eDate}`;
+        console.log(`[Marketing] getCampaigns ${apiVersion} url=${url}`);
 
-      console.log(`[Marketing] getCampaigns ${apiVersion} HTTP ${response.status}`);
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: { ...DEFAULT_HEADERS, 'Cookie': this.cookies, 'Referer': `${MARKETING_BASE}/advertising/campaigns?tab=campaigns` },
+        });
 
-      if (!response.ok) {
         const text = await response.text().catch(() => '');
-        console.error(`[Marketing] getCampaigns ${apiVersion} non-OK: ${response.status} body=${text.slice(0, 200)}`);
-        if (apiVersion === 'v5') continue; // try v4
-        throw new Error(`getCampaigns HTTP ${response.status}`);
-      }
+        console.log(`[Marketing] getCampaigns ${apiVersion} HTTP ${response.status}`);
 
-      const text = await response.text();
-      let json: { result: string; data: MarketingCampaign[] };
-      try {
-        json = JSON.parse(text) as { result: string; data: MarketingCampaign[] };
-      } catch {
-        console.error(`[Marketing] getCampaigns ${apiVersion} non-JSON: ${text.slice(0, 200)}`);
-        if (apiVersion === 'v5') continue;
-        throw new Error('getCampaigns response not JSON');
-      }
+        if (!response.ok) {
+          console.error(`[Marketing] getCampaigns ${apiVersion} non-OK: ${response.status} body=${text.slice(0, 200)}`);
+          continue;
+        }
 
-      if (json.result !== 'Ok') {
-        const detail = (json as Record<string, unknown>).message || text.slice(0, 200);
-        console.error(`[Marketing] getCampaigns ${apiVersion} result=${json.result} detail=${detail}`);
-        if (apiVersion === 'v5') continue; // try v4
-        throw new Error(`getCampaigns: result=${json.result} | ${detail}`);
-      }
+        let json: { result: string; data: MarketingCampaign[] };
+        try { json = JSON.parse(text) as { result: string; data: MarketingCampaign[] }; }
+        catch { console.error(`[Marketing] getCampaigns ${apiVersion} non-JSON: ${text.slice(0, 200)}`); continue; }
 
-      console.log(`[Marketing] getCampaigns ${apiVersion} OK, campaigns=${json.data?.length ?? 0}`);
-      return json.data || [];
+        if (json.result !== 'Ok') {
+          const detail = (json as Record<string, unknown>).message || text.slice(0, 200);
+          console.error(`[Marketing] getCampaigns ${apiVersion} result=${json.result} detail=${detail}`);
+          continue;
+        }
+
+        console.log(`[Marketing] getCampaigns ${apiVersion} OK range=${sDate}..${eDate} campaigns=${json.data?.length ?? 0}`);
+        return json.data || [];
+      }
     }
 
-    throw new Error('getCampaigns: both v5 and v4 failed');
+    throw new Error('getCampaigns: all versions and date ranges failed');
   }
 
   /**
