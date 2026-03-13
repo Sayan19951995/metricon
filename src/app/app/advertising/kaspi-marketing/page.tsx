@@ -90,6 +90,7 @@ export default function KaspiMarketingPage() {
 
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [summary, setSummary] = useState<MarketingSummary | null>(null);
+  const [channelErrors, setChannelErrors] = useState<string[]>([]);
   const [loadingData, setLoadingData] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
@@ -178,13 +179,10 @@ export default function KaspiMarketingPage() {
       if (json.success) {
         setCampaigns(json.data.campaigns || []);
         setSummary(json.data.summary || null);
-        // Если есть ошибки каналов и всё по нулям — показываем предупреждение
         const errs: string[] = json.data.channelErrors || [];
-        if (errs.length > 0) {
-          const allZero = !json.data.summary || json.data.summary.totalCost === 0;
-          if (allZero) {
-            setError('Kaspi Marketing не отвечает. Попробуйте переподключить аккаунт.');
-          }
+        setChannelErrors(errs);
+        if (errs.length > 0 && (!json.data.summary || json.data.summary.totalCost === 0)) {
+          setError('Ошибка загрузки данных с Kaspi');
         }
       } else if (res.status === 400) {
         setConnected(false);
@@ -593,15 +591,22 @@ export default function KaspiMarketingPage() {
               </div>
 
               {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-start justify-between gap-3">
-                  <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                  <button
-                    onClick={handleDisconnect}
-                    disabled={disconnecting}
-                    className="text-xs text-red-600 dark:text-red-400 underline whitespace-nowrap cursor-pointer"
-                  >
-                    Переподключить
-                  </button>
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                    <button
+                      onClick={handleDisconnect}
+                      disabled={disconnecting}
+                      className="text-xs text-red-600 dark:text-red-400 underline whitespace-nowrap cursor-pointer"
+                    >
+                      Переподключить
+                    </button>
+                  </div>
+                  {channelErrors.length > 0 && (
+                    <ul className="text-xs text-red-500 dark:text-red-400 space-y-0.5 font-mono">
+                      {channelErrors.map((e, i) => <li key={i}>• {e}</li>)}
+                    </ul>
+                  )}
                 </div>
               )}
 
