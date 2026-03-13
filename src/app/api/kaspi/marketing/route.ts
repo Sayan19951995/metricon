@@ -99,39 +99,52 @@ export async function GET(request: NextRequest) {
     const start = startDate || defaultStart;
     const end = endDate || defaultEnd;
 
-    // Fetch кампаний — с однократным авто-reconnect (кулдаун 1ч чтобы не долбить Kaspi)
-    let campaigns;
+    // Fetch кампаний — с однократным авто-reconnect только при auth-ошибках (401/403)
+    let campaigns: import('@/lib/kaspi/marketing-client').MarketingCampaign[] = [];
+    let campaignsFetchError: string | undefined;
     try {
       campaigns = await client.getCampaigns(start, end);
     } catch (firstErr) {
-      console.log('[Marketing] getCampaigns failed:', firstErr instanceof Error ? firstErr.message : firstErr);
+      const firstErrMsg = firstErr instanceof Error ? firstErr.message : String(firstErr);
+      console.log('[Marketing] getCampaigns failed:', firstErrMsg);
 
-      // Проверяем кулдаун (1 час) чтобы не вызывать 429
-      const ONE_HOUR_MS = 60 * 60 * 1000;
-      const lastAttempt = session.last_reconnect_attempt ? new Date(session.last_reconnect_attempt).getTime() : 0;
-      const onCooldown = Date.now() - lastAttempt < ONE_HOUR_MS;
+      // Только при auth-ошибках пробуем переподключиться
+      const isAuthError = /HTTP 401|HTTP 403|sign.?in|unauthorized|session|token/i.test(firstErrMsg);
 
-      if (onCooldown || !session.username || !session.password) {
-        // Не очищаем сессию — показываем ошибку, пользователь сам решит переподключиться
-        return NextResponse.json({ success: false, message: firstErr instanceof Error ? firstErr.message : 'Ошибка загрузки кампаний' }, { status: 500 });
+      if (isAuthError && session.username && session.password) {
+        // Проверяем кулдаун (30 мин) чтобы не долбить Kaspi
+        const COOLDOWN_MS = 30 * 60 * 1000;
+        const lastAttempt = session.last_reconnect_attempt ? new Date(session.last_reconnect_attempt).getTime() : 0;
+        const onCooldown = Date.now() - lastAttempt < COOLDOWN_MS;
+
+        if (!onCooldown) {
+          console.log('[Marketing] Auth error — attempting reconnect...');
+          const stampedSession = { ...session, last_reconnect_attempt: new Date().toISOString() };
+          await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(stampedSession)) }).eq('user_id', userId);
+
+          try {
+            const { KaspiMarketingClient: KMC } = await import('@/lib/kaspi/marketing-client');
+            const newSession = await KMC.login(session.username, session.password);
+            await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(newSession.session)) }).eq('user_id', userId);
+            client = new KaspiMarketingClient(newSession.session);
+            campaigns = await client.getCampaigns(start, end);
+            console.log('[Marketing] Reconnected successfully');
+          } catch (reconnectErr) {
+            campaignsFetchError = reconnectErr instanceof Error ? reconnectErr.message : 'Ошибка переподключения';
+            console.error('[Marketing] Reconnect failed:', campaignsFetchError);
+          }
+        } else {
+          campaignsFetchError = firstErrMsg;
+        }
+      } else {
+        // Серверная ошибка Kaspi (не auth) — логируем и продолжаем с пустыми кампаниями
+        campaignsFetchError = firstErrMsg;
+        console.log('[Marketing] Non-auth error from Kaspi, continuing with empty campaigns');
       }
+    }
 
-      // Однократная попытка переподключения
-      console.log('[Marketing] Attempting reconnect...');
-      const stampedSession = { ...session, last_reconnect_attempt: new Date().toISOString() };
-      await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(stampedSession)) }).eq('user_id', userId);
-
-      try {
-        const { KaspiMarketingClient: KMC } = await import('@/lib/kaspi/marketing-client');
-        const newSession = await KMC.login(session.username, session.password);
-        await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(newSession.session)) }).eq('user_id', userId);
-        client = new KaspiMarketingClient(newSession.session);
-        campaigns = await client.getCampaigns(start, end);
-        console.log('[Marketing] Reconnected successfully');
-      } catch (reconnectErr) {
-        console.error('[Marketing] Reconnect failed:', reconnectErr instanceof Error ? reconnectErr.message : reconnectErr);
-        return NextResponse.json({ success: false, message: reconnectErr instanceof Error ? reconnectErr.message : 'Ошибка переподключения' }, { status: 500 });
-      }
+    if (campaignsFetchError) {
+      console.warn('[Marketing] productAds unavailable:', campaignsFetchError);
     }
 
     const summary = KaspiMarketingClient.aggregateCampaigns(campaigns);
@@ -150,6 +163,7 @@ export async function GET(request: NextRequest) {
       reviewBonuses: 0,
     };
     const channelErrors: string[] = [];
+    if (campaignsFetchError) channelErrors.push(`productAds: ${campaignsFetchError}`);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const channelDebug: Record<string, any> = {};
 
