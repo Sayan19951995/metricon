@@ -580,8 +580,17 @@ export default function KaspiMarketingPage() {
               </div>
 
               {error && (
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3">
+                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-start justify-between gap-3">
                   <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+                  {error.includes('истекла') && (
+                    <button
+                      onClick={handleDisconnect}
+                      disabled={disconnecting}
+                      className="text-xs text-red-600 dark:text-red-400 underline whitespace-nowrap cursor-pointer"
+                    >
+                      Переподключиться
+                    </button>
+                  )}
                 </div>
               )}
 

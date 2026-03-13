@@ -103,12 +103,12 @@ export async function GET(request: NextRequest) {
     let campaigns;
     try {
       campaigns = await client.getCampaigns(start, end);
-    } catch {
+    } catch (firstErr) {
       if (KaspiMarketingClient.isReconnectOnCooldown(session)) {
         throw new Error('Сессия маркетинга истекла. Переподключитесь в настройках.');
       }
       // Сессия могла протухнуть — пробуем переподключиться
-      console.log('[Marketing] Session expired, attempting reconnect...');
+      console.log('[Marketing] Session expired, attempting reconnect...', firstErr instanceof Error ? firstErr.message : firstErr);
       // Сохраняем timestamp до попытки (чтобы кулдаун сработал даже при неудаче)
       const stampedSession = KaspiMarketingClient.stampReconnectAttempt(session);
       await supabaseAdmin.from('stores')
@@ -121,8 +121,13 @@ export async function GET(request: NextRequest) {
           .update({ marketing_session: JSON.parse(JSON.stringify(newSession)) })
           .eq('user_id', userId);
         client = new KaspiMarketingClient(newSession);
-        campaigns = await client.getCampaigns(start, end);
-        console.log('[Marketing] Reconnected successfully');
+        try {
+          campaigns = await client.getCampaigns(start, end);
+          console.log('[Marketing] Reconnected successfully');
+        } catch (secondErr) {
+          console.error('[Marketing] getCampaigns failed even after reconnect:', secondErr instanceof Error ? secondErr.message : secondErr);
+          throw new Error('Сессия маркетинга истекла. Переподключитесь в настройках.');
+        }
       } else {
         throw new Error('Сессия маркетинга истекла. Переподключитесь в настройках.');
       }
