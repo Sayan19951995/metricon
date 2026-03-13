@@ -347,11 +347,12 @@ export class KaspiMarketingClient {
     const start = new Date(startDate);
     const end = new Date(endDate);
     const diffDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    const clampedStart = diffDays > 14
-      ? new Date(end.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+    const clampedStart = diffDays > 7
+      ? new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
       : startDate;
 
     const url = `${MARKETING_BASE}/advertising/products/api/v5/merchant/${this.merchantId}/Campaigns?StartDate=${clampedStart}&EndDate=${endDate}`;
+    console.log(`[Marketing] getCampaigns url=${url} merchantId=${this.merchantId} diffDays=${diffDays}`);
 
     const response = await fetch(url, {
       method: 'GET',
