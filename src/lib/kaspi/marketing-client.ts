@@ -349,9 +349,25 @@ export class KaspiMarketingClient {
       },
     });
 
-    const json = await response.json() as { result: string; data: MarketingCampaign[] };
+    console.log(`[Marketing] getCampaigns HTTP ${response.status} for merchant ${this.merchantId}`);
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => '');
+      console.error(`[Marketing] getCampaigns non-OK: ${response.status} body=${text.slice(0, 300)}`);
+      throw new Error(`getCampaigns HTTP ${response.status}`);
+    }
+
+    const text = await response.text();
+    let json: { result: string; data: MarketingCampaign[] };
+    try {
+      json = JSON.parse(text) as { result: string; data: MarketingCampaign[] };
+    } catch {
+      console.error(`[Marketing] getCampaigns non-JSON: ${text.slice(0, 300)}`);
+      throw new Error('getCampaigns response not JSON');
+    }
 
     if (json.result !== 'Ok') {
+      console.error(`[Marketing] getCampaigns result=${json.result} body=${text.slice(0, 300)}`);
       throw new Error(`Failed to fetch campaigns: ${json.result}`);
     }
 
