@@ -7,13 +7,13 @@ const MARKETING_BASE = 'https://marketing.kaspi.kz';
 const DEFAULT_HEADERS: Record<string, string> = {
   'Accept': 'application/json, text/plain, */*',
   'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-  'Sec-Ch-Ua': '"Chromium";v="144", "Google Chrome";v="144", "Not-A.Brand";v="99"',
+  'Sec-Ch-Ua': '"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"',
   'Sec-Ch-Ua-Mobile': '?0',
   'Sec-Ch-Ua-Platform': '"Windows"',
   'Sec-Fetch-Dest': 'empty',
   'Sec-Fetch-Mode': 'cors',
   'Sec-Fetch-Site': 'same-origin',
-  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
+  'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36',
   'x-front-version': '5.0.458',
   'x-requested-with': 'XMLHttpRequest',
 };
@@ -226,47 +226,52 @@ export class KaspiMarketingClient {
    * Возвращает объединённую строку cookie со всеми дополнительными куками.
    */
   static async warmupSession(cookies: string): Promise<string> {
-    // Only visit /advertising — the main SPA page that initialises the session.
-    // Do NOT follow redirects (bonus/external pages may redirect to /sign-in and
-    // overwrite session cookies, breaking the whole session).
+    // Visit each module's SPA page to initialise server-side session state.
+    // redirect:'manual' — never follow redirects to avoid /sign-in overwriting cookies.
+    const pages = [
+      `${MARKETING_BASE}/advertising`,
+      `${MARKETING_BASE}/bonuses/products/promotions/overview`,
+      `${MARKETING_BASE}/bonuses/reviews/promotions/overview`,
+      `${MARKETING_BASE}/external/advertising/products/campaigns`,
+    ];
+
     const cookieMap: Record<string, string> = {};
     for (const part of cookies.split(';')) {
       const m = part.trim().match(/^([^=]+)=(.*)$/);
       if (m) cookieMap[m[1].trim()] = m[2];
     }
 
-    try {
-      const resp = await fetch(`${MARKETING_BASE}/advertising`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-          'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-          'Sec-Ch-Ua': DEFAULT_HEADERS['Sec-Ch-Ua'],
-          'Sec-Ch-Ua-Mobile': '?0',
-          'Sec-Ch-Ua-Platform': '"Windows"',
-          'Sec-Fetch-Dest': 'document',
-          'Sec-Fetch-Mode': 'navigate',
-          'Sec-Fetch-Site': 'none',
-          'Sec-Fetch-User': '?1',
-          'Upgrade-Insecure-Requests': '1',
-          'User-Agent': DEFAULT_HEADERS['User-Agent'],
-          'Cookie': Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join('; '),
-        },
-        redirect: 'manual', // never follow — avoid redirect to /sign-in wiping cookies
-      });
+    const pageHeaders = {
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+      'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Sec-Ch-Ua': DEFAULT_HEADERS['Sec-Ch-Ua'],
+      'Sec-Ch-Ua-Mobile': '?0',
+      'Sec-Ch-Ua-Platform': '"Windows"',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1',
+      'User-Agent': DEFAULT_HEADERS['User-Agent'],
+    };
 
-      const setCookies = resp.headers.getSetCookie?.() || [];
-      let newCount = 0;
-      for (const cookie of setCookies) {
-        const m = cookie.match(/^([^=]+)=([^;]+)/);
-        if (m && !cookieMap[m[1].trim()]) {
-          cookieMap[m[1].trim()] = m[2];
-          newCount++;
+    for (const pageUrl of pages) {
+      try {
+        const resp = await fetch(pageUrl, {
+          method: 'GET',
+          headers: { ...pageHeaders, 'Cookie': Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join('; ') },
+          redirect: 'manual',
+        });
+        const setCookies = resp.headers.getSetCookie?.() || [];
+        let newCount = 0;
+        for (const cookie of setCookies) {
+          const m = cookie.match(/^([^=]+)=([^;]+)/);
+          if (m && !cookieMap[m[1].trim()]) { cookieMap[m[1].trim()] = m[2]; newCount++; }
         }
+        console.log(`[Marketing] Warmup ${pageUrl.replace(MARKETING_BASE, '')}: status=${resp.status}, newCookies=${newCount}`);
+      } catch (err) {
+        console.error(`[Marketing] Warmup ${pageUrl.replace(MARKETING_BASE, '')} failed:`, err instanceof Error ? err.message : err);
       }
-      console.log(`[Marketing] Warmup /advertising: status=${resp.status}, newCookies=${newCount}`);
-    } catch (err) {
-      console.error('[Marketing] Warmup failed:', err instanceof Error ? err.message : err);
     }
 
     return Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join('; ');
