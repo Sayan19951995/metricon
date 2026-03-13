@@ -294,6 +294,10 @@ export class KaspiMarketingClient {
     const allCookiesStr = Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join('; ');
 
     // Если redirect (302/303), тело может быть пустым — пробуем читать текст
+    if (response.status === 429) {
+      throw new Error('Слишком много попыток входа. Подождите несколько минут и попробуйте снова.');
+    }
+
     const text = await response.text();
     let json: MarketingLoginResponse;
     try {
