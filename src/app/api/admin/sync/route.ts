@@ -52,13 +52,14 @@ export async function POST(request: NextRequest) {
 
     let client = new KaspiAPIClient(session.cookies, session.merchant_id || store.kaspi_merchant_id || '');
 
-    // Находим completed заказы без completed_at
+    // Находим completed заказы без completed_at, сортируем по новым
     const { data: ordersToFix } = await supabaseAdmin
       .from('orders')
       .select('id, kaspi_order_id, completed_at, status')
       .eq('store_id', storeId)
       .eq('status', 'completed')
-      .is('completed_at', null);
+      .is('completed_at', null)
+      .order('created_at', { ascending: false });
 
     if (!ordersToFix || ordersToFix.length === 0) {
       return NextResponse.json({
@@ -71,24 +72,33 @@ export async function POST(request: NextRequest) {
 
     console.log(`[ADMIN SYNC] Store ${store.name || storeId}: ${ordersToFix.length} orders missing completed_at`);
 
-    // Тест BFF — первый заказ
+    // Тест BFF — пробуем первые 5 заказов
     let testDate: string | null = null;
-    try {
-      testDate = await client.getOrderCompletionDate(ordersToFix[0].kaspi_order_id);
-    } catch (e) {
-      console.warn(`[ADMIN SYNC] BFF test failed:`, e);
+    let testOrderIdx = 0;
+    const testCandidates = ordersToFix.slice(0, 5);
+
+    for (const candidate of testCandidates) {
+      try {
+        testDate = await client.getOrderCompletionDate(candidate.kaspi_order_id);
+        if (testDate) { testOrderIdx = ordersToFix.indexOf(candidate); break; }
+      } catch (e) {
+        console.warn(`[ADMIN SYNC] BFF test failed for ${candidate.kaspi_order_id}:`, e);
+      }
     }
 
-    // Если не сработало — relogin
+    // Если не сработало — relogin и повторяем
     if (!testDate && session.username && session.password) {
       console.log(`[ADMIN SYNC] BFF test failed, trying relogin...`);
       const refreshed = await refreshCabinetSession(storeId, session, store.kaspi_merchant_id || undefined);
       if (refreshed) {
         client = refreshed.client;
-        try {
-          testDate = await client.getOrderCompletionDate(ordersToFix[0].kaspi_order_id);
-        } catch (e) {
-          console.warn(`[ADMIN SYNC] BFF test after relogin failed:`, e);
+        for (const candidate of testCandidates) {
+          try {
+            testDate = await client.getOrderCompletionDate(candidate.kaspi_order_id);
+            if (testDate) { testOrderIdx = ordersToFix.indexOf(candidate); break; }
+          } catch (e) {
+            console.warn(`[ADMIN SYNC] BFF test after relogin failed for ${candidate.kaspi_order_id}:`, e);
+          }
         }
       }
     }
@@ -101,12 +111,12 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Тест прошёл — фиксим первый и остальные
-    await supabaseAdmin.from('orders').update({ completed_at: testDate }).eq('id', ordersToFix[0].id);
+    // Тест прошёл — фиксим тестовый и остальные
+    await supabaseAdmin.from('orders').update({ completed_at: testDate }).eq('id', ordersToFix[testOrderIdx].id);
     let fixed = 1;
     let failed = 0;
 
-    const remaining = ordersToFix.slice(1);
+    const remaining = ordersToFix.filter((_, i) => i !== testOrderIdx);
     const CONCURRENCY = 5;
 
     for (let i = 0; i < remaining.length; i += CONCURRENCY) {
