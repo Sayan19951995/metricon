@@ -100,6 +100,7 @@ export interface MarketingSession {
   user_token: string;
   session_id: string;
   merchant_id: number;
+  merchant_business_id?: string;
   marketing_user_id: string;
   merchant_name: string;
   created_at: string;
@@ -319,10 +320,20 @@ export class KaspiMarketingClient {
       throw new Error('No merchant found in marketing login response');
     }
 
+    // Log all available IDs for debugging
+    console.log('[Marketing] Login IDs:', {
+      'shop.merchants[0].id': merchant.id,
+      'shop.merchants[0].merchantBusinessId': merchant.merchantBusinessId,
+      'shop.merchantBusinessId': json.data.shop?.merchantBusinessId,
+      'pay.merchantId': json.data.pay?.merchantId,
+      'merchantsCount': json.data.shop?.merchants?.length,
+    });
+
     const session: MarketingSession = {
       user_token: userToken,
       session_id: sessionId,
       merchant_id: merchant.id,
+      merchant_business_id: merchant.merchantBusinessId || json.data.shop?.merchantBusinessId,
       marketing_user_id: json.data.userId,
       merchant_name: merchant.merchantName,
       created_at: new Date().toISOString(),
@@ -370,8 +381,8 @@ export class KaspiMarketingClient {
 
     if (json.result !== 'Ok') {
       const detail = (json as Record<string, unknown>).message || (json as Record<string, unknown>).errorCode || text.slice(0, 200);
-      console.error(`[Marketing] getCampaigns result=${json.result} detail=${detail}`);
-      throw new Error(`getCampaigns: result=${json.result} | ${detail}`);
+      console.error(`[Marketing] getCampaigns result=${json.result} merchantId=${this.merchantId} detail=${detail}`);
+      throw new Error(`getCampaigns merchantId=${this.merchantId}: result=${json.result} | ${detail}`);
     }
 
     return json.data || [];

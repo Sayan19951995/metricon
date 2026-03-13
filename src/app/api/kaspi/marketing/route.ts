@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
     const allChannelsFailed = liveData.channelErrors.length >= 4 && liveData.summary.totalCost === 0;
 
     if (allChannelsFailed && session.username && session.password) {
-      const COOLDOWN_MS = 30 * 60 * 1000;
+      const COOLDOWN_MS = 5 * 60 * 1000; // 5 min cooldown (was 30)
       const lastAttempt = session.last_reconnect_attempt ? new Date(session.last_reconnect_attempt).getTime() : 0;
       if (Date.now() - lastAttempt >= COOLDOWN_MS) {
         console.log(`[Marketing] All 4 channels failed, re-logging to refresh merchantId (current=${session.merchant_id})...`);
