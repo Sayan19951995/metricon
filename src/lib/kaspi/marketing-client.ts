@@ -371,8 +371,9 @@ export class KaspiMarketingClient {
     }
 
     if (json.result !== 'Ok') {
-      console.error(`[Marketing] getCampaigns result=${json.result} body=${text.slice(0, 300)}`);
-      throw new Error(`Failed to fetch campaigns: ${json.result}`);
+      const detail = (json as Record<string, unknown>).message || (json as Record<string, unknown>).errorCode || text.slice(0, 200);
+      console.error(`[Marketing] getCampaigns result=${json.result} detail=${detail}`);
+      throw new Error(`getCampaigns: result=${json.result} | ${detail}`);
     }
 
     return json.data || [];
