@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     const { data: stores } = await supabaseAdmin
       .from('stores')
       .select('id, user_id, name, marketing_session')
-      .eq('daily_report_enabled', true);
+      .eq('whatsapp_connected', true);
 
     if (!stores || stores.length === 0) {
       return NextResponse.json({ success: true, message: 'No stores' });
