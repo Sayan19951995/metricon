@@ -338,27 +338,15 @@ export class KaspiMarketingClient {
    * Получить все кампании за период
    */
   async getCampaigns(startDate: string, endDate: string): Promise<MarketingCampaign[]> {
-    const cookies = await this.preflight(
-      `${MARKETING_BASE}/advertising/campaigns?tab=campaigns`,
-      'campaigns',
-    );
-    // Kaspi's API crashes ("Index was outside the bounds of the array") with large date ranges.
-    // Clamp to max 14 days.
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    const diffDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    const clampedStart = diffDays > 7
-      ? new Date(end.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
-      : startDate;
-
-    const url = `${MARKETING_BASE}/advertising/products/api/v5/merchant/${this.merchantId}/Campaigns?StartDate=${clampedStart}&EndDate=${endDate}`;
-    console.log(`[Marketing] getCampaigns url=${url} merchantId=${this.merchantId} diffDays=${diffDays}`);
+    // No preflight — preflight was redirecting to /sign-in and polluting cookies
+    const url = `${MARKETING_BASE}/advertising/products/api/v5/merchant/${this.merchantId}/Campaigns?StartDate=${startDate}&EndDate=${endDate}`;
+    console.log(`[Marketing] getCampaigns url=${url} merchantId=${this.merchantId}`);
 
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         ...DEFAULT_HEADERS,
-        'Cookie': cookies,
+        'Cookie': this.cookies,
         'Referer': `${MARKETING_BASE}/advertising/campaigns?tab=campaigns`,
       },
     });
