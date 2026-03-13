@@ -138,7 +138,8 @@ async function syncOneDay(client: KaspiMarketingClient, storeId: string, date: s
     synced_at: new Date().toISOString(),
   };
 
-  const { error } = await supabaseAdmin
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabaseAdmin as any)
     .from('marketing_daily')
     .upsert(row, { onConflict: 'store_id,date' });
 

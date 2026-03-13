@@ -290,7 +290,8 @@ async function saveToDb(storeId: string, start: string, end: string, d: LiveData
   // Точный посуточный синк делает cron /api/cron/marketing-sync
   const date = start === end ? start : end;
 
-  const { error } = await supabaseAdmin.from('marketing_daily').upsert({
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabaseAdmin as any).from('marketing_daily').upsert({
     store_id: storeId,
     date,
     product_ads_cost: d.channels.productAds,
@@ -313,7 +314,8 @@ async function saveToDb(storeId: string, start: string, end: string, d: LiveData
 }
 
 async function readFromDb(storeId: string, start: string, end: string) {
-  const { data } = await supabaseAdmin
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data } = await (supabaseAdmin as any)
     .from('marketing_daily')
     .select('*')
     .eq('store_id', storeId)
