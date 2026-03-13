@@ -6,19 +6,27 @@
 const WA_SERVER_URL = process.env.WA_SERVER_URL || 'http://localhost:3001';
 const WA_SERVER_SECRET = process.env.WA_SERVER_SECRET || 'dev-secret';
 
-async function waFetch(path: string, options: RequestInit = {}): Promise<any> {
+async function waFetch(path: string, options: RequestInit = {}, timeoutMs = 5000): Promise<any> {
   const separator = path.includes('?') ? '&' : '?';
   const url = `${WA_SERVER_URL}${path}${separator}_t=${Date.now()}`;
-  const res = await fetch(url, {
-    ...options,
-    cache: 'no-store',
-    next: { revalidate: 0 },
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': WA_SERVER_SECRET,
-      ...options.headers,
-    },
-  } as any);
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      cache: 'no-store',
+      next: { revalidate: 0 },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': WA_SERVER_SECRET,
+        ...options.headers,
+      },
+    } as any);
+  } finally {
+    clearTimeout(timer);
+  }
 
   const data = await res.json().catch(() => null);
   console.log(`[waFetch] ${options.method || 'GET'} ${path} → ${res.status}`, JSON.stringify(data));
