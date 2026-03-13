@@ -430,7 +430,7 @@ export async function POST(request: NextRequest) {
           const update: Record<string, any> = {};
           if (dbOrder.status !== 'completed') update.status = 'completed';
           const bffDate = bffDates.get(order.orderId);
-          if (!dbOrder.completed_at) update.completed_at = bffDate || new Date().toISOString();
+          if (bffDate && !dbOrder.completed_at) update.completed_at = bffDate;
           if (order.deliveryMode && dbOrder.delivery_mode !== order.deliveryMode) update.delivery_mode = order.deliveryMode;
           if (order.deliveryCostForSeller && dbOrder.delivery_cost !== order.deliveryCostForSeller) update.delivery_cost = order.deliveryCostForSeller;
           if (hasNewItems) {
