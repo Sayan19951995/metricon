@@ -1083,7 +1083,7 @@ function AnalyticsPageContent() {
   ].filter(d => d.value > 0 || ['kaspiDelivery', 'regional', 'pickup'].includes(d.key));
 
   // Расчет процента рентабельности
-  const profitMargin = ((data.totalProfit / data.totalRevenue) * 100).toFixed(1);
+  const profitMargin = data.totalRevenue > 0 ? ((data.totalProfit / data.totalRevenue) * 100).toFixed(1) : '0';
 
   if (userLoading || dataLoading) {
     return <AnalyticsPageSkeleton />;
