@@ -178,8 +178,15 @@ export default function KaspiMarketingPage() {
       if (json.success) {
         setCampaigns(json.data.campaigns || []);
         setSummary(json.data.summary || null);
+        // Если есть ошибки каналов и всё по нулям — показываем предупреждение
+        const errs: string[] = json.data.channelErrors || [];
+        if (errs.length > 0) {
+          const allZero = !json.data.summary || json.data.summary.totalCost === 0;
+          if (allZero) {
+            setError('Kaspi Marketing не отвечает. Попробуйте переподключить аккаунт.');
+          }
+        }
       } else if (res.status === 400) {
-        // Сессии нет в БД — переходим на форму логина
         setConnected(false);
         setMerchantName('');
         setCampaigns([]);
@@ -588,15 +595,13 @@ export default function KaspiMarketingPage() {
               {error && (
                 <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 flex items-start justify-between gap-3">
                   <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
-                  {error.includes('истекла') && (
-                    <button
-                      onClick={handleDisconnect}
-                      disabled={disconnecting}
-                      className="text-xs text-red-600 dark:text-red-400 underline whitespace-nowrap cursor-pointer"
-                    >
-                      Переподключиться
-                    </button>
-                  )}
+                  <button
+                    onClick={handleDisconnect}
+                    disabled={disconnecting}
+                    className="text-xs text-red-600 dark:text-red-400 underline whitespace-nowrap cursor-pointer"
+                  >
+                    Переподключить
+                  </button>
                 </div>
               )}
 
