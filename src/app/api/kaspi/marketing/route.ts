@@ -99,38 +99,21 @@ export async function GET(request: NextRequest) {
     const start = startDate || defaultStart;
     const end = endDate || defaultEnd;
 
-    // Fetch кампаний (с авто-переподключением при протухшей сессии)
+    // Fetch кампаний — без авто-reconnect (он вызывает 429 от Kaspi при серверных запросах)
     let campaigns;
     try {
       campaigns = await client.getCampaigns(start, end);
-    } catch (firstErr) {
-      if (KaspiMarketingClient.isReconnectOnCooldown(session)) {
-        throw new Error('Сессия маркетинга истекла. Переподключитесь в настройках.');
-      }
-      // Сессия могла протухнуть — пробуем переподключиться
-      console.log('[Marketing] Session expired, attempting reconnect...', firstErr instanceof Error ? firstErr.message : firstErr);
-      // Сохраняем timestamp до попытки (чтобы кулдаун сработал даже при неудаче)
-      const stampedSession = KaspiMarketingClient.stampReconnectAttempt(session);
+    } catch (err) {
+      // Сессия истекла — очищаем из БД чтобы страница показала форму логина
+      console.log('[Marketing] Session expired, clearing session:', err instanceof Error ? err.message : err);
       await supabaseAdmin.from('stores')
-        .update({ marketing_session: JSON.parse(JSON.stringify(stampedSession)) })
+        .update({ marketing_session: null })
         .eq('user_id', userId);
-
-      const newSession = await KaspiMarketingClient.tryReconnect(session);
-      if (newSession) {
-        await supabaseAdmin.from('stores')
-          .update({ marketing_session: JSON.parse(JSON.stringify(newSession)) })
-          .eq('user_id', userId);
-        client = new KaspiMarketingClient(newSession);
-        try {
-          campaigns = await client.getCampaigns(start, end);
-          console.log('[Marketing] Reconnected successfully');
-        } catch (secondErr) {
-          console.error('[Marketing] getCampaigns failed even after reconnect:', secondErr instanceof Error ? secondErr.message : secondErr);
-          throw new Error('Сессия маркетинга истекла. Переподключитесь в настройках.');
-        }
-      } else {
-        throw new Error('Сессия маркетинга истекла. Переподключитесь в настройках.');
-      }
+      return NextResponse.json({
+        success: false,
+        message: 'Сессия маркетинга истекла. Войдите заново.',
+        sessionExpired: true,
+      }, { status: 401 });
     }
 
     const summary = KaspiMarketingClient.aggregateCampaigns(campaigns);
