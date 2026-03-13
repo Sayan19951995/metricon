@@ -221,6 +221,66 @@ export class KaspiMarketingClient {
   }
 
   /**
+   * Warmup: посещаем несколько страниц портала с полученными cookie чтобы
+   * инициализировать сессию на стороне Kaspi — так же как это делает браузер.
+   * Возвращает объединённую строку cookie со всеми дополнительными куками.
+   */
+  static async warmupSession(cookies: string): Promise<string> {
+    const pages = [
+      `${MARKETING_BASE}/advertising`,
+      `${MARKETING_BASE}/bonuses/products`,
+      `${MARKETING_BASE}/bonuses/reviews`,
+      `${MARKETING_BASE}/external/advertising/products`,
+    ];
+
+    const cookieMap: Record<string, string> = {};
+    // Parse existing cookies into map
+    for (const part of cookies.split(';')) {
+      const m = part.trim().match(/^([^=]+)=(.*)$/);
+      if (m) cookieMap[m[1].trim()] = m[2];
+    }
+
+    for (const pageUrl of pages) {
+      try {
+        const resp = await fetch(pageUrl, {
+          method: 'GET',
+          headers: {
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Sec-Ch-Ua': DEFAULT_HEADERS['Sec-Ch-Ua'],
+            'Sec-Ch-Ua-Mobile': '?0',
+            'Sec-Ch-Ua-Platform': '"Windows"',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'none',
+            'Sec-Fetch-User': '?1',
+            'Upgrade-Insecure-Requests': '1',
+            'User-Agent': DEFAULT_HEADERS['User-Agent'],
+            'Cookie': Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join('; '),
+          },
+          redirect: 'follow',
+        });
+
+        // Collect any new cookies set by this page
+        const setCookies = resp.headers.getSetCookie?.() || [];
+        let newCount = 0;
+        for (const cookie of setCookies) {
+          const m = cookie.match(/^([^=]+)=([^;]+)/);
+          if (m && !cookieMap[m[1].trim()]) {
+            cookieMap[m[1].trim()] = m[2];
+            newCount++;
+          }
+        }
+        console.log(`[Marketing] Warmup ${pageUrl}: status=${resp.status}, newCookies=${newCount}`);
+      } catch (err) {
+        console.error(`[Marketing] Warmup ${pageUrl} failed:`, err instanceof Error ? err.message : err);
+      }
+    }
+
+    return Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join('; ');
+  }
+
+  /**
    * Логин в Kaspi Marketing
    */
   static async login(username: string, password: string): Promise<{
@@ -329,6 +389,11 @@ export class KaspiMarketingClient {
       'merchantsCount': json.data.shop?.merchants?.length,
     });
 
+    // Warmup: visit the advertising portal to initialize session server-side,
+    // exactly as a browser would after login. This picks up any WAF/session-init
+    // cookies that Kaspi sets on first page load.
+    const warmedCookies = await KaspiMarketingClient.warmupSession(allCookiesStr);
+
     const session: MarketingSession = {
       user_token: userToken,
       session_id: sessionId,
@@ -339,7 +404,7 @@ export class KaspiMarketingClient {
       created_at: new Date().toISOString(),
       username,
       password,
-      all_cookies: allCookiesStr,
+      all_cookies: warmedCookies,
     };
 
     return { session, loginData: json.data };
