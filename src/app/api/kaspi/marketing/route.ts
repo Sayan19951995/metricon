@@ -112,9 +112,8 @@ export async function GET(request: NextRequest) {
       const onCooldown = Date.now() - lastAttempt < ONE_HOUR_MS;
 
       if (onCooldown || !session.username || !session.password) {
-        // Очищаем сессию — пусть пользователь зайдёт заново
-        await supabaseAdmin.from('stores').update({ marketing_session: null }).eq('user_id', userId);
-        return NextResponse.json({ success: false, message: 'Сессия маркетинга истекла. Войдите заново.', sessionExpired: true }, { status: 401 });
+        // Не очищаем сессию — показываем ошибку, пользователь сам решит переподключиться
+        return NextResponse.json({ success: false, message: firstErr instanceof Error ? firstErr.message : 'Ошибка загрузки кампаний' }, { status: 500 });
       }
 
       // Однократная попытка переподключения
@@ -131,8 +130,7 @@ export async function GET(request: NextRequest) {
         console.log('[Marketing] Reconnected successfully');
       } catch (reconnectErr) {
         console.error('[Marketing] Reconnect failed:', reconnectErr instanceof Error ? reconnectErr.message : reconnectErr);
-        await supabaseAdmin.from('stores').update({ marketing_session: null }).eq('user_id', userId);
-        return NextResponse.json({ success: false, message: 'Сессия маркетинга истекла. Войдите заново.', sessionExpired: true }, { status: 401 });
+        return NextResponse.json({ success: false, message: reconnectErr instanceof Error ? reconnectErr.message : 'Ошибка переподключения' }, { status: 500 });
       }
     }
 

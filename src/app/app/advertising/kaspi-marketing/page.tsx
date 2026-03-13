@@ -178,8 +178,8 @@ export default function KaspiMarketingPage() {
       if (json.success) {
         setCampaigns(json.data.campaigns || []);
         setSummary(json.data.summary || null);
-      } else if (json.sessionExpired || res.status === 401 || res.status === 400) {
-        // Сессия истекла или не подключена — переходим на форму логина
+      } else if (res.status === 400) {
+        // Сессии нет в БД — переходим на форму логина
         setConnected(false);
         setMerchantName('');
         setCampaigns([]);
