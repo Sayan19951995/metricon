@@ -182,7 +182,7 @@ export default function KaspiMarketingPage() {
         const errs: string[] = json.data.channelErrors || [];
         setChannelErrors(errs);
         if (errs.length > 0 && (!json.data.summary || json.data.summary.totalCost === 0)) {
-          setError('Ошибка загрузки данных с Kaspi');
+          setError('Kaspi Marketing временно недоступен. Данные будут загружены автоматически когда сервис восстановится.');
         }
       } else if (res.status === 400) {
         setConnected(false);
@@ -602,11 +602,6 @@ export default function KaspiMarketingPage() {
                       Переподключить
                     </button>
                   </div>
-                  {channelErrors.length > 0 && (
-                    <ul className="text-xs text-red-500 dark:text-red-400 space-y-0.5 font-mono">
-                      {channelErrors.map((e, i) => <li key={i}>• {e}</li>)}
-                    </ul>
-                  )}
                 </div>
               )}
 
