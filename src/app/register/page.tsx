@@ -311,10 +311,8 @@ export default function RegisterPage() {
                     placeholder="7001234567"
                   />
                 </div>
-                {errors.phone ? (
+                {errors.phone && (
                   <p className="mt-1 text-sm text-red-500">{errors.phone}</p>
-                ) : (
-                  <p className="mt-1 text-xs text-gray-400">На этот номер будут приходить уведомления о заказах через WhatsApp</p>
                 )}
               </div>
 
