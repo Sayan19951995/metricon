@@ -96,41 +96,23 @@ export async function GET(request: NextRequest) {
     // ── 2. Если ВСЕ 4 канала упали → сессия не инициализирована или устарела ──
     const allChannelsFailed = liveData.channelErrors.length >= 4 && liveData.summary.totalCost === 0;
 
-    if (allChannelsFailed) {
+    if (allChannelsFailed && session.username && session.password) {
       const COOLDOWN_MS = 5 * 60 * 1000;
       const lastAttempt = session.last_reconnect_attempt ? new Date(session.last_reconnect_attempt).getTime() : 0;
       if (Date.now() - lastAttempt >= COOLDOWN_MS) {
-        // Шаг 1: Warmup текущей сессии (посещаем SPA-страницы как браузер)
-        console.log('[Marketing] All channels failed — running session warmup...');
+        // Ре-логин (login() внутри делает warmup /advertising с redirect:manual)
+        console.log(`[Marketing] All channels failed, re-logging (merchantId=${session.merchant_id})...`);
         const stamped = { ...session, last_reconnect_attempt: new Date().toISOString() };
         await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(stamped)) }).eq('user_id', userId);
-
         try {
-          const warmedCookies = await KaspiMarketingClient.warmupSession(session.all_cookies || `user_token=${session.user_token}; X-Kb-Session-Id=${session.session_id}`);
-          const warmedSession = { ...session, all_cookies: warmedCookies, last_reconnect_attempt: stamped.last_reconnect_attempt };
-          await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(warmedSession)) }).eq('user_id', userId);
-          session = warmedSession;
-          client = new KaspiMarketingClient(warmedSession);
+          const { session: newSession } = await KaspiMarketingClient.login(session.username, session.password);
+          await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(newSession)) }).eq('user_id', userId);
+          console.log(`[Marketing] Re-login done, merchantId: ${session.merchant_id} → ${newSession.merchant_id}`);
+          session = newSession;
+          client = new KaspiMarketingClient(newSession);
           liveData = await fetchLiveData(client, start, end);
-          console.log('[Marketing] Warmup done, channelErrors after:', liveData.channelErrors.length);
-        } catch (warmupErr) {
-          console.error('[Marketing] Warmup failed:', warmupErr instanceof Error ? warmupErr.message : warmupErr);
-        }
-
-        // Шаг 2: Если warmup не помог и есть credentials — полный ре-логин
-        const stillFailed = liveData.channelErrors.length >= 4 && liveData.summary.totalCost === 0;
-        if (stillFailed && session.username && session.password) {
-          console.log(`[Marketing] Warmup insufficient, re-logging (merchantId=${session.merchant_id})...`);
-          try {
-            const { session: newSession } = await KaspiMarketingClient.login(session.username, session.password);
-            await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(newSession)) }).eq('user_id', userId);
-            console.log(`[Marketing] Re-login done, merchantId: ${session.merchant_id} → ${newSession.merchant_id}`);
-            session = newSession;
-            client = new KaspiMarketingClient(newSession);
-            liveData = await fetchLiveData(client, start, end);
-          } catch (reloginErr) {
-            console.error('[Marketing] Re-login failed:', reloginErr instanceof Error ? reloginErr.message : reloginErr);
-          }
+        } catch (reloginErr) {
+          console.error('[Marketing] Re-login failed:', reloginErr instanceof Error ? reloginErr.message : reloginErr);
         }
       } else {
         console.log('[Marketing] All channels failed but reconnect on cooldown');

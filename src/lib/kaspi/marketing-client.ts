@@ -226,55 +226,47 @@ export class KaspiMarketingClient {
    * Возвращает объединённую строку cookie со всеми дополнительными куками.
    */
   static async warmupSession(cookies: string): Promise<string> {
-    const pages = [
-      `${MARKETING_BASE}/advertising`,
-      `${MARKETING_BASE}/bonuses/products`,
-      `${MARKETING_BASE}/bonuses/reviews`,
-      `${MARKETING_BASE}/external/advertising/products`,
-    ];
-
+    // Only visit /advertising — the main SPA page that initialises the session.
+    // Do NOT follow redirects (bonus/external pages may redirect to /sign-in and
+    // overwrite session cookies, breaking the whole session).
     const cookieMap: Record<string, string> = {};
-    // Parse existing cookies into map
     for (const part of cookies.split(';')) {
       const m = part.trim().match(/^([^=]+)=(.*)$/);
       if (m) cookieMap[m[1].trim()] = m[2];
     }
 
-    for (const pageUrl of pages) {
-      try {
-        const resp = await fetch(pageUrl, {
-          method: 'GET',
-          headers: {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-            'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
-            'Sec-Ch-Ua': DEFAULT_HEADERS['Sec-Ch-Ua'],
-            'Sec-Ch-Ua-Mobile': '?0',
-            'Sec-Ch-Ua-Platform': '"Windows"',
-            'Sec-Fetch-Dest': 'document',
-            'Sec-Fetch-Mode': 'navigate',
-            'Sec-Fetch-Site': 'none',
-            'Sec-Fetch-User': '?1',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': DEFAULT_HEADERS['User-Agent'],
-            'Cookie': Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join('; '),
-          },
-          redirect: 'follow',
-        });
+    try {
+      const resp = await fetch(`${MARKETING_BASE}/advertising`, {
+        method: 'GET',
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+          'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Sec-Ch-Ua': DEFAULT_HEADERS['Sec-Ch-Ua'],
+          'Sec-Ch-Ua-Mobile': '?0',
+          'Sec-Ch-Ua-Platform': '"Windows"',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'none',
+          'Sec-Fetch-User': '?1',
+          'Upgrade-Insecure-Requests': '1',
+          'User-Agent': DEFAULT_HEADERS['User-Agent'],
+          'Cookie': Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join('; '),
+        },
+        redirect: 'manual', // never follow — avoid redirect to /sign-in wiping cookies
+      });
 
-        // Collect any new cookies set by this page
-        const setCookies = resp.headers.getSetCookie?.() || [];
-        let newCount = 0;
-        for (const cookie of setCookies) {
-          const m = cookie.match(/^([^=]+)=([^;]+)/);
-          if (m && !cookieMap[m[1].trim()]) {
-            cookieMap[m[1].trim()] = m[2];
-            newCount++;
-          }
+      const setCookies = resp.headers.getSetCookie?.() || [];
+      let newCount = 0;
+      for (const cookie of setCookies) {
+        const m = cookie.match(/^([^=]+)=([^;]+)/);
+        if (m && !cookieMap[m[1].trim()]) {
+          cookieMap[m[1].trim()] = m[2];
+          newCount++;
         }
-        console.log(`[Marketing] Warmup ${pageUrl}: status=${resp.status}, newCookies=${newCount}`);
-      } catch (err) {
-        console.error(`[Marketing] Warmup ${pageUrl} failed:`, err instanceof Error ? err.message : err);
       }
+      console.log(`[Marketing] Warmup /advertising: status=${resp.status}, newCookies=${newCount}`);
+    } catch (err) {
+      console.error('[Marketing] Warmup failed:', err instanceof Error ? err.message : err);
     }
 
     return Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join('; ');
