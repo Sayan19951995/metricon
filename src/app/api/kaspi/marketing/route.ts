@@ -21,23 +21,15 @@ export async function POST(request: NextRequest) {
       }, { status: 400 });
     }
 
-    // Логин в marketing.kaspi.kz
     const { session, loginData } = await KaspiMarketingClient.login(username, password);
 
-    // Сохраняем сессию в stores
     const { error: updateError } = await supabaseAdmin
       .from('stores')
-      .update({
-        marketing_session: JSON.parse(JSON.stringify(session)),
-      })
+      .update({ marketing_session: JSON.parse(JSON.stringify(session)) })
       .eq('user_id', userId);
 
     if (updateError) {
-      console.error('Failed to save marketing session:', updateError);
-      return NextResponse.json({
-        success: false,
-        message: 'Ошибка сохранения сессии'
-      }, { status: 500 });
+      return NextResponse.json({ success: false, message: 'Ошибка сохранения сессии' }, { status: 500 });
     }
 
     return NextResponse.json({
@@ -60,7 +52,11 @@ export async function POST(request: NextRequest) {
 }
 
 /**
- * GET /api/kaspi/marketing — получить данные кампаний
+ * GET /api/kaspi/marketing — получить данные маркетинга
+ *
+ * 1. Пробуем получить данные с Kaspi
+ * 2. Успех → сохраняем в marketing_daily, возвращаем данные
+ * 3. Ошибка → пробуем reconnect (если auth-ошибка), затем читаем из БД
  */
 export async function GET(request: NextRequest) {
   try {
@@ -72,7 +68,6 @@ export async function GET(request: NextRequest) {
     const startDate = searchParams.get('startDate');
     const endDate = searchParams.get('endDate');
 
-    // Получаем store и marketing_session
     const storeResult = await supabaseAdmin
       .from('stores')
       .select('id, marketing_session')
@@ -81,164 +76,93 @@ export async function GET(request: NextRequest) {
     const store = storeResult.data;
 
     if (!store?.marketing_session) {
-      return NextResponse.json({
-        success: false,
-        message: 'Kaspi Marketing не подключен'
-      }, { status: 400 });
+      return NextResponse.json({ success: false, message: 'Kaspi Marketing не подключен' }, { status: 400 });
     }
 
     let session = store.marketing_session as unknown as MarketingSession;
-    let client = new KaspiMarketingClient(session);
 
-    // Даты по умолчанию — последние 30 дней
     const now = new Date();
-    const defaultEnd = now.toISOString().split('T')[0];
+    const todayStr = now.toISOString().split('T')[0];
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 3600000);
-    const defaultStart = thirtyDaysAgo.toISOString().split('T')[0];
 
-    const start = startDate || defaultStart;
-    const end = endDate || defaultEnd;
+    const start = startDate || thirtyDaysAgo.toISOString().split('T')[0];
+    const end = endDate || todayStr;
 
-    // Fetch кампаний — с однократным авто-reconnect только при auth-ошибках (401/403)
-    let campaigns: import('@/lib/kaspi/marketing-client').MarketingCampaign[] = [];
-    let campaignsFetchError: string | undefined;
+    let client = new KaspiMarketingClient(session);
+    let liveData: LiveData | null = null;
+    let liveError: string | undefined;
+
+    // ── 1. Пробуем получить данные с Kaspi ──────────────────────────────────
     try {
-      campaigns = await client.getCampaigns(start, end);
+      liveData = await fetchLiveData(client, start, end);
     } catch (firstErr) {
-      const firstErrMsg = firstErr instanceof Error ? firstErr.message : String(firstErr);
-      console.log('[Marketing] getCampaigns failed:', firstErrMsg);
+      const msg = firstErr instanceof Error ? firstErr.message : String(firstErr);
+      console.log('[Marketing] Live fetch failed:', msg);
 
-      // Только при auth-ошибках пробуем переподключиться
-      const isAuthError = /HTTP 401|HTTP 403|sign.?in|unauthorized|session|token/i.test(firstErrMsg);
+      const isAuthError = /HTTP 401|HTTP 403|sign.?in|unauthorized/i.test(msg);
 
       if (isAuthError && session.username && session.password) {
-        // Проверяем кулдаун (30 мин) чтобы не долбить Kaspi
         const COOLDOWN_MS = 30 * 60 * 1000;
         const lastAttempt = session.last_reconnect_attempt ? new Date(session.last_reconnect_attempt).getTime() : 0;
-        const onCooldown = Date.now() - lastAttempt < COOLDOWN_MS;
-
-        if (!onCooldown) {
-          console.log('[Marketing] Auth error — attempting reconnect...');
-          const stampedSession = { ...session, last_reconnect_attempt: new Date().toISOString() };
-          await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(stampedSession)) }).eq('user_id', userId);
-
+        if (Date.now() - lastAttempt >= COOLDOWN_MS) {
+          console.log('[Marketing] Auth error — reconnecting...');
+          const stamped = { ...session, last_reconnect_attempt: new Date().toISOString() };
+          await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(stamped)) }).eq('user_id', userId);
           try {
             const { KaspiMarketingClient: KMC } = await import('@/lib/kaspi/marketing-client');
-            const newSession = await KMC.login(session.username, session.password);
-            await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(newSession.session)) }).eq('user_id', userId);
-            client = new KaspiMarketingClient(newSession.session);
-            campaigns = await client.getCampaigns(start, end);
+            const { session: newSession } = await KMC.login(session.username, session.password);
+            await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(newSession)) }).eq('user_id', userId);
+            session = newSession;
+            client = new KaspiMarketingClient(newSession);
+            liveData = await fetchLiveData(client, start, end);
             console.log('[Marketing] Reconnected successfully');
-          } catch (reconnectErr) {
-            campaignsFetchError = reconnectErr instanceof Error ? reconnectErr.message : 'Ошибка переподключения';
-            console.error('[Marketing] Reconnect failed:', campaignsFetchError);
+          } catch (reconnErr) {
+            liveError = reconnErr instanceof Error ? reconnErr.message : 'Ошибка переподключения';
+            console.error('[Marketing] Reconnect failed:', liveError);
           }
         } else {
-          campaignsFetchError = firstErrMsg;
+          liveError = msg;
         }
       } else {
-        // Серверная ошибка Kaspi (не auth) — логируем и продолжаем с пустыми кампаниями
-        campaignsFetchError = firstErrMsg;
-        console.log('[Marketing] Non-auth error from Kaspi, continuing with empty campaigns');
+        liveError = msg;
+        console.log('[Marketing] Non-auth Kaspi error, will fallback to DB');
       }
     }
 
-    if (campaignsFetchError) {
-      console.warn('[Marketing] productAds unavailable:', campaignsFetchError);
+    // ── 2. Если данные получены — сохраняем в БД (fire and forget) ──────────
+    if (liveData) {
+      saveToDb(store.id, start, end, liveData).catch(e =>
+        console.error('[Marketing] DB save failed:', e instanceof Error ? e.message : e)
+      );
     }
 
-    const summary = KaspiMarketingClient.aggregateCampaigns(campaigns);
-
-    // Fetch all marketing channels in parallel (with raw responses for debugging)
-    const [extRes, sellerRes, reviewRes] = await Promise.allSettled([
-      client.getExternalCampaigns(start, end),
-      client.getSellerBonusesOverview(start, end),
-      client.getReviewBonusesOverview(start, end),
-    ]);
-
-    const channels = {
-      productAds: summary.totalCost,
-      externalAds: 0,
-      sellerBonuses: 0,
-      reviewBonuses: 0,
-    };
-    const channelErrors: string[] = [];
-    if (campaignsFetchError) channelErrors.push(`productAds: ${campaignsFetchError}`);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const channelDebug: Record<string, any> = {};
-
-    if (extRes.status === 'fulfilled') {
-      channelDebug.externalAds = extRes.value;
-      for (const c of extRes.value) channels.externalAds += c.cost;
-    } else {
-      const msg = extRes.reason instanceof Error ? extRes.reason.message : String(extRes.reason);
-      channelErrors.push(`externalAds: ${msg}`);
-    }
-    if (sellerRes.status === 'fulfilled') {
-      channelDebug.sellerBonuses = sellerRes.value;
-      channels.sellerBonuses = sellerRes.value.cost;
-    } else {
-      const msg = sellerRes.reason instanceof Error ? sellerRes.reason.message : String(sellerRes.reason);
-      channelErrors.push(`sellerBonuses: ${msg}`);
-    }
-    if (reviewRes.status === 'fulfilled') {
-      channelDebug.reviewBonuses = reviewRes.value;
-      channels.reviewBonuses = reviewRes.value.cost;
-    } else {
-      const msg = reviewRes.reason instanceof Error ? reviewRes.reason.message : String(reviewRes.reason);
-      channelErrors.push(`reviewBonuses: ${msg}`);
-    }
-
-    // Total across all channels
-    const totalMarketingCost = channels.productAds + channels.externalAds + channels.sellerBonuses + channels.reviewBonuses;
-
-    // Per-product ad data (aggregate across all campaigns)
-    const productAgg: Record<string, { name: string; cost: number; transactions: number; gmv: number; views: number; clicks: number }> = {};
-    for (const campaign of campaigns) {
-      if (campaign.cost <= 0) continue;
-      try {
-        const products = await client.getCampaignProducts(campaign.id, start, end);
-        for (const p of products) {
-          if (p.sku) {
-            const ex = productAgg[p.sku];
-            if (ex) {
-              ex.cost += p.cost || 0;
-              ex.transactions += p.transactions || 0;
-              ex.gmv += p.gmv || 0;
-              ex.views += p.views || 0;
-              ex.clicks += p.clicks || 0;
-            } else {
-              productAgg[p.sku] = {
-                name: p.productName || '',
-                cost: p.cost || 0,
-                transactions: p.transactions || 0,
-                gmv: p.gmv || 0,
-                views: p.views || 0,
-                clicks: p.clicks || 0,
-              };
-            }
+    // ── 3. Если Kaspi недоступен — читаем из БД ──────────────────────────────
+    if (!liveData) {
+      const dbData = await readFromDb(store.id, start, end);
+      if (dbData) {
+        console.log('[Marketing] Returning DB data (live unavailable)');
+        return NextResponse.json({
+          success: true,
+          data: {
+            ...dbData,
+            fromDb: true,
+            channelErrors: liveError ? [liveError] : undefined,
+            period: { startDate: start, endDate: end },
           }
-        }
-      } catch (e) {
-        console.error(`[Marketing] Failed to get products for campaign ${campaign.id}:`, e);
+        });
       }
+      // Нет ни live ни DB — возвращаем ошибку
+      return NextResponse.json({ success: false, message: liveError || 'Ошибка загрузки данных' }, { status: 500 });
     }
-
-    // Products array sorted by cost desc (for frontend)
-    const adProducts = Object.entries(productAgg)
-      .filter(([, d]) => d.cost > 0 || d.transactions > 0)
-      .sort((a, b) => b[1].cost - a[1].cost)
-      .map(([sku, d]) => ({ sku, ...d }));
 
     return NextResponse.json({
       success: true,
       data: {
-        campaigns,
-        summary: { ...summary, totalCost: totalMarketingCost },
-        channels,
-        channelErrors: channelErrors.length > 0 ? channelErrors : undefined,
-        channelDebug,
-        adProducts,
+        campaigns: liveData.campaigns,
+        summary: liveData.summary,
+        channels: liveData.channels,
+        adProducts: liveData.adProducts,
+        channelErrors: liveData.channelErrors.length > 0 ? liveData.channelErrors : undefined,
         period: { startDate: start, endDate: end },
       }
     });
@@ -261,18 +185,172 @@ export async function DELETE(request: NextRequest) {
     if ('error' in auth) return auth.error;
     const userId = auth.user.id;
 
-    await supabaseAdmin
-      .from('stores')
-      .update({ marketing_session: null })
-      .eq('user_id', userId);
-
+    await supabaseAdmin.from('stores').update({ marketing_session: null }).eq('user_id', userId);
     return NextResponse.json({ success: true });
 
   } catch (error) {
     console.error('Marketing disconnect error:', error);
-    return NextResponse.json({
-      success: false,
-      message: 'Ошибка отключения'
-    }, { status: 500 });
+    return NextResponse.json({ success: false, message: 'Ошибка отключения' }, { status: 500 });
   }
+}
+
+// ── Types & helpers ────────────────────────────────────────────────────────
+
+interface LiveData {
+  campaigns: import('@/lib/kaspi/marketing-client').MarketingCampaign[];
+  summary: {
+    totalCost: number; totalViews: number; totalClicks: number;
+    totalTransactions: number; totalGmv: number; activeCampaigns: number;
+    totalCampaigns: number; avgCtr: number; roas: number; crr: number;
+  };
+  channels: { productAds: number; externalAds: number; sellerBonuses: number; reviewBonuses: number };
+  adProducts: Array<{ sku: string; name: string; cost: number; transactions: number; gmv: number; views: number; clicks: number }>;
+  channelErrors: string[];
+  // Channel detail
+  extCost: number; extGmv: number; extTx: number;
+  sellerCost: number; sellerGmv: number; sellerTx: number;
+  reviewCost: number;
+}
+
+async function fetchLiveData(client: KaspiMarketingClient, start: string, end: string): Promise<LiveData> {
+  // Campaigns + other channels in parallel
+  const [campaignsRes, extRes, sellerRes, reviewRes] = await Promise.allSettled([
+    client.getCampaigns(start, end),
+    client.getExternalCampaigns(start, end),
+    client.getSellerBonusesOverview(start, end),
+    client.getReviewBonusesOverview(start, end),
+  ]);
+
+  const channelErrors: string[] = [];
+  const campaigns = campaignsRes.status === 'fulfilled' ? campaignsRes.value : [];
+  if (campaignsRes.status === 'rejected') {
+    channelErrors.push(`productAds: ${campaignsRes.reason instanceof Error ? campaignsRes.reason.message : campaignsRes.reason}`);
+  }
+
+  const summary = KaspiMarketingClient.aggregateCampaigns(campaigns);
+
+  let extCost = 0, extGmv = 0, extTx = 0;
+  if (extRes.status === 'fulfilled') {
+    for (const c of extRes.value) { extCost += c.cost; extGmv += c.gmv; extTx += c.transactions; }
+  } else {
+    channelErrors.push(`externalAds: ${extRes.reason instanceof Error ? extRes.reason.message : extRes.reason}`);
+  }
+
+  const sellerCost = sellerRes.status === 'fulfilled' ? sellerRes.value.cost : 0;
+  const sellerGmv = sellerRes.status === 'fulfilled' ? sellerRes.value.gmv : 0;
+  const sellerTx = sellerRes.status === 'fulfilled' ? sellerRes.value.transactions : 0;
+  if (sellerRes.status === 'rejected') channelErrors.push(`sellerBonuses: ${sellerRes.reason instanceof Error ? sellerRes.reason.message : sellerRes.reason}`);
+
+  const reviewCost = reviewRes.status === 'fulfilled' ? reviewRes.value.cost : 0;
+  if (reviewRes.status === 'rejected') channelErrors.push(`reviewBonuses: ${reviewRes.reason instanceof Error ? reviewRes.reason.message : reviewRes.reason}`);
+
+  const totalCost = summary.totalCost + extCost + sellerCost + reviewCost;
+
+  // Per-product breakdown
+  const productAgg: Record<string, { name: string; cost: number; transactions: number; gmv: number; views: number; clicks: number }> = {};
+  for (const campaign of campaigns) {
+    if (campaign.cost <= 0) continue;
+    try {
+      const products = await client.getCampaignProducts(campaign.id, start, end);
+      for (const p of products) {
+        if (!p.sku) continue;
+        const ex = productAgg[p.sku];
+        if (ex) {
+          ex.cost += p.cost || 0; ex.transactions += p.transactions || 0;
+          ex.gmv += p.gmv || 0; ex.views += p.views || 0; ex.clicks += p.clicks || 0;
+        } else {
+          productAgg[p.sku] = { name: p.productName || '', cost: p.cost || 0, transactions: p.transactions || 0, gmv: p.gmv || 0, views: p.views || 0, clicks: p.clicks || 0 };
+        }
+      }
+    } catch (e) {
+      console.error(`[Marketing] Failed to get products for campaign ${campaign.id}:`, e);
+    }
+  }
+
+  const adProducts = Object.entries(productAgg)
+    .filter(([, d]) => d.cost > 0 || d.transactions > 0)
+    .sort((a, b) => b[1].cost - a[1].cost)
+    .map(([sku, d]) => ({ sku, ...d }));
+
+  return {
+    campaigns,
+    summary: { ...summary, totalCost },
+    channels: { productAds: summary.totalCost, externalAds: extCost, sellerBonuses: sellerCost, reviewBonuses: reviewCost },
+    adProducts,
+    channelErrors,
+    extCost, extGmv, extTx,
+    sellerCost, sellerGmv, sellerTx,
+    reviewCost,
+  };
+}
+
+async function saveToDb(storeId: string, start: string, end: string, d: LiveData) {
+  // Если диапазон = 1 день — сохраняем как точную дату
+  // Иначе — сохраняем агрегат за весь период под датой end
+  // Точный посуточный синк делает cron /api/cron/marketing-sync
+  const date = start === end ? start : end;
+
+  const { error } = await supabaseAdmin.from('marketing_daily').upsert({
+    store_id: storeId,
+    date,
+    product_ads_cost: d.channels.productAds,
+    product_ads_gmv: d.summary.totalGmv - d.extGmv - d.sellerGmv,
+    product_ads_transactions: d.summary.totalTransactions - d.extTx - d.sellerTx,
+    product_ads_views: d.summary.totalViews,
+    product_ads_clicks: d.summary.totalClicks,
+    external_ads_cost: d.extCost,
+    external_ads_gmv: d.extGmv,
+    external_ads_transactions: d.extTx,
+    seller_bonuses_cost: d.sellerCost,
+    seller_bonuses_gmv: d.sellerGmv,
+    seller_bonuses_transactions: d.sellerTx,
+    review_bonuses_cost: d.reviewCost,
+    total_cost: d.summary.totalCost,
+    synced_at: new Date().toISOString(),
+  }, { onConflict: 'store_id,date' });
+
+  if (error) throw new Error(error.message);
+}
+
+async function readFromDb(storeId: string, start: string, end: string) {
+  const { data } = await supabaseAdmin
+    .from('marketing_daily')
+    .select('*')
+    .eq('store_id', storeId)
+    .gte('date', start)
+    .lte('date', end)
+    .order('date', { ascending: false })
+    .limit(1);
+
+  if (!data?.length) return null;
+
+  const row = data[0];
+  const totalCost = Number(row.total_cost) || 0;
+  const totalViews = Number(row.product_ads_views) || 0;
+  const totalClicks = Number(row.product_ads_clicks) || 0;
+  const totalGmv = (Number(row.product_ads_gmv) || 0) + (Number(row.external_ads_gmv) || 0) + (Number(row.seller_bonuses_gmv) || 0);
+  const totalTx = (Number(row.product_ads_transactions) || 0) + (Number(row.external_ads_transactions) || 0) + (Number(row.seller_bonuses_transactions) || 0);
+
+  return {
+    campaigns: [],
+    summary: {
+      totalCost,
+      totalViews,
+      totalClicks,
+      totalTransactions: totalTx,
+      totalGmv,
+      activeCampaigns: 0,
+      totalCampaigns: 0,
+      avgCtr: totalViews > 0 ? (totalClicks / totalViews) * 100 : 0,
+      roas: (Number(row.product_ads_cost) || 0) > 0 ? (Number(row.product_ads_gmv) || 0) / (Number(row.product_ads_cost) || 1) : 0,
+      crr: totalGmv > 0 ? (totalCost / totalGmv) * 100 : 0,
+    },
+    channels: {
+      productAds: Number(row.product_ads_cost) || 0,
+      externalAds: Number(row.external_ads_cost) || 0,
+      sellerBonuses: Number(row.seller_bonuses_cost) || 0,
+      reviewBonuses: Number(row.review_bonuses_cost) || 0,
+    },
+    adProducts: [],
+  };
 }

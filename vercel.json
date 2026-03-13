@@ -27,6 +27,14 @@
     {
       "path": "/api/cron/wa-keepalive",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/kaspi-sync",
+      "schedule": "0 1 * * *"
+    },
+    {
+      "path": "/api/cron/marketing-sync",
+      "schedule": "0 2 * * *"
     }
   ]
 }
