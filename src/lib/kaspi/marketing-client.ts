@@ -568,15 +568,13 @@ export class KaspiMarketingClient {
       },
     });
 
-    console.log(`[Marketing] getExternalCampaigns HTTP ${response.status}`);
+    const text2 = await response.text().catch(() => '');
+    console.log(`[Marketing] getExternalCampaigns HTTP ${response.status} raw=${text2.slice(0, 400)}`);
 
     if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      throw new Error(`External campaigns HTTP ${response.status} body=${text.slice(0, 200)}`);
+      throw new Error(`External campaigns HTTP ${response.status} body=${text2.slice(0, 200)}`);
     }
 
-    const text2 = await response.text();
-    console.log(`[Marketing] getExternalCampaigns raw=${text2.slice(0, 500)}`);
     const json = JSON.parse(text2) as { result: string; data: any[]; message?: string };
     if (json.result !== 'Ok') {
       throw new Error(`External campaigns result=${json.result} | ${json.message || ''}`);
@@ -605,15 +603,13 @@ export class KaspiMarketingClient {
       },
     });
 
-    console.log(`[Marketing] getSellerBonuses HTTP ${response.status}`);
+    const sellerText = await response.text().catch(() => '');
+    console.log(`[Marketing] getSellerBonuses HTTP ${response.status} raw=${sellerText.slice(0, 400)}`);
 
     if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      throw new Error(`Seller bonuses HTTP ${response.status} body=${text.slice(0, 200)}`);
+      throw new Error(`Seller bonuses HTTP ${response.status} body=${sellerText.slice(0, 200)}`);
     }
 
-    const sellerText = await response.text();
-    console.log(`[Marketing] getSellerBonuses raw=${sellerText.slice(0, 500)}`);
     const json = JSON.parse(sellerText);
     return {
       cost: json.bonusAmount || 0,
@@ -640,15 +636,13 @@ export class KaspiMarketingClient {
       },
     });
 
-    console.log(`[Marketing] getReviewBonuses HTTP ${response.status}`);
+    const reviewText = await response.text().catch(() => '');
+    console.log(`[Marketing] getReviewBonuses HTTP ${response.status} raw=${reviewText.slice(0, 400)}`);
 
     if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      throw new Error(`Review bonuses HTTP ${response.status} body=${text.slice(0, 200)}`);
+      throw new Error(`Review bonuses HTTP ${response.status} body=${reviewText.slice(0, 200)}`);
     }
 
-    const reviewText = await response.text();
-    console.log(`[Marketing] getReviewBonuses raw=${reviewText.slice(0, 500)}`);
     const json = JSON.parse(reviewText);
     return { cost: json.bonusAmount || 0 };
   }
