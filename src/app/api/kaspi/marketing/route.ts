@@ -89,43 +89,35 @@ export async function GET(request: NextRequest) {
     const end = endDate || todayStr;
 
     let client = new KaspiMarketingClient(session);
-    let liveData: LiveData | null = null;
-    let liveError: string | undefined;
 
-    // ── 1. Пробуем получить данные с Kaspi ──────────────────────────────────
-    try {
-      liveData = await fetchLiveData(client, start, end);
-    } catch (firstErr) {
-      const msg = firstErr instanceof Error ? firstErr.message : String(firstErr);
-      console.log('[Marketing] Live fetch failed:', msg);
+    // ── 1. Получаем данные с Kaspi ───────────────────────────────────────────
+    let liveData = await fetchLiveData(client, start, end);
 
-      const isAuthError = /HTTP 401|HTTP 403|sign.?in|unauthorized/i.test(msg);
+    // ── 2. Если все каналы вернули "Index was outside the bounds" →
+    //       merchantId устарел, тихо обновляем сессию и повторяем ─────────────
+    const allIndexErrors = liveData.channelErrors.length >= 2 &&
+      liveData.channelErrors.every(e => /index was outside|bounds of the array/i.test(e));
 
-      if (isAuthError && session.username && session.password) {
-        const COOLDOWN_MS = 30 * 60 * 1000;
-        const lastAttempt = session.last_reconnect_attempt ? new Date(session.last_reconnect_attempt).getTime() : 0;
-        if (Date.now() - lastAttempt >= COOLDOWN_MS) {
-          console.log('[Marketing] Auth error — reconnecting...');
-          const stamped = { ...session, last_reconnect_attempt: new Date().toISOString() };
-          await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(stamped)) }).eq('user_id', userId);
-          try {
-            const { KaspiMarketingClient: KMC } = await import('@/lib/kaspi/marketing-client');
-            const { session: newSession } = await KMC.login(session.username, session.password);
-            await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(newSession)) }).eq('user_id', userId);
-            session = newSession;
-            client = new KaspiMarketingClient(newSession);
-            liveData = await fetchLiveData(client, start, end);
-            console.log('[Marketing] Reconnected successfully');
-          } catch (reconnErr) {
-            liveError = reconnErr instanceof Error ? reconnErr.message : 'Ошибка переподключения';
-            console.error('[Marketing] Reconnect failed:', liveError);
-          }
-        } else {
-          liveError = msg;
+    if (allIndexErrors && session.username && session.password) {
+      const COOLDOWN_MS = 30 * 60 * 1000;
+      const lastAttempt = session.last_reconnect_attempt ? new Date(session.last_reconnect_attempt).getTime() : 0;
+      if (Date.now() - lastAttempt >= COOLDOWN_MS) {
+        console.log('[Marketing] All channels fail with IndexOutOfBounds — refreshing merchantId via re-login...');
+        const stamped = { ...session, last_reconnect_attempt: new Date().toISOString() };
+        await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(stamped)) }).eq('user_id', userId);
+        try {
+          const { KaspiMarketingClient: KMC } = await import('@/lib/kaspi/marketing-client');
+          const { session: newSession } = await KMC.login(session.username, session.password);
+          await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(newSession)) }).eq('user_id', userId);
+          session = newSession;
+          client = new KaspiMarketingClient(newSession);
+          liveData = await fetchLiveData(client, start, end);
+          console.log(`[Marketing] Re-login done, new merchantId=${newSession.merchant_id}`);
+        } catch (reloginErr) {
+          console.error('[Marketing] Re-login failed:', reloginErr instanceof Error ? reloginErr.message : reloginErr);
         }
       } else {
-        liveError = msg;
-        console.log('[Marketing] Non-auth Kaspi error, will fallback to DB');
+        console.log('[Marketing] IndexOutOfBounds but reconnect on cooldown');
       }
     }
 
@@ -136,23 +128,29 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // ── 3. Если Kaspi недоступен — читаем из БД ──────────────────────────────
-    if (!liveData) {
+    // ── 3. Сохраняем в БД если есть данные ──────────────────────────────────
+    if (liveData.summary.totalCost > 0) {
+      saveToDb(store.id, start, end, liveData).catch(e =>
+        console.error('[Marketing] DB save failed:', e instanceof Error ? e.message : e)
+      );
+    }
+
+    // ── 4. Если все каналы всё равно нулевые — пробуем из БД ────────────────
+    const allStillFailed = liveData.summary.totalCost === 0 && liveData.channelErrors.length > 0;
+    if (allStillFailed) {
       const dbData = await readFromDb(store.id, start, end);
-      if (dbData) {
-        console.log('[Marketing] Returning DB data (live unavailable)');
+      if (dbData && dbData.summary.totalCost > 0) {
+        console.log('[Marketing] Returning DB data (live has errors)');
         return NextResponse.json({
           success: true,
           data: {
             ...dbData,
             fromDb: true,
-            channelErrors: liveError ? [liveError] : undefined,
+            channelErrors: liveData.channelErrors,
             period: { startDate: start, endDate: end },
           }
         });
       }
-      // Нет ни live ни DB — возвращаем ошибку
-      return NextResponse.json({ success: false, message: liveError || 'Ошибка загрузки данных' }, { status: 500 });
     }
 
     return NextResponse.json({
