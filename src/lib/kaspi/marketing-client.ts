@@ -260,15 +260,16 @@ export class KaspiMarketingClient {
         const resp = await fetch(pageUrl, {
           method: 'GET',
           headers: { ...pageHeaders, 'Cookie': Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join('; ') },
-          redirect: 'manual',
+          redirect: 'follow',
         });
         const setCookies = resp.headers.getSetCookie?.() || [];
         let newCount = 0;
         for (const cookie of setCookies) {
           const m = cookie.match(/^([^=]+)=([^;]+)/);
+          // Only add new cookies — never override user_token or X-Kb-Session-Id
           if (m && !cookieMap[m[1].trim()]) { cookieMap[m[1].trim()] = m[2]; newCount++; }
         }
-        console.log(`[Marketing] Warmup ${pageUrl.replace(MARKETING_BASE, '')}: status=${resp.status}, newCookies=${newCount}`);
+        console.log(`[Marketing] Warmup ${pageUrl.replace(MARKETING_BASE, '')}: status=${resp.status}, newCookies=${newCount}, url=${resp.url.replace(MARKETING_BASE, '')}`);
       } catch (err) {
         console.error(`[Marketing] Warmup ${pageUrl.replace(MARKETING_BASE, '')} failed:`, err instanceof Error ? err.message : err);
       }
