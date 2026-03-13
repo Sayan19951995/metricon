@@ -342,7 +342,16 @@ export class KaspiMarketingClient {
       `${MARKETING_BASE}/advertising/campaigns?tab=campaigns`,
       'campaigns',
     );
-    const url = `${MARKETING_BASE}/advertising/products/api/v5/merchant/${this.merchantId}/Campaigns?StartDate=${startDate}&EndDate=${endDate}`;
+    // Kaspi's API crashes ("Index was outside the bounds of the array") with large date ranges.
+    // Clamp to max 14 days.
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffDays = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const clampedStart = diffDays > 14
+      ? new Date(end.getTime() - 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+      : startDate;
+
+    const url = `${MARKETING_BASE}/advertising/products/api/v5/merchant/${this.merchantId}/Campaigns?StartDate=${clampedStart}&EndDate=${endDate}`;
 
     const response = await fetch(url, {
       method: 'GET',
