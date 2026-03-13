@@ -1071,7 +1071,7 @@ function AnalyticsPageContent() {
   // Оффлайн = 5% от общего числа заказов (ручные заказы)
   const salesSourcesData = [
     { name: 'Органика', value: data.salesSources.organic },
-    { name: 'Реклама', value: data.salesSources.advertising },
+    { name: 'Маркетинг', value: data.salesSources.advertising },
   ];
 
   const deliveryData = [
@@ -1334,7 +1334,7 @@ function AnalyticsPageContent() {
                           <span className="font-medium">{fmt(data.totalCost)} ₸</span>
                         </div>
                         <div className="flex justify-between text-gray-600 dark:text-gray-400">
-                          <span>Реклама</span>
+                          <span>Маркетинг</span>
                           <span className="font-medium">{fmt(data.totalAdvertising)} ₸</span>
                         </div>
                         <div className="flex justify-between text-gray-600 dark:text-gray-400">
@@ -1850,7 +1850,7 @@ function AnalyticsPageContent() {
                                         <span>{fmt(item?.comTaxDel || 0)} ₸</span>
                                       </div>
                                       <div className="flex justify-between gap-3">
-                                        <span className="text-amber-400">Реклама</span>
+                                        <span className="text-amber-400">Маркетинг</span>
                                         <span>{fmt(item?.advertising || 0)} ₸</span>
                                       </div>
                                       <div className="flex justify-between gap-3 pt-1 border-t border-gray-700 mt-1">
@@ -1875,7 +1875,7 @@ function AnalyticsPageContent() {
                               const labels: Record<string, string> = {
                                 cost: 'Себест.',
                                 comTaxDel: 'Комис.',
-                                advertising: 'Рекл.',
+                                advertising: 'Марк.',
                                 opExpenses: 'Опер.',
                                 profit: 'Приб.'
                               };
@@ -3417,7 +3417,7 @@ function AnalyticsPageContent() {
                               <span className="font-semibold text-gray-900">{selectedDayData.cost.toLocaleString('ru-RU')} ₸</span>
                             </div>
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                              <span className="text-gray-700">Реклама</span>
+                              <span className="text-gray-700">Маркетинг</span>
                               <span className="font-semibold text-gray-900">{selectedDayData.advertising.toLocaleString('ru-RU')} ₸</span>
                             </div>
                             <div className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
@@ -3661,7 +3661,7 @@ function AnalyticsPageContent() {
                         <span className="font-medium text-gray-900">{Math.round(selectedTableDay.cost).toLocaleString('ru-RU')} ₸</span>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span className="text-gray-600">Реклама</span>
+                        <span className="text-gray-600">Маркетинг</span>
                         <span className="font-medium text-gray-900">{Math.round(selectedTableDay.advertising).toLocaleString('ru-RU')} ₸</span>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-gray-100">
@@ -3798,7 +3798,7 @@ function AnalyticsPageContent() {
                         <span className="font-medium text-gray-900">{data.totalCost.toLocaleString('ru-RU')} ₸</span>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                        <span className="text-gray-600">Реклама</span>
+                        <span className="text-gray-600">Маркетинг</span>
                         <span className="font-medium text-gray-900">{data.totalAdvertising.toLocaleString('ru-RU')} ₸</span>
                       </div>
                       <div className="flex justify-between items-center py-2 border-b border-gray-100">
@@ -3953,8 +3953,8 @@ function AnalyticsPageContent() {
                 <div className="bg-gradient-to-r from-orange-500 to-orange-600 p-6">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h2 className="text-xl font-bold text-white">Реклама</h2>
-                      <p className="text-white/80 text-sm mt-1">Заказы из рекламных кампаний</p>
+                      <h2 className="text-xl font-bold text-white">Маркетинг</h2>
+                      <p className="text-white/80 text-sm mt-1">Заказы из маркетинговых кампаний</p>
                     </div>
                     <button onClick={() => setShowAdsPopup(false)} className="text-white/80 hover:text-white text-2xl">×</button>
                   </div>
@@ -4172,7 +4172,7 @@ function AnalyticsPageContent() {
                             </div>
                             {advertisingCost > 0 && (
                             <div className="flex justify-between items-center py-1.5 border-b border-gray-200">
-                              <span className="text-gray-600 text-sm">Реклама</span>
+                              <span className="text-gray-600 text-sm">Маркетинг</span>
                               <span className="font-medium text-red-600">−{Math.round(advertisingCost).toLocaleString('ru-RU')} ₸</span>
                             </div>
                             )}

@@ -130,6 +130,48 @@ export async function GET(request: NextRequest) {
 
     const summary = KaspiMarketingClient.aggregateCampaigns(campaigns);
 
+    // Fetch all marketing channels in parallel (with raw responses for debugging)
+    const [extRes, sellerRes, reviewRes] = await Promise.allSettled([
+      client.getExternalCampaigns(start, end),
+      client.getSellerBonusesOverview(start, end),
+      client.getReviewBonusesOverview(start, end),
+    ]);
+
+    const channels = {
+      productAds: summary.totalCost,
+      externalAds: 0,
+      sellerBonuses: 0,
+      reviewBonuses: 0,
+    };
+    const channelErrors: string[] = [];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const channelDebug: Record<string, any> = {};
+
+    if (extRes.status === 'fulfilled') {
+      channelDebug.externalAds = extRes.value;
+      for (const c of extRes.value) channels.externalAds += c.cost;
+    } else {
+      const msg = extRes.reason instanceof Error ? extRes.reason.message : String(extRes.reason);
+      channelErrors.push(`externalAds: ${msg}`);
+    }
+    if (sellerRes.status === 'fulfilled') {
+      channelDebug.sellerBonuses = sellerRes.value;
+      channels.sellerBonuses = sellerRes.value.cost;
+    } else {
+      const msg = sellerRes.reason instanceof Error ? sellerRes.reason.message : String(sellerRes.reason);
+      channelErrors.push(`sellerBonuses: ${msg}`);
+    }
+    if (reviewRes.status === 'fulfilled') {
+      channelDebug.reviewBonuses = reviewRes.value;
+      channels.reviewBonuses = reviewRes.value.cost;
+    } else {
+      const msg = reviewRes.reason instanceof Error ? reviewRes.reason.message : String(reviewRes.reason);
+      channelErrors.push(`reviewBonuses: ${msg}`);
+    }
+
+    // Total across all channels
+    const totalMarketingCost = channels.productAds + channels.externalAds + channels.sellerBonuses + channels.reviewBonuses;
+
     // Per-product ad data (aggregate across all campaigns)
     const productAgg: Record<string, { name: string; cost: number; transactions: number; gmv: number; views: number; clicks: number }> = {};
     for (const campaign of campaigns) {
@@ -172,7 +214,10 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         campaigns,
-        summary,
+        summary: { ...summary, totalCost: totalMarketingCost },
+        channels,
+        channelErrors: channelErrors.length > 0 ? channelErrors : undefined,
+        channelDebug,
         adProducts,
         period: { startDate: start, endDate: end },
       }

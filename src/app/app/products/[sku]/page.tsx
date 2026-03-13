@@ -187,7 +187,7 @@ export default function ProductAnalyticsPage({ params }: { params: Promise<{ sku
               <div className="w-10 h-10 bg-red-100 dark:bg-red-900/30 rounded-xl flex items-center justify-center">
                 <Megaphone className="w-5 h-5 text-red-600 dark:text-red-400" />
               </div>
-              <span className="text-sm text-gray-600 dark:text-gray-400">Реклама</span>
+              <span className="text-sm text-gray-600 dark:text-gray-400">Маркетинг</span>
             </div>
             <div className="text-2xl font-bold text-gray-900 dark:text-white">{(currentData.advertising / 1000).toFixed(0)}K ₸</div>
             <div className="text-xs text-red-600 mt-1">5.6%</div>

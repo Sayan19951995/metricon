@@ -13,9 +13,11 @@ import {
   MousePointer,
   DollarSign,
   ChevronRight,
-  BarChart3,
   Target,
   Megaphone,
+  Gift,
+  Star,
+  ExternalLink,
 } from 'lucide-react';
 
 interface MarketingSummary {
@@ -31,9 +33,17 @@ interface MarketingSummary {
   totalCampaigns: number;
 }
 
+interface ChannelCosts {
+  productAds: number;
+  externalAds: number;
+  sellerBonuses: number;
+  reviewBonuses: number;
+}
+
 export default function AdvertisingPage() {
   const { user, store, subscription, loading: userLoading } = useUser();
   const [summary, setSummary] = useState<MarketingSummary | null>(null);
+  const [channels, setChannels] = useState<ChannelCosts | null>(null);
   const [loading, setLoading] = useState(false);
   const [connected, setConnected] = useState(false);
 
@@ -60,6 +70,7 @@ export default function AdvertisingPage() {
       const json = await res.json();
       if (json.success && json.data?.summary) {
         setSummary(json.data.summary);
+        if (json.data.channels) setChannels(json.data.channels);
       }
     } catch (err) {
       console.error('Failed to fetch marketing summary:', err);
@@ -77,7 +88,7 @@ export default function AdvertisingPage() {
 
   if (userLoading) return <BrandLoader />;
   if (!getPlanLimits(subscription?.plan).canAdvertising) {
-    return <UpgradePrompt requiredPlan="business" featureName="Реклама" />;
+    return <UpgradePrompt requiredPlan="business" featureName="Маркетинг" />;
   }
 
   return (
@@ -86,117 +97,123 @@ export default function AdvertisingPage() {
         <div className="max-w-4xl mx-auto">
           {/* Header */}
           <div className="mb-6">
-            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Реклама</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Управление рекламными каналами</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Маркетинг</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">Управление маркетинговыми каналами</p>
           </div>
 
-          {/* Kaspi Marketing Card */}
-          <Link
-            href="/app/advertising/kaspi-marketing"
-            className="block bg-white dark:bg-gray-800 rounded-2xl shadow-sm hover:shadow-md transition-all group mb-4"
-          >
-            <div className="p-5">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-11 h-11 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
-                    <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-                  </div>
-                  <div>
-                    <h2 className="text-base font-semibold text-gray-900 dark:text-white">Kaspi Marketing</h2>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      {connected ? 'Подключено' : 'Не подключено'}
-                    </p>
-                  </div>
+          {!connected ? (
+            /* Not connected — show connect prompt */
+            <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-6 mb-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-11 h-11 bg-purple-100 dark:bg-purple-900/30 rounded-xl flex items-center justify-center">
+                  <Target className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 </div>
-                <div className="flex items-center gap-2">
-                  {connected && (
-                    <span className="w-2 h-2 bg-emerald-500 rounded-full" />
-                  )}
-                  <ChevronRight className="w-5 h-5 text-gray-400 group-hover:translate-x-1 transition-transform" />
+                <div>
+                  <h2 className="text-base font-semibold text-gray-900 dark:text-white">Kaspi Marketing</h2>
+                  <p className="text-xs text-gray-500 dark:text-gray-400">Не подключено</p>
                 </div>
               </div>
-
-              {!connected ? (
-                <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 text-center">
-                  <p className="text-sm text-purple-700 dark:text-purple-300">
-                    Подключите аккаунт marketing.kaspi.kz для отслеживания рекламных кампаний
-                  </p>
-                </div>
-              ) : loading ? (
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {[...Array(4)].map((_, i) => (
-                    <div key={i} className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3 animate-pulse">
-                      <div className="h-3 bg-gray-200 dark:bg-gray-600 rounded w-16 mb-2" />
-                      <div className="h-5 bg-gray-200 dark:bg-gray-600 rounded w-20" />
-                    </div>
-                  ))}
-                </div>
-              ) : summary ? (
-                <>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <DollarSign className="w-3.5 h-3.5 text-red-500" />
-                        <span className="text-[11px] text-gray-500 dark:text-gray-400">Расходы</span>
-                      </div>
-                      <p className="text-sm font-bold text-gray-900 dark:text-white">{fmtMoney(summary.totalCost)}</p>
-                    </div>
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <Eye className="w-3.5 h-3.5 text-blue-500" />
-                        <span className="text-[11px] text-gray-500 dark:text-gray-400">Показы</span>
-                      </div>
-                      <p className="text-sm font-bold text-gray-900 dark:text-white">{fmt(summary.totalViews)}</p>
-                    </div>
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <MousePointer className="w-3.5 h-3.5 text-purple-500" />
-                        <span className="text-[11px] text-gray-500 dark:text-gray-400">Клики</span>
-                      </div>
-                      <p className="text-sm font-bold text-gray-900 dark:text-white">{fmt(summary.totalClicks)}</p>
-                    </div>
-                    <div className="bg-gray-50 dark:bg-gray-700/50 rounded-xl p-3">
-                      <div className="flex items-center gap-1.5 mb-1">
-                        <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
-                        <span className="text-[11px] text-gray-500 dark:text-gray-400">ROAS</span>
-                      </div>
-                      <p className="text-sm font-bold text-gray-900 dark:text-white">{summary.roas.toFixed(1)}x</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4 mt-3 text-xs text-gray-500 dark:text-gray-400">
-                    <span>{summary.activeCampaigns} активных кампаний</span>
-                    <span>·</span>
-                    <span>{summary.totalTransactions} заказов от рекламы</span>
-                    <span>·</span>
-                    <span>Выручка {fmtMoney(summary.totalGmv)}</span>
-                  </div>
-                </>
-              ) : null}
-            </div>
-          </Link>
-
-          {/* Future channels */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {[
-              { name: 'Instagram / Facebook', icon: Megaphone, color: 'pink' },
-              { name: 'Google Ads', icon: BarChart3, color: 'blue' },
-            ].map((channel) => (
-              <div
-                key={channel.name}
-                className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 opacity-60"
+              <Link
+                href="/app/advertising/kaspi-marketing"
+                className="block bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 text-center hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors"
               >
-                <div className="flex items-center gap-3">
-                  <div className={`w-11 h-11 bg-gray-100 dark:bg-gray-700 rounded-xl flex items-center justify-center`}>
-                    <channel.icon className="w-5 h-5 text-gray-400" />
-                  </div>
+                <p className="text-sm text-purple-700 dark:text-purple-300">
+                  Подключите аккаунт marketing.kaspi.kz для отслеживания маркетинговых каналов →
+                </p>
+              </Link>
+            </div>
+          ) : (
+            <>
+              {/* Total expenses */}
+              <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 mb-4">
+                <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-900 dark:text-white">{channel.name}</h3>
-                    <p className="text-xs text-gray-400">Скоро</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Общие расходы на маркетинг · 30 дней</p>
+                    {loading ? (
+                      <div className="h-7 bg-gray-200 dark:bg-gray-600 rounded w-32 animate-pulse" />
+                    ) : summary ? (
+                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{fmtMoney(summary.totalCost)}</p>
+                    ) : null}
                   </div>
+                  <span className="w-2 h-2 bg-emerald-500 rounded-full" />
                 </div>
               </div>
-            ))}
-          </div>
+
+              {/* Channel cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Реклама товаров */}
+                <Link
+                  href="/app/advertising/kaspi-marketing"
+                  className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5 hover:shadow-md transition-all group"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex items-center justify-center">
+                        <Target className="w-4 h-4 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Реклама товаров</h3>
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-gray-400 group-hover:translate-x-1 transition-transform" />
+                  </div>
+                  {channels && (
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                      {channels.productAds > 0 ? fmtMoney(channels.productAds) : '0 ₸'}
+                    </p>
+                  )}
+                  {summary && (
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {summary.activeCampaigns} активных кампаний
+                    </p>
+                  )}
+                </Link>
+
+                {/* Внешняя реклама */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center">
+                      <ExternalLink className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Внешняя реклама</h3>
+                  </div>
+                  {channels && (
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                      {channels.externalAds > 0 ? fmtMoney(channels.externalAds) : '0 ₸'}
+                    </p>
+                  )}
+                </div>
+
+                {/* Бонусы от продавца */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 bg-orange-100 dark:bg-orange-900/30 rounded-lg flex items-center justify-center">
+                      <Gift className="w-4 h-4 text-orange-600 dark:text-orange-400" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Бонусы от продавца</h3>
+                  </div>
+                  {channels && (
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                      {channels.sellerBonuses > 0 ? fmtMoney(channels.sellerBonuses) : '0 ₸'}
+                    </p>
+                  )}
+                </div>
+
+                {/* Бонусы за отзыв */}
+                <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-sm p-5">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
+                      <Star className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <h3 className="text-sm font-semibold text-gray-900 dark:text-white">Бонусы за отзыв</h3>
+                  </div>
+                  {channels && (
+                    <p className="text-lg font-bold text-gray-900 dark:text-white">
+                      {channels.reviewBonuses > 0 ? fmtMoney(channels.reviewBonuses) : '0 ₸'}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>

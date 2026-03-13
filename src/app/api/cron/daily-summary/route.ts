@@ -96,8 +96,9 @@ export async function GET(request: NextRequest) {
         const allProducts = [...productMap.entries()]
           .sort((a, b) => b[1].qty - a[1].qty);
 
-        // Get yesterday's ad data (if marketing connected)
-        let adCost = 0;
+        // Get yesterday's marketing data from all channels
+        let marketingTotal = 0;
+        let channelCosts = { productAds: 0, externalAds: 0, sellerBonuses: 0, reviewBonuses: 0 };
         let adTransactions = 0;
         let adGmv = 0;
 
@@ -105,11 +106,16 @@ export async function GET(request: NextRequest) {
         if (marketingSession?.user_token) {
           try {
             const client = new KaspiMarketingClient(marketingSession);
-            const campaigns = await client.getCampaigns(yesterday, yesterday);
-            const summary = KaspiMarketingClient.aggregateCampaigns(campaigns);
-            adCost = summary.totalCost;
-            adTransactions = summary.totalTransactions;
-            adGmv = summary.totalGmv;
+            const channels = await client.getAllChannelsCost(yesterday, yesterday);
+            marketingTotal = channels.totalCost;
+            adTransactions = channels.totalTransactions;
+            adGmv = channels.totalGmv;
+            channelCosts = {
+              productAds: channels.productAds.cost,
+              externalAds: channels.externalAds.cost,
+              sellerBonuses: channels.sellerBonuses.cost,
+              reviewBonuses: channels.reviewBonuses.cost,
+            };
           } catch (e) {
             console.error(`[DailySummary] Marketing error for ${store.id}:`, e);
           }
@@ -135,19 +141,21 @@ export async function GET(request: NextRequest) {
           });
         }
 
-        if (adCost > 0 || adTransactions > 0 || adGmv > 0) {
-          message += `\n📣 *Из них по рекламе:*\n`;
-          message += `  Продажи: ${adTransactions} заказов`;
-          if (adGmv > 0) message += ` на ${formatMoney(adGmv)} ₸`;
-          message += `\n`;
-          message += `  Расходы: ${formatMoney(adCost)} ₸\n`;
-          if (revenue > 0 && adGmv > 0) {
-            const adPercent = ((adGmv / revenue) * 100).toFixed(0);
-            message += `  Доля в продажах: ${adPercent}%\n`;
+        if (marketingTotal > 0 || adTransactions > 0) {
+          message += `\n📣 *Маркетинг:*\n`;
+          if (channelCosts.productAds > 0) message += `  Реклама товаров: ${formatMoney(channelCosts.productAds)} ₸\n`;
+          if (channelCosts.externalAds > 0) message += `  Внешняя реклама: ${formatMoney(channelCosts.externalAds)} ₸\n`;
+          if (channelCosts.sellerBonuses > 0) message += `  Бонусы от продавца: ${formatMoney(channelCosts.sellerBonuses)} ₸\n`;
+          if (channelCosts.reviewBonuses > 0) message += `  Бонусы за отзыв: ${formatMoney(channelCosts.reviewBonuses)} ₸\n`;
+          message += `  *Итого: ${formatMoney(marketingTotal)} ₸*\n`;
+          if (adTransactions > 0) {
+            message += `  Продажи: ${adTransactions} заказов`;
+            if (adGmv > 0) message += ` на ${formatMoney(adGmv)} ₸`;
+            message += `\n`;
           }
-          if (adGmv > 0 && adCost > 0) {
-            const adCostPercent = ((adCost / adGmv) * 100).toFixed(0);
-            message += `  Расход: ${adCostPercent}% от выручки рекламы\n`;
+          if (revenue > 0 && marketingTotal > 0) {
+            const marketingPercent = ((marketingTotal / revenue) * 100).toFixed(0);
+            message += `  Доля от выручки: ${marketingPercent}%\n`;
           }
         }
 

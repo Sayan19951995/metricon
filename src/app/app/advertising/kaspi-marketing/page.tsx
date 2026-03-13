@@ -278,7 +278,7 @@ export default function KaspiMarketingPage() {
 
   if (userLoading) return <BrandLoader />;
   if (!getPlanLimits(subscription?.plan).canAdvertising) {
-    return <UpgradePrompt requiredPlan="business" featureName="Реклама" />;
+    return <UpgradePrompt requiredPlan="business" featureName="Маркетинг" />;
   }
 
 

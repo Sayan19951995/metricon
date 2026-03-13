@@ -462,6 +462,7 @@ export async function GET(request: NextRequest) {
     let adGmv = 0;
     let marketingCampaigns: Array<{ id: number; name: string; cost: number; views: number; clicks: number; transactions: number; gmv: number; state: string }> = [];
     const adCostBySku = new Map<string, number>();
+    const marketingChannels = { productAds: 0, externalAds: 0, sellerBonuses: 0, reviewBonuses: 0 };
 
     if (store.marketing_session) {
       try {
@@ -545,6 +546,31 @@ export async function GET(request: NextRequest) {
           }
         }
         console.log(`[Analytics] adCostBySku size: ${adCostBySku.size}, adTransactions: ${adTransactions}, skuToKaspiId size: ${skuToKaspiId.size}`);
+        marketingChannels.productAds = summary.totalCost;
+
+        // Fetch 3 additional marketing channels in parallel
+        const [extRes, sellerRes, reviewRes] = await Promise.allSettled([
+          client.getExternalCampaigns(startDate, endDate),
+          client.getSellerBonusesOverview(startDate, endDate),
+          client.getReviewBonusesOverview(startDate, endDate),
+        ]);
+
+        if (extRes.status === 'fulfilled') {
+          for (const c of extRes.value) { marketingChannels.externalAds += c.cost; adGmv += c.gmv; adTransactions += c.transactions; }
+        } else { console.error('[Analytics] External ads error:', extRes.reason); }
+
+        if (sellerRes.status === 'fulfilled') {
+          marketingChannels.sellerBonuses = sellerRes.value.cost;
+          adGmv += sellerRes.value.gmv;
+          adTransactions += sellerRes.value.transactions;
+        } else { console.error('[Analytics] Seller bonuses error:', sellerRes.reason); }
+
+        if (reviewRes.status === 'fulfilled') {
+          marketingChannels.reviewBonuses = reviewRes.value.cost;
+        } else { console.error('[Analytics] Review bonuses error:', reviewRes.reason); }
+
+        totalAdvertising += marketingChannels.externalAds + marketingChannels.sellerBonuses + marketingChannels.reviewBonuses;
+        console.log(`[Analytics] All channels: productAds=${marketingChannels.productAds}, external=${marketingChannels.externalAds}, sellerBonuses=${marketingChannels.sellerBonuses}, reviewBonuses=${marketingChannels.reviewBonuses}, total=${totalAdvertising}`);
       } catch (err) {
         console.error('Failed to fetch marketing data:', err);
       }
@@ -872,6 +898,7 @@ export async function GET(request: NextRequest) {
           totalGmv: adGmv,
           roas: totalAdvertising > 0 ? adGmv / totalAdvertising : 0,
           campaigns: marketingCampaigns,
+          channels: marketingChannels,
         },
         storeSettings: {
           commissionRate,

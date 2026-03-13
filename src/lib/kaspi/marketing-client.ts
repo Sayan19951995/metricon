@@ -6,6 +6,13 @@ const MARKETING_BASE = 'https://marketing.kaspi.kz';
 
 const DEFAULT_HEADERS: Record<string, string> = {
   'Accept': 'application/json, text/plain, */*',
+  'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+  'Sec-Ch-Ua': '"Chromium";v="144", "Google Chrome";v="144", "Not-A.Brand";v="99"',
+  'Sec-Ch-Ua-Mobile': '?0',
+  'Sec-Ch-Ua-Platform': '"Windows"',
+  'Sec-Fetch-Dest': 'empty',
+  'Sec-Fetch-Mode': 'cors',
+  'Sec-Fetch-Site': 'same-origin',
   'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36',
   'x-front-version': '5.0.458',
   'x-requested-with': 'XMLHttpRequest',
@@ -99,15 +106,80 @@ export interface MarketingSession {
   username?: string;
   password?: string;
   last_reconnect_attempt?: string;
+  all_cookies?: string;
 }
 
 export class KaspiMarketingClient {
   private cookies: string;
   private merchantId: number;
+  /** Extra cookies collected from WAF preflight requests, keyed by module path prefix */
+  private preflightCookies: Record<string, string> = {};
 
   constructor(session: MarketingSession) {
-    this.cookies = `user_token=${session.user_token}; X-Kb-Session-Id=${session.session_id}`;
+    this.cookies = session.all_cookies || `user_token=${session.user_token}; X-Kb-Session-Id=${session.session_id}`;
     this.merchantId = session.merchant_id;
+  }
+
+  /**
+   * Preflight: загружает SPA-страницу модуля, собирает WAF-куки из Set-Cookie.
+   * Браузер делает это автоматически при навигации; нам нужно повторить.
+   */
+  private async preflight(pageUrl: string, moduleKey: string): Promise<string> {
+    if (this.preflightCookies[moduleKey]) return this.preflightCookies[moduleKey];
+
+    try {
+      const response = await fetch(pageUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+          'Accept-Language': 'ru-RU,ru;q=0.9,en-US;q=0.8,en;q=0.7',
+          'Sec-Ch-Ua': DEFAULT_HEADERS['Sec-Ch-Ua'],
+          'Sec-Ch-Ua-Mobile': '?0',
+          'Sec-Ch-Ua-Platform': '"Windows"',
+          'Sec-Fetch-Dest': 'document',
+          'Sec-Fetch-Mode': 'navigate',
+          'Sec-Fetch-Site': 'same-origin',
+          'Sec-Fetch-User': '?1',
+          'Upgrade-Insecure-Requests': '1',
+          'User-Agent': DEFAULT_HEADERS['User-Agent'],
+          'Cookie': this.cookies,
+        },
+        redirect: 'manual',
+      });
+
+      const setCookies = response.headers.getSetCookie?.() || [];
+      const extraCookies: Record<string, string> = {};
+      for (const cookie of setCookies) {
+        const match = cookie.match(/^([^=]+)=([^;]+)/);
+        if (match) {
+          extraCookies[match[1].trim()] = match[2];
+        }
+      }
+
+      // Also try raw headers iteration for environments where getSetCookie is unavailable
+      if (setCookies.length === 0) {
+        response.headers.forEach((value, key) => {
+          if (key.toLowerCase() === 'set-cookie') {
+            for (const part of value.split(',')) {
+              const m = part.trim().match(/^([^=]+)=([^;]+)/);
+              if (m) extraCookies[m[1].trim()] = m[2];
+            }
+          }
+        });
+      }
+
+      // Merge new cookies with existing ones
+      const merged = this.cookies + (Object.keys(extraCookies).length > 0
+        ? '; ' + Object.entries(extraCookies).map(([k, v]) => `${k}=${v}`).join('; ')
+        : '');
+      this.preflightCookies[moduleKey] = merged;
+
+      console.log(`[Marketing] Preflight ${moduleKey}: status=${response.status}, newCookies=${Object.keys(extraCookies).join(',') || 'none'}`);
+      return merged;
+    } catch (err) {
+      console.error(`[Marketing] Preflight ${moduleKey} failed:`, err);
+      return this.cookies; // fallback to original cookies
+    }
   }
 
   /**
@@ -181,12 +253,16 @@ export class KaspiMarketingClient {
     const setCookies = response.headers.getSetCookie?.() || [];
     let userToken = '';
     let sessionId = '';
+    const cookieMap: Record<string, string> = {};
 
     for (const cookie of setCookies) {
       const match = cookie.match(/^([^=]+)=([^;]+)/);
       if (match) {
-        if (match[1] === 'user_token') userToken = match[2];
-        if (match[1] === 'X-Kb-Session-Id') sessionId = match[2];
+        const name = match[1].trim();
+        const value = match[2];
+        cookieMap[name] = value;
+        if (name === 'user_token') userToken = value;
+        if (name === 'X-Kb-Session-Id') sessionId = value;
       }
     }
 
@@ -204,12 +280,18 @@ export class KaspiMarketingClient {
         for (const part of parts) {
           const match = part.trim().match(/^([^=]+)=([^;]+)/);
           if (match) {
-            if (match[1].trim() === 'user_token') userToken = match[2];
-            if (match[1].trim() === 'X-Kb-Session-Id') sessionId = match[2];
+            const name = match[1].trim();
+            const value = match[2];
+            cookieMap[name] = value;
+            if (name === 'user_token') userToken = value;
+            if (name === 'X-Kb-Session-Id') sessionId = value;
           }
         }
       }
     }
+
+    // Build full cookie string from all received cookies
+    const allCookiesStr = Object.entries(cookieMap).map(([k, v]) => `${k}=${v}`).join('; ');
 
     // Если redirect (302/303), тело может быть пустым — пробуем читать текст
     const text = await response.text();
@@ -242,6 +324,7 @@ export class KaspiMarketingClient {
       created_at: new Date().toISOString(),
       username,
       password,
+      all_cookies: allCookiesStr,
     };
 
     return { session, loginData: json.data };
@@ -359,6 +442,157 @@ export class KaspiMarketingClient {
 
     const json = await response.json() as { result: string; data: Record<string, unknown> };
     return json.data || {};
+  }
+
+  /**
+   * Получить кампании внешней рекламы за период
+   */
+  async getExternalCampaigns(startDate: string, endDate: string): Promise<Array<{ id: number; name: string; cost: number; gmv: number; transactions: number; state: string }>> {
+    const cookies = await this.preflight(
+      `${MARKETING_BASE}/external/advertising/products/campaigns`,
+      'external-ads',
+    );
+    const url = `${MARKETING_BASE}/external/advertising/products/api/v1/merchant/${this.merchantId}/campaigns?startDate=${startDate}&endDate=${endDate}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        ...DEFAULT_HEADERS,
+        'x-front-version': '0.0.134',
+        'Cookie': cookies,
+        'Referer': `${MARKETING_BASE}/external/advertising/products/campaigns`,
+      },
+    });
+
+    if (!response.ok) {
+      const hdrs: Record<string, string> = {};
+      response.headers.forEach((v, k) => { hdrs[k] = v; });
+      const text = await response.text().catch(() => '');
+      throw new Error(`External campaigns HTTP ${response.status} hdrs=${JSON.stringify(hdrs)} body=${text.slice(0, 200)}`);
+    }
+
+    const json = await response.json() as { result: string; data: any[] };
+    if (json.result !== 'Ok') {
+      throw new Error(`Failed to fetch external campaigns: ${json.result}`);
+    }
+    return (json.data || []).map(c => ({
+      id: c.id, name: c.name, cost: c.cost || 0, gmv: c.gmv || 0,
+      transactions: c.transactions || 0, state: c.state || '',
+    }));
+  }
+
+  /**
+   * Получить обзор бонусов от продавца за период
+   */
+  async getSellerBonusesOverview(startDate: string, endDate: string): Promise<{ cost: number; gmv: number; transactions: number }> {
+    const cookies = await this.preflight(
+      `${MARKETING_BASE}/bonuses/products/promotions/overview`,
+      'seller-bonuses',
+    );
+    const url = `${MARKETING_BASE}/bonuses/products/api/v1/merchant/${this.merchantId}/overview?StartDate=${startDate}&EndDate=${endDate}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        ...DEFAULT_HEADERS,
+        'x-front-version': '0.0.134',
+        'Cookie': cookies,
+        'Referer': `${MARKETING_BASE}/bonuses/products/promotions/overview`,
+      },
+    });
+
+    if (!response.ok) {
+      const hdrs: Record<string, string> = {};
+      response.headers.forEach((v, k) => { hdrs[k] = v; });
+      const text = await response.text().catch(() => '');
+      throw new Error(`Seller bonuses HTTP ${response.status} hdrs=${JSON.stringify(hdrs)} body=${text.slice(0, 200)}`);
+    }
+
+    const json = await response.json();
+    return {
+      cost: json.bonusAmount || 0,
+      gmv: json.gmv || 0,
+      transactions: json.transactions || 0,
+    };
+  }
+
+  /**
+   * Получить обзор бонусов за отзыв за период
+   */
+  async getReviewBonusesOverview(startDate: string, endDate: string): Promise<{ cost: number }> {
+    const cookies = await this.preflight(
+      `${MARKETING_BASE}/bonuses/reviews/promotions/overview`,
+      'review-bonuses',
+    );
+    const url = `${MARKETING_BASE}/bonuses/reviews/api/v2/merchant/${this.merchantId}/overview?StartDate=${startDate}&EndDate=${endDate}`;
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        ...DEFAULT_HEADERS,
+        'x-front-version': '0.0.134',
+        'Cookie': cookies,
+        'Referer': `${MARKETING_BASE}/bonuses/reviews/promotions/overview`,
+      },
+    });
+
+    if (!response.ok) {
+      const hdrs: Record<string, string> = {};
+      response.headers.forEach((v, k) => { hdrs[k] = v; });
+      const text = await response.text().catch(() => '');
+      throw new Error(`Review bonuses HTTP ${response.status} hdrs=${JSON.stringify(hdrs)} body=${text.slice(0, 200)}`);
+    }
+
+    const json = await response.json();
+    return { cost: json.bonusAmount || 0 };
+  }
+
+  /**
+   * Получить расходы по всем каналам маркетинга за период
+   */
+  async getAllChannelsCost(startDate: string, endDate: string): Promise<{
+    productAds: { cost: number; gmv: number; transactions: number };
+    externalAds: { cost: number; gmv: number; transactions: number };
+    sellerBonuses: { cost: number; gmv: number; transactions: number };
+    reviewBonuses: { cost: number };
+    totalCost: number;
+    totalGmv: number;
+    totalTransactions: number;
+  }> {
+    const [productRes, externalRes, sellerRes, reviewRes] = await Promise.allSettled([
+      this.getCampaigns(startDate, endDate).then(campaigns => {
+        const s = KaspiMarketingClient.aggregateCampaigns(campaigns);
+        return { cost: s.totalCost, gmv: s.totalGmv, transactions: s.totalTransactions };
+      }),
+      this.getExternalCampaigns(startDate, endDate).then(campaigns => {
+        let cost = 0, gmv = 0, transactions = 0;
+        for (const c of campaigns) { cost += c.cost; gmv += c.gmv; transactions += c.transactions; }
+        return { cost, gmv, transactions };
+      }),
+      this.getSellerBonusesOverview(startDate, endDate),
+      this.getReviewBonusesOverview(startDate, endDate),
+    ]);
+
+    const productAds = productRes.status === 'fulfilled' ? productRes.value : { cost: 0, gmv: 0, transactions: 0 };
+    const externalAds = externalRes.status === 'fulfilled' ? externalRes.value : { cost: 0, gmv: 0, transactions: 0 };
+    const sellerBonuses = sellerRes.status === 'fulfilled' ? sellerRes.value : { cost: 0, gmv: 0, transactions: 0 };
+    const reviewBonuses = reviewRes.status === 'fulfilled' ? reviewRes.value : { cost: 0 };
+
+    // Log errors but don't fail
+    if (productRes.status === 'rejected') console.error('[Marketing] Product ads error:', productRes.reason);
+    if (externalRes.status === 'rejected') console.error('[Marketing] External ads error:', externalRes.reason);
+    if (sellerRes.status === 'rejected') console.error('[Marketing] Seller bonuses error:', sellerRes.reason);
+    if (reviewRes.status === 'rejected') console.error('[Marketing] Review bonuses error:', reviewRes.reason);
+
+    return {
+      productAds,
+      externalAds,
+      sellerBonuses,
+      reviewBonuses,
+      totalCost: productAds.cost + externalAds.cost + sellerBonuses.cost + reviewBonuses.cost,
+      totalGmv: productAds.gmv + externalAds.gmv + sellerBonuses.gmv,
+      totalTransactions: productAds.transactions + externalAds.transactions + sellerBonuses.transactions,
+    };
   }
 
   /**

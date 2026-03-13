@@ -69,7 +69,7 @@ const subscriptionPlans: SubscriptionPlan[] = [
       'Аналитика за 90 дней',
       'Финансовые отчёты P&L',
       'Учёт расходов',
-      'Реклама (Kaspi Marketing)',
+      'Маркетинг (Kaspi Marketing)',
       'До 2 сотрудников',
     ],
     popular: true,
