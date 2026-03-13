@@ -93,39 +93,31 @@ export async function GET(request: NextRequest) {
     // ── 1. Получаем данные с Kaspi ───────────────────────────────────────────
     let liveData = await fetchLiveData(client, start, end);
 
-    // ── 2. Если все каналы вернули "Index was outside the bounds" →
-    //       merchantId устарел, тихо обновляем сессию и повторяем ─────────────
-    const allIndexErrors = liveData.channelErrors.length >= 2 &&
-      liveData.channelErrors.every(e => /index was outside|bounds of the array/i.test(e));
+    // ── 2. Если ВСЕ 4 канала упали → merchantId устарел, тихо обновляем ──────
+    // (externalAds возвращает "result=Error", остальные HTTP 500 с "Index was outside")
+    const allChannelsFailed = liveData.channelErrors.length >= 4 && liveData.summary.totalCost === 0;
 
-    if (allIndexErrors && session.username && session.password) {
+    if (allChannelsFailed && session.username && session.password) {
       const COOLDOWN_MS = 30 * 60 * 1000;
       const lastAttempt = session.last_reconnect_attempt ? new Date(session.last_reconnect_attempt).getTime() : 0;
       if (Date.now() - lastAttempt >= COOLDOWN_MS) {
-        console.log('[Marketing] All channels fail with IndexOutOfBounds — refreshing merchantId via re-login...');
+        console.log(`[Marketing] All 4 channels failed, re-logging to refresh merchantId (current=${session.merchant_id})...`);
         const stamped = { ...session, last_reconnect_attempt: new Date().toISOString() };
         await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(stamped)) }).eq('user_id', userId);
         try {
           const { KaspiMarketingClient: KMC } = await import('@/lib/kaspi/marketing-client');
           const { session: newSession } = await KMC.login(session.username, session.password);
           await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(newSession)) }).eq('user_id', userId);
+          console.log(`[Marketing] Re-login done, merchantId: ${session.merchant_id} → ${newSession.merchant_id}`);
           session = newSession;
           client = new KaspiMarketingClient(newSession);
           liveData = await fetchLiveData(client, start, end);
-          console.log(`[Marketing] Re-login done, new merchantId=${newSession.merchant_id}`);
         } catch (reloginErr) {
           console.error('[Marketing] Re-login failed:', reloginErr instanceof Error ? reloginErr.message : reloginErr);
         }
       } else {
-        console.log('[Marketing] IndexOutOfBounds but reconnect on cooldown');
+        console.log('[Marketing] All channels failed but reconnect on cooldown');
       }
-    }
-
-    // ── 2. Если данные получены — сохраняем в БД (fire and forget) ──────────
-    if (liveData) {
-      saveToDb(store.id, start, end, liveData).catch(e =>
-        console.error('[Marketing] DB save failed:', e instanceof Error ? e.message : e)
-      );
     }
 
     // ── 3. Сохраняем в БД если есть данные ──────────────────────────────────
