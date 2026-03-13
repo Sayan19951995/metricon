@@ -576,7 +576,9 @@ export class KaspiMarketingClient {
       throw new Error(`External campaigns HTTP ${response.status} body=${text.slice(0, 200)}`);
     }
 
-    const json = await response.json() as { result: string; data: any[]; message?: string };
+    const text2 = await response.text();
+    console.log(`[Marketing] getExternalCampaigns raw=${text2.slice(0, 500)}`);
+    const json = JSON.parse(text2) as { result: string; data: any[]; message?: string };
     if (json.result !== 'Ok') {
       throw new Error(`External campaigns result=${json.result} | ${json.message || ''}`);
     }
@@ -611,7 +613,9 @@ export class KaspiMarketingClient {
       throw new Error(`Seller bonuses HTTP ${response.status} body=${text.slice(0, 200)}`);
     }
 
-    const json = await response.json();
+    const sellerText = await response.text();
+    console.log(`[Marketing] getSellerBonuses raw=${sellerText.slice(0, 500)}`);
+    const json = JSON.parse(sellerText);
     return {
       cost: json.bonusAmount || 0,
       gmv: json.gmv || 0,
@@ -644,7 +648,9 @@ export class KaspiMarketingClient {
       throw new Error(`Review bonuses HTTP ${response.status} body=${text.slice(0, 200)}`);
     }
 
-    const json = await response.json();
+    const reviewText = await response.text();
+    console.log(`[Marketing] getReviewBonuses raw=${reviewText.slice(0, 500)}`);
+    const json = JSON.parse(reviewText);
     return { cost: json.bonusAmount || 0 };
   }
 
