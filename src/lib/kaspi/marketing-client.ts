@@ -338,13 +338,17 @@ export class KaspiMarketingClient {
    * Получить все кампании за период
    */
   async getCampaigns(startDate: string, endDate: string): Promise<MarketingCampaign[]> {
+    const cookies = await this.preflight(
+      `${MARKETING_BASE}/advertising/campaigns?tab=campaigns`,
+      'campaigns',
+    );
     const url = `${MARKETING_BASE}/advertising/products/api/v5/merchant/${this.merchantId}/Campaigns?StartDate=${startDate}&EndDate=${endDate}`;
 
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         ...DEFAULT_HEADERS,
-        'Cookie': this.cookies,
+        'Cookie': cookies,
         'Referer': `${MARKETING_BASE}/advertising/campaigns?tab=campaigns`,
       },
     });

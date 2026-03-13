@@ -99,21 +99,41 @@ export async function GET(request: NextRequest) {
     const start = startDate || defaultStart;
     const end = endDate || defaultEnd;
 
-    // Fetch кампаний — без авто-reconnect (он вызывает 429 от Kaspi при серверных запросах)
+    // Fetch кампаний — с однократным авто-reconnect (кулдаун 1ч чтобы не долбить Kaspi)
     let campaigns;
     try {
       campaigns = await client.getCampaigns(start, end);
-    } catch (err) {
-      // Сессия истекла — очищаем из БД чтобы страница показала форму логина
-      console.log('[Marketing] Session expired, clearing session:', err instanceof Error ? err.message : err);
-      await supabaseAdmin.from('stores')
-        .update({ marketing_session: null })
-        .eq('user_id', userId);
-      return NextResponse.json({
-        success: false,
-        message: 'Сессия маркетинга истекла. Войдите заново.',
-        sessionExpired: true,
-      }, { status: 401 });
+    } catch (firstErr) {
+      console.log('[Marketing] getCampaigns failed:', firstErr instanceof Error ? firstErr.message : firstErr);
+
+      // Проверяем кулдаун (1 час) чтобы не вызывать 429
+      const ONE_HOUR_MS = 60 * 60 * 1000;
+      const lastAttempt = session.last_reconnect_attempt ? new Date(session.last_reconnect_attempt).getTime() : 0;
+      const onCooldown = Date.now() - lastAttempt < ONE_HOUR_MS;
+
+      if (onCooldown || !session.username || !session.password) {
+        // Очищаем сессию — пусть пользователь зайдёт заново
+        await supabaseAdmin.from('stores').update({ marketing_session: null }).eq('user_id', userId);
+        return NextResponse.json({ success: false, message: 'Сессия маркетинга истекла. Войдите заново.', sessionExpired: true }, { status: 401 });
+      }
+
+      // Однократная попытка переподключения
+      console.log('[Marketing] Attempting reconnect...');
+      const stampedSession = { ...session, last_reconnect_attempt: new Date().toISOString() };
+      await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(stampedSession)) }).eq('user_id', userId);
+
+      try {
+        const { KaspiMarketingClient: KMC } = await import('@/lib/kaspi/marketing-client');
+        const newSession = await KMC.login(session.username, session.password);
+        await supabaseAdmin.from('stores').update({ marketing_session: JSON.parse(JSON.stringify(newSession.session)) }).eq('user_id', userId);
+        client = new KaspiMarketingClient(newSession.session);
+        campaigns = await client.getCampaigns(start, end);
+        console.log('[Marketing] Reconnected successfully');
+      } catch (reconnectErr) {
+        console.error('[Marketing] Reconnect failed:', reconnectErr instanceof Error ? reconnectErr.message : reconnectErr);
+        await supabaseAdmin.from('stores').update({ marketing_session: null }).eq('user_id', userId);
+        return NextResponse.json({ success: false, message: 'Сессия маркетинга истекла. Войдите заново.', sessionExpired: true }, { status: 401 });
+      }
     }
 
     const summary = KaspiMarketingClient.aggregateCampaigns(campaigns);
