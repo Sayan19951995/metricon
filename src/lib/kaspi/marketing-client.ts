@@ -377,24 +377,26 @@ export class KaspiMarketingClient {
       throw new Error('No merchant found in marketing login response');
     }
 
-    // Log all available IDs for debugging
+    // pay.merchantId is the advertising merchant ID (used for /advertising/products API).
+    // shop.merchants[0].id may differ (different entity). Prefer pay.merchantId.
+    const payMerchantId = json.data.pay?.merchantId;
+    const shopMerchantId = merchant.id;
+    const merchantId = payMerchantId || shopMerchantId;
+
     console.log('[Marketing] Login IDs:', {
-      'shop.merchants[0].id': merchant.id,
-      'shop.merchants[0].merchantBusinessId': merchant.merchantBusinessId,
+      'pay.merchantId': payMerchantId,
+      'shop.merchants[0].id': shopMerchantId,
+      'using': merchantId,
       'shop.merchantBusinessId': json.data.shop?.merchantBusinessId,
-      'pay.merchantId': json.data.pay?.merchantId,
       'merchantsCount': json.data.shop?.merchants?.length,
     });
 
-    // Warmup: visit the advertising portal to initialize session server-side,
-    // exactly as a browser would after login. This picks up any WAF/session-init
-    // cookies that Kaspi sets on first page load.
     const warmedCookies = await KaspiMarketingClient.warmupSession(allCookiesStr);
 
     const session: MarketingSession = {
       user_token: userToken,
       session_id: sessionId,
-      merchant_id: merchant.id,
+      merchant_id: merchantId,
       merchant_business_id: merchant.merchantBusinessId || json.data.shop?.merchantBusinessId,
       marketing_user_id: json.data.userId,
       merchant_name: merchant.merchantName,
