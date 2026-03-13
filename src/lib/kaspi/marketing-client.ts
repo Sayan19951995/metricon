@@ -377,16 +377,11 @@ export class KaspiMarketingClient {
       throw new Error('No merchant found in marketing login response');
     }
 
-    // pay.merchantId is the advertising merchant ID (used for /advertising/products API).
-    // shop.merchants[0].id may differ (different entity). Prefer pay.merchantId.
-    const payMerchantId = json.data.pay?.merchantId;
-    const shopMerchantId = merchant.id;
-    const merchantId = payMerchantId || shopMerchantId;
-
+    // shop.merchants[0].id is the correct ID for all Kaspi Marketing APIs.
+    // pay.merchantId is a billing ID — NOT valid for advertising/bonus APIs.
     console.log('[Marketing] Login IDs:', {
-      'pay.merchantId': payMerchantId,
-      'shop.merchants[0].id': shopMerchantId,
-      'using': merchantId,
+      'shop.merchants[0].id (using)': merchant.id,
+      'pay.merchantId (billing, ignored)': json.data.pay?.merchantId,
       'shop.merchantBusinessId': json.data.shop?.merchantBusinessId,
       'merchantsCount': json.data.shop?.merchants?.length,
     });
@@ -396,7 +391,7 @@ export class KaspiMarketingClient {
     const session: MarketingSession = {
       user_token: userToken,
       session_id: sessionId,
-      merchant_id: merchantId,
+      merchant_id: merchant.id,
       merchant_business_id: merchant.merchantBusinessId || json.data.shop?.merchantBusinessId,
       marketing_user_id: json.data.userId,
       merchant_name: merchant.merchantName,
