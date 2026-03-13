@@ -349,43 +349,51 @@ export class KaspiMarketingClient {
    * Получить все кампании за период
    */
   async getCampaigns(startDate: string, endDate: string): Promise<MarketingCampaign[]> {
-    // No preflight — preflight was redirecting to /sign-in and polluting cookies
-    const url = `${MARKETING_BASE}/advertising/products/api/v5/merchant/${this.merchantId}/Campaigns?StartDate=${startDate}&EndDate=${endDate}`;
-    console.log(`[Marketing] getCampaigns url=${url} merchantId=${this.merchantId}`);
+    // Try v5 first, fallback to v4 if Kaspi returns error (some merchants are on v4)
+    for (const apiVersion of ['v5', 'v4']) {
+      const url = `${MARKETING_BASE}/advertising/products/api/${apiVersion}/merchant/${this.merchantId}/Campaigns?StartDate=${startDate}&EndDate=${endDate}`;
+      console.log(`[Marketing] getCampaigns ${apiVersion} url=${url}`);
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        ...DEFAULT_HEADERS,
-        'Cookie': this.cookies,
-        'Referer': `${MARKETING_BASE}/advertising/campaigns?tab=campaigns`,
-      },
-    });
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          ...DEFAULT_HEADERS,
+          'Cookie': this.cookies,
+          'Referer': `${MARKETING_BASE}/advertising/campaigns?tab=campaigns`,
+        },
+      });
 
-    console.log(`[Marketing] getCampaigns HTTP ${response.status} for merchant ${this.merchantId}`);
+      console.log(`[Marketing] getCampaigns ${apiVersion} HTTP ${response.status}`);
 
-    if (!response.ok) {
-      const text = await response.text().catch(() => '');
-      console.error(`[Marketing] getCampaigns non-OK: ${response.status} body=${text.slice(0, 300)}`);
-      throw new Error(`getCampaigns HTTP ${response.status}`);
+      if (!response.ok) {
+        const text = await response.text().catch(() => '');
+        console.error(`[Marketing] getCampaigns ${apiVersion} non-OK: ${response.status} body=${text.slice(0, 200)}`);
+        if (apiVersion === 'v5') continue; // try v4
+        throw new Error(`getCampaigns HTTP ${response.status}`);
+      }
+
+      const text = await response.text();
+      let json: { result: string; data: MarketingCampaign[] };
+      try {
+        json = JSON.parse(text) as { result: string; data: MarketingCampaign[] };
+      } catch {
+        console.error(`[Marketing] getCampaigns ${apiVersion} non-JSON: ${text.slice(0, 200)}`);
+        if (apiVersion === 'v5') continue;
+        throw new Error('getCampaigns response not JSON');
+      }
+
+      if (json.result !== 'Ok') {
+        const detail = (json as Record<string, unknown>).message || text.slice(0, 200);
+        console.error(`[Marketing] getCampaigns ${apiVersion} result=${json.result} detail=${detail}`);
+        if (apiVersion === 'v5') continue; // try v4
+        throw new Error(`getCampaigns: result=${json.result} | ${detail}`);
+      }
+
+      console.log(`[Marketing] getCampaigns ${apiVersion} OK, campaigns=${json.data?.length ?? 0}`);
+      return json.data || [];
     }
 
-    const text = await response.text();
-    let json: { result: string; data: MarketingCampaign[] };
-    try {
-      json = JSON.parse(text) as { result: string; data: MarketingCampaign[] };
-    } catch {
-      console.error(`[Marketing] getCampaigns non-JSON: ${text.slice(0, 300)}`);
-      throw new Error('getCampaigns response not JSON');
-    }
-
-    if (json.result !== 'Ok') {
-      const detail = (json as Record<string, unknown>).message || (json as Record<string, unknown>).errorCode || text.slice(0, 200);
-      console.error(`[Marketing] getCampaigns result=${json.result} merchantId=${this.merchantId} detail=${detail}`);
-      throw new Error(`getCampaigns merchantId=${this.merchantId}: result=${json.result} | ${detail}`);
-    }
-
-    return json.data || [];
+    throw new Error('getCampaigns: both v5 and v4 failed');
   }
 
   /**
@@ -482,32 +490,30 @@ export class KaspiMarketingClient {
    * Получить кампании внешней рекламы за период
    */
   async getExternalCampaigns(startDate: string, endDate: string): Promise<Array<{ id: number; name: string; cost: number; gmv: number; transactions: number; state: string }>> {
-    const cookies = await this.preflight(
-      `${MARKETING_BASE}/external/advertising/products/campaigns`,
-      'external-ads',
-    );
+    // No preflight — preflight adds no new cookies (status=200, newCookies=none)
     const url = `${MARKETING_BASE}/external/advertising/products/api/v1/merchant/${this.merchantId}/campaigns?startDate=${startDate}&endDate=${endDate}`;
+    console.log(`[Marketing] getExternalCampaigns url=${url}`);
 
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         ...DEFAULT_HEADERS,
         'x-front-version': '0.0.134',
-        'Cookie': cookies,
+        'Cookie': this.cookies,
         'Referer': `${MARKETING_BASE}/external/advertising/products/campaigns`,
       },
     });
 
+    console.log(`[Marketing] getExternalCampaigns HTTP ${response.status}`);
+
     if (!response.ok) {
-      const hdrs: Record<string, string> = {};
-      response.headers.forEach((v, k) => { hdrs[k] = v; });
       const text = await response.text().catch(() => '');
-      throw new Error(`External campaigns HTTP ${response.status} hdrs=${JSON.stringify(hdrs)} body=${text.slice(0, 200)}`);
+      throw new Error(`External campaigns HTTP ${response.status} body=${text.slice(0, 200)}`);
     }
 
-    const json = await response.json() as { result: string; data: any[] };
+    const json = await response.json() as { result: string; data: any[]; message?: string };
     if (json.result !== 'Ok') {
-      throw new Error(`Failed to fetch external campaigns: ${json.result}`);
+      throw new Error(`External campaigns result=${json.result} | ${json.message || ''}`);
     }
     return (json.data || []).map(c => ({
       id: c.id, name: c.name, cost: c.cost || 0, gmv: c.gmv || 0,
@@ -519,27 +525,25 @@ export class KaspiMarketingClient {
    * Получить обзор бонусов от продавца за период
    */
   async getSellerBonusesOverview(startDate: string, endDate: string): Promise<{ cost: number; gmv: number; transactions: number }> {
-    const cookies = await this.preflight(
-      `${MARKETING_BASE}/bonuses/products/promotions/overview`,
-      'seller-bonuses',
-    );
+    // No preflight
     const url = `${MARKETING_BASE}/bonuses/products/api/v1/merchant/${this.merchantId}/overview?StartDate=${startDate}&EndDate=${endDate}`;
+    console.log(`[Marketing] getSellerBonuses url=${url}`);
 
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         ...DEFAULT_HEADERS,
         'x-front-version': '0.0.134',
-        'Cookie': cookies,
+        'Cookie': this.cookies,
         'Referer': `${MARKETING_BASE}/bonuses/products/promotions/overview`,
       },
     });
 
+    console.log(`[Marketing] getSellerBonuses HTTP ${response.status}`);
+
     if (!response.ok) {
-      const hdrs: Record<string, string> = {};
-      response.headers.forEach((v, k) => { hdrs[k] = v; });
       const text = await response.text().catch(() => '');
-      throw new Error(`Seller bonuses HTTP ${response.status} hdrs=${JSON.stringify(hdrs)} body=${text.slice(0, 200)}`);
+      throw new Error(`Seller bonuses HTTP ${response.status} body=${text.slice(0, 200)}`);
     }
 
     const json = await response.json();
@@ -554,27 +558,25 @@ export class KaspiMarketingClient {
    * Получить обзор бонусов за отзыв за период
    */
   async getReviewBonusesOverview(startDate: string, endDate: string): Promise<{ cost: number }> {
-    const cookies = await this.preflight(
-      `${MARKETING_BASE}/bonuses/reviews/promotions/overview`,
-      'review-bonuses',
-    );
+    // No preflight
     const url = `${MARKETING_BASE}/bonuses/reviews/api/v2/merchant/${this.merchantId}/overview?StartDate=${startDate}&EndDate=${endDate}`;
+    console.log(`[Marketing] getReviewBonuses url=${url}`);
 
     const response = await fetch(url, {
       method: 'GET',
       headers: {
         ...DEFAULT_HEADERS,
         'x-front-version': '0.0.134',
-        'Cookie': cookies,
+        'Cookie': this.cookies,
         'Referer': `${MARKETING_BASE}/bonuses/reviews/promotions/overview`,
       },
     });
 
+    console.log(`[Marketing] getReviewBonuses HTTP ${response.status}`);
+
     if (!response.ok) {
-      const hdrs: Record<string, string> = {};
-      response.headers.forEach((v, k) => { hdrs[k] = v; });
       const text = await response.text().catch(() => '');
-      throw new Error(`Review bonuses HTTP ${response.status} hdrs=${JSON.stringify(hdrs)} body=${text.slice(0, 200)}`);
+      throw new Error(`Review bonuses HTTP ${response.status} body=${text.slice(0, 200)}`);
     }
 
     const json = await response.json();
