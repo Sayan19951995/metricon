@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
             ? new Date(parseInt(order.creationDate)).toISOString()
             : new Date().toISOString();
           orderData.items = [];
-          await supabaseAdmin.from('orders').upsert(orderData, { onConflict: 'store_id,kaspi_order_id' });
+          await supabaseAdmin.from('orders').upsert(orderData as any, { onConflict: 'store_id,kaspi_order_id' });
         } else if (existing.status !== status) {
           await supabaseAdmin.from('orders')
             .update({ status, delivery_mode: orderData.delivery_mode, delivery_cost: orderData.delivery_cost })
