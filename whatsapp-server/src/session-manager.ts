@@ -310,9 +310,13 @@ class SessionManager {
           if (!isPersistent && info.retryCount >= MAX_RETRIES) {
             console.log(`[${storeId}] Max retries reached, giving up`);
             info.status = 'disconnected';
+            info.socket = null;
             info.connectPromise = null;
           } else {
             info.retryCount++;
+            // Mark as connecting immediately so ensureConnected doesn't use the dead socket
+            info.status = 'connecting';
+            info.socket = null;
             // For 428 (WA server closed), use longer backoff — WA needs time to release the session
             const base = statusCode === 428 ? 10000 : 3000;
             const delay = Math.min(base * Math.min(info.retryCount, 6), 60000);
