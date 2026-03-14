@@ -313,7 +313,9 @@ class SessionManager {
             info.connectPromise = null;
           } else {
             info.retryCount++;
-            const delay = Math.min(3000 * Math.min(info.retryCount, 5), 15000);
+            // For 428 (WA server closed), use longer backoff — WA needs time to release the session
+            const base = statusCode === 428 ? 10000 : 3000;
+            const delay = Math.min(base * Math.min(info.retryCount, 6), 60000);
             console.log(`[${storeId}] Reconnect attempt ${info.retryCount}${isPersistent ? ' (persistent, will retry forever)' : `/${MAX_RETRIES}`} in ${delay}ms...`);
             setTimeout(() => {
               const current = this.sessions.get(storeId);
