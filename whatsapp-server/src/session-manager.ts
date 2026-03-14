@@ -18,7 +18,8 @@ const PERSISTENT_SESSIONS = new Set(['metricon-global']);
 interface SessionInfo {
   socket: WASocket | null;
   qr: string | null;           // base64 QR image
-  status: 'disconnected' | 'qr_pending' | 'connecting' | 'connected';
+  pairingCode: string | null;  // pairing code for phone-based auth
+  status: 'disconnected' | 'qr_pending' | 'connecting' | 'connected' | 'code_pending';
   idleTimer: ReturnType<typeof setTimeout> | null;
   connectPromise: Promise<void> | null;
   retryCount: number;
@@ -27,27 +28,52 @@ interface SessionInfo {
 
 const MAX_RETRIES = 5;
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // for non-persistent sessions only
+const HEALTH_CHECK_INTERVAL_MS = 2 * 60 * 1000; // 2 min health check for persistent sessions
 
 class SessionManager {
   private sessions = new Map<string, SessionInfo>();
+
+  constructor() {
+    // Periodic health check for persistent sessions to catch dead sockets
+    setInterval(() => {
+      for (const storeId of PERSISTENT_SESSIONS) {
+        const session = this.sessions.get(storeId);
+        if (!session) return;
+        if (session.status === 'connected') {
+          const ws = (session.socket as any)?.ws;
+          const readyState = ws?.readyState;
+          if (readyState !== undefined && readyState !== 1 /* OPEN */) {
+            console.log(`[${storeId}] Health check: WebSocket readyState=${readyState}, forcing reconnect`);
+            session.status = 'connecting';
+            session.socket?.end(undefined);
+            this.connect(storeId, session);
+          }
+        }
+      }
+    }, HEALTH_CHECK_INTERVAL_MS);
+  }
 
   /**
    * Начать новую сессию (для QR-сканирования).
    * Если уже подключен — возвращает текущий статус.
    */
-  async startSession(storeId: string): Promise<{ qr: string | null; status: string }> {
+  async startSession(storeId: string, phone?: string | null): Promise<{ qr: string | null; pairingCode: string | null; status: string }> {
     const existing = this.sessions.get(storeId);
     if (existing?.status === 'connected') {
       this.resetIdleTimer(storeId);
-      return { qr: null, status: 'connected' };
+      return { qr: null, pairingCode: null, status: 'connected' };
     }
     if (existing?.status === 'qr_pending' && existing.qr) {
-      return { qr: existing.qr, status: 'qr_pending' };
+      return { qr: existing.qr, pairingCode: null, status: 'qr_pending' };
+    }
+    if (existing?.status === 'code_pending' && existing.pairingCode) {
+      return { qr: null, pairingCode: existing.pairingCode, status: 'code_pending' };
     }
 
     const info: SessionInfo = {
       socket: null,
       qr: null,
+      pairingCode: null,
       status: 'connecting',
       idleTimer: null,
       connectPromise: null,
@@ -56,16 +82,16 @@ class SessionManager {
     };
     this.sessions.set(storeId, info);
 
-    await this.connect(storeId, info);
+    await this.connect(storeId, info, phone ?? undefined);
 
-    // Ждём QR или подключение (макс 8 сек)
-    await this.waitForQrOrConnect(storeId, 8000);
+    // Ждём QR/pairingCode или подключение (макс 12 сек)
+    await this.waitForQrOrConnect(storeId, 12000);
 
     const current = this.sessions.get(storeId);
     if (!current) {
-      return { qr: null, status: 'disconnected' };
+      return { qr: null, pairingCode: null, status: 'disconnected' };
     }
-    return { qr: current.qr, status: current.status };
+    return { qr: current.qr, pairingCode: current.pairingCode, status: current.status };
   }
 
   /**
@@ -90,6 +116,7 @@ class SessionManager {
     const info: SessionInfo = {
       socket: null,
       qr: null,
+      pairingCode: null,
       status: 'connecting',
       idleTimer: null,
       connectPromise: null,
@@ -130,6 +157,29 @@ class SessionManager {
       return true;
     } catch (err) {
       console.error(`[${storeId}] Send error:`, err);
+
+      // If the socket is dead (428 Connection Closed), force a reconnect and retry once
+      const statusCode = (err as any)?.output?.statusCode;
+      if (statusCode === 428) {
+        console.log(`[${storeId}] Dead socket detected on send, forcing reconnect...`);
+        const current = this.sessions.get(storeId);
+        if (current) {
+          current.status = 'connecting';
+          current.socket?.end(undefined);
+          await this.connect(storeId, current);
+          await this.waitForConnect(storeId, 15000);
+          if (this.sessions.get(storeId)?.status === 'connected') {
+            try {
+              const jid = this.normalizePhone(phone);
+              await this.sessions.get(storeId)!.socket!.sendMessage(jid, { text: message });
+              console.log(`[${storeId}] Message sent after reconnect to ${jid}`);
+              return true;
+            } catch (err2) {
+              console.error(`[${storeId}] Send error after reconnect:`, err2);
+            }
+          }
+        }
+      }
       return false;
     }
   }
@@ -137,16 +187,17 @@ class SessionManager {
   /**
    * Получить статус сессии.
    */
-  async getStatus(storeId: string): Promise<{ status: string; qr: string | null }> {
+  async getStatus(storeId: string): Promise<{ status: string; qr: string | null; pairingCode: string | null }> {
     const session = this.sessions.get(storeId);
     if (!session) {
       const hasCreds = await hasSupabaseAuthState(storeId);
       return {
         status: hasCreds ? 'disconnected' : 'not_registered',
         qr: null,
+        pairingCode: null,
       };
     }
-    return { status: session.status, qr: session.qr };
+    return { status: session.status, qr: session.qr, pairingCode: session.pairingCode };
   }
 
   /**
@@ -177,7 +228,7 @@ class SessionManager {
 
   // === Private methods ===
 
-  private async connect(storeId: string, info: SessionInfo): Promise<void> {
+  private async connect(storeId: string, info: SessionInfo, phone?: string): Promise<void> {
     const { state, saveCreds } = await useSupabaseAuthState(storeId);
 
     let version: [number, number, number];
@@ -205,12 +256,28 @@ class SessionManager {
 
     socket.ev.on('creds.update', saveCreds);
 
+    // If phone provided — request pairing code instead of QR
+    if (phone) {
+      const cleanPhone = phone.replace(/\D/g, '');
+      setTimeout(async () => {
+        try {
+          const code = await socket.requestPairingCode(cleanPhone);
+          info.pairingCode = code;
+          info.status = 'code_pending';
+          console.log(`[${storeId}] Pairing code generated for ${cleanPhone}: ${code}`);
+        } catch (err) {
+          console.error(`[${storeId}] requestPairingCode error:`, err);
+          // Fall back to QR — status will be set when qr event fires
+        }
+      }, 3000);
+    }
+
     socket.ev.on('connection.update', async (update: Partial<ConnectionState>) => {
       const { connection, lastDisconnect, qr } = update;
 
       console.log(`[${storeId}] connection.update:`, JSON.stringify({ connection, qr: qr ? 'present' : null, lastDisconnect: lastDisconnect?.error?.message }));
 
-      if (qr) {
+      if (qr && !phone) {
         try {
           info.qr = await QRCode.toDataURL(qr);
           info.status = 'qr_pending';
@@ -223,6 +290,7 @@ class SessionManager {
       if (connection === 'open') {
         info.status = 'connected';
         info.qr = null;
+        info.pairingCode = null;
         info.connectPromise = null;
         info.retryCount = 0;
         info.loggedOutRetries = 0;
@@ -316,7 +384,7 @@ class SessionManager {
       const start = Date.now();
       const check = () => {
         const session = this.sessions.get(storeId);
-        if (!session || session.status === 'connected' || session.qr) {
+        if (!session || session.status === 'connected' || session.qr || session.pairingCode) {
           resolve();
           return;
         }
